@@ -17,6 +17,7 @@ class ApiCaller {
 
     this._axiosInstance = axios.create({
       timeout: timeout,
+      withCredentials: true,
     });
   }
 

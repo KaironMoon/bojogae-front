@@ -1,99 +1,155 @@
-import { Box, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Divider } from "@mui/material";
-import { useTheme } from "@mui/material/styles";
+import {
+  Box,
+  Divider,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
+  Typography,
+} from "@mui/material";
+import AccountCircleOutlinedIcon from "@mui/icons-material/AccountCircleOutlined";
+import AnalyticsOutlinedIcon from "@mui/icons-material/AnalyticsOutlined";
+import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
+import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
+import GroupOutlinedIcon from "@mui/icons-material/GroupOutlined";
+import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
+import { useLocation, useNavigate } from "react-router-dom";
 
-// 아이콘 import
-import InfoIcon from "@mui/icons-material/Info";
-import MenuBookIcon from "@mui/icons-material/MenuBook";
-import SettingsIcon from "@mui/icons-material/Settings";
-import ListIcon from "@mui/icons-material/List";
-import HomeIcon from "@mui/icons-material/Home";
+import { useAuth } from "@/auth/AuthContext";
 
-import { useNavigate } from "react-router-dom";
+
+const PRIMARY_MENU = [
+  { label: "Home", path: "/home", icon: HomeOutlinedIcon },
+  { label: "Info", path: "/info", icon: InfoOutlinedIcon },
+  { label: "제안서 만들기", path: "/proposals", icon: DescriptionOutlinedIcon },
+  { label: "내 정보", path: "/profile", icon: AccountCircleOutlinedIcon },
+];
+
+const ADMIN_MENU = [
+  { label: "고객 관리", path: "/admin/users", icon: GroupOutlinedIcon },
+  { label: "프롬프트 관리", path: "/admin/prompts", icon: AutoAwesomeOutlinedIcon },
+  { label: "제안서 관리", path: "/admin/proposals", icon: DescriptionOutlinedIcon },
+  { label: "사용량 / 통계", path: "/admin/usage", icon: AnalyticsOutlinedIcon },
+  { label: "설정 및 서식", path: "/admin/proposal-settings", icon: TuneOutlinedIcon },
+];
 
 function PageLeftMenu() {
-  const theme = useTheme();
   const navigate = useNavigate();
-  const debugMode = true;
+  const location = useLocation();
+  const { user } = useAuth();
 
-  const handleNavClick = (path) => {
-    navigate(path);
+  const isActive = (path) => (
+    location.pathname === path || (path !== "/home" && location.pathname.startsWith(`${path}/`))
+  );
+
+  const renderMenuItem = ({ label, path, icon: Icon }) => {
+    const active = isActive(path);
+    return (
+      <ListItem key={path} disablePadding sx={{ px: 1.25, mb: 0.35 }}>
+        <ListItemButton
+          selected={active}
+          onClick={() => navigate(path)}
+          sx={{
+            minHeight: 42,
+            px: 1.5,
+            borderRadius: 1.5,
+            color: active ? "primary.main" : "#526174",
+            position: "relative",
+            "&::after": active ? {
+              content: '""',
+              position: "absolute",
+              right: -10,
+              top: 7,
+              bottom: 7,
+              width: 3,
+              borderRadius: "3px 0 0 3px",
+              bgcolor: "primary.main",
+            } : undefined,
+            "&.Mui-selected": {
+              bgcolor: "#eef4ff",
+              color: "primary.main",
+              "&:hover": { bgcolor: "#e5edff" },
+            },
+            "&:hover": { bgcolor: "#f6f8fc", color: "#1e293b" },
+          }}
+        >
+          <ListItemIcon sx={{ minWidth: 34, color: "inherit" }}>
+            <Icon sx={{ fontSize: 20 }} />
+          </ListItemIcon>
+          <ListItemText
+            primary={label}
+            primaryTypographyProps={{
+              fontSize: 14,
+              fontWeight: active ? 750 : 550,
+              letterSpacing: "-0.01em",
+            }}
+          />
+        </ListItemButton>
+      </ListItem>
+    );
   };
 
   return (
     <Box
+      component="nav"
+      aria-label="주요 메뉴"
       sx={{
+        width: 224,
+        minWidth: 224,
         height: "100%",
+        minHeight: "calc(100vh - 64px)",
         display: "flex",
         flexDirection: "column",
-        backgroundColor: theme.palette.background.leftMenu,
-        "& .MuiListItemIcon-root": {
-          color: "military.text",
-        },
-        "& .MuiListItemText-primary": {
-          color: "text.primary",
-        },
-        "& .MuiListItemButton-root": {
-          "&:hover": {
-            backgroundColor: "military.hover",
-          },
-        },
+        bgcolor: "#fff",
+        borderRight: "1px solid #e5eaf1",
       }}
     >
-      <List>
-        <ListItem disablePadding>
-          <ListItemButton onClick={() => handleNavClick("/")}>
-            <ListItemIcon>
-              <HomeIcon />
-            </ListItemIcon>
-            <ListItemText primary="Home" />
-          </ListItemButton>
-        </ListItem>
-        <ListItem disablePadding>
-          <ListItemButton onClick={() => handleNavClick("/info")}>
-            <ListItemIcon>
-              <InfoIcon />
-            </ListItemIcon>
-            <ListItemText primary="Info" />
-          </ListItemButton>
-        </ListItem>
+      <List sx={{ pt: 2, pb: 1 }}>
+        {PRIMARY_MENU.map(renderMenuItem)}
       </List>
-      {debugMode && (
-        <div style={{ flex: 1 }}>
-          <Divider
-            sx={{
-              bgcolor: "military.border",
-              my: 1,
-            }}
-          />
-          <List>
-            <ListItem disablePadding>
-              <ListItemButton onClick={() => handleNavClick("/tactic-manuals")}>
-                <ListItemIcon>
-                  <MenuBookIcon />
-                </ListItemIcon>
-                <ListItemText primary="메뉴3" />
-              </ListItemButton>
-            </ListItem>
-            <ListItem disablePadding>
-              <ListItemButton onClick={() => handleNavClick("/session")}>
-                <ListItemIcon>
-                  <ListIcon />
-                </ListItemIcon>
-                <ListItemText primary="메뉴4" />
-              </ListItemButton>
-            </ListItem>
-            <ListItem disablePadding>
-              <ListItemButton onClick={() => handleNavClick("/client-options")}>
-                <ListItemIcon>
-                  <SettingsIcon />
-                </ListItemIcon>
-                <ListItemText primary="Client Option" />
-              </ListItemButton>
-            </ListItem>
+
+      {user?.role === "ADMIN" && (
+        <>
+          <Divider sx={{ mx: 2, my: 1 }} />
+          <Typography
+            variant="caption"
+            sx={{ px: 2.75, pt: 1.25, pb: 0.75, color: "#94a3b8", fontWeight: 800, letterSpacing: "0.08em" }}
+          >
+            MANAGEMENT
+          </Typography>
+          <List sx={{ py: 0 }}>
+            {ADMIN_MENU.map(renderMenuItem)}
           </List>
-        </div>
+        </>
       )}
+
+      <Box sx={{ flex: 1 }} />
+      <Box sx={{ px: 2, py: 1.75, borderTop: "1px solid #eef1f5", textAlign: "center" }}>
+        <StackVersion />
+      </Box>
     </Box>
+  );
+}
+
+function StackVersion() {
+  return (
+    <>
+      <StackedBrand />
+      <Typography variant="caption" sx={{ color: "#94a3b8", fontSize: 10.5 }}>
+        BOJOGE AI Engine v2.5
+      </Typography>
+    </>
+  );
+}
+
+function StackedBrand() {
+  return (
+    <Typography sx={{ color: "#64748b", fontSize: 11, fontWeight: 800, mb: 0.25 }}>
+      BOJOGE
+    </Typography>
   );
 }
 

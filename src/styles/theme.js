@@ -19,15 +19,29 @@ export const darkTheme = createTheme({
 export const lightTheme = createTheme({
   palette: {
     mode: "light",
+    primary: {
+      main: "#4361ee",
+      light: "#e8edff",
+      dark: "#2f46bd",
+    },
     background: {
-      default: "#fafafa",
+      default: "#f6f8fc",
       paper: "#ffffff",
-      header: "#e0e0e0",
-      footer: "#f5f5f5",
-      leftMenu: "#d3d3d3",
+      header: "#ffffff",
+      footer: "#ffffff",
+      leftMenu: "#eef2f8",
     },
     text: {
       primary: "#333",
     },
+  },
+  typography: {
+    fontFamily: 'Pretendard, Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+    button: {
+      textTransform: "none",
+    },
+  },
+  shape: {
+    borderRadius: 12,
   },
 });
