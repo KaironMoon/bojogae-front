@@ -1,7 +1,12 @@
-import { Alert, Box, Button, MenuItem, Paper, Stack, TextField, Typography } from "@mui/material";
+import { Alert, Box, Button, Divider, MenuItem, Paper, Stack, TextField, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
 
-import { getProposalSettings, updateProposalSettings } from "@/services/proposal-service";
+import {
+  getPromptPointCosts,
+  getProposalSettings,
+  updatePromptPointCost,
+  updateProposalSettings,
+} from "@/services/proposal-service";
 
 
 const FIELDS = [
@@ -17,9 +22,18 @@ function ProposalSettingsPage() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [working, setWorking] = useState(false);
+  const [promptCosts, setPromptCosts] = useState([]);
+  const [costDrafts, setCostDrafts] = useState({});
+  const [workingPromptId, setWorkingPromptId] = useState(null);
 
   useEffect(() => {
-    getProposalSettings().then(setValues).catch(() => setError("설정을 불러오지 못했습니다."));
+    Promise.all([getProposalSettings(), getPromptPointCosts()])
+      .then(([settings, costs]) => {
+        setValues(settings);
+        setPromptCosts(costs);
+        setCostDrafts(Object.fromEntries(costs.map((item) => [item.prompt_id, item.point_cost])));
+      })
+      .catch(() => setError("설정을 불러오지 못했습니다."));
   }, []);
 
   const save = async () => {
@@ -30,6 +44,7 @@ function ProposalSettingsPage() {
       const payload = { ...values };
       delete payload.updated_at;
       delete payload.updated_by;
+      delete payload.llm_models;
       FIELDS.forEach(([key]) => { payload[key] = Number(payload[key]); });
       setValues(await updateProposalSettings(payload));
       setMessage("설정을 저장했습니다. 새 작업부터 적용됩니다.");
@@ -37,6 +52,24 @@ function ProposalSettingsPage() {
       setError("설정값을 확인해 주세요.");
     } finally {
       setWorking(false);
+    }
+  };
+
+  const savePromptCost = async (promptId) => {
+    setWorkingPromptId(promptId);
+    setError("");
+    setMessage("");
+    try {
+      const saved = await updatePromptPointCost(promptId, costDrafts[promptId]);
+      setPromptCosts((current) => current.map((item) => (
+        item.prompt_id === promptId ? saved : item
+      )));
+      setCostDrafts((current) => ({ ...current, [promptId]: saved.point_cost }));
+      setMessage("문서별 포인트를 저장했습니다. 새 작업부터 적용됩니다.");
+    } catch {
+      setError("문서별 포인트는 1 이상의 정수여야 합니다.");
+    } finally {
+      setWorkingPromptId(null);
     }
   };
 
@@ -50,7 +83,11 @@ function ProposalSettingsPage() {
       {message && <Alert severity="success" sx={{ mb: 2 }}>{message}</Alert>}
       <Paper variant="outlined" sx={{ p: 3, borderRadius: 3 }}>
         <Stack spacing={2}>
-          <TextField label="Gemini 모델" value={values.gemini_model} onChange={(event) => setValues({ ...values, gemini_model: event.target.value })} />
+          <TextField select label="LLM 모델" value={values.llm_model} onChange={(event) => setValues({ ...values, llm_model: event.target.value })}>
+            {values.llm_models.map((model) => (
+              <MenuItem key={model.id} value={model.id}>{model.label}</MenuItem>
+            ))}
+          </TextField>
           <TextField select label="Thinking level" value={values.thinking_level} onChange={(event) => setValues({ ...values, thinking_level: event.target.value })}>
             {['minimal', 'low', 'medium', 'high'].map((level) => <MenuItem key={level} value={level}>{level}</MenuItem>)}
           </TextField>
@@ -58,6 +95,48 @@ function ProposalSettingsPage() {
             <TextField key={key} type="number" label={label} value={values[key]} inputProps={{ min, max }} onChange={(event) => setValues({ ...values, [key]: event.target.value })} />
           ))}
           <Button variant="contained" onClick={save} disabled={working}>{working ? "저장 중..." : "저장"}</Button>
+        </Stack>
+      </Paper>
+      <Paper variant="outlined" sx={{ p: 3, borderRadius: 3, mt: 3 }}>
+        <Typography variant="h6" fontWeight={800}>문서별 소진 포인트</Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          프롬프트를 이용해 문서 한 건을 생성할 때 예약되는 포인트입니다.
+        </Typography>
+        <Stack divider={<Divider flexItem />}>
+          {promptCosts.map((item) => (
+            <Stack
+              key={item.prompt_id}
+              direction={{ xs: "column", sm: "row" }}
+              alignItems={{ xs: "stretch", sm: "center" }}
+              justifyContent="space-between"
+              gap={2}
+              sx={{ py: 1.5 }}
+            >
+              <Typography fontWeight={650}>{item.prompt_title}</Typography>
+              <Stack direction="row" spacing={1}>
+                <TextField
+                  size="small"
+                  type="number"
+                  label="포인트"
+                  value={costDrafts[item.prompt_id] ?? item.point_cost}
+                  inputProps={{ min: 1 }}
+                  onChange={(event) => setCostDrafts((current) => ({
+                    ...current,
+                    [item.prompt_id]: event.target.value,
+                  }))}
+                  sx={{ width: 130 }}
+                />
+                <Button
+                  variant="outlined"
+                  disabled={workingPromptId === item.prompt_id}
+                  onClick={() => savePromptCost(item.prompt_id)}
+                >
+                  저장
+                </Button>
+              </Stack>
+            </Stack>
+          ))}
+          {!promptCosts.length && <Typography color="text.secondary">등록된 프롬프트가 없습니다.</Typography>}
         </Stack>
       </Paper>
     </Box>

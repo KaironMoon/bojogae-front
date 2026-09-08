@@ -18,11 +18,19 @@ async function getPromptOptions() {
   return response.data;
 }
 
-async function createProposal({ title, promptId, files, idempotencyKey }) {
+async function getPointBalance() {
+  const response = await apiCaller.get("/api/v1/points/me");
+  return response.data;
+}
+
+async function createProposal({ title, promptId, files, idempotencyKey, inputValues = {}, fileFields = [], promptVersionId }) {
   const form = new FormData();
   form.append("title", title);
   form.append("prompt_id", String(promptId));
   files.forEach((file) => form.append("files", file));
+  form.append("input_values", JSON.stringify(inputValues));
+  form.append("file_fields", JSON.stringify(fileFields));
+  if (promptVersionId) form.append("prompt_version_id", String(promptVersionId));
   const response = await apiCaller.post("/api/v1/proposals", form, {
     headers: { "Idempotency-Key": idempotencyKey },
     timeout: 120000,
@@ -106,12 +114,34 @@ async function updateProposalSettings(values) {
   return response.data;
 }
 
+async function getPromptPointCosts() {
+  const response = await apiCaller.get("/api/v1/admin/prompt-point-costs");
+  return response.data;
+}
+
+async function updatePromptPointCost(promptId, pointCost) {
+  const response = await apiCaller.put(`/api/v1/admin/prompt-point-costs/${promptId}`, {
+    point_cost: Number(pointCost),
+  });
+  return response.data;
+}
+
+async function decideProposalPoints(id, action, reason) {
+  const response = await apiCaller.post(`/api/v1/admin/proposals/${id}/point-decision`, {
+    action,
+    reason,
+  });
+  return response.data;
+}
+
 export {
   cancelProposal,
   createIdempotencyKey,
   createProposal,
   deleteProposal,
   getAdminProposals,
+  getPointBalance,
+  getPromptPointCosts,
   getPromptOptions,
   getProposal,
   getProposals,
@@ -122,5 +152,7 @@ export {
   proposalRawResponseUrl,
   recoverProposal,
   retryProposal,
+  decideProposalPoints,
+  updatePromptPointCost,
   updateProposalSettings,
 };

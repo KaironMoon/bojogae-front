@@ -1,7 +1,9 @@
+import InputSchemaEditor from "./InputSchemaEditor";
 import {
   Alert,
   Box,
   Button,
+  Checkbox,
   Chip,
   CircularProgress,
   Dialog,
@@ -20,6 +22,8 @@ import {
   Pagination,
   Stack,
   Switch,
+  Tab,
+  Tabs,
   TextField,
   Tooltip,
   Typography,
@@ -39,6 +43,7 @@ import {
   deletePrompt,
   deletePromptVersion,
   getPrompt,
+  getPromptCategories,
   getPrompts,
   getPromptVersions,
   recoverPrompt,
@@ -46,9 +51,14 @@ import {
   restorePromptVersion,
   updatePrompt,
 } from "@/services/prompt-service";
+import PromptCategoriesPanel from "./PromptCategoriesPanel";
 
 
-const EMPTY_PROMPT = { title: "", body: "" };
+const EMPTY_PROMPT = { title: "", body: "", category_ids: [], input_schema: [] };
+
+function categoryIds(prompt) {
+  return (prompt?.categories || []).map((category) => category.id).sort((a, b) => a - b);
+}
 
 function formatDate(value) {
   if (!value) return "-";
@@ -75,12 +85,42 @@ function PromptsPage() {
   const [confirmAction, setConfirmAction] = useState(null);
   const [listPage, setListPage] = useState(1);
   const [listTotalPages, setListTotalPages] = useState(0);
+  const [categories, setCategories] = useState([]);
+  const [activeTab, setActiveTab] = useState(0);
+  const [categoryPickerOpen, setCategoryPickerOpen] = useState(false);
+  const [categorySearch, setCategorySearch] = useState("");
+  const [categoryGroup, setCategoryGroup] = useState("all");
+  const categoryOptions = useMemo(
+    () => categories.flatMap((root) => root.children.map((child) => ({
+      ...child,
+      parent_name: root.name,
+    }))),
+    [categories],
+  );
+  const selectedCategoryOptions = useMemo(
+    () => categoryOptions.filter((option) => draft.category_ids.includes(option.id)),
+    [categoryOptions, draft.category_ids],
+  );
+  const visibleCategoryOptions = useMemo(() => {
+    const keyword = categorySearch.trim().toLocaleLowerCase("ko-KR");
+    return categoryOptions.filter((option) => {
+      const matchesGroup = categoryGroup === "all" || option.parent_id === categoryGroup;
+      const matchesSearch = !keyword
+        || option.name.toLocaleLowerCase("ko-KR").includes(keyword)
+        || option.parent_name.toLocaleLowerCase("ko-KR").includes(keyword);
+      return matchesGroup && matchesSearch;
+    });
+  }, [categoryGroup, categoryOptions, categorySearch]);
 
   const isNew = selectedId === "new";
   const isDirty = useMemo(() => {
-    if (isNew) return Boolean(draft.title || draft.body);
+    if (isNew) return Boolean(draft.title || draft.body || draft.category_ids.length || draft.input_schema.length);
     if (!selectedPrompt || selectedPrompt.is_deleted) return false;
-    return draft.title !== selectedPrompt.title || draft.body !== selectedPrompt.body;
+    return draft.title !== selectedPrompt.title
+      || draft.body !== selectedPrompt.body
+      || JSON.stringify(draft.input_schema) !== JSON.stringify(selectedPrompt.input_schema || [])
+      || JSON.stringify([...draft.category_ids].sort((a, b) => a - b))
+        !== JSON.stringify(categoryIds(selectedPrompt));
   }, [draft, isNew, selectedPrompt]);
 
   const blocker = useBlocker(
@@ -125,7 +165,7 @@ function PromptsPage() {
         ]);
         setSelectedId(promptId);
         setSelectedPrompt(prompt);
-        setDraft({ title: prompt.title, body: prompt.body });
+        setDraft({ title: prompt.title, body: prompt.body, category_ids: categoryIds(prompt), input_schema: prompt.input_schema || [] });
         setVersions(versionRows);
       } catch {
         setError("프롬프트를 불러오지 못했습니다.");
@@ -154,7 +194,7 @@ function PromptsPage() {
         } else if (preferredId !== "new") {
           setSelectedId(null);
           setSelectedPrompt(null);
-          setDraft(EMPTY_PROMPT);
+          setDraft({ ...EMPTY_PROMPT });
           setVersions([]);
         }
       } catch {
@@ -172,6 +212,18 @@ function PromptsPage() {
     // 삭제 항목 표시 조건이 바뀔 때만 목록을 새로 불러온다.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [includeDeleted]);
+
+  useEffect(() => {
+    getPromptCategories().then(setCategories).catch(() => {
+      setError("카테고리 목록을 불러오지 못했습니다.");
+    });
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (categoryGroup !== "all" && !categories.some((root) => root.id === categoryGroup)) {
+      setCategoryGroup("all");
+    }
+  }, [categories, categoryGroup]);
 
   useEffect(() => {
     if (!selectedPrompt) return;
@@ -192,7 +244,7 @@ function PromptsPage() {
     if (!canLeaveDraft()) return;
     setSelectedId("new");
     setSelectedPrompt(null);
-    setDraft(EMPTY_PROMPT);
+    setDraft({ ...EMPTY_PROMPT });
     setVersions([]);
     setError("");
   };
@@ -203,15 +255,24 @@ function PromptsPage() {
       setError("제목과 본문을 모두 입력해 주세요.");
       return;
     }
+    const keys = draft.input_schema.map((field) => field.key);
+    if (new Set(keys).size !== keys.length || draft.input_schema.some((field) =>
+      !/^[a-z][a-z0-9_]{0,49}$/.test(field.key) || !field.label.trim()
+      || (field.type === "select" && (!field.options.length
+        || field.options.some((option) => !option.trim() || option.length > 100)
+        || new Set(field.options).size !== field.options.length)))) {
+      setError("입력 UI의 항목 이름·고유 키·선택지를 확인해 주세요. 선택지는 빈 줄이나 중복 없이 입력해야 합니다.");
+      return;
+    }
     setWorking(true);
     setError("");
     try {
       const saved = isNew
-        ? await createPrompt(title, draft.body)
-        : await updatePrompt(selectedPrompt.id, title, draft.body);
+        ? await createPrompt(title, draft.body, draft.category_ids, draft.input_schema)
+        : await updatePrompt(selectedPrompt.id, title, draft.body, draft.category_ids, draft.input_schema);
       setSelectedPrompt(saved);
       setSelectedId(saved.id);
-      setDraft({ title: saved.title, body: saved.body });
+      setDraft({ title: saved.title, body: saved.body, category_ids: categoryIds(saved), input_schema: saved.input_schema || [] });
       await Promise.all([
         loadVersions(saved.id, includeDeletedVersions),
         loadList(saved.id, listPage),
@@ -242,7 +303,7 @@ function PromptsPage() {
           action.version.id,
         );
         setSelectedPrompt(restored);
-        setDraft({ title: restored.title, body: restored.body });
+        setDraft({ title: restored.title, body: restored.body, category_ids: categoryIds(restored), input_schema: restored.input_schema || [] });
         await Promise.all([
           loadVersions(restored.id, includeDeletedVersions),
           loadList(restored.id, listPage),
@@ -266,7 +327,7 @@ function PromptsPage() {
     try {
       const recovered = await recoverPrompt(selectedPrompt.id);
       setSelectedPrompt(recovered);
-      setDraft({ title: recovered.title, body: recovered.body });
+      setDraft({ title: recovered.title, body: recovered.body, category_ids: categoryIds(recovered), input_schema: recovered.input_schema || [] });
       await loadList(recovered.id, listPage);
     } catch {
       setError("프롬프트를 복구하지 못했습니다.");
@@ -288,6 +349,15 @@ function PromptsPage() {
     }
   };
 
+  const toggleDraftCategory = (categoryId, checked) => {
+    setDraft((current) => ({
+      ...current,
+      category_ids: checked
+        ? [...current.category_ids, categoryId]
+        : current.category_ids.filter((id) => id !== categoryId),
+    }));
+  };
+
   return (
     <Box sx={{ p: { xs: 2, md: 4 }, maxWidth: 1600, mx: "auto" }}>
       <Stack
@@ -305,14 +375,29 @@ function PromptsPage() {
             프롬프트를 작성하고 저장된 버전을 관리합니다.
           </Typography>
         </div>
-        <Button
-          variant="contained"
-          startIcon={<AddRoundedIcon />}
-          onClick={startNewPrompt}
-        >
-          새 프롬프트
-        </Button>
+        {activeTab === 0 && (
+          <Button
+            variant="contained"
+            startIcon={<AddRoundedIcon />}
+            onClick={startNewPrompt}
+          >
+            새 프롬프트
+          </Button>
+        )}
       </Stack>
+
+      <Paper variant="outlined" sx={{ borderRadius: 3, mb: 2, px: 1 }}>
+        <Tabs
+          value={activeTab}
+          onChange={(_, value) => {
+            if (value !== activeTab && canLeaveDraft()) setActiveTab(value);
+          }}
+          aria-label="프롬프트 관리 메뉴"
+        >
+          <Tab label="프롬프트" />
+          <Tab label="카테고리 관리" />
+        </Tabs>
+      </Paper>
 
       {error && (
         <Alert severity="error" onClose={() => setError("")} sx={{ mb: 2 }}>
@@ -320,6 +405,7 @@ function PromptsPage() {
         </Alert>
       )}
 
+      {activeTab === 0 ? (
       <Box
         sx={{
           display: "grid",
@@ -471,6 +557,47 @@ function PromptsPage() {
                 inputProps={{ maxLength: 200 }}
                 fullWidth
               />
+              <Box>
+                <Typography variant="subtitle2" fontWeight={750} sx={{ mb: 1 }}>
+                  카테고리 (다중 선택)
+                </Typography>
+                {categoryOptions.length ? (
+                  <Paper variant="outlined" sx={{ p: 1.5, borderRadius: 2.5 }}>
+                    <Stack direction="row" gap={0.75} alignItems="center" flexWrap="wrap">
+                      {selectedCategoryOptions.map((option) => (
+                        <Chip
+                          key={option.id}
+                          size="small"
+                          label={option.name}
+                          onDelete={selectedPrompt?.is_deleted || working
+                            ? undefined
+                            : () => toggleDraftCategory(option.id, false)}
+                        />
+                      ))}
+                      {!selectedCategoryOptions.length && (
+                        <Typography variant="body2" color="text.secondary" sx={{ mr: 0.5 }}>
+                          선택된 카테고리가 없습니다.
+                        </Typography>
+                      )}
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        startIcon={<AddRoundedIcon />}
+                        onClick={() => setCategoryPickerOpen(true)}
+                        disabled={selectedPrompt?.is_deleted || working}
+                        sx={{ ml: { sm: "auto" } }}
+                      >
+                        카테고리 선택
+                      </Button>
+                    </Stack>
+                  </Paper>
+                ) : (
+                  <Alert severity="info">카테고리 관리 탭에서 소분류를 먼저 만들어 주세요.</Alert>
+                )}
+              </Box>
+              <InputSchemaEditor value={draft.input_schema}
+                disabled={selectedPrompt?.is_deleted || working}
+                onChange={(input_schema) => setDraft((current) => ({ ...current, input_schema }))} />
               <TextField
                 label="본문"
                 value={draft.body}
@@ -489,7 +616,7 @@ function PromptsPage() {
               />
               {!isNew && (
                 <Typography variant="caption" color="text.secondary">
-                  마지막 수정 {formatDate(selectedPrompt.updated_at)} · 저장할 때마다 새 버전이 생성됩니다.
+                  마지막 수정 {formatDate(selectedPrompt.updated_at)} · 제목·본문·입력 UI를 변경하면 새 버전이 생성되며, 카테고리만 바꾸면 현재 프롬프트에 즉시 반영됩니다.
                 </Typography>
               )}
             </Stack>
@@ -502,6 +629,9 @@ function PromptsPage() {
           )}
         </Paper>
       </Box>
+      ) : (
+        <PromptCategoriesPanel />
+      )}
 
       <Drawer
         anchor="right"
@@ -630,6 +760,133 @@ function PromptsPage() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setViewVersion(null)}>닫기</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={categoryPickerOpen}
+        onClose={() => setCategoryPickerOpen(false)}
+        fullWidth
+        maxWidth="sm"
+        PaperProps={{ sx: { m: { xs: 1.5, sm: 4 }, maxHeight: { xs: "calc(100% - 24px)", sm: "calc(100% - 64px)" } } }}
+      >
+        <DialogTitle>
+          <Stack direction="row" justifyContent="space-between" alignItems="center" gap={1}>
+            <Box>
+              <Typography variant="h6" component="div" fontWeight={800}>카테고리 선택</Typography>
+              <Typography variant="caption" color="text.secondary">
+                여러 카테고리를 선택할 수 있습니다.
+              </Typography>
+            </Box>
+            <Chip size="small" color="primary" label={`${draft.category_ids.length}개 선택됨`} />
+          </Stack>
+        </DialogTitle>
+        <DialogContent dividers sx={{ p: 0 }}>
+          <Box sx={{ p: 1.5, borderBottom: 1, borderColor: "divider" }}>
+            <TextField
+              fullWidth
+              size="small"
+              placeholder="카테고리 검색"
+              value={categorySearch}
+              onChange={(event) => setCategorySearch(event.target.value)}
+              autoFocus
+            />
+          </Box>
+
+          <Box sx={{ px: 1.5, py: 1.25, bgcolor: "grey.50", borderBottom: 1, borderColor: "divider" }}>
+            <Typography variant="caption" fontWeight={700} color="text.secondary">
+              선택된 카테고리
+            </Typography>
+            <Stack direction="row" gap={0.75} flexWrap="wrap" sx={{ mt: 0.75, maxHeight: 72, overflowY: "auto" }}>
+              {selectedCategoryOptions.map((option) => (
+                <Chip
+                  key={option.id}
+                  size="small"
+                  label={option.name}
+                  onDelete={() => toggleDraftCategory(option.id, false)}
+                />
+              ))}
+              {!selectedCategoryOptions.length && (
+                <Typography variant="caption" color="text.secondary">
+                  아래 목록에서 카테고리를 선택해 주세요.
+                </Typography>
+              )}
+            </Stack>
+          </Box>
+
+          <Tabs
+            value={categoryGroup}
+            onChange={(_, value) => setCategoryGroup(value)}
+            variant="scrollable"
+            scrollButtons="auto"
+            sx={{
+              minHeight: 40,
+              borderBottom: 1,
+              borderColor: "divider",
+              "& .MuiTab-root": { minHeight: 40, py: 0.75 },
+            }}
+          >
+            <Tab value="all" label="전체" />
+            {categories.map((root) => (
+              <Tab key={root.id} value={root.id} label={root.name} />
+            ))}
+          </Tabs>
+
+          <Stack spacing={0.75} sx={{ p: 1.25, minHeight: 220, maxHeight: { xs: "42vh", sm: 360 }, overflowY: "auto" }}>
+            {visibleCategoryOptions.map((option) => {
+              const checked = draft.category_ids.includes(option.id);
+              return (
+                <Paper
+                  key={option.id}
+                  variant="outlined"
+                  sx={{
+                    borderColor: checked ? "primary.main" : "divider",
+                    bgcolor: checked ? "primary.light" : "background.paper",
+                    borderRadius: 2,
+                  }}
+                >
+                  <FormControlLabel
+                    control={(
+                      <Checkbox
+                        size="small"
+                        checked={checked}
+                        onChange={(event) => toggleDraftCategory(option.id, event.target.checked)}
+                      />
+                    )}
+                    label={(
+                      <Box sx={{ py: 0.75 }}>
+                        <Typography variant="body2" fontWeight={checked ? 750 : 600}>
+                          {option.name}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {option.parent_name}
+                        </Typography>
+                      </Box>
+                    )}
+                    sx={{ m: 0, px: 1, width: "100%" }}
+                  />
+                </Paper>
+              );
+            })}
+            {!visibleCategoryOptions.length && (
+              <Typography variant="body2" color="text.secondary" sx={{ py: 4, textAlign: "center" }}>
+                일치하는 카테고리가 없습니다.
+              </Typography>
+            )}
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 2, py: 1.5 }}>
+          <Button
+            color="inherit"
+            disabled={!draft.category_ids.length}
+            onClick={() => setDraft((current) => ({ ...current, category_ids: [] }))}
+          >
+            초기화
+          </Button>
+          <Box sx={{ flex: 1 }} />
+          <Button variant="contained" onClick={() => setCategoryPickerOpen(false)}>
+            선택 완료
+          </Button>
         </DialogActions>
       </Dialog>
 

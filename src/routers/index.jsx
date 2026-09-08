@@ -17,6 +17,7 @@ import ProposalsPage from "../pages/proposals/ProposalsPage";
 import AdminProposalsPage from "../pages/admin/ProposalsPage";
 import UsagePage from "../pages/admin/UsagePage";
 import ProposalSettingsPage from "../pages/admin/ProposalSettingsPage";
+import PointsPage from "../pages/admin/PointsPage";
 import {
   ActiveUserRoute,
   AdminRoute,
@@ -110,6 +111,7 @@ const router = createBrowserRouter([
         element: <PageLayout />,
         children: [
           { path: "/admin/users", element: <UsersPage /> },
+          { path: "/admin/points", element: <PointsPage /> },
           { path: "/admin/prompts", element: <PromptsPage /> },
           { path: "/admin/proposals", element: <AdminProposalsPage /> },
           { path: "/admin/usage", element: <UsagePage /> },

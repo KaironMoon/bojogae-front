@@ -10,6 +10,7 @@ import {
 } from "@mui/material";
 import SaveRoundedIcon from "@mui/icons-material/SaveRounded";
 import MarkEmailReadOutlinedIcon from "@mui/icons-material/MarkEmailReadOutlined";
+import AccountBalanceWalletRoundedIcon from "@mui/icons-material/AccountBalanceWalletRounded";
 import { useEffect, useState } from "react";
 
 import { useAuth } from "@/auth/AuthContext";
@@ -19,6 +20,8 @@ import {
   updateMyProfile,
   verifyEmailChangeCode,
 } from "@/services/profile-service";
+import { getPointBalance } from "@/services/proposal-service";
+import ExpiringPoints from "@/pages/components/ExpiringPoints";
 
 const emptyProfile = { email: "", name: "", nickname: "", phone: "" };
 
@@ -46,10 +49,11 @@ function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [pointBalance, setPointBalance] = useState({ free_points: 0, paid_points: 0, total_points: 0 });
 
   useEffect(() => {
-    getMyProfile()
-      .then((data) => {
+    Promise.all([getMyProfile(), getPointBalance()])
+      .then(([data, balance]) => {
         setProfile({
           email: data.email,
           name: data.name || "",
@@ -57,6 +61,7 @@ function ProfilePage() {
           phone: data.phone || "",
         });
         setSavedEmail(data.email);
+        setPointBalance(balance);
       })
       .catch(() => setError("profile_load_failed"))
       .finally(() => setLoading(false));
@@ -145,7 +150,32 @@ function ProfilePage() {
         <Typography color="text.secondary">이메일은 필수이며, 변경하려면 새 이메일 인증이 필요합니다.</Typography>
       </Stack>
 
+      <Paper elevation={0} sx={{ p: { xs: 2.5, md: 3 }, mb: 3, border: "1px solid", borderColor: "divider", borderRadius: 3 }}>
+        <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ sm: "center" }} gap={2}>
+          <Stack direction="row" spacing={1.5} alignItems="center">
+            <Box sx={{ width: 44, height: 44, display: "grid", placeItems: "center", borderRadius: 2.5, color: "primary.main", bgcolor: "#eff6ff" }}>
+              <AccountBalanceWalletRoundedIcon />
+            </Box>
+            <Box>
+              <Typography variant="body2" color="text.secondary">사용 가능 포인트</Typography>
+              <Typography variant="h5" fontWeight={850}>{pointBalance.total_points.toLocaleString()}P</Typography>
+            </Box>
+          </Stack>
+          <Stack direction="row" spacing={3}>
+            <Box>
+              <Typography variant="caption" color="text.secondary">무료 포인트</Typography>
+              <Typography fontWeight={800} color="success.main">{pointBalance.free_points.toLocaleString()}P</Typography>
+            </Box>
+            <Box>
+              <Typography variant="caption" color="text.secondary">유료 포인트</Typography>
+              <Typography fontWeight={800} color="primary.main">{pointBalance.paid_points.toLocaleString()}P</Typography>
+            </Box>
+          </Stack>
+        </Stack>
+      </Paper>
+
       <Paper elevation={0} sx={{ p: { xs: 2.5, md: 4 }, border: "1px solid", borderColor: "divider", borderRadius: 3 }}>
+        <ExpiringPoints balance={pointBalance} />
         <Stack spacing={2.5}>
           {message && <Alert severity="success">{message}</Alert>}
           {error && (

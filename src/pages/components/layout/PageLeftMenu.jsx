@@ -16,6 +16,7 @@ import GroupOutlinedIcon from "@mui/icons-material/GroupOutlined";
 import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
+import AccountBalanceWalletOutlinedIcon from "@mui/icons-material/AccountBalanceWalletOutlined";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import { useAuth } from "@/auth/AuthContext";
@@ -24,19 +25,20 @@ import { useAuth } from "@/auth/AuthContext";
 const PRIMARY_MENU = [
   { label: "Home", path: "/home", icon: HomeOutlinedIcon },
   { label: "Info", path: "/info", icon: InfoOutlinedIcon },
-  { label: "제안서 만들기", path: "/proposals", icon: DescriptionOutlinedIcon },
+  { label: "문서 만들기", path: "/proposals", icon: DescriptionOutlinedIcon },
   { label: "내 정보", path: "/profile", icon: AccountCircleOutlinedIcon },
 ];
 
 const ADMIN_MENU = [
   { label: "고객 관리", path: "/admin/users", icon: GroupOutlinedIcon },
+  { label: "포인트 관리", path: "/admin/points", icon: AccountBalanceWalletOutlinedIcon },
   { label: "프롬프트 관리", path: "/admin/prompts", icon: AutoAwesomeOutlinedIcon },
   { label: "제안서 관리", path: "/admin/proposals", icon: DescriptionOutlinedIcon },
   { label: "사용량 / 통계", path: "/admin/usage", icon: AnalyticsOutlinedIcon },
   { label: "설정 및 서식", path: "/admin/proposal-settings", icon: TuneOutlinedIcon },
 ];
 
-function PageLeftMenu() {
+function PageLeftMenu({ onNavigate }) { // eslint-disable-line react/prop-types
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
@@ -51,7 +53,10 @@ function PageLeftMenu() {
       <ListItem key={path} disablePadding sx={{ px: 1.25, mb: 0.35 }}>
         <ListItemButton
           selected={active}
-          onClick={() => navigate(path)}
+          onClick={() => {
+            navigate(path);
+            onNavigate?.();
+          }}
           sx={{
             minHeight: 42,
             px: 1.5,
@@ -100,7 +105,7 @@ function PageLeftMenu() {
         width: 224,
         minWidth: 224,
         height: "100%",
-        minHeight: "calc(100vh - 64px)",
+        minHeight: "100%",
         display: "flex",
         flexDirection: "column",
         bgcolor: "#fff",

@@ -11,6 +11,10 @@ async function logout() {
   await apiCaller.post("/api/v1/auth/logout");
 }
 
+export async function getPointGrants(userId, page = 1, grantFilter = 'ACTIVE') {
+  return (await apiCaller.get(`/api/v1/admin/users/${userId}/points/grants`, { page, grant_filter: grantFilter })).data;
+}
+
 async function getUsers(status, page = 1, pageSize = 20) {
   const response = await apiCaller.get("/api/v1/admin/users", {
     status: status || undefined,
@@ -38,6 +42,19 @@ async function updateUserRole(userId, role) {
 
 async function deleteUser(userId) {
   await apiCaller.delete(`/api/v1/admin/users/${userId}`);
+}
+
+async function grantFreePoints(userId, { amount, expirationDate, reason, idempotencyKey }) {
+  const response = await apiCaller.post(
+    `/api/v1/admin/users/${userId}/points/free-grants`,
+    {
+      amount: Number(amount),
+      expiration_date: expirationDate,
+      reason,
+      idempotency_key: idempotencyKey,
+    },
+  );
+  return response.data;
 }
 
 async function sendSignupEmail(signupToken, email) {
@@ -71,6 +88,7 @@ export {
   getCurrentUser,
   getOAuthLoginUrl,
   getUsers,
+  grantFreePoints,
   logout,
   sendSignupEmail,
   updateUserStatus,

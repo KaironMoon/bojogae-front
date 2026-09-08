@@ -1,11 +1,12 @@
-import { Avatar, Box, Button, Chip, Stack, Toolbar, Typography } from "@mui/material";
+import { Avatar, Box, Button, Chip, IconButton, Stack, Toolbar, Typography } from "@mui/material";
 import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
+import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
 import { useTheme } from "@mui/material/styles";
 import { useNavigate } from "react-router-dom";
 
 import { useAuth } from "@/auth/AuthContext";
 
-function PageHeader() {
+function PageHeader({ onMenuClick }) { // eslint-disable-line react/prop-types
   const theme = useTheme();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
@@ -26,6 +27,14 @@ function PageHeader() {
       }}
     >
       <Stack direction="row" spacing={1.25} alignItems="center">
+        <IconButton
+          edge="start"
+          aria-label="메뉴 열기"
+          onClick={onMenuClick}
+          sx={{ display: { xs: "inline-flex", md: "none" }, mr: 0.25 }}
+        >
+          <MenuRoundedIcon />
+        </IconButton>
         <Box sx={{ width: 32, height: 32, borderRadius: "8px", bgcolor: "#2563eb", color: "white", display: "grid", placeItems: "center", fontWeight: 900 }}>
           B
         </Box>
@@ -43,8 +52,14 @@ function PageHeader() {
             {user?.display_name}
           </Typography>
         </Stack>
-        <Button size="small" color="inherit" onClick={handleLogout} startIcon={<LogoutRoundedIcon />} sx={{ color: "text.secondary" }}>
-          로그아웃
+        <Button
+          size="small"
+          color="inherit"
+          onClick={handleLogout}
+          startIcon={<LogoutRoundedIcon />}
+          sx={{ color: "text.secondary", minWidth: { xs: 40, sm: 64 }, px: { xs: 1, sm: 1.5 }, "& .MuiButton-startIcon": { mr: { xs: 0, sm: 0.5 } } }}
+        >
+          <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>로그아웃</Box>
         </Button>
       </Stack>
     </Toolbar>

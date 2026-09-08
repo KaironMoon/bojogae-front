@@ -109,6 +109,7 @@ function UsersPage() {
     }
   };
 
+
   return (
     <Box sx={{ p: { xs: 2, md: 4 } }}>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
@@ -135,6 +136,10 @@ function UsersPage() {
                   </Stack>
                   <Typography variant="body2" color="text.secondary">{user.email || "이메일 없음"}</Typography>
                   <Typography variant="caption" color="text.secondary">{user.providers.join(" · ")}</Typography>
+                  <Stack direction="row" spacing={1}>
+                    <Chip label={`무료 ${user.free_points.toLocaleString()}P`} size="small" variant="outlined" color="success" />
+                    <Chip label={`유료 ${user.paid_points.toLocaleString()}P`} size="small" variant="outlined" color="primary" />
+                  </Stack>
                 </Stack>
                 <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
                   {user.role !== "ADMIN" && (
@@ -228,6 +233,7 @@ function UsersPage() {
           <Button variant="contained" onClick={handleRoleChange}>변경</Button>
         </DialogActions>
       </Dialog>
+
     </Box>
   );
 }

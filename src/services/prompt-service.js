@@ -14,17 +14,46 @@ async function getPrompt(promptId) {
   return response.data;
 }
 
-async function createPrompt(title, body) {
-  const response = await apiCaller.post("/api/v1/admin/prompts", { title, body });
+async function createPrompt(title, body, categoryIds = [], inputSchema = []) {
+  const response = await apiCaller.post("/api/v1/admin/prompts", {
+    title,
+    body,
+    category_ids: categoryIds,
+    input_schema: inputSchema,
+  });
   return response.data;
 }
 
-async function updatePrompt(promptId, title, body) {
+async function updatePrompt(promptId, title, body, categoryIds = [], inputSchema = []) {
   const response = await apiCaller.put(`/api/v1/admin/prompts/${promptId}`, {
     title,
     body,
+    category_ids: categoryIds,
+    input_schema: inputSchema,
   });
   return response.data;
+}
+
+async function getPromptCategories() {
+  const response = await apiCaller.get("/api/v1/admin/prompt-categories");
+  return response.data;
+}
+
+async function createPromptCategory(values) {
+  const response = await apiCaller.post("/api/v1/admin/prompt-categories", values);
+  return response.data;
+}
+
+async function updatePromptCategory(categoryId, values) {
+  const response = await apiCaller.put(
+    `/api/v1/admin/prompt-categories/${categoryId}`,
+    values,
+  );
+  return response.data;
+}
+
+async function deletePromptCategory(categoryId) {
+  await apiCaller.delete(`/api/v1/admin/prompt-categories/${categoryId}`);
 }
 
 async function deletePrompt(promptId) {
@@ -63,13 +92,17 @@ async function recoverPromptVersion(promptId, versionId) {
 
 export {
   createPrompt,
+  createPromptCategory,
   deletePrompt,
+  deletePromptCategory,
   deletePromptVersion,
   getPrompt,
+  getPromptCategories,
   getPrompts,
   getPromptVersions,
   recoverPrompt,
   recoverPromptVersion,
   restorePromptVersion,
   updatePrompt,
+  updatePromptCategory,
 };

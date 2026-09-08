@@ -22,6 +22,7 @@ import RestoreRoundedIcon from "@mui/icons-material/RestoreRounded";
 import { useCallback, useEffect, useState } from "react";
 
 import {
+  decideProposalPoints,
   deleteProposal,
   getAdminProposals,
   getProposal,
@@ -96,6 +97,19 @@ function AdminProposalsPage() {
     }
   };
 
+  const decidePoints = async (action) => {
+    const reason = window.prompt(
+      action === "REFUND" ? "포인트 반환 사유를 입력하세요." : "차감 유지 사유를 입력하세요.",
+    );
+    if (!reason?.trim()) return;
+    try {
+      await decideProposalPoints(detail.id, action, reason.trim());
+      await Promise.all([openDetail(detail.id), load(result.page)]);
+    } catch {
+      setError("포인트 처리 결과를 저장하지 못했습니다.");
+    }
+  };
+
   return (
     <Box sx={{ p: { xs: 2, md: 4 }, maxWidth: 1440, mx: "auto" }}>
       <Typography variant="h4" sx={{ fontWeight: 800 }}>제안서 관리</Typography>
@@ -121,6 +135,7 @@ function AdminProposalsPage() {
                   <Stack direction="row" gap={1} alignItems="center" flexWrap="wrap">
                     <Typography sx={{ fontWeight: 750 }}>{item.title}</Typography>
                     <Chip label={item.status} size="small" />
+                    <Chip label={`${item.point_cost.toLocaleString()}P · ${item.point_status || "-"}`} size="small" color={item.point_status === "REVIEW_REQUIRED" ? "warning" : "default"} />
                     {item.is_deleted && <Chip label="삭제됨" size="small" color="error" />}
                   </Stack>
                   <Typography variant="body2" color="text.secondary">
@@ -148,8 +163,21 @@ function AdminProposalsPage() {
         <DialogContent>
           {detail && (
             <Stack spacing={2} sx={{ mt: 1 }}>
-              <Typography variant="body2">모델 {detail.gemini_model} · thinking {detail.thinking_level} · 최대 출력 {detail.max_output_tokens.toLocaleString()}</Typography>
+              <Typography variant="body2">LLM 모델 {detail.llm_model} · thinking {detail.thinking_level} · 최대 출력 {detail.max_output_tokens.toLocaleString()}</Typography>
               <Typography variant="body2">입력 합계 {bytes(detail.total_input_bytes)} · 출력 {bytes(detail.output_bytes)}</Typography>
+              <Alert severity={detail.point_status === "REVIEW_REQUIRED" ? "warning" : "info"}>
+                <Typography variant="body2">
+                  포인트 {detail.point_cost.toLocaleString()}P · {detail.point_status || "처리 전"}
+                  {detail.fault_party ? ` · 귀책 ${detail.fault_party}` : ""}
+                  {detail.llm_requested_at ? " · LLM 요청됨" : " · LLM 요청 전"}
+                </Typography>
+                {detail.point_status === "REVIEW_REQUIRED" && (
+                  <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+                    <Button size="small" variant="contained" color="success" onClick={() => decidePoints("REFUND")}>포인트 반환</Button>
+                    <Button size="small" variant="outlined" color="warning" onClick={() => decidePoints("KEEP")}>차감 유지</Button>
+                  </Stack>
+                )}
+              </Alert>
               {detail.status === "FAILED" && (
                 <Alert severity="error">
                   <Typography sx={{ fontWeight: 700 }}>
@@ -177,7 +205,7 @@ function AdminProposalsPage() {
               )}
               {detail.calls.map((call) => (
                 <Paper key={call.id} variant="outlined" sx={{ p: 2 }}>
-                  <Typography sx={{ fontWeight: 700 }}>Gemini 호출 #{call.id} · {call.call_status}</Typography>
+                  <Typography sx={{ fontWeight: 700 }}>{call.provider} 호출 #{call.id} · {call.call_status}</Typography>
                   <Typography variant="body2" color="text.secondary">
                     입력 {call.input_tokens || 0} · 출력 {call.output_tokens || 0} · 사고 {call.thought_tokens || 0} · 캐시 {call.cached_tokens || 0} · 전체 {call.total_tokens || 0}
                   </Typography>
@@ -198,8 +226,8 @@ function AdminProposalsPage() {
                   )}
                   {call.response_available && (
                     <Stack direction="row" sx={{ mt: 1 }}>
-                      <Button size="small" onClick={() => window.open(proposalRawResponseUrl(detail.id), "_blank", "noopener,noreferrer")}>Gemini 원문 열기</Button>
-                      <Button size="small" href={proposalRawResponseUrl(detail.id, true)}>Gemini 원문 다운로드</Button>
+                      <Button size="small" onClick={() => window.open(proposalRawResponseUrl(detail.id), "_blank", "noopener,noreferrer")}>LLM 원문 열기</Button>
+                      <Button size="small" href={proposalRawResponseUrl(detail.id, true)}>LLM 원문 다운로드</Button>
                     </Stack>
                   )}
                 </Paper>
