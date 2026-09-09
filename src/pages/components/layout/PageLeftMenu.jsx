@@ -144,7 +144,7 @@ function StackVersion() {
     <>
       <StackedBrand />
       <Typography variant="caption" sx={{ color: "#94a3b8", fontSize: 10.5 }}>
-        BOJOGE AI Engine v2.5
+        BOJOGAE AI Engine v2.5
       </Typography>
     </>
   );
@@ -153,7 +153,7 @@ function StackVersion() {
 function StackedBrand() {
   return (
     <Typography sx={{ color: "#64748b", fontSize: 11, fontWeight: 800, mb: 0.25 }}>
-      BOJOGE
+      BOJOGAE
     </Typography>
   );
 }

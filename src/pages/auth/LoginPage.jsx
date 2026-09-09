@@ -72,7 +72,7 @@ function LoginPage() {
       <Container maxWidth="sm" sx={{ width: "100%" }}>
         <Stack alignItems="center" spacing={3}>
           <Stack alignItems="center" spacing={1.25}>
-            <Chip label="BOJOGE" color="primary" size="small" sx={{ fontWeight: 800, letterSpacing: 2 }} />
+            <Chip label="BOJOGAE" color="primary" size="small" sx={{ fontWeight: 800, letterSpacing: 2 }} />
             <Typography variant="h3" component="h1" align="center" sx={{ fontWeight: 850, letterSpacing: "-0.04em" }}>
               반가워요.
               <br />보조개에 로그인하세요.

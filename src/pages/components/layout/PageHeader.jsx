@@ -39,7 +39,7 @@ function PageHeader({ onMenuClick }) { // eslint-disable-line react/prop-types
           B
         </Box>
         <Typography variant="h6" component="div" sx={{ color: theme.palette.text.primary, fontWeight: 900, letterSpacing: "-0.03em" }}>
-          BOJOGE
+          BOJOGAE
         </Typography>
         <Chip label="GA PRO Edition" size="small" sx={{ display: { xs: "none", sm: "inline-flex" }, height: 22, bgcolor: "#dbeafe", color: "#1e40af", fontSize: 10.5, fontWeight: 750 }} />
       </Stack>
