@@ -731,6 +731,10 @@ function ProposalsPage() {
                 }
                 setError("");
                 setFieldUploads((current) => ({ ...current, [key]: selected }));
+                const firstPdf = selected.find((file) => /\.pdf$/i.test(file.name));
+                if (firstPdf && !titleTouched) {
+                  setTitle(firstPdf.name.replace(/\.pdf$/i, ""));
+                }
                 setOpenedDocument(null);
                 submissionKey.current = null;
               }} /> : <>
