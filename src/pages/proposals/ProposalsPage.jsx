@@ -159,6 +159,7 @@ function ProposalsPage() {
   const [title, setTitle] = useState("");
   const [titleTouched, setTitleTouched] = useState(false);
   const [files, setFiles] = useState([]);
+  const [filesDragging, setFilesDragging] = useState(false);
   const [inputValues, setInputValues] = useState({});
   const [fieldUploads, setFieldUploads] = useState({});
   const [items, setItems] = useState([]);
@@ -175,6 +176,7 @@ function ProposalsPage() {
   const [openedDocument, setOpenedDocument] = useState(null);
   const [previewZoom, setPreviewZoom] = useState(0.75);
   const submissionKey = useRef(null);
+  const fileInputRef = useRef(null);
 
   const categoryGroups = useMemo(() => {
     const groups = new Map();
@@ -413,6 +415,8 @@ function ProposalsPage() {
             ? "포인트가 부족합니다. 잔액을 확인해 주세요."
           : detailCode === "prompt_version_changed"
             ? "프롬프트가 변경되었습니다. 페이지를 새로고침한 후 입력해 주세요."
+          : detailCode === "active_shell_missing"
+            ? "활성화된 공통 문서 껍데기가 없습니다. 관리자에게 문의해 주세요."
           : ["invalid_input_values", "invalid_input_files", "required_input_missing", "required_input_group_missing", "invalid_input_file_type"].includes(detailCode)
             ? "입력 항목과 필수 자료, 파일 형식을 확인해 주세요."
           : ["invalid_html_document", "html_utf8_required", "html_text_too_large"].includes(detailCode)
@@ -745,28 +749,53 @@ function ProposalsPage() {
             <Paper
               component="label"
               variant="outlined"
-              onDragOver={(event) => event.preventDefault()}
+              role="button"
+              tabIndex={working ? -1 : 0}
+              aria-label="PDF 문서 파일 선택 또는 드래그앤드롭"
+              aria-disabled={working}
+              onDragEnter={(event) => {
+                event.preventDefault();
+                if (!working) setFilesDragging(true);
+              }}
+              onDragOver={(event) => {
+                event.preventDefault();
+                event.dataTransfer.dropEffect = working ? "none" : "copy";
+              }}
+              onDragLeave={(event) => {
+                if (!event.currentTarget.contains(event.relatedTarget)) setFilesDragging(false);
+              }}
               onDrop={(event) => {
                 event.preventDefault();
+                setFilesDragging(false);
+                if (working) return;
                 acceptFiles(Array.from(event.dataTransfer.files || []));
+              }}
+              onKeyDown={(event) => {
+                if (!working && (event.key === "Enter" || event.key === " ")) {
+                  event.preventDefault();
+                  fileInputRef.current?.click();
+                }
               }}
               sx={{
                 p: { xs: 1.5, sm: 2 },
                 borderRadius: "12px",
                 borderStyle: "dashed",
                 borderWidth: 2,
-                bgcolor: "#f8faff",
-                cursor: "pointer",
+                borderColor: filesDragging ? "primary.main" : files.length ? "success.main" : "divider",
+                bgcolor: filesDragging ? "rgba(37, 99, 235, 0.06)" : files.length ? "rgba(22, 163, 74, 0.06)" : "#f8faff",
+                cursor: working ? "not-allowed" : "pointer",
+                opacity: working ? 0.6 : 1,
                 textAlign: "center",
                 display: "block",
                 minHeight: { xs: 112, sm: 124 },
                 "&:hover": { borderColor: "primary.main", bgcolor: "primary.light" },
+                "&:focus-visible": { outline: "3px solid", outlineColor: "primary.light", outlineOffset: 2 },
               }}
             >
               <CloudUploadRoundedIcon color="primary" />
-              <Typography variant="body2" fontWeight={750}>PDF 선택 또는 파일 드래그</Typography>
+              <Typography variant="body2" fontWeight={750}>{filesDragging ? "여기에 PDF 파일을 놓으세요" : "PDF 선택 또는 파일 드래그"}</Typography>
               <Typography variant="caption" color="text.secondary">최대 5개 · 파일당 10MB</Typography>
-              <input hidden type="file" accept="application/pdf,.pdf" multiple onChange={chooseFiles} />
+              <input ref={fileInputRef} hidden type="file" accept="application/pdf,.pdf" multiple disabled={working} onChange={chooseFiles} />
             </Paper>
             <Stack spacing={0.75} sx={{ mt: 1.25 }}>
               {openedDocument?.files?.map((file) => (
@@ -905,7 +934,7 @@ function ProposalsPage() {
                   key={previewItem.id}
                   title={`${previewItem.title} 미리보기`}
                   src={proposalFileUrl(previewItem.id, "output")}
-                  sandbox=""
+                  sandbox="allow-scripts allow-downloads allow-modals"
                   referrerPolicy="no-referrer"
                   sx={{
                     position: "absolute",

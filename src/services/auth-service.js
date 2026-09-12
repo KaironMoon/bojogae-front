@@ -7,6 +7,16 @@ async function getCurrentUser() {
   return response.data;
 }
 
+async function getAuthOptions() {
+  const response = await apiCaller.get("/api/v1/auth/options");
+  return response.data;
+}
+
+async function localEmailLogin(email) {
+  const response = await apiCaller.post("/api/v1/auth/local-login", { email });
+  return response.data;
+}
+
 async function logout() {
   await apiCaller.post("/api/v1/auth/logout");
 }
@@ -85,10 +95,12 @@ function getOAuthLoginUrl(provider) {
 
 export {
   deleteUser,
+  getAuthOptions,
   getCurrentUser,
   getOAuthLoginUrl,
   getUsers,
   grantFreePoints,
+  localEmailLogin,
   logout,
   sendSignupEmail,
   updateUserStatus,

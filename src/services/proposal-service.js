@@ -114,6 +114,56 @@ async function updateProposalSettings(values) {
   return response.data;
 }
 
+async function getCurrentProposalShell() {
+  const response = await apiCaller.get("/api/v1/admin/proposal-shell");
+  return response.data;
+}
+
+async function getProposalShellVersions(includeDeleted = false) {
+  const response = await apiCaller.get("/api/v1/admin/proposal-shell/versions", {
+    include_deleted: includeDeleted,
+  });
+  return response.data;
+}
+
+async function validateProposalShell({ filename, html, changeNote = "" }) {
+  const response = await apiCaller.post("/api/v1/admin/proposal-shell/validate", {
+    original_filename: filename,
+    change_note: changeNote,
+    html_body: html,
+    activate: false,
+  });
+  return response.data;
+}
+
+async function createProposalShellVersion({ filename, html, changeNote = "", activate = true }) {
+  const response = await apiCaller.post("/api/v1/admin/proposal-shell/versions", {
+    original_filename: filename,
+    change_note: changeNote,
+    html_body: html,
+    activate,
+  });
+  return response.data;
+}
+
+async function activateProposalShellVersion(versionId) {
+  const response = await apiCaller.post(`/api/v1/admin/proposal-shell/versions/${versionId}/activate`);
+  return response.data;
+}
+
+async function deleteProposalShellVersion(versionId) {
+  await apiCaller.delete(`/api/v1/admin/proposal-shell/versions/${versionId}`);
+}
+
+async function recoverProposalShellVersion(versionId) {
+  const response = await apiCaller.post(`/api/v1/admin/proposal-shell/versions/${versionId}/recover`);
+  return response.data;
+}
+
+function proposalShellDownloadUrl(versionId) {
+  return `${API_BASE_URL}/api/v1/admin/proposal-shell/versions/${versionId}/download`;
+}
+
 async function getPromptPointCosts() {
   const response = await apiCaller.get("/api/v1/admin/prompt-point-costs");
   return response.data;
@@ -135,24 +185,32 @@ async function decideProposalPoints(id, action, reason) {
 }
 
 export {
+  activateProposalShellVersion,
   cancelProposal,
+  createProposalShellVersion,
   createIdempotencyKey,
   createProposal,
   deleteProposal,
+  deleteProposalShellVersion,
   getAdminProposals,
   getPointBalance,
+  getCurrentProposalShell,
   getPromptPointCosts,
   getPromptOptions,
   getProposal,
   getProposals,
   getProposalSettings,
+  getProposalShellVersions,
   getUsage,
   proposalEventSource,
   proposalFileUrl,
   proposalRawResponseUrl,
+  proposalShellDownloadUrl,
+  recoverProposalShellVersion,
   recoverProposal,
   retryProposal,
   decideProposalPoints,
   updatePromptPointCost,
   updateProposalSettings,
+  validateProposalShell,
 };
