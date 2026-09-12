@@ -17,6 +17,7 @@ import ProposalsPage from "../pages/proposals/ProposalsPage";
 import AdminProposalsPage from "../pages/admin/ProposalsPage";
 import UsagePage from "../pages/admin/UsagePage";
 import ProposalSettingsPage from "../pages/admin/ProposalSettingsPage";
+import TemplateDemoPage from "../pages/admin/TemplateDemoPage";
 import PointsPage from "../pages/admin/PointsPage";
 import {
   ActiveUserRoute,
@@ -116,6 +117,7 @@ const router = createBrowserRouter([
           { path: "/admin/proposals", element: <AdminProposalsPage /> },
           { path: "/admin/usage", element: <UsagePage /> },
           { path: "/admin/proposal-settings", element: <ProposalSettingsPage /> },
+          { path: "/admin/template-demo", element: <TemplateDemoPage /> },
         ],
       },
     ],

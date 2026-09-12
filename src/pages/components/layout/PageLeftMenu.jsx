@@ -16,6 +16,7 @@ import GroupOutlinedIcon from "@mui/icons-material/GroupOutlined";
 import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
+import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 import AccountBalanceWalletOutlinedIcon from "@mui/icons-material/AccountBalanceWalletOutlined";
 import { useLocation, useNavigate } from "react-router-dom";
 
@@ -36,6 +37,7 @@ const ADMIN_MENU = [
   { label: "제안서 관리", path: "/admin/proposals", icon: DescriptionOutlinedIcon },
   { label: "사용량 / 통계", path: "/admin/usage", icon: AnalyticsOutlinedIcon },
   { label: "설정 및 서식", path: "/admin/proposal-settings", icon: TuneOutlinedIcon },
+  { label: "PDF → HTML 데모", path: "/admin/template-demo", icon: ScienceOutlinedIcon },
 ];
 
 function PageLeftMenu({ onNavigate }) { // eslint-disable-line react/prop-types
