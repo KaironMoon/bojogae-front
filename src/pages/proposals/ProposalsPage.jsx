@@ -415,8 +415,6 @@ function ProposalsPage() {
             ? "포인트가 부족합니다. 잔액을 확인해 주세요."
           : detailCode === "prompt_version_changed"
             ? "프롬프트가 변경되었습니다. 페이지를 새로고침한 후 입력해 주세요."
-          : detailCode === "active_shell_missing"
-            ? "활성화된 공통 문서 껍데기가 없습니다. 관리자에게 문의해 주세요."
           : ["invalid_input_values", "invalid_input_files", "required_input_missing", "required_input_group_missing", "invalid_input_file_type"].includes(detailCode)
             ? "입력 항목과 필수 자료, 파일 형식을 확인해 주세요."
           : ["invalid_html_document", "html_utf8_required", "html_text_too_large"].includes(detailCode)
@@ -934,7 +932,7 @@ function ProposalsPage() {
                   key={previewItem.id}
                   title={`${previewItem.title} 미리보기`}
                   src={proposalFileUrl(previewItem.id, "output")}
-                  sandbox="allow-scripts allow-downloads allow-modals"
+                  sandbox=""
                   referrerPolicy="no-referrer"
                   sx={{
                     position: "absolute",

@@ -7,7 +7,6 @@ import {
   updatePromptPointCost,
   updateProposalSettings,
 } from "@/services/proposal-service";
-import GlobalProposalShellSettings from "@/pages/admin/GlobalProposalShellSettings";
 
 
 const FIELDS = [
@@ -140,7 +139,6 @@ function ProposalSettingsPage() {
           {!promptCosts.length && <Typography color="text.secondary">등록된 프롬프트가 없습니다.</Typography>}
         </Stack>
       </Paper>
-      <GlobalProposalShellSettings />
     </Box>
   );
 }
