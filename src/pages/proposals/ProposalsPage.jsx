@@ -1,4 +1,5 @@
 import PromptInputForm from "@/pages/components/PromptInputForm";
+import { groupPromptCategories } from "@/services/prompt-category-utils";
 import { acceptsFile, fileTypeLabel, missingInputGroup } from "@/services/prompt-input-utils";
 import {
   Alert,
@@ -179,23 +180,7 @@ function ProposalsPage() {
   const fileInputRef = useRef(null);
 
   const categoryGroups = useMemo(() => {
-    const groups = new Map();
-    promptOptions.forEach((option) => {
-      (option.categories || []).forEach((category) => {
-        if (!groups.has(category.parent_id)) {
-          groups.set(category.parent_id, {
-            id: category.parent_id,
-            name: category.parent_name,
-            children: new Map(),
-          });
-        }
-        groups.get(category.parent_id).children.set(category.id, category);
-      });
-    });
-    return Array.from(groups.values()).map((group) => ({
-      ...group,
-      children: Array.from(group.children.values()),
-    }));
+    return groupPromptCategories(promptOptions);
   }, [promptOptions]);
 
   const filteredPromptOptions = useMemo(() => {
@@ -574,7 +559,7 @@ function ProposalsPage() {
         <Stack spacing={2} sx={{ gridColumn: { md: "span 5", xl: "span 3" }, minWidth: 0, alignSelf: "start" }}>
           <Paper
             variant="outlined"
-            sx={{ borderRadius: "16px", height: { xs: 240, md: 280, xl: 320 }, flexShrink: 0, overflow: "hidden", boxShadow: "0 1px 3px rgba(15, 23, 42, 0.05)" }}
+            sx={{ borderRadius: "16px", height: { xs: 320, md: 400, xl: 480 }, flexShrink: 0, overflow: "hidden", boxShadow: "0 1px 3px rgba(15, 23, 42, 0.05)" }}
           >
             <Box sx={{ px: 2, py: 1.75, borderBottom: 1, borderColor: "divider" }}>
               <Stack direction="row" justifyContent="space-between" alignItems="center">
@@ -582,18 +567,35 @@ function ProposalsPage() {
                   <FolderOpenRoundedIcon color="primary" fontSize="small" />
                   <Typography variant="subtitle2" fontWeight={800}>보험 카테고리</Typography>
                 </Stack>
-                <Chip label={`${selectedCategoryIds.length}개 선택`} size="small" variant="outlined" />
+                <Chip
+                  label={selectedCategoryIds.length ? (
+                    <>
+                      <Box component="span" className="category-count-label">
+                        {selectedCategoryIds.length}개 선택
+                      </Box>
+                      <Box component="span" className="category-clear-label">
+                        전체 해제
+                      </Box>
+                    </>
+                  ) : "0개 선택"}
+                  size="small"
+                  variant={selectedCategoryIds.length ? "filled" : "outlined"}
+                  color={selectedCategoryIds.length ? "primary" : "default"}
+                  clickable={Boolean(selectedCategoryIds.length)}
+                  disabled={!selectedCategoryIds.length}
+                  aria-label={selectedCategoryIds.length
+                    ? `${selectedCategoryIds.length}개 선택, 전체 해제`
+                    : "선택된 카테고리 없음"}
+                  onClick={() => setSelectedCategoryIds([])}
+                  sx={{
+                    "& .category-clear-label": { display: "none" },
+                    "&:hover .category-count-label, &:focus-visible .category-count-label": { display: "none" },
+                    "&:hover .category-clear-label, &:focus-visible .category-clear-label": { display: "inline" },
+                  }}
+                />
               </Stack>
             </Box>
             <Box sx={{ p: 1.5, height: "calc(100% - 58px)", overflowY: "auto" }}>
-              <Button
-                size="small"
-                onClick={() => setSelectedCategoryIds([])}
-                disabled={!selectedCategoryIds.length}
-                sx={{ mb: 1 }}
-              >
-                전체 보기
-              </Button>
               <Stack spacing={1.25}>
                 {categoryGroups.map((group) => (
                   <Paper key={group.id} variant="outlined" sx={{ p: 1.25, borderRadius: "10px" }}>
