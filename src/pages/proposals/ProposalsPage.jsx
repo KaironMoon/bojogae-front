@@ -932,7 +932,6 @@ function ProposalsPage() {
                   key={previewItem.id}
                   title={`${previewItem.title} 미리보기`}
                   src={proposalFileUrl(previewItem.id, "output")}
-                  sandbox=""
                   referrerPolicy="no-referrer"
                   sx={{
                     position: "absolute",
