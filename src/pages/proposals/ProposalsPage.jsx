@@ -54,6 +54,7 @@ import {
   getProposals,
   proposalEventSource,
   proposalFileUrl,
+  proposalRawResponseUrl,
   retryProposal,
 } from "@/services/proposal-service";
 
@@ -117,7 +118,7 @@ const WORKFLOW_STEPS = [
   },
   {
     eyebrow: "Step 3",
-    title: "3. 문서 캔버스 & 공유",
+    title: "3. 보고서 캔버스 & 공유",
     description: "실시간 미리보기, 출력, 이미지 저장",
     icon: TaskAltRoundedIcon,
     color: "#059669",
@@ -150,6 +151,7 @@ function isCompletedStatus(status) {
   return String(status || "").trim().toUpperCase() === "COMPLETED";
 }
 
+
 function ProposalsPage() {
   const theme = useTheme();
   const mobilePreview = useMediaQuery(theme.breakpoints.down("sm"));
@@ -170,14 +172,16 @@ function ProposalsPage() {
   const [working, setWorking] = useState(false);
   const [error, setError] = useState("");
   const [activeId, setActiveId] = useState(null);
-  const [progress, setProgress] = useState(null);
   const [detail, setDetail] = useState(null);
+  const [statusItem, setStatusItem] = useState(null);
+  const [statusMessage, setStatusMessage] = useState("");
   const [previewItem, setPreviewItem] = useState(null);
   const [canvasOpen, setCanvasOpen] = useState(false);
   const [openedDocument, setOpenedDocument] = useState(null);
-  const [previewZoom, setPreviewZoom] = useState(0.75);
+  const [previewZoom, setPreviewZoom] = useState(1);
   const submissionKey = useRef(null);
   const fileInputRef = useRef(null);
+  const statusPanelRef = useRef(null);
 
   const categoryGroups = useMemo(() => {
     return groupPromptCategories(promptOptions);
@@ -185,13 +189,25 @@ function ProposalsPage() {
 
   const filteredPromptOptions = useMemo(() => {
     if (!selectedCategoryIds.length) return promptOptions;
-    const selected = new Set(selectedCategoryIds);
-    return promptOptions.filter((option) => (
-      (option.categories || []).some((category) => selected.has(category.id))
-    ));
+    return promptOptions.filter((option) => {
+      const categoryIds = new Set((option.categories || []).map((category) => category.id));
+      return selectedCategoryIds.every((categoryId) => categoryIds.has(categoryId));
+    });
   }, [promptOptions, selectedCategoryIds]);
 
   const selectedPrompt = promptOptions.find((option) => option.id === promptId);
+  const selectedReport = statusItem || openedDocument;
+  const displayedPromptOptions = useMemo(() => {
+    if (!selectedReport) return filteredPromptOptions;
+    return [{
+      id: selectedReport.prompt_id,
+      title: selectedReport.prompt_title,
+      current_version_id: selectedReport.prompt_version_id,
+      current_version_no: selectedReport.prompt_version_no,
+      point_cost: selectedReport.point_cost ?? 1,
+      categories: [],
+    }];
+  }, [selectedReport, filteredPromptOptions]);
   const inputSchema = selectedPrompt?.input_schema || [];
   const customInputs = inputSchema.length > 0;
 
@@ -207,11 +223,12 @@ function ProposalsPage() {
   );
 
   useEffect(() => {
-    if (!filteredPromptOptions.some((option) => option.id === promptId)) {
+    if (selectedReport) return;
+    if (promptId && !filteredPromptOptions.some((option) => option.id === promptId)) {
       setPromptId(filteredPromptOptions[0]?.id || "");
       submissionKey.current = null;
     }
-  }, [filteredPromptOptions, promptId]);
+  }, [filteredPromptOptions, promptId, selectedReport]);
 
   const loadList = useCallback(async (targetPage = page) => {
     const result = await getProposals(targetPage, 10);
@@ -253,7 +270,7 @@ function ProposalsPage() {
   }, []);
 
   useEffect(() => {
-    setPreviewZoom(mobilePreview ? 0.4 : 0.75);
+    setPreviewZoom(mobilePreview ? 0.4 : 1);
   }, [mobilePreview]);
 
   useEffect(() => {
@@ -261,38 +278,25 @@ function ProposalsPage() {
     const source = proposalEventSource(activeId);
     const eventTypes = ["status", "uploading", "generating", "thought_summary", "completed", "failed", "cancelled"];
     const handler = async (event) => {
-      const data = JSON.parse(event.data || "{}");
-      setProgress({ type: event.type, ...data });
       if (["completed", "failed", "cancelled"].includes(event.type)) {
         source.close();
-        const completedId = activeId;
         setActiveId(null);
         try {
-          const result = await loadList(1);
+          await loadList(1);
           setPointBalance(await getPointBalance());
-          if (event.type === "completed") {
-            const completed = result.items.find((item) => item.id === completedId);
-            await loadDocumentIntoWorkspace(completed || { id: completedId, title: "생성된 문서" });
-          }
         } catch {
           setError("목록을 갱신하지 못했습니다.");
         }
       }
     };
     eventTypes.forEach((type) => source.addEventListener(type, handler));
-    source.onerror = () => {
-      setProgress((current) => current || { message: "상태를 다시 확인하고 있습니다." });
-    };
     const poll = window.setInterval(() => {
       getProposal(activeId).then(async (job) => {
         if (!ACTIVE.has(job.status)) {
           setActiveId(null);
           source.close();
-          const result = await loadList(1);
-          if (job.status === "COMPLETED") {
-            const completed = result.items.find((item) => item.id === job.id);
-            await loadDocumentIntoWorkspace(completed || job);
-          }
+          await loadList(1);
+          setPointBalance(await getPointBalance());
         }
       }).catch(() => {});
     }, 5000);
@@ -300,7 +304,44 @@ function ProposalsPage() {
       source.close();
       window.clearInterval(poll);
     };
-  }, [activeId, loadDocumentIntoWorkspace, loadList]);
+  }, [activeId, loadList]);
+
+  const statusItemId = statusItem?.id;
+  useEffect(() => {
+    if (!statusItemId) return undefined;
+    statusPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    let disposed = false;
+    const source = proposalEventSource(statusItemId);
+    const refresh = async () => {
+      try {
+        const job = await getProposal(statusItemId);
+        if (disposed) return;
+        setStatusItem(job);
+        if (!ACTIVE.has(job.status)) {
+          source.close();
+          window.clearInterval(poll);
+          setStatusMessage(job.error_message || STATUS_LABELS[job.status] || job.status);
+        }
+      } catch {
+        if (!disposed) setStatusMessage("진행 상태를 불러오지 못했습니다. 다시 확인하고 있습니다.");
+      }
+    };
+    const handler = (event) => {
+      if (disposed) return;
+      const data = JSON.parse(event.data || "{}");
+      setStatusMessage(data.message || STATUS_LABELS[data.status] || "생성 중입니다.");
+      refresh();
+    };
+    ["status", "uploading", "generating", "thought_summary", "completed", "failed", "cancelled"]
+      .forEach((type) => source.addEventListener(type, handler));
+    const poll = window.setInterval(refresh, 5000);
+    refresh();
+    return () => {
+      disposed = true;
+      source.close();
+      window.clearInterval(poll);
+    };
+  }, [statusItemId]);
 
   const acceptFiles = (selected) => {
     if (selected.length > MAX_FILES) {
@@ -383,13 +424,20 @@ function ProposalsPage() {
       });
       submissionKey.current = null;
       setActiveId(job.id);
-      setProgress({ message: "작업이 대기열에 등록되었습니다.", status: job.status });
+      setStatusItem(null);
+      setStatusMessage("");
+      setSelectedCategoryIds([]);
+      setPromptId("");
       setFiles([]);
+      setFilesDragging(false);
       setInputValues({});
       setFieldUploads({});
       setOpenedDocument(null);
+      setPreviewItem(null);
+      setCanvasOpen(false);
       setTitle("");
       setTitleTouched(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
       await Promise.all([loadList(1), getPointBalance().then(setPointBalance)]);
     } catch (requestError) {
       const detailCode = requestError.response?.data?.detail;
@@ -404,7 +452,7 @@ function ProposalsPage() {
             ? "입력 항목과 필수 자료, 파일 형식을 확인해 주세요."
           : ["invalid_html_document", "html_utf8_required", "html_text_too_large"].includes(detailCode)
             ? "본문이 있는 UTF-8 HTML 파일을 첨부해 주세요. HTML의 본문은 20만 자 이하여야 합니다."
-          : "문서 생성 작업을 등록하지 못했습니다.",
+          : "보고서 생성 작업을 등록하지 못했습니다.",
       );
     } finally {
       setWorking(false);
@@ -447,6 +495,16 @@ function ProposalsPage() {
 
   const openPreview = async (item) => {
     setError("");
+    if (!isCompletedStatus(item.status)) {
+      setPreviewItem(null);
+      setCanvasOpen(false);
+      setOpenedDocument(null);
+      setStatusMessage(item.error_message || "");
+      setStatusItem(item);
+      return;
+    }
+    setStatusItem(null);
+    setStatusMessage("");
     try {
       await loadDocumentIntoWorkspace(item);
     } catch {
@@ -459,6 +517,8 @@ function ProposalsPage() {
   };
 
   const resetWorkspace = () => {
+    setStatusItem(null);
+    setStatusMessage("");
     setPreviewItem(null);
     setCanvasOpen(false);
     setOpenedDocument(null);
@@ -467,7 +527,6 @@ function ProposalsPage() {
     setFieldUploads({});
     setTitle("");
     setTitleTouched(false);
-    setProgress(null);
     setError("");
     setPromptId(promptOptions[0]?.id || "");
     setSelectedCategoryIds([]);
@@ -483,7 +542,7 @@ function ProposalsPage() {
     <Box sx={{ p: { xs: 1.5, sm: 2, md: 3, lg: 4 }, width: "100%", boxSizing: "border-box", overflowX: "hidden" }}>
       <Box sx={{ mb: 2.5 }}>
         <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" gap={1}>
-          <Typography variant="h4" sx={{ fontSize: { xs: 26, sm: 30, md: 34 }, fontWeight: 850, letterSpacing: "-0.04em" }}>문서 만들기</Typography>
+          <Typography variant="h4" sx={{ fontSize: { xs: 26, sm: 30, md: 34 }, fontWeight: 850, letterSpacing: "-0.04em" }}>보고서 만들기</Typography>
           <Stack direction="row" spacing={1}>
             <Chip label={`무료 ${pointBalance.free_points.toLocaleString()}P`} color="success" variant="outlined" />
             <Chip label={`유료 ${pointBalance.paid_points.toLocaleString()}P`} color="primary" variant="outlined" />
@@ -542,10 +601,37 @@ function ProposalsPage() {
 
       {error && <Alert severity="error" onClose={() => setError("")} sx={{ mb: 2 }}>{error}</Alert>}
       <ExpiringPoints balance={pointBalance} />
-      {progress && (
-        <Alert severity={progress.type === "failed" ? "error" : "info"} sx={{ mb: 2 }}>
-          {progress.message || progress.status || "생성 중입니다."}
-        </Alert>
+      {selectedReport && (
+        <Paper ref={statusPanelRef} variant="outlined" sx={{ p: { xs: 2, sm: 2.5 }, mb: 2, borderRadius: 3, scrollMarginTop: 80 }}>
+          <Stack spacing={2}>
+            <Stack direction="row" alignItems="flex-start" justifyContent="space-between" spacing={1}>
+              <Typography variant="h6" sx={{ fontWeight: 800 }}>{selectedReport.title}</Typography>
+              <IconButton aria-label="보고서 정보 닫기" onClick={() => {
+                if (statusItem) setStatusItem(null);
+                else setOpenedDocument(null);
+              }} size="small">
+                <CloseRoundedIcon />
+              </IconButton>
+            </Stack>
+            <Stack direction="row" alignItems="center" spacing={1}>
+              {ACTIVE.has(selectedReport.status) && <CircularProgress size={20} />}
+              <Chip color={statusColor(selectedReport.status)} label={STATUS_LABELS[selectedReport.status] || selectedReport.status || "상태 확인 중"} />
+            </Stack>
+            {statusItem && <Typography role="status" aria-live="polite" sx={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>
+              {statusMessage || STATUS_LABELS[statusItem.status] || "진행 상태를 확인하고 있습니다."}
+            </Typography>}
+            {selectedReport.status === "FAILED" && selectedReport.response_available && (
+              <Button variant="outlined" sx={{ alignSelf: "flex-start" }} href={proposalRawResponseUrl(selectedReport.id, true, false)}>
+                LLM 응답 다운로드
+              </Button>
+            )}
+            {statusItem && isCompletedStatus(statusItem.status) && <Button sx={{ alignSelf: "flex-start" }} onClick={() => {
+              const item = statusItem;
+              setStatusItem(null);
+              openPreview(item);
+            }}>보고서 열기</Button>}
+          </Stack>
+        </Paper>
       )}
 
       <Box
@@ -645,21 +731,22 @@ function ProposalsPage() {
                   <Typography variant="subtitle2" fontWeight={800}>추천 프롬프트</Typography>
                 </Stack>
                 <Typography variant="caption" color="text.secondary">
-                  {selectedCategoryIds.length ? "선택한 카테고리의 프롬프트입니다." : "사용 가능한 프롬프트 전체 목록입니다."}
+                  {selectedReport ? "이 보고서 생성에 사용한 프롬프트입니다. 신규를 누르면 전체 목록으로 돌아갑니다." : selectedCategoryIds.length ? "선택한 카테고리를 모두 포함한 프롬프트입니다." : "사용 가능한 프롬프트 전체 목록입니다."}
                 </Typography>
               </Box>
-              <Chip label={`${filteredPromptOptions.length}개`} size="small" color="primary" variant="outlined" />
+              <Chip label={`${displayedPromptOptions.length}개`} size="small" color="primary" variant="outlined" />
             </Stack>
 
             <Stack spacing={1.1} sx={{ py: 1.25, pr: 0.5, flex: 1, minHeight: 0, overflowY: "auto" }}>
-              {filteredPromptOptions.map((option, index) => {
+              {displayedPromptOptions.map((option, index) => {
                 const meta = PROMPT_META[index % PROMPT_META.length];
-                const selected = promptId === option.id;
+                const selected = selectedReport ? selectedReport.prompt_id === option.id : promptId === option.id;
                 return (
                   <Paper
                     key={option.id}
                     variant="outlined"
                     onClick={() => {
+                      if (selectedReport) return;
                       setPromptId(option.id);
                       submissionKey.current = null;
                     }}
@@ -669,14 +756,14 @@ function ProposalsPage() {
                       borderWidth: selected ? 2 : 1,
                       borderColor: selected ? "primary.main" : "divider",
                       bgcolor: selected ? "#f5f8ff" : "background.paper",
-                      cursor: "pointer",
+                      cursor: selectedReport ? "default" : "pointer",
                     }}
                   >
                     <Box sx={{ minWidth: 0 }}>
                       <Stack direction="row" justifyContent="space-between" alignItems="flex-start" gap={1}>
                         <Stack direction="row" alignItems="center" gap={0.75} sx={{ minWidth: 0 }}>
                           <Chip
-                            label={`${index + 1}순위`}
+                            label={selectedReport ? "사용한 프롬프트" : `${index + 1}순위`}
                             size="small"
                             color={selected ? "primary" : "default"}
                             sx={{ height: 22, fontSize: 10, fontWeight: 850, borderRadius: "5px" }}
@@ -688,15 +775,15 @@ function ProposalsPage() {
                         <Radio checked={selected} size="small" sx={{ p: 0.1 }} />
                       </Stack>
                       <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.8, lineHeight: 1.45 }}>
-                        {meta.description}
+                        {selectedReport ? "생성 당시의 프롬프트 이름과 버전입니다." : meta.description}
                       </Typography>
                       <Stack direction="row" alignItems="center" gap={0.6} flexWrap="wrap" sx={{ mt: 1 }}>
-                        <Chip label={`적합도 ${meta.fit}%`} size="small" color="primary" variant="outlined" />
+                        {!selectedReport && <Chip label={`적합도 ${meta.fit}%`} size="small" color="primary" variant="outlined" />}
                         <Chip label={`${option.point_cost.toLocaleString()}P`} size="small" color="warning" variant="outlined" />
                         {(option.categories || []).map((category) => (
                           <Chip key={category.id} label={`${category.parent_name} · ${category.name}`} size="small" />
                         ))}
-                        {!option.categories?.length && <Chip label="미분류" size="small" />}
+                        {!selectedReport && !option.categories?.length && <Chip label="미분류" size="small" />}
                         <Button
                           type="button"
                           size="small"
@@ -712,11 +799,33 @@ function ProposalsPage() {
                   </Paper>
                 );
               })}
-              {!filteredPromptOptions.length && <Alert severity="info">조건에 맞는 프롬프트가 없습니다.</Alert>}
+              {!displayedPromptOptions.length && <Alert severity="info">조건에 맞는 프롬프트가 없습니다.</Alert>}
             </Stack>
           </Paper>
           <Paper variant="outlined" sx={{ p: 2.25, borderRadius: "16px 16px 0 0", boxShadow: "0 1px 3px rgba(15, 23, 42, 0.05)" }}>
-            {customInputs ? <PromptInputForm fields={inputSchema} values={inputValues} uploads={fieldUploads} disabled={working}
+            {selectedReport ? (
+              <Stack spacing={1.25}>
+                <Typography variant="subtitle2" fontWeight={800}>첨부파일</Typography>
+                {!selectedReport.files ? (
+                  <Typography variant="body2" color="text.secondary">첨부파일을 불러오고 있습니다.</Typography>
+                ) : selectedReport.files.length === 0 ? (
+                  <Typography variant="body2" color="text.secondary">첨부파일이 없습니다.</Typography>
+                ) : selectedReport.files.map((file) => (
+                  <Paper key={file.id} variant="outlined" sx={{ p: 1.25, borderRadius: 2 }}>
+                    <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" gap={1}>
+                      <Box sx={{ minWidth: 0 }}>
+                        <Typography variant="body2" sx={{ overflowWrap: "anywhere" }}>{file.original_filename}</Typography>
+                        <Typography variant="caption" color="text.secondary">{formatBytes(file.size_bytes)}</Typography>
+                      </Box>
+                      <Stack direction="row" sx={{ flexShrink: 0 }}>
+                        <Button size="small" onClick={() => window.open(proposalFileUrl(selectedReport.id, "input", { fileId: file.id }), "_blank", "noopener,noreferrer")}>열기</Button>
+                        <Button size="small" href={proposalFileUrl(selectedReport.id, "input", { fileId: file.id, download: true })}>다운로드</Button>
+                      </Stack>
+                    </Stack>
+                  </Paper>
+                ))}
+              </Stack>
+            ) : customInputs ? <PromptInputForm fields={inputSchema} values={inputValues} uploads={fieldUploads} disabled={working}
               onValue={(key, value) => {
                 setInputValues((current) => ({ ...current, [key]: value }));
                 setOpenedDocument(null);
@@ -798,23 +907,6 @@ function ProposalsPage() {
               <input ref={fileInputRef} hidden type="file" accept="application/pdf,.pdf" multiple disabled={working} onChange={chooseFiles} />
             </Paper>
             <Stack spacing={0.75} sx={{ mt: 1.25 }}>
-              {openedDocument?.files?.map((file) => (
-                <Stack
-                  key={file.id}
-                  direction="row"
-                  justifyContent="space-between"
-                  alignItems="center"
-                  sx={{ px: 1.25, py: 0.9, borderRadius: "8px", bgcolor: "#f1f5f9" }}
-                >
-                  <Stack direction="row" alignItems="center" spacing={0.8} sx={{ minWidth: 0, flex: 1 }}>
-                    <Chip label="PDF" size="small" sx={{ height: 20, bgcolor: "#fee2e2", color: "#b91c1c", fontSize: 10, fontWeight: 800 }} />
-                    <Typography variant="caption" noWrap sx={{ minWidth: 0 }}>{file.original_filename}</Typography>
-                  </Stack>
-                  <Typography variant="caption" color="text.secondary" sx={{ ml: 1, whiteSpace: "nowrap" }}>
-                    {formatBytes(file.size_bytes)}
-                  </Typography>
-                </Stack>
-              ))}
               {files.map((file, index) => (
                 <Stack
                   key={`${file.name}-${file.lastModified}`}
@@ -835,9 +927,9 @@ function ProposalsPage() {
               fullWidth
               size="small"
               label="문서 제목"
-              value={title}
+              value={selectedReport ? selectedReport.title : title}
               disabled={working}
-              inputProps={{ maxLength: 300 }}
+              inputProps={{ maxLength: 300, readOnly: Boolean(selectedReport) }}
               onChange={(event) => {
                 setTitle(event.target.value);
                 setTitleTouched(true);
@@ -851,7 +943,7 @@ function ProposalsPage() {
             variant="contained"
             size="large"
             onClick={submit}
-            disabled={working || !filteredPromptOptions.length || pointBalance.total_points < selectedPointCost}
+            disabled={Boolean(selectedReport) || working || !promptId || !filteredPromptOptions.length || pointBalance.total_points < selectedPointCost}
             startIcon={working ? <CircularProgress size={18} color="inherit" /> : <DescriptionRoundedIcon />}
             sx={{ flexShrink: 0, py: 1.25, fontWeight: 800, borderRadius: "0 0 12px 12px" }}
           >
@@ -859,7 +951,7 @@ function ProposalsPage() {
               ? "등록 중..."
               : pointBalance.total_points < selectedPointCost
                 ? `포인트 부족 (${selectedPointCost.toLocaleString()}P 필요)`
-                : `문서 생성 · ${selectedPointCost.toLocaleString()}P`}
+                : `보고서 생성 · ${selectedPointCost.toLocaleString()}P`}
           </Button>
         </Stack>
 
@@ -955,7 +1047,7 @@ function ProposalsPage() {
                     <DescriptionRoundedIcon color="primary" />
                   </Box>
                   <Typography variant="subtitle2" fontWeight={750}>표시할 문서가 없습니다</Typography>
-                  <Typography variant="caption">문서 생성이 완료되면 이곳에서 HTML 결과를 확인할 수 있습니다.</Typography>
+                  <Typography variant="caption">보고서 생성이 완료되면 이곳에서 HTML 결과를 확인할 수 있습니다.</Typography>
                 </Stack>
               </Box>
             )}
@@ -966,7 +1058,7 @@ function ProposalsPage() {
         <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ xs: "stretch", sm: "center" }} gap={1.5} sx={{ mb: 2 }}>
           <Box>
             <Stack direction="row" alignItems="center" spacing={1}>
-              <Typography variant="h6" sx={{ fontWeight: 800 }}>내 생성 문서</Typography>
+              <Typography variant="h6" sx={{ fontWeight: 800 }}>보고서 리스트</Typography>
               <Button size="small" variant="outlined" startIcon={<AddRoundedIcon />} onClick={resetWorkspace}>
                 신규
               </Button>
@@ -979,13 +1071,13 @@ function ProposalsPage() {
           {items.map((item) => (
             <Box
               key={item.id}
-              role={isCompletedStatus(item.status) ? "button" : undefined}
-              tabIndex={isCompletedStatus(item.status) ? 0 : undefined}
+              role="button"
+              tabIndex={0}
               onClick={() => {
-                if (isCompletedStatus(item.status)) openPreview(item);
+                openPreview(item);
               }}
               onKeyDown={(event) => {
-                if (isCompletedStatus(item.status) && (event.key === "Enter" || event.key === " ")) {
+                if (event.key === "Enter" || event.key === " ") {
                   event.preventDefault();
                   openPreview(item);
                 }
@@ -995,12 +1087,12 @@ function ProposalsPage() {
                 py: 1.5,
                 borderTop: "1px solid #f1f5f9",
                 borderRadius: "10px",
-                cursor: isCompletedStatus(item.status) ? "pointer" : "default",
-                bgcolor: previewItem?.id === item.id ? "#eff6ff" : "transparent",
-                outline: previewItem?.id === item.id ? "2px solid #3b82f6" : "none",
+                cursor: "pointer",
+                bgcolor: (statusItem?.id ?? previewItem?.id) === item.id ? "#eff6ff" : "transparent",
+                outline: (statusItem?.id ?? previewItem?.id) === item.id ? "2px solid #3b82f6" : "none",
                 outlineOffset: "-2px",
                 transition: "background-color 150ms ease, outline-color 150ms ease",
-                "&:hover": { bgcolor: isCompletedStatus(item.status) ? "#f8fafc" : "transparent" },
+                "&:hover": { bgcolor: "#f8fafc" },
                 "&:focus-visible": { outline: "2px solid #2563eb", outlineOffset: "-2px" },
               }}
             >
@@ -1009,7 +1101,7 @@ function ProposalsPage() {
                   <Stack direction="row" alignItems="center" gap={1} flexWrap="wrap">
                     <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>{item.title}</Typography>
                     <Chip size="small" color={statusColor(item.status)} label={STATUS_LABELS[item.status] || item.status} />
-                    {previewItem?.id === item.id && (
+                    {(statusItem?.id ?? previewItem?.id) === item.id && (
                       <Chip size="small" color="primary" variant="outlined" label="선택됨" sx={{ fontWeight: 750 }} />
                     )}
                   </Stack>
@@ -1029,11 +1121,13 @@ function ProposalsPage() {
                   onKeyDown={(event) => event.stopPropagation()}
                 >
                   <Button size="small" onClick={() => showFiles(item)}>파일</Button>
+                  {item.status === "FAILED" && item.response_available && (
+                    <Button size="small" href={proposalRawResponseUrl(item.id, true, false)}>LLM 응답 다운로드</Button>
+                  )}
                   <Button
                     size="small"
                     variant={isCompletedStatus(item.status) ? "contained" : "outlined"}
                     startIcon={<VisibilityOutlinedIcon />}
-                    disabled={!isCompletedStatus(item.status)}
                     onClick={() => openPreview(item)}
                   >
                     열기

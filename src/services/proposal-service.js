@@ -89,9 +89,10 @@ function proposalFileUrl(id, kind, { fileId, admin = false, download = false } =
   return `${API_BASE_URL}${prefix}/${id}/output/${action}`;
 }
 
-function proposalRawResponseUrl(id, download = false) {
+function proposalRawResponseUrl(id, download = false, admin = true) {
   const action = download ? "download" : "open";
-  return `${API_BASE_URL}/api/v1/admin/proposals/${id}/response/${action}`;
+  const prefix = admin ? "admin/proposals" : "proposals";
+  return `${API_BASE_URL}/api/v1/${prefix}/${id}/response/${action}`;
 }
 
 async function getAdminProposals(params) {

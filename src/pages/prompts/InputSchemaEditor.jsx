@@ -23,7 +23,7 @@ export default function InputSchemaEditor({ value = [], onChange, disabled }) {
           <Button size="small" onClick={() => setPreview(!preview)}>{preview ? "설정 편집" : "화면 미리보기"}</Button>
         </Stack>
         <Alert severity="info">
-          문서 만들기에서 받을 자료를 순서대로 추가하세요. 설정이 없으면 기본 PDF 업로드를 사용합니다.
+          보고서 만들기에서 받을 자료를 순서대로 추가하세요. 설정이 없으면 기본 PDF 업로드를 사용합니다.
           항목 키와 이름은 입력값·PDF 구분과 함께 LLM에 전달됩니다. 본문에서 해당 키를 언급해 활용 방법을 지시할 수 있습니다.
         </Alert>
         {preview ? <PromptInputForm fields={value} values={previewValues} uploads={previewUploads}

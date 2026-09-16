@@ -25,7 +25,7 @@ import { useAuth } from "@/auth/AuthContext";
 const PRIMARY_MENU = [
   { label: "Home", path: "/home", icon: HomeOutlinedIcon },
   { label: "Info", path: "/info", icon: InfoOutlinedIcon },
-  { label: "문서 만들기", path: "/proposals", icon: DescriptionOutlinedIcon },
+  { label: "보고서 만들기", path: "/proposals", icon: DescriptionOutlinedIcon },
   { label: "내 정보", path: "/profile", icon: AccountCircleOutlinedIcon },
 ];
 
