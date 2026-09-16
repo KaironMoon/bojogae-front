@@ -18,6 +18,13 @@ async function getPromptOptions() {
   return response.data;
 }
 
+async function setPromptFavorite(promptId, isFavorite) {
+  const response = await apiCaller.put(`/api/v1/proposals/prompt-options/${promptId}/favorite`, {
+    is_favorite: isFavorite,
+  });
+  return response.data;
+}
+
 async function getPointBalance() {
   const response = await apiCaller.get("/api/v1/points/me");
   return response.data;
@@ -144,6 +151,7 @@ export {
   getPointBalance,
   getPromptPointCosts,
   getPromptOptions,
+  setPromptFavorite,
   getProposal,
   getProposals,
   getProposalSettings,
@@ -157,3 +165,11 @@ export {
   updatePromptPointCost,
   updateProposalSettings,
 };
+
+export async function getPersonalMonthlyPoints() {
+  return (await apiCaller.get('/api/v1/admin/personal-monthly-points')).data;
+}
+
+export async function updatePersonalMonthlyPoints(amount) {
+  return (await apiCaller.put('/api/v1/admin/personal-monthly-points', { amount })).data;
+}

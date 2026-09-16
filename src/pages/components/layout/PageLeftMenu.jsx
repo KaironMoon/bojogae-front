@@ -26,10 +26,12 @@ const PRIMARY_MENU = [
   { label: "Home", path: "/home", icon: HomeOutlinedIcon },
   { label: "Info", path: "/info", icon: InfoOutlinedIcon },
   { label: "보고서 만들기", path: "/proposals", icon: DescriptionOutlinedIcon },
+  { label: "내 코인", path: "/my-coins", icon: AccountBalanceWalletOutlinedIcon },
   { label: "내 정보", path: "/profile", icon: AccountCircleOutlinedIcon },
 ];
 
 const ADMIN_MENU = [
+  { label: "그룹 관리", path: "/admin/groups", icon: GroupOutlinedIcon },
   { label: "고객 관리", path: "/admin/users", icon: GroupOutlinedIcon },
   { label: "포인트 관리", path: "/admin/points", icon: AccountBalanceWalletOutlinedIcon },
   { label: "프롬프트 관리", path: "/admin/prompts", icon: AutoAwesomeOutlinedIcon },
@@ -114,6 +116,8 @@ function PageLeftMenu({ onNavigate }) { // eslint-disable-line react/prop-types
     >
       <List sx={{ pt: 2, pb: 1 }}>
         {PRIMARY_MENU.map(renderMenuItem)}
+        {user?.group_role === "LEADER" && renderMenuItem({ label: "그룹 관리", path: "/group", icon: GroupOutlinedIcon })}
+        {user?.group_id && renderMenuItem({ label: "비밀번호 변경", path: "/group/change-password", icon: AccountCircleOutlinedIcon })}
       </List>
 
       {user?.role === "ADMIN" && (

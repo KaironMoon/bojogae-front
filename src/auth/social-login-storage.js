@@ -1,3 +1,5 @@
+import { setLastLoginMethod } from "./login-method-storage";
+
 const LAST_SOCIAL_LOGIN_PROVIDER_KEY = "bojoge:last-social-login-provider";
 const PENDING_SOCIAL_LOGIN_PROVIDER_KEY = "bojoge:pending-social-login-provider";
 const SOCIAL_LOGIN_PROVIDERS = new Set(["google", "kakao", "naver"]);
@@ -37,6 +39,7 @@ function commitPendingSocialLoginProvider() {
     const provider = window.sessionStorage.getItem(PENDING_SOCIAL_LOGIN_PROVIDER_KEY);
     if (!isSocialLoginProvider(provider)) return null;
 
+    setLastLoginMethod("personal");
     window.localStorage.setItem(LAST_SOCIAL_LOGIN_PROVIDER_KEY, provider);
     window.sessionStorage.removeItem(PENDING_SOCIAL_LOGIN_PROVIDER_KEY);
     return provider;

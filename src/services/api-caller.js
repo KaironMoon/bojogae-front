@@ -131,12 +131,12 @@ class ApiInterceptors {
   start() {
     this._instanceInterceptor.request = this._interceptors.request.use(
       (config) => {
-        console.log("%cHTTP REQUEST %s\n", "color: blue", config.url, config);
+        console.log("%cHTTP REQUEST %s", "color: blue", config.url, config.method);
 
         return config;
       },
       (error) => {
-        console.warn("%cHTTP REQUEST ERROR\n", "color: red", error);
+        console.warn("%cHTTP REQUEST ERROR", "color: red", error.code);
 
         return Promise.reject(error);
       },
@@ -144,12 +144,12 @@ class ApiInterceptors {
 
     this._instanceInterceptor.response = this._interceptors.response.use(
       (response) => {
-        console.log("%cHTTP RESPONSE %s\n", "color: blue", response.config.url, response);
+        console.log("%cHTTP RESPONSE %s", "color: blue", response.config.url, response.status);
 
         return response;
       },
       (error) => {
-        console.warn("%cHTTP RESPONSE ERROR\n%s", "color: red", error);
+        console.warn("%cHTTP RESPONSE ERROR", "color: red", error.config?.url, error.response?.status);
 
         return Promise.reject(error);
       },

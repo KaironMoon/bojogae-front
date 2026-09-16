@@ -1,4 +1,5 @@
 /* eslint-disable react/prop-types */
+import PreviewImageCarousel from "@/pages/components/PreviewImageCarousel";
 import { Alert, Box, Button, Stack, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
 import { MAX_PREVIEW_IMAGES, promptPreviewImageUrl } from "@/services/prompt-service";
@@ -7,7 +8,6 @@ export default function PreviewImageEditor({ prompt, file, removed, disabled, on
   const [localUrls, setLocalUrls] = useState([]);
   const [error, setError] = useState("");
   const [dragging, setDragging] = useState(false);
-  const [index, setIndex] = useState(0);
   const files = file || [];
   const existing = (prompt?.preview_images?.length ? prompt.preview_images : prompt?.preview_image_available
     ? [{ id: "legacy", filename: prompt.preview_image_filename }] : []).filter((image) => !(removed || []).includes(image.id));
@@ -16,11 +16,9 @@ export default function PreviewImageEditor({ prompt, file, removed, disabled, on
     setLocalUrls(urls);
     return () => urls.forEach((url) => URL.revokeObjectURL(url));
   }, [file]);
-  useEffect(() => { setIndex(0); setError(""); }, [prompt?.id]);
+  useEffect(() => { setError(""); }, [prompt?.id]);
   const slides = [...existing.map((image) => ({ ...image, url: promptPreviewImageUrl(prompt.id, prompt.preview_image_revision, image.id) })),
     ...files.map((image, position) => ({ filename: image.name, url: localUrls[position], position }))];
-  const currentIndex = Math.min(index, Math.max(0, slides.length - 1));
-  const current = slides[currentIndex];
   const addFiles = (selection) => {
     if (disabled) return;
     const added = Array.from(selection || []);
@@ -49,17 +47,10 @@ export default function PreviewImageEditor({ prompt, file, removed, disabled, on
           </Button>
         </Stack>
       </Box>
-      {current && <>
-        <Box key={current.url} component="img" src={current.url} alt={`결과 미리보기 ${currentIndex + 1}`} onError={() => setError("미리보기 이미지를 불러오지 못했습니다.")}
-          sx={{ width: "100%", maxHeight: 320, objectFit: "contain", bgcolor: "grey.50", borderRadius: 2 }} />
-        <Stack direction="row" spacing={1} alignItems="center" justifyContent="center">
-          <Button disabled={currentIndex === 0} onClick={() => { setIndex(currentIndex - 1); setError(""); }}>이전</Button>
-          <Typography>{currentIndex + 1} / {slides.length}</Typography>
-          <Button disabled={currentIndex === slides.length - 1} onClick={() => { setIndex(currentIndex + 1); setError(""); }}>다음</Button>
-          <Button color="error" disabled={disabled} onClick={() => { setError(""); if (current.id) onRemove(current.id); else onFile(files.filter((_, position) => position !== current.position)); }}>이미지 삭제</Button>
-        </Stack>
-        <Typography variant="caption" color="text.secondary">{current.filename || "기존 이미지"}</Typography>
-      </>}
+      {slides.length > 0 && <Box sx={{ height: "clamp(220px, calc(100dvh - 330px), 640px)", minHeight: 0 }}>
+        <PreviewImageCarousel key={prompt?.id || "new"} slides={slides} disabled={disabled}
+          onRemove={(slide) => { setError(""); if (slide.id) onRemove(slide.id); else onFile(files.filter((_, position) => position !== slide.position)); }} />
+      </Box>}
       {(files.length > 0 || removed?.length > 0) && <Typography variant="caption" color="text.secondary">저장 버튼을 누르면 이미지 변경사항이 반영됩니다.</Typography>}
     </Stack>
   );

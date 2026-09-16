@@ -1,9 +1,11 @@
-import { Alert, Box, Button, Chip, CircularProgress, Container, Paper, Stack, TextField, Typography } from "@mui/material";
+import { Alert, Box, Button, Chip, CircularProgress, Container, Paper, Stack, Tab, Tabs, TextField, Typography } from "@mui/material";
 import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
+import { getLastLoginMethod, setLastLoginMethod } from "@/auth/login-method-storage";
+import GroupLoginForm from "./GroupLoginForm";
 import { useAuth } from "@/auth/AuthContext";
 import {
   clearPendingSocialLoginProvider,
@@ -53,6 +55,7 @@ function LoginPage() {
   const { refreshUser } = useAuth();
   const [searchParams] = useSearchParams();
   const error = searchParams.get("error");
+  const [loginMethod, setLoginMethod] = useState(() => error ? "personal" : searchParams.get("passwordChanged") ? "group" : getLastLoginMethod());
   const [lastProvider] = useState(getLastSocialLoginProvider);
   const [authOptions, setAuthOptions] = useState(null);
   const [email, setEmail] = useState("bojoge.smith@gmail.com");
@@ -80,6 +83,7 @@ function LoginPage() {
     setLocalError("");
     try {
       await localEmailLogin(email.trim());
+      setLastLoginMethod("personal");
       const user = await refreshUser();
       const destination = user?.status === "ACTIVE"
         ? "/home"
@@ -122,9 +126,9 @@ function LoginPage() {
               <br />보조개에 로그인하세요.
             </Typography>
             <Typography color="text.secondary" align="center" sx={{ maxWidth: 430 }}>
-              {localMode
+              {loginMethod === "group" ? "사무실 그룹을 선택하고 사번과 비밀번호로 로그인하세요." : localMode
                 ? "로컬 개발 환경에서는 등록된 이메일로 바로 로그인할 수 있습니다."
-                : "별도의 비밀번호 없이 사용 중인 소셜 계정으로 가입과 로그인을 한 번에 진행합니다."}
+                : "개인회원은 소셜 계정으로, 사무실 구성원은 그룹과 사번으로 로그인합니다."}
             </Typography>
           </Stack>
 
@@ -140,6 +144,15 @@ function LoginPage() {
             }}
           >
             <Stack spacing={1.5}>
+              {searchParams.get("passwordChanged") && <Alert severity="success">비밀번호가 변경되었습니다. 다시 로그인해 주세요.</Alert>}
+              <Tabs value={loginMethod} onChange={(_, value) => { setLoginMethod(value); setLastLoginMethod(value); }} variant="fullWidth" aria-label="로그인 방식" sx={{ mb: 1 }}>
+                <Tab value="group" label="사무실 그룹 로그인" id="login-tab-group" aria-controls="login-panel-group" />
+                <Tab value="personal" label="개인 로그인" id="login-tab-personal" aria-controls="login-panel-personal" />
+              </Tabs>
+              {loginMethod === "group" ? (
+                <Box role="tabpanel" id="login-panel-group" aria-labelledby="login-tab-group"><GroupLoginForm /></Box>
+              ) : (
+                <Stack role="tabpanel" id="login-panel-personal" aria-labelledby="login-tab-personal" spacing={1.5}>
               {error && <Alert severity="error">{errorMessages[error] || "로그인 중 오류가 발생했습니다."}</Alert>}
               {localError && <Alert severity="error">{localError}</Alert>}
 
@@ -230,6 +243,8 @@ function LoginPage() {
                     : "처음 가입한 일반 사용자는 관리자 승인 후 서비스를 이용할 수 있습니다."}
                 </Typography>
               </Stack>
+                </Stack>
+              )}
             </Stack>
           </Paper>
 

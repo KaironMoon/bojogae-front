@@ -1,5 +1,9 @@
+import PreviewImageCarousel from "@/pages/components/PreviewImageCarousel";
 import PromptInputForm from "@/pages/components/PromptInputForm";
 import { promptPreviewImageUrl } from "@/services/prompt-service";
+import { defaultPromptTab, promptsForTab, filterPromptCategories } from "@/services/prompt-list-utils";
+import StarRoundedIcon from "@mui/icons-material/StarRounded";
+import StarBorderRoundedIcon from "@mui/icons-material/StarBorderRounded";
 import { groupPromptCategories } from "@/services/prompt-category-utils";
 import { acceptsFile, fileTypeLabel, missingInputGroup } from "@/services/prompt-input-utils";
 import {
@@ -20,6 +24,8 @@ import {
   Paper,
   Radio,
   Stack,
+  Tab,
+  Tabs,
   TextField,
   Tooltip,
   Typography,
@@ -50,6 +56,7 @@ import {
   createProposal,
   deleteProposal,
   getPromptOptions,
+  setPromptFavorite,
   getPointBalance,
   getProposal,
   getProposals,
@@ -157,6 +164,9 @@ function ProposalsPage() {
   const theme = useTheme();
   const mobilePreview = useMediaQuery(theme.breakpoints.down("sm"));
   const [promptOptions, setPromptOptions] = useState([]);
+  const [promptTab, setPromptTab] = useState("recommended");
+  const [favoriteSavingId, setFavoriteSavingId] = useState(null);
+  const favoriteRequest = useRef(false);
   const [pointBalance, setPointBalance] = useState({ free_points: 0, paid_points: 0, total_points: 0 });
   const [promptId, setPromptId] = useState("");
   const [selectedCategoryIds, setSelectedCategoryIds] = useState([]);
@@ -175,8 +185,6 @@ function ProposalsPage() {
   const [activeId, setActiveId] = useState(null);
   const [detail, setDetail] = useState(null);
   const [promptPreviewOption, setPromptPreviewOption] = useState(null);
-  const [promptPreviewIndex, setPromptPreviewIndex] = useState(0);
-  const [promptPreviewError, setPromptPreviewError] = useState(false);
   const [statusItem, setStatusItem] = useState(null);
   const [statusMessage, setStatusMessage] = useState("");
   const [previewItem, setPreviewItem] = useState(null);
@@ -187,17 +195,35 @@ function ProposalsPage() {
   const fileInputRef = useRef(null);
   const statusPanelRef = useRef(null);
 
-  const categoryGroups = useMemo(() => {
-    return groupPromptCategories(promptOptions);
-  }, [promptOptions]);
+  const tabPromptOptions = useMemo(() => promptsForTab(promptOptions, promptTab), [promptOptions, promptTab]);
+  const categoryGroups = useMemo(() => groupPromptCategories(promptOptions), [promptOptions]);
+  const filteredPromptOptions = useMemo(
+    () => filterPromptCategories(tabPromptOptions, selectedCategoryIds),
+    [tabPromptOptions, selectedCategoryIds],
+  );
 
-  const filteredPromptOptions = useMemo(() => {
-    if (!selectedCategoryIds.length) return promptOptions;
-    return promptOptions.filter((option) => {
-      const categoryIds = new Set((option.categories || []).map((category) => category.id));
-      return selectedCategoryIds.every((categoryId) => categoryIds.has(categoryId));
-    });
-  }, [promptOptions, selectedCategoryIds]);
+  const changePromptTab = (_, tab) => {
+    setPromptTab(tab);
+    setSelectedCategoryIds([]);
+  };
+
+  const toggleFavorite = async (option) => {
+    if (favoriteRequest.current) return;
+    favoriteRequest.current = true;
+    setFavoriteSavingId(option.id);
+    try {
+      const result = await setPromptFavorite(option.id, !option.is_favorite);
+      setPromptOptions((current) => current.map((item) => item.id === result.prompt_id
+        ? { ...item, is_favorite: result.is_favorite } : item));
+    } catch (err) {
+      setError(err.response?.data?.detail === "prompt_favorites_schema_required"
+        ? "즐겨찾기 DB 설정이 필요합니다."
+        : "즐겨찾기 변경에 실패했습니다. 다시 시도해 주세요.");
+    } finally {
+      favoriteRequest.current = false;
+      setFavoriteSavingId(null);
+    }
+  };
 
   const selectedPrompt = promptOptions.find((option) => option.id === promptId);
   const selectedReport = statusItem || openedDocument;
@@ -211,6 +237,7 @@ function ProposalsPage() {
       current_version_no: selectedReport.prompt_version_no,
       point_cost: selectedReport.point_cost ?? 1,
       categories: [],
+      is_favorite: current?.is_favorite || false,
       preview_image_available: current?.preview_image_available || false,
       preview_image_revision: current?.preview_image_revision,
       preview_images: current?.preview_images || [],
@@ -232,7 +259,7 @@ function ProposalsPage() {
 
   useEffect(() => {
     if (selectedReport) return;
-    if (promptId && !filteredPromptOptions.some((option) => option.id === promptId)) {
+    if (!filteredPromptOptions.some((option) => option.id === promptId)) {
       setPromptId(filteredPromptOptions[0]?.id || "");
       submissionKey.current = null;
     }
@@ -266,14 +293,18 @@ function ProposalsPage() {
     Promise.all([getPromptOptions(), getProposals(1, 10), getPointBalance()])
       .then(([options, result, balance]) => {
         setPromptOptions(options);
-        setPromptId(options[0]?.id || "");
+        const initialTab = defaultPromptTab(options);
+        setPromptTab(initialTab);
+        setPromptId(promptsForTab(options, initialTab)[0]?.id || "");
         setItems(result.items);
         setTotalPages(result.total_pages);
         setPointBalance(balance);
         const active = result.items.find((item) => ACTIVE.has(item.status));
         if (active) setActiveId(active.id);
       })
-      .catch(() => setError("문서 화면을 불러오지 못했습니다."))
+      .catch((err) => setError(err.response?.data?.detail === "prompt_favorites_schema_required"
+        ? "즐겨찾기 DB 설정이 필요합니다. 관리자에게 문의해 주세요."
+        : "문서 화면을 불러오지 못했습니다."))
       .finally(() => setLoading(false));
   }, []);
 
@@ -536,7 +567,9 @@ function ProposalsPage() {
     setTitle("");
     setTitleTouched(false);
     setError("");
-    setPromptId(promptOptions[0]?.id || "");
+    const initialTab = defaultPromptTab(promptOptions);
+    setPromptTab(initialTab);
+    setPromptId(promptsForTab(promptOptions, initialTab)[0]?.id || "");
     setSelectedCategoryIds([]);
     submissionKey.current = null;
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -735,11 +768,13 @@ function ProposalsPage() {
             <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ pb: 1.25, borderBottom: 1, borderColor: "divider" }}>
               <Box>
                 <Stack direction="row" spacing={0.75} alignItems="center">
-                  <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: "#10b981" }} />
-                  <Typography variant="subtitle2" fontWeight={800}>추천 프롬프트</Typography>
+                  <Tabs value={promptTab} onChange={changePromptTab} aria-label="프롬프트 목록" sx={{ minHeight: 36 }}>
+                    <Tab value="recommended" label="추천 프롬프트" disabled={Boolean(selectedReport)} sx={{ minHeight: 36, px: 1 }} />
+                    <Tab value="favorites" label="즐겨찾기 프롬프트" disabled={Boolean(selectedReport)} sx={{ minHeight: 36, px: 1 }} />
+                  </Tabs>
                 </Stack>
                 <Typography variant="caption" color="text.secondary">
-                  {selectedReport ? "이 보고서 생성에 사용한 프롬프트입니다. 신규를 누르면 전체 목록으로 돌아갑니다." : selectedCategoryIds.length ? "선택한 카테고리를 모두 포함한 프롬프트입니다." : "사용 가능한 프롬프트 전체 목록입니다."}
+                  {selectedReport ? "이 보고서 생성에 사용한 프롬프트입니다. 신규를 누르면 전체 목록으로 돌아갑니다." : selectedCategoryIds.length ? "선택한 카테고리를 모두 포함한 프롬프트입니다." : promptTab === "favorites" ? "내가 즐겨찾기한 프롬프트 목록입니다." : "사용 가능한 프롬프트 전체 목록입니다."}
                 </Typography>
               </Box>
               <Chip label={`${displayedPromptOptions.length}개`} size="small" color="primary" variant="outlined" />
@@ -776,6 +811,18 @@ function ProposalsPage() {
                             color={selected ? "primary" : "default"}
                             sx={{ height: 22, fontSize: 10, fontWeight: 850, borderRadius: "5px" }}
                           />
+                          <Tooltip title={option.is_favorite ? "즐겨찾기 해제" : "즐겨찾기 등록"}>
+                            <span><IconButton
+                              size="small"
+                              aria-label={`${option.title} ${option.is_favorite ? "즐겨찾기 해제" : "즐겨찾기 등록"}`}
+                              aria-pressed={Boolean(option.is_favorite)}
+                              disabled={favoriteSavingId !== null || !promptOptions.some((item) => item.id === option.id)}
+                              onClick={(event) => { event.stopPropagation(); toggleFavorite(option); }}
+                              sx={{ p: 0.25, color: option.is_favorite ? "#f59e0b" : "text.disabled" }}
+                            >
+                              {favoriteSavingId === option.id ? <CircularProgress size={18} /> : option.is_favorite ? <StarRoundedIcon fontSize="small" /> : <StarBorderRoundedIcon fontSize="small" />}
+                            </IconButton></span>
+                          </Tooltip>
                           <Typography variant="body2" fontWeight={800} sx={{ minWidth: 0, overflowWrap: "anywhere" }}>
                             {option.title} <Typography component="span" variant="caption" color="text.secondary">v{option.current_version_no}</Typography>
                           </Typography>
@@ -800,9 +847,7 @@ function ProposalsPage() {
                           disabled={!option.preview_image_available}
                           onClick={(event) => {
                             event.stopPropagation();
-                            setPromptPreviewError(false);
                             setPromptPreviewOption(option);
-                            setPromptPreviewIndex(0);
                           }}
                           sx={{ ml: { xs: 0, sm: "auto" }, borderRadius: "8px", minHeight: 36 }}
                         >
@@ -813,7 +858,7 @@ function ProposalsPage() {
                   </Paper>
                 );
               })}
-              {!displayedPromptOptions.length && <Alert severity="info">조건에 맞는 프롬프트가 없습니다.</Alert>}
+              {!displayedPromptOptions.length && <Alert severity="info">{promptTab === "favorites" && !tabPromptOptions.length ? "즐겨찾기한 프롬프트가 없습니다. 추천 프롬프트에서 별표를 눌러 등록해 주세요." : "조건에 맞는 프롬프트가 없습니다."}</Alert>}
             </Stack>
           </Paper>
           <Paper variant="outlined" sx={{ p: 2.25, borderRadius: "16px 16px 0 0", boxShadow: "0 1px 3px rgba(15, 23, 42, 0.05)" }}>
@@ -1158,21 +1203,16 @@ function ProposalsPage() {
         {totalPages > 1 && <Pagination count={totalPages} page={page} onChange={(_, value) => loadList(value)} sx={{ mt: 3 }} />}
       </Paper>
 
-      <Dialog open={Boolean(promptPreviewOption)} onClose={() => setPromptPreviewOption(null)} fullWidth maxWidth="lg">
-        <DialogTitle>{promptPreviewOption?.title} · 결과 미리보기</DialogTitle>
-        <DialogContent>
-          {promptPreviewError ? <Alert severity="error">미리보기 이미지를 불러오지 못했습니다.</Alert> : promptPreviewOption && (
-            <Box key={promptPreviewIndex} component="img" src={promptPreviewImageUrl(promptPreviewOption.id, promptPreviewOption.preview_image_revision, promptPreviewOption.preview_images?.[promptPreviewIndex]?.id || "legacy")}
-              alt={`${promptPreviewOption.title} 결과 미리보기`} onError={() => setPromptPreviewError(true)}
-              sx={{ display: "block", maxWidth: "100%", maxHeight: "75vh", objectFit: "contain", mx: "auto" }} />
-          )}
+      <Dialog open={Boolean(promptPreviewOption)} onClose={() => setPromptPreviewOption(null)} fullWidth maxWidth="xl"
+        PaperProps={{ sx: { height: "calc(100dvh - 48px)", maxHeight: "calc(100dvh - 48px)", m: 3, overflow: "hidden" } }}>
+        <DialogTitle sx={{ flexShrink: 0 }}>{promptPreviewOption?.title} · 결과 미리보기</DialogTitle>
+        <DialogContent sx={{ display: "flex", minHeight: 0, overflow: "hidden", pb: 0 }}>
+          {promptPreviewOption && <PreviewImageCarousel key={promptPreviewOption.id} title={promptPreviewOption.title}
+            slides={(promptPreviewOption.preview_images?.length ? promptPreviewOption.preview_images : [{ id: "legacy" }]).map((image) => ({
+              ...image, url: promptPreviewImageUrl(promptPreviewOption.id, promptPreviewOption.preview_image_revision, image.id),
+            }))} />}
         </DialogContent>
-        {(promptPreviewOption?.preview_images?.length || 0) > 1 && <Stack direction="row" justifyContent="center" alignItems="center" spacing={2}>
-          <Button disabled={promptPreviewIndex === 0} onClick={() => { setPromptPreviewIndex((index) => index - 1); setPromptPreviewError(false); }}>이전</Button>
-          <Typography>{promptPreviewIndex + 1} / {promptPreviewOption.preview_images.length}</Typography>
-          <Button disabled={promptPreviewIndex >= promptPreviewOption.preview_images.length - 1} onClick={() => { setPromptPreviewIndex((index) => index + 1); setPromptPreviewError(false); }}>다음</Button>
-        </Stack>}
-        <DialogActions><Button onClick={() => setPromptPreviewOption(null)}>닫기</Button></DialogActions>
+        <DialogActions sx={{ flexShrink: 0 }}><Button onClick={() => setPromptPreviewOption(null)}>닫기</Button></DialogActions>
       </Dialog>
 
       <Dialog open={Boolean(detail)} onClose={() => setDetail(null)} fullWidth maxWidth="sm">

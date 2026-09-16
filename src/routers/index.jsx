@@ -1,3 +1,6 @@
+import GroupsPage from "../pages/groups/GroupsPage";
+import MyCoinsPage from "../pages/groups/MyCoinsPage";
+import GroupPasswordPage from "../pages/auth/GroupPasswordPage";
 import { lazy } from "react";
 import { createBrowserRouter } from "react-router-dom";
 import Home from "../pages/home";
@@ -48,6 +51,8 @@ const ProductRouter = [
 ];
 
 const router = createBrowserRouter([
+  { path: "/group/change-password", element: <GroupPasswordPage /> },
+  { path: "/group/password-reset", element: <GroupPasswordPage /> },
   {
     path: "/signup/complete",
     element: <SignupCompletePage />,
@@ -99,6 +104,9 @@ const router = createBrowserRouter([
             path: "/proposals",
             element: <ProposalsPage />,
           },
+          { path: "/group", element: <GroupsPage /> },
+          { path: "/group/:groupId", element: <GroupsPage /> },
+          { path: "/my-coins", element: <MyCoinsPage /> },
           ...ProductRouter,
         ],
       },
@@ -110,6 +118,8 @@ const router = createBrowserRouter([
       {
         element: <PageLayout />,
         children: [
+          { path: "/admin/groups", element: <GroupsPage /> },
+          { path: "/admin/groups/:groupId", element: <GroupsPage /> },
           { path: "/admin/users", element: <UsersPage /> },
           { path: "/admin/points", element: <PointsPage /> },
           { path: "/admin/prompts", element: <PromptsPage /> },
