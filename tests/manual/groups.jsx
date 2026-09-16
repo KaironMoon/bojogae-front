@@ -47,6 +47,16 @@ api.axiosInstance.defaults.adapter = async (config) => {
   else if (path.endsWith('/groups/1/members')) { const member = { ...data, id: 21 + members.length, display_name: data.display_name || data.employee_number, status: 'ACTIVE', group_role: 'MEMBER', must_change_password: true, balance: { free_points: 100, paid_points: 0 } }; members.push(member); result = member; }
   else if (path.endsWith('/groups/1/identity')) result = { id: group.id, name: group.name };
   else if (path.endsWith('/groups/1')) result = { group: { ...group }, members: structuredClone(members), transfers: [...transfers], purchases: [...purchases] };
+  else if (path.endsWith('/groups/1/purchases/direct')) {
+    const existing = purchases.find((p) => p.idempotency_key === data.idempotency_key);
+    if (existing) result = existing;
+    else {
+      if (purchases.some((p) => p.payment_reference === data.payment_reference)) throw Object.assign(new Error('Duplicate'), { response: { status: 409, data: { detail: 'payment_reference_duplicate' } } });
+      const purchase = { id: purchases.length + 1, amount: data.amount, status: 'APPROVED', payment_reference: data.payment_reference, is_direct: true, idempotency_key: data.idempotency_key, created_at: new Date().toISOString() };
+      members[0].balance.paid_points += data.amount;
+      purchases.unshift(purchase); result = purchase;
+    }
+  }
   else if (path.endsWith('/groups/1/purchases')) { const request = { id: purchases.length + 1, amount: data.amount, status: 'PENDING', created_at: new Date().toISOString() }; purchases.unshift(request); result = request; }
   else if (/\/members\/\d+\/points$/.test(path)) {
     const id = Number(path.split('/').at(-2)); const member = members.find((item) => item.id === id);

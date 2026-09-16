@@ -7,6 +7,8 @@ const prompts = [
   { id: 1, title: "일반 암보험", is_favorite: false, categories: [category(10, "암보험")] },
   { id: 2, title: "내 암보험", is_favorite: true, categories: [category(10, "암보험")] },
   { id: 3, title: "내 간병보험", is_favorite: true, categories: [category(20, "간병보험")] },
+  { id: 4, title: "종합 보장 분석", is_favorite: true, categories: [category(10, "암보험"), category(20, "간병보험")] },
+  { id: 5, title: "고객 설명 보고서", is_favorite: true, categories: [category(20, "간병보험")] },
 ].map((p) => ({ ...p, current_version_id: p.id, current_version_no: 1, point_cost: 1, input_schema: [] }));
 apiCaller.axiosInstance.defaults.adapter = async (config) => {
   const path = config.url;

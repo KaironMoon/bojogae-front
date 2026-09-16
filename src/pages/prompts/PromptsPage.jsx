@@ -19,8 +19,8 @@ import {
   List,
   ListItemButton,
   ListItemText,
-  Paper,
   Pagination,
+  Paper,
   Stack,
   Switch,
   Tab,
@@ -72,6 +72,8 @@ function formatDate(value) {
 
 function PromptsPage() {
   const [prompts, setPrompts] = useState([]);
+  const [listPage, setListPage] = useState(1);
+  const [listTotalPages, setListTotalPages] = useState(0);
   const [selectedId, setSelectedId] = useState(null);
   const [selectedPrompt, setSelectedPrompt] = useState(null);
   const [draft, setDraft] = useState(EMPTY_PROMPT);
@@ -87,8 +89,6 @@ function PromptsPage() {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [viewVersion, setViewVersion] = useState(null);
   const [confirmAction, setConfirmAction] = useState(null);
-  const [listPage, setListPage] = useState(1);
-  const [listTotalPages, setListTotalPages] = useState(0);
   const [categories, setCategories] = useState([]);
   const [activeTab, setActiveTab] = useState(0);
   const [categoryPickerOpen, setCategoryPickerOpen] = useState(false);
@@ -184,15 +184,18 @@ function PromptsPage() {
   );
 
   const loadList = useCallback(
-    async (preferredId = selectedId, targetPage = 1) => {
+    async (preferredId = selectedId, targetPage = listPage) => {
       setLoading(true);
       setError("");
       try {
-        const result = await getPrompts(includeDeleted, targetPage, 20);
+        let result = await getPrompts(includeDeleted, targetPage, 50);
+        if (result.total_pages > 0 && result.page > result.total_pages) {
+          result = await getPrompts(includeDeleted, result.total_pages, 50);
+        }
         const rows = result.items;
-        setPrompts(rows);
-        setListPage(result.page);
+        setListPage(result.total_pages ? result.page : 1);
         setListTotalPages(result.total_pages);
+        setPrompts(rows);
         const nextId = rows.some((row) => row.id === preferredId)
           ? preferredId
           : rows[0]?.id ?? null;
@@ -210,11 +213,10 @@ function PromptsPage() {
         setLoading(false);
       }
     },
-    [includeDeleted, loadDetail, selectedId],
+    [includeDeleted, loadDetail, selectedId, listPage],
   );
 
   useEffect(() => {
-    setListPage(1);
     loadList(selectedId, 1);
     // 삭제 항목 표시 조건이 바뀔 때만 목록을 새로 불러온다.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -292,7 +294,7 @@ function PromptsPage() {
       setDraft({ title: saved.title, body: saved.body, category_ids: categoryIds(saved), input_schema: saved.input_schema || [] });
       await Promise.all([
         loadVersions(saved.id, includeDeletedVersions),
-        loadList(saved.id, listPage),
+        loadList(saved.id, 1),
       ]);
     } catch (requestError) {
       const detail = requestError.response?.data?.detail;
@@ -315,7 +317,7 @@ function PromptsPage() {
     try {
       if (action.type === "delete-prompt") {
         await deletePrompt(selectedPrompt.id);
-        await loadList(includeDeleted ? selectedPrompt.id : null, listPage);
+        await loadList(includeDeleted ? selectedPrompt.id : null);
       } else if (action.type === "delete-version") {
         await deletePromptVersion(selectedPrompt.id, action.version.id);
         await loadVersions(selectedPrompt.id, includeDeletedVersions);
@@ -328,7 +330,7 @@ function PromptsPage() {
         setDraft({ title: restored.title, body: restored.body, category_ids: categoryIds(restored), input_schema: restored.input_schema || [] });
         await Promise.all([
           loadVersions(restored.id, includeDeletedVersions),
-          loadList(restored.id, listPage),
+          loadList(restored.id, 1),
         ]);
       }
     } catch (requestError) {
@@ -350,7 +352,7 @@ function PromptsPage() {
       const recovered = await recoverPrompt(selectedPrompt.id);
       setSelectedPrompt(recovered);
       setDraft({ title: recovered.title, body: recovered.body, category_ids: categoryIds(recovered), input_schema: recovered.input_schema || [] });
-      await loadList(recovered.id, listPage);
+      await loadList(recovered.id, 1);
     } catch {
       setError("프롬프트를 복구하지 못했습니다.");
     } finally {
@@ -458,9 +460,9 @@ function PromptsPage() {
               <CircularProgress size={28} />
             </Box>
           ) : (
-            <List disablePadding sx={{ maxHeight: { lg: "calc(100vh - 280px)" }, overflowY: "auto" }}>
+            <List disablePadding sx={{ maxHeight: "calc(100vh - 280px)", overflowY: "auto" }}>
               {isNew && (
-                <ListItemButton selected>
+                <ListItemButton selected sx={{ py: 0.5 }}>
                   <ListItemText primary="새 프롬프트" secondary="저장 전" />
                 </ListItemButton>
               )}
@@ -469,9 +471,10 @@ function PromptsPage() {
                   key={prompt.id}
                   selected={selectedId === prompt.id}
                   onClick={() => selectPrompt(prompt.id)}
-                  sx={{ py: 1.5, opacity: prompt.is_deleted ? 0.62 : 1 }}
+                  sx={{ py: 0.5, px: 1.5, opacity: prompt.is_deleted ? 0.62 : 1 }}
                 >
                   <ListItemText
+                    sx={{ my: 0.25 }}
                     primary={
                       <Stack direction="row" gap={1} alignItems="center">
                         <Typography noWrap sx={{ fontWeight: 650, flex: 1 }}>
@@ -491,19 +494,13 @@ function PromptsPage() {
               )}
             </List>
           )}
-          {listTotalPages > 1 && (
-            <>
-              <Divider />
-              <Box sx={{ p: 1.5, display: "flex", justifyContent: "center" }}>
-                <Pagination
-                  size="small"
-                  count={listTotalPages}
-                  page={listPage}
-                  onChange={(_, value) => loadList(null, value)}
-                />
-              </Box>
-            </>
-          )}
+          {listTotalPages > 1 && <>
+            <Divider />
+            <Box sx={{ p: 1.25, display: 'flex', justifyContent: 'center' }}>
+              <Pagination size="small" count={listTotalPages} page={listPage} disabled={loading || working}
+                onChange={(_, page) => { if (canLeaveDraft()) loadList(null, page); }} />
+            </Box>
+          </>}
         </Paper>
 
         <Paper variant="outlined" sx={{ borderRadius: 3, p: { xs: 2, md: 3 } }}>

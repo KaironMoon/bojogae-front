@@ -28,6 +28,8 @@ const messages = {
   password_must_differ: '기존 비밀번호와 다른 비밀번호를 입력해 주세요.',
   invalid_current_password: '현재 비밀번호를 확인해 주세요.',
   reset_expired: '재설정 링크가 만료되었습니다. 다시 요청해 주세요.',
+  leader_unavailable: '지급 가능한 활성 리더가 없습니다.',
+  idempotency_conflict: '이전 요청과 입력 내용이 다릅니다. 새 지급 창에서 다시 확인해 주세요.',
   payment_reference_duplicate: '이미 처리된 결제 확인 번호입니다.',
   invalid_expiration_date: '기본 코인의 만료일을 확인해 주세요.',
   group_account_use_group_management: '그룹 계정은 그룹 관리에서 변경해 주세요.',
@@ -39,3 +41,5 @@ export const setMonthlyPoints = async (id, amount) => (await api.put(`${base}/ad
 export const bulkPoints = async (id, data) => (await api.post(`${base}/groups/${id}/points/bulk`, data)).data;
 
 export const getGroupIdentity = async (id) => (await api.get(`${base}/groups/${id}/identity`)).data;
+
+export const directPurchase = async (id, data) => (await api.post(`${base}/admin/groups/${id}/purchases/direct`, data)).data;

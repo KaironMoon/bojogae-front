@@ -2,7 +2,7 @@ import { Alert, Button, Checkbox, Chip, Dialog, DialogActions, DialogContent, Di
 import { useCallback, useEffect, useState } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '@/auth/AuthContext';
-import { addMember, bulkPoints, createGroup, decidePurchase, editMember, getGroup, groupErrorMessage, listGroups, renameGroup, requestPurchase, resetMemberPassword, setMonthlyPoints, setMemberStatus } from '@/services/group-service';
+import { addMember, bulkPoints, createGroup, decidePurchase, directPurchase, editMember, getGroup, groupErrorMessage, listGroups, renameGroup, requestPurchase, resetMemberPassword, setMonthlyPoints, setMemberStatus } from '@/services/group-service';
 
 const time = (value) => new Date(value).toLocaleString('ko-KR');
 const purchaseStatus = { PENDING: '결제 확인 대기', APPROVED: '지급 완료', REJECTED: '거절' };
@@ -61,6 +61,7 @@ export default function GroupsPage() {
       : type === 'add' ? { ...emptyMember }
       : type === 'edit' ? { display_name: item.display_name || '', email: item.email || '' }
       : ['give', 'reclaim'].includes(type) ? { amount: '' }
+      : type === 'direct' ? { amount: '', payment_reference: '' }
       : type === 'purchase' ? { amount: '' }
       : type === 'decision' ? { action: 'APPROVE', payment_reference: '' } : {});
   };
@@ -90,6 +91,7 @@ export default function GroupsPage() {
         await refresh();
         return false;
       }
+      else if (type === 'direct') await directPurchase(groupId, { amount: Number(form.amount), payment_reference: form.payment_reference.trim(), idempotency_key: requestKey });
       else if (type === 'purchase') await requestPurchase(groupId, { amount: Number(form.amount), idempotency_key: requestKey });
       else if (type === 'decision') await decidePurchase(groupId, item.id, { ...form, payment_reference: form.action === 'APPROVE' ? form.payment_reference : null });
       setModal(null);
@@ -150,9 +152,9 @@ export default function GroupsPage() {
             </Stack></TableCell>
           </TableRow>)}</TableBody></Table></TableContainer>
       </Stack></Paper>
-      <Paper sx={{ p: 3 }}><Typography variant="h6" sx={{ mb: 2 }}>추가 코인 구매 내역</Typography>
+      <Paper sx={{ p: 3 }}><Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}><Typography variant="h6">추가 코인 구매 내역</Typography>{admin && <Button variant="contained" disabled={busy || !leader || leader.status !== 'ACTIVE'} onClick={() => open('direct')}>추가 코인 직접 지급</Button>}</Stack>
         <TableContainer><Table size="small"><TableHead><TableRow>{['요청일', '수량', '상태', '결제 확인 번호', '처리'].map((label) => <TableCell key={label}>{label}</TableCell>)}</TableRow></TableHead><TableBody>
-          {detail.purchases.map((item) => <TableRow key={item.id}><TableCell>{time(item.created_at)}</TableCell><TableCell>{item.amount}P</TableCell><TableCell>{purchaseStatus[item.status]}</TableCell><TableCell>{item.payment_reference || '—'}</TableCell><TableCell>{admin && item.status === 'PENDING' && <Button disabled={busy} onClick={() => open('decision', item)}>결제 확인·처리</Button>}</TableCell></TableRow>)}
+          {detail.purchases.map((item) => <TableRow key={item.id}><TableCell>{time(item.created_at)}</TableCell><TableCell>{item.amount}P</TableCell><TableCell>{purchaseStatus[item.status]}{item.is_direct && <Typography variant="caption" display="block">관리자 직접 지급</Typography>}</TableCell><TableCell>{item.payment_reference || '—'}</TableCell><TableCell>{admin && item.status === 'PENDING' && <Button disabled={busy} onClick={() => open('decision', item)}>결제 확인·처리</Button>}</TableCell></TableRow>)}
           {!detail.purchases.length && <TableRow><TableCell colSpan={5}>구매 요청이 없습니다.</TableCell></TableRow>}
         </TableBody></Table></TableContainer>
       </Paper>
@@ -162,7 +164,7 @@ export default function GroupsPage() {
       </TableBody></Table></TableContainer></Paper>
     </>}
     <Dialog open={!!modal} onClose={() => { if (!busy) setModal(null); }} fullWidth maxWidth="sm"><Stack component="form" onSubmit={submit}>
-      <DialogTitle>{{ monthly: '그룹 월 기본 지급 코인 설정', create: '그룹·리더 등록', add: '구성원 등록', edit: '계정 정보 수정', give: '일괄 지급', reclaim: '일괄 회수', purchase: '추가 코인 구매 요청', decision: '구매 요청 처리', reset: '비밀번호 초기화', status: '구성원 상태 변경' }[modal?.type]}</DialogTitle>
+      <DialogTitle>{{ direct: '추가 코인 직접 지급', monthly: '그룹 월 기본 지급 코인 설정', create: '그룹·리더 등록', add: '구성원 등록', edit: '계정 정보 수정', give: '일괄 지급', reclaim: '일괄 회수', purchase: '추가 코인 구매 요청', decision: '구매 요청 처리', reset: '비밀번호 초기화', status: '구성원 상태 변경' }[modal?.type]}</DialogTitle>
       <DialogContent><Stack spacing={2} sx={{ pt: 1 }}>
         {error && <Alert severity="error">{error}</Alert>}
         {modal?.type === 'create' && <>{field('name', '그룹명', { required: true, inputProps: { maxLength: 150 } })}{field('monthly_basic_points', '그룹 기본 지급 코인 (1인당 월 지급량)', { required: true, type: 'number', inputProps: { min: 1, max: 1000000 }, helperText: '리더 포함 활성 구성원에게 매월 지급되는 무료 코인입니다. 그룹 생성일 기준으로 매월 지급되며 다음 지급일에 만료됩니다.' })}</>}
@@ -173,6 +175,12 @@ export default function GroupsPage() {
           <Typography>{modal.member_ids.length}명 선택 · 유료 코인만 처리합니다.</Typography>
           {field('amount', '1인당 코인 수량', { type: 'number', required: true, inputProps: { min: 1, max: 1000000 } })}
           <Typography color="text.secondary">{modal.type === 'give' ? `각 구성원에게 입력 수량을 지급합니다. 총 지급량: ${Number(form.amount || 0) * modal.member_ids.length}P` : '각 구성원에게서 입력 수량만큼 회수합니다. 잔액이 부족하면 남은 유료 코인만 회수합니다.'}</Typography>
+        </>}
+        {modal?.type === 'direct' && <>
+          <Typography>{detail?.group.name}의 리더 {leader?.employee_number}에게 유료 코인을 지급합니다.</Typography>
+          {field('amount', '지급 코인 수량', { type: 'number', required: true, inputProps: { min: 1, max: 1000000, step: 1 } })}
+          {field('payment_reference', '결제 확인 번호', { required: true, inputProps: { maxLength: 100 } })}
+          <Typography color="text.secondary">실제 결제를 확인한 후 지급하세요. 구매 요청 없이 바로 지급되며 구매 내역에 기록됩니다.</Typography>
         </>}
         {modal?.type === 'purchase' && field('amount', '코인 수량', { type: 'number', required: true, inputProps: { min: 1, max: 1000000 } })}
         {modal?.type === 'purchase' && <Typography color="text.secondary">결제 확인 후 리더 계정에 유료 코인이 지급됩니다.</Typography>}

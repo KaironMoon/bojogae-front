@@ -22,11 +22,8 @@ export default function PreviewImageCarousel({ slides, title = "결과 미리보
       disabled={previous ? index === 0 : index === lastPosition}
       onClick={() => move(index + (previous ? -1 : 1))}
       sx={{ position: "absolute", zIndex: 2, top: 0, bottom: onRemove ? 64 : 0,
-        [previous ? "left" : "right"]: 0, width: { xs: 40, sm: 64 }, borderRadius: 2,
-        "& .carousel-arrow": { opacity: 0, transition: "opacity 160ms ease" },
-        "&:hover .carousel-arrow, &:focus-visible .carousel-arrow": { opacity: 1 },
-        "@media (hover: none)": { "& .carousel-arrow": { opacity: 0.9 } } }}>
-      <Box className="carousel-arrow" sx={{ display: "flex", alignItems: "center", justifyContent: "center",
+        [previous ? "left" : "right"]: 0, width: { xs: 40, sm: 64 }, borderRadius: 2 }}>
+      <Box className="carousel-arrow" sx={{ opacity: 0.5, display: "flex", alignItems: "center", justifyContent: "center",
         width: { xs: 34, sm: 44 }, height: { xs: 34, sm: 44 }, borderRadius: "50%",
         bgcolor: "rgba(15,23,42,0.78)", color: "white", boxShadow: "0 2px 12px rgba(0,0,0,0.25)" }}>
         {previous ? <ChevronLeftIcon /> : <ChevronRightIcon />}
@@ -78,7 +75,7 @@ export default function PreviewImageCarousel({ slides, title = "결과 미리보
             </Stack>}
           </Stack>)}
         </Box>
-        {slides.length > VISIBLE_IMAGES && <>{navigation("previous")}{navigation("next")}</>}
+        {navigation("previous")}{navigation("next")}
       </Box>
       <Stack alignItems="center" spacing={0.5} sx={{ flexShrink: 0, minWidth: 0 }}>
         <Box role="navigation" aria-label="미리보기 페이지 이동" sx={{ display: "flex", alignItems: "center", gap: 1,

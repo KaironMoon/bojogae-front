@@ -683,12 +683,12 @@ function ProposalsPage() {
           alignItems: "stretch",
         }}
       >
-        <Stack spacing={2} sx={{ gridColumn: { md: "span 5", xl: "span 3" }, minWidth: 0, alignSelf: "start" }}>
+        <Stack spacing={2} sx={{ gridColumn: { md: "span 5", xl: "span 3" }, minWidth: 0, minHeight: 0, alignSelf: "stretch" }}>
           <Paper
             variant="outlined"
-            sx={{ borderRadius: "16px", height: { xs: 320, md: 400, xl: 480 }, flexShrink: 0, overflow: "hidden", boxShadow: "0 1px 3px rgba(15, 23, 42, 0.05)" }}
+            sx={{ borderRadius: "16px", height: { xs: 560, md: "66.6667%" }, flexShrink: 0, minHeight: 0, display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 1px 3px rgba(15, 23, 42, 0.05)" }}
           >
-            <Box sx={{ px: 2, py: 1.75, borderBottom: 1, borderColor: "divider" }}>
+            <Box sx={{ px: 2, py: 1.75, flexShrink: 0, borderBottom: 1, borderColor: "divider" }}>
               <Stack direction="row" justifyContent="space-between" alignItems="center">
                 <Stack direction="row" spacing={1} alignItems="center">
                   <FolderOpenRoundedIcon color="primary" fontSize="small" />
@@ -722,7 +722,7 @@ function ProposalsPage() {
                 />
               </Stack>
             </Box>
-            <Box sx={{ p: 1.5, height: "calc(100% - 58px)", overflowY: "auto" }}>
+            <Box sx={{ p: 1.5, flex: 1, minHeight: 0, overflowY: "auto" }}>
               <Stack spacing={1.25}>
                 {categoryGroups.map((group) => (
                   <Paper key={group.id} variant="outlined" sx={{ p: 1.25, borderRadius: "10px" }}>
@@ -763,7 +763,7 @@ function ProposalsPage() {
         <Stack spacing={0} sx={{ gridColumn: { md: "span 7", xl: "span 9" }, minWidth: 0, alignSelf: "start" }}>
           <Paper
             variant="outlined"
-            sx={{ p: 2, borderRadius: "16px", maxHeight: { xs: 380, md: 360 }, minHeight: 0, mb: 2, display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 1px 3px rgba(15, 23, 42, 0.05)" }}
+            sx={{ p: 2, borderRadius: "16px", height: 560, minHeight: 0, mb: 2, display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 1px 3px rgba(15, 23, 42, 0.05)" }}
           >
             <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ pb: 1.25, borderBottom: 1, borderColor: "divider" }}>
               <Box>
@@ -780,7 +780,7 @@ function ProposalsPage() {
               <Chip label={`${displayedPromptOptions.length}개`} size="small" color="primary" variant="outlined" />
             </Stack>
 
-            <Stack spacing={1.1} sx={{ py: 1.25, pr: 0.5, flex: 1, minHeight: 0, overflowY: "auto" }}>
+            <Stack spacing={0.75} sx={{ py: 1, pr: 0.5, flex: 1, minHeight: 0, overflowY: "auto" }}>
               {displayedPromptOptions.map((option, index) => {
                 const meta = PROMPT_META[index % PROMPT_META.length];
                 const selected = selectedReport ? selectedReport.prompt_id === option.id : promptId === option.id;
@@ -794,23 +794,21 @@ function ProposalsPage() {
                       submissionKey.current = null;
                     }}
                     sx={{
-                      p: 1.4,
-                      borderRadius: "12px",
-                      borderWidth: selected ? 2 : 1,
+                      px: 1,
+                      py: 0.75,
+                      flexShrink: 0,
+                      borderRadius: "10px",
+                      borderWidth: 2,
                       borderColor: selected ? "primary.main" : "divider",
                       bgcolor: selected ? "#f5f8ff" : "background.paper",
                       cursor: selectedReport ? "default" : "pointer",
                     }}
                   >
                     <Box sx={{ minWidth: 0 }}>
-                      <Stack direction="row" justifyContent="space-between" alignItems="flex-start" gap={1}>
-                        <Stack direction="row" alignItems="center" gap={0.75} sx={{ minWidth: 0 }}>
-                          <Chip
-                            label={selectedReport ? "사용한 프롬프트" : `${index + 1}순위`}
-                            size="small"
-                            color={selected ? "primary" : "default"}
-                            sx={{ height: 22, fontSize: 10, fontWeight: 850, borderRadius: "5px" }}
-                          />
+                      <Stack direction="row" alignItems="center" gap={0.6} flexWrap={{ xs: 'wrap', md: 'nowrap' }}>
+                        <Chip label={selectedReport ? "사용한 프롬프트" : `${index + 1}순위`} size="small"
+                          color={selected ? "primary" : "default"}
+                          sx={{ height: 22, fontSize: 10, fontWeight: 850, borderRadius: "5px", flexShrink: 0 }} />
                           <Tooltip title={option.is_favorite ? "즐겨찾기 해제" : "즐겨찾기 등록"}>
                             <span><IconButton
                               size="small"
@@ -823,37 +821,31 @@ function ProposalsPage() {
                               {favoriteSavingId === option.id ? <CircularProgress size={18} /> : option.is_favorite ? <StarRoundedIcon fontSize="small" /> : <StarBorderRoundedIcon fontSize="small" />}
                             </IconButton></span>
                           </Tooltip>
-                          <Typography variant="body2" fontWeight={800} sx={{ minWidth: 0, overflowWrap: "anywhere" }}>
+                        <Tooltip title={`${option.title} v${option.current_version_no}`}>
+                          <Typography variant="body2" fontWeight={800} noWrap sx={{ minWidth: 0, flex: { xs: 1, md: '0 1 auto' }, maxWidth: { md: '30%' } }}>
                             {option.title} <Typography component="span" variant="caption" color="text.secondary">v{option.current_version_no}</Typography>
                           </Typography>
+                        </Tooltip>
+                        <Stack direction="row" alignItems="center" gap={0.5}
+                          sx={{ minWidth: 0, flex: 1, overflowX: 'auto', '& .MuiChip-root': { height: 22, fontSize: 10, flexShrink: 0 } }}>
+                          {!selectedReport && <Chip label={`적합도 ${meta.fit}%`} size="small" color="primary" variant="outlined" />}
+                          <Chip label={`${option.point_cost.toLocaleString()}P`} size="small" color="warning" variant="outlined" />
+                          {(option.categories || []).map((category) => (
+                            <Chip key={category.id} label={`${category.parent_name} · ${category.name}`} size="small" />
+                          ))}
+                          {!selectedReport && !option.categories?.length && <Chip label="미분류" size="small" />}
                         </Stack>
-                        <Radio checked={selected} size="small" sx={{ p: 0.1 }} />
-                      </Stack>
-                      <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.8, lineHeight: 1.45 }}>
-                        {selectedReport ? "생성 당시의 프롬프트 이름과 버전입니다." : meta.description}
-                      </Typography>
-                      <Stack direction="row" alignItems="center" gap={0.6} flexWrap="wrap" sx={{ mt: 1 }}>
-                        {!selectedReport && <Chip label={`적합도 ${meta.fit}%`} size="small" color="primary" variant="outlined" />}
-                        <Chip label={`${option.point_cost.toLocaleString()}P`} size="small" color="warning" variant="outlined" />
-                        {(option.categories || []).map((category) => (
-                          <Chip key={category.id} label={`${category.parent_name} · ${category.name}`} size="small" />
-                        ))}
-                        {!selectedReport && !option.categories?.length && <Chip label="미분류" size="small" />}
-                        <Button
-                          type="button"
-                          size="small"
-                          variant="outlined"
-                          startIcon={<VisibilityOutlinedIcon />}
+                        <Button type="button" size="small" variant="outlined" startIcon={<VisibilityOutlinedIcon />}
                           disabled={!option.preview_image_available}
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            setPromptPreviewOption(option);
-                          }}
-                          sx={{ ml: { xs: 0, sm: "auto" }, borderRadius: "8px", minHeight: 36 }}
-                        >
+                          onClick={(event) => { event.stopPropagation(); setPromptPreviewOption(option); }}
+                          sx={{ borderRadius: '7px', minHeight: 28, px: 0.75, fontSize: 11, whiteSpace: 'nowrap', flexShrink: 0, '& .MuiButton-startIcon': { mr: 0.5 } }}>
                           결과 미리보기
                         </Button>
+                        <Radio checked={selected} size="small" sx={{ p: 0.1, flexShrink: 0 }} />
                       </Stack>
+                      <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5, lineHeight: 1.5, overflowWrap: 'anywhere' }}>
+                        {selectedReport ? "생성 당시의 프롬프트 이름과 버전입니다." : meta.description}
+                      </Typography>
                     </Box>
                   </Paper>
                 );
