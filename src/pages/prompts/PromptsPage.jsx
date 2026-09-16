@@ -1,3 +1,4 @@
+import PreviewImageEditor from "./PreviewImageEditor";
 import InputSchemaEditor from "./InputSchemaEditor";
 import {
   Alert,
@@ -40,6 +41,8 @@ import { useBlocker } from "react-router-dom";
 
 import {
   createPrompt,
+  uploadPromptPreviewImage,
+  deletePromptPreviewImage,
   deletePrompt,
   deletePromptVersion,
   getPrompt,
@@ -73,6 +76,8 @@ function PromptsPage() {
   const [selectedId, setSelectedId] = useState(null);
   const [selectedPrompt, setSelectedPrompt] = useState(null);
   const [draft, setDraft] = useState(EMPTY_PROMPT);
+  const [previewFile, setPreviewFile] = useState(null);
+  const [previewRemoved, setPreviewRemoved] = useState(false);
   const [versions, setVersions] = useState([]);
   const [includeDeleted, setIncludeDeleted] = useState(false);
   const [includeDeletedVersions, setIncludeDeletedVersions] = useState(false);
@@ -114,6 +119,7 @@ function PromptsPage() {
 
   const isNew = selectedId === "new";
   const isDirty = useMemo(() => {
+    if (previewFile || previewRemoved) return true;
     if (isNew) return Boolean(draft.title || draft.body || draft.category_ids.length || draft.input_schema.length);
     if (!selectedPrompt || selectedPrompt.is_deleted) return false;
     return draft.title !== selectedPrompt.title
@@ -121,7 +127,7 @@ function PromptsPage() {
       || JSON.stringify(draft.input_schema) !== JSON.stringify(selectedPrompt.input_schema || [])
       || JSON.stringify([...draft.category_ids].sort((a, b) => a - b))
         !== JSON.stringify(categoryIds(selectedPrompt));
-  }, [draft, isNew, selectedPrompt]);
+  }, [draft, isNew, selectedPrompt, previewFile, previewRemoved]);
 
   const blocker = useBlocker(
     useCallback(
@@ -165,6 +171,8 @@ function PromptsPage() {
         ]);
         setSelectedId(promptId);
         setSelectedPrompt(prompt);
+        setPreviewFile(null);
+        setPreviewRemoved(false);
         setDraft({ title: prompt.title, body: prompt.body, category_ids: categoryIds(prompt), input_schema: prompt.input_schema || [] });
         setVersions(versionRows);
       } catch {
@@ -242,6 +250,8 @@ function PromptsPage() {
 
   const startNewPrompt = () => {
     if (!canLeaveDraft()) return;
+    setPreviewFile(null);
+    setPreviewRemoved(false);
     setSelectedId("new");
     setSelectedPrompt(null);
     setDraft({ ...EMPTY_PROMPT });
@@ -267,18 +277,28 @@ function PromptsPage() {
     setWorking(true);
     setError("");
     try {
-      const saved = isNew
+      let saved = isNew
         ? await createPrompt(title, draft.body, draft.category_ids, draft.input_schema)
         : await updatePrompt(selectedPrompt.id, title, draft.body, draft.category_ids, draft.input_schema);
       setSelectedPrompt(saved);
       setSelectedId(saved.id);
+      if (previewFile) saved = await uploadPromptPreviewImage(saved.id, previewFile);
+      else if (previewRemoved) saved = await deletePromptPreviewImage(saved.id);
+      setSelectedPrompt(saved);
+      setPreviewFile(null);
+      setPreviewRemoved(false);
       setDraft({ title: saved.title, body: saved.body, category_ids: categoryIds(saved), input_schema: saved.input_schema || [] });
       await Promise.all([
         loadVersions(saved.id, includeDeletedVersions),
         loadList(saved.id, listPage),
       ]);
-    } catch {
-      setError("프롬프트를 저장하지 못했습니다.");
+    } catch (requestError) {
+      const detail = requestError.response?.data?.detail;
+      setError(detail === "prompt_preview_schema_required"
+        ? "프롬프트는 저장됐지만 이미지 저장을 위한 DB 설정이 필요합니다."
+        : detail?.startsWith("preview_image_")
+          ? "프롬프트는 저장됐지만 이미지 저장에 실패했습니다. 파일 형식과 10MB 제한을 확인해 주세요."
+          : "프롬프트 또는 미리보기 이미지 저장에 실패했습니다. 변경사항을 확인하고 다시 저장해 주세요.");
     } finally {
       setWorking(false);
     }
@@ -595,6 +615,10 @@ function PromptsPage() {
                   <Alert severity="info">카테고리 관리 탭에서 소분류를 먼저 만들어 주세요.</Alert>
                 )}
               </Box>
+              <PreviewImageEditor prompt={selectedPrompt} file={previewFile} removed={previewRemoved}
+                disabled={selectedPrompt?.is_deleted || working}
+                onFile={(file) => { setPreviewFile(file); setPreviewRemoved(false); }}
+                onRemove={() => { setPreviewFile(null); setPreviewRemoved(Boolean(selectedPrompt?.preview_image_available)); }} />
               <InputSchemaEditor value={draft.input_schema}
                 disabled={selectedPrompt?.is_deleted || working}
                 onChange={(input_schema) => setDraft((current) => ({ ...current, input_schema }))} />

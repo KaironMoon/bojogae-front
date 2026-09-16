@@ -1,5 +1,20 @@
 import apiCaller from "@/services/api-caller";
 
+function promptPreviewImageUrl(promptId, revision = "") {
+  const base = import.meta.env.VITE_API_BASE_URL || "";
+  return `${base}/api/v1/prompts/${promptId}/preview-image?revision=${encodeURIComponent(revision || "")}`;
+}
+
+async function uploadPromptPreviewImage(promptId, image) {
+  const data = new FormData();
+  data.append("image", image);
+  return (await apiCaller.put(`/api/v1/admin/prompts/${promptId}/preview-image`, data)).data;
+}
+
+async function deletePromptPreviewImage(promptId) {
+  return (await apiCaller.delete(`/api/v1/admin/prompts/${promptId}/preview-image`)).data;
+}
+
 async function getPrompts(includeDeleted = false, page = 1, pageSize = 20) {
   const response = await apiCaller.get("/api/v1/admin/prompts", {
     include_deleted: includeDeleted,
@@ -91,6 +106,9 @@ async function recoverPromptVersion(promptId, versionId) {
 }
 
 export {
+  promptPreviewImageUrl,
+  uploadPromptPreviewImage,
+  deletePromptPreviewImage,
   createPrompt,
   createPromptCategory,
   deletePrompt,

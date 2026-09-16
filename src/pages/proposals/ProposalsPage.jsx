@@ -1,4 +1,5 @@
 import PromptInputForm from "@/pages/components/PromptInputForm";
+import { promptPreviewImageUrl } from "@/services/prompt-service";
 import { groupPromptCategories } from "@/services/prompt-category-utils";
 import { acceptsFile, fileTypeLabel, missingInputGroup } from "@/services/prompt-input-utils";
 import {
@@ -173,6 +174,8 @@ function ProposalsPage() {
   const [error, setError] = useState("");
   const [activeId, setActiveId] = useState(null);
   const [detail, setDetail] = useState(null);
+  const [promptPreviewOption, setPromptPreviewOption] = useState(null);
+  const [promptPreviewError, setPromptPreviewError] = useState(false);
   const [statusItem, setStatusItem] = useState(null);
   const [statusMessage, setStatusMessage] = useState("");
   const [previewItem, setPreviewItem] = useState(null);
@@ -199,6 +202,7 @@ function ProposalsPage() {
   const selectedReport = statusItem || openedDocument;
   const displayedPromptOptions = useMemo(() => {
     if (!selectedReport) return filteredPromptOptions;
+    const current = promptOptions.find((option) => option.id === selectedReport.prompt_id);
     return [{
       id: selectedReport.prompt_id,
       title: selectedReport.prompt_title,
@@ -206,8 +210,10 @@ function ProposalsPage() {
       current_version_no: selectedReport.prompt_version_no,
       point_cost: selectedReport.point_cost ?? 1,
       categories: [],
+      preview_image_available: current?.preview_image_available || false,
+      preview_image_revision: current?.preview_image_revision,
     }];
-  }, [selectedReport, filteredPromptOptions]);
+  }, [selectedReport, filteredPromptOptions, promptOptions]);
   const inputSchema = selectedPrompt?.input_schema || [];
   const customInputs = inputSchema.length > 0;
 
@@ -789,7 +795,12 @@ function ProposalsPage() {
                           size="small"
                           variant="outlined"
                           startIcon={<VisibilityOutlinedIcon />}
-                          onClick={(event) => event.stopPropagation()}
+                          disabled={!option.preview_image_available}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setPromptPreviewError(false);
+                            setPromptPreviewOption(option);
+                          }}
                           sx={{ ml: { xs: 0, sm: "auto" }, borderRadius: "8px", minHeight: 36 }}
                         >
                           결과 미리보기
@@ -1143,6 +1154,18 @@ function ProposalsPage() {
         </Stack>
         {totalPages > 1 && <Pagination count={totalPages} page={page} onChange={(_, value) => loadList(value)} sx={{ mt: 3 }} />}
       </Paper>
+
+      <Dialog open={Boolean(promptPreviewOption)} onClose={() => setPromptPreviewOption(null)} fullWidth maxWidth="lg">
+        <DialogTitle>{promptPreviewOption?.title} · 결과 미리보기</DialogTitle>
+        <DialogContent>
+          {promptPreviewError ? <Alert severity="error">미리보기 이미지를 불러오지 못했습니다.</Alert> : promptPreviewOption && (
+            <Box component="img" src={promptPreviewImageUrl(promptPreviewOption.id, promptPreviewOption.preview_image_revision)}
+              alt={`${promptPreviewOption.title} 결과 미리보기`} onError={() => setPromptPreviewError(true)}
+              sx={{ display: "block", maxWidth: "100%", maxHeight: "75vh", objectFit: "contain", mx: "auto" }} />
+          )}
+        </DialogContent>
+        <DialogActions><Button onClick={() => setPromptPreviewOption(null)}>닫기</Button></DialogActions>
+      </Dialog>
 
       <Dialog open={Boolean(detail)} onClose={() => setDetail(null)} fullWidth maxWidth="sm">
         <DialogTitle>{detail?.title}</DialogTitle>
