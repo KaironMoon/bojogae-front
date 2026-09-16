@@ -42,7 +42,6 @@ import { useBlocker } from "react-router-dom";
 import {
   createPrompt,
   uploadPromptPreviewImage,
-  deletePromptPreviewImage,
   deletePrompt,
   deletePromptVersion,
   getPrompt,
@@ -77,7 +76,7 @@ function PromptsPage() {
   const [selectedPrompt, setSelectedPrompt] = useState(null);
   const [draft, setDraft] = useState(EMPTY_PROMPT);
   const [previewFile, setPreviewFile] = useState(null);
-  const [previewRemoved, setPreviewRemoved] = useState(false);
+  const [previewRemoved, setPreviewRemoved] = useState([]);
   const [versions, setVersions] = useState([]);
   const [includeDeleted, setIncludeDeleted] = useState(false);
   const [includeDeletedVersions, setIncludeDeletedVersions] = useState(false);
@@ -119,7 +118,7 @@ function PromptsPage() {
 
   const isNew = selectedId === "new";
   const isDirty = useMemo(() => {
-    if (previewFile || previewRemoved) return true;
+    if (previewFile?.length || previewRemoved.length) return true;
     if (isNew) return Boolean(draft.title || draft.body || draft.category_ids.length || draft.input_schema.length);
     if (!selectedPrompt || selectedPrompt.is_deleted) return false;
     return draft.title !== selectedPrompt.title
@@ -172,7 +171,7 @@ function PromptsPage() {
         setSelectedId(promptId);
         setSelectedPrompt(prompt);
         setPreviewFile(null);
-        setPreviewRemoved(false);
+        setPreviewRemoved([]);
         setDraft({ title: prompt.title, body: prompt.body, category_ids: categoryIds(prompt), input_schema: prompt.input_schema || [] });
         setVersions(versionRows);
       } catch {
@@ -251,7 +250,7 @@ function PromptsPage() {
   const startNewPrompt = () => {
     if (!canLeaveDraft()) return;
     setPreviewFile(null);
-    setPreviewRemoved(false);
+    setPreviewRemoved([]);
     setSelectedId("new");
     setSelectedPrompt(null);
     setDraft({ ...EMPTY_PROMPT });
@@ -282,11 +281,14 @@ function PromptsPage() {
         : await updatePrompt(selectedPrompt.id, title, draft.body, draft.category_ids, draft.input_schema);
       setSelectedPrompt(saved);
       setSelectedId(saved.id);
-      if (previewFile) saved = await uploadPromptPreviewImage(saved.id, previewFile);
-      else if (previewRemoved) saved = await deletePromptPreviewImage(saved.id);
+      if (previewFile?.length || previewRemoved.length) {
+        const existing = selectedPrompt?.preview_images?.length ? selectedPrompt.preview_images
+          : selectedPrompt?.preview_image_available ? [{ id: "legacy" }] : [];
+        saved = await uploadPromptPreviewImage(saved.id, previewFile || [], existing.filter((image) => !previewRemoved.includes(image.id)).map((image) => image.id));
+      }
       setSelectedPrompt(saved);
       setPreviewFile(null);
-      setPreviewRemoved(false);
+      setPreviewRemoved([]);
       setDraft({ title: saved.title, body: saved.body, category_ids: categoryIds(saved), input_schema: saved.input_schema || [] });
       await Promise.all([
         loadVersions(saved.id, includeDeletedVersions),
@@ -617,8 +619,8 @@ function PromptsPage() {
               </Box>
               <PreviewImageEditor prompt={selectedPrompt} file={previewFile} removed={previewRemoved}
                 disabled={selectedPrompt?.is_deleted || working}
-                onFile={(file) => { setPreviewFile(file); setPreviewRemoved(false); }}
-                onRemove={() => { setPreviewFile(null); setPreviewRemoved(Boolean(selectedPrompt?.preview_image_available)); }} />
+                onFile={setPreviewFile}
+                onRemove={(id) => setPreviewRemoved((current) => [...current, id])} />
               <InputSchemaEditor value={draft.input_schema}
                 disabled={selectedPrompt?.is_deleted || working}
                 onChange={(input_schema) => setDraft((current) => ({ ...current, input_schema }))} />

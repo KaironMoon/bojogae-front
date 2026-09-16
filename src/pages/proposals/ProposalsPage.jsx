@@ -175,6 +175,7 @@ function ProposalsPage() {
   const [activeId, setActiveId] = useState(null);
   const [detail, setDetail] = useState(null);
   const [promptPreviewOption, setPromptPreviewOption] = useState(null);
+  const [promptPreviewIndex, setPromptPreviewIndex] = useState(0);
   const [promptPreviewError, setPromptPreviewError] = useState(false);
   const [statusItem, setStatusItem] = useState(null);
   const [statusMessage, setStatusMessage] = useState("");
@@ -212,6 +213,7 @@ function ProposalsPage() {
       categories: [],
       preview_image_available: current?.preview_image_available || false,
       preview_image_revision: current?.preview_image_revision,
+      preview_images: current?.preview_images || [],
     }];
   }, [selectedReport, filteredPromptOptions, promptOptions]);
   const inputSchema = selectedPrompt?.input_schema || [];
@@ -800,6 +802,7 @@ function ProposalsPage() {
                             event.stopPropagation();
                             setPromptPreviewError(false);
                             setPromptPreviewOption(option);
+                            setPromptPreviewIndex(0);
                           }}
                           sx={{ ml: { xs: 0, sm: "auto" }, borderRadius: "8px", minHeight: 36 }}
                         >
@@ -1159,11 +1162,16 @@ function ProposalsPage() {
         <DialogTitle>{promptPreviewOption?.title} · 결과 미리보기</DialogTitle>
         <DialogContent>
           {promptPreviewError ? <Alert severity="error">미리보기 이미지를 불러오지 못했습니다.</Alert> : promptPreviewOption && (
-            <Box component="img" src={promptPreviewImageUrl(promptPreviewOption.id, promptPreviewOption.preview_image_revision)}
+            <Box key={promptPreviewIndex} component="img" src={promptPreviewImageUrl(promptPreviewOption.id, promptPreviewOption.preview_image_revision, promptPreviewOption.preview_images?.[promptPreviewIndex]?.id || "legacy")}
               alt={`${promptPreviewOption.title} 결과 미리보기`} onError={() => setPromptPreviewError(true)}
               sx={{ display: "block", maxWidth: "100%", maxHeight: "75vh", objectFit: "contain", mx: "auto" }} />
           )}
         </DialogContent>
+        {(promptPreviewOption?.preview_images?.length || 0) > 1 && <Stack direction="row" justifyContent="center" alignItems="center" spacing={2}>
+          <Button disabled={promptPreviewIndex === 0} onClick={() => { setPromptPreviewIndex((index) => index - 1); setPromptPreviewError(false); }}>이전</Button>
+          <Typography>{promptPreviewIndex + 1} / {promptPreviewOption.preview_images.length}</Typography>
+          <Button disabled={promptPreviewIndex >= promptPreviewOption.preview_images.length - 1} onClick={() => { setPromptPreviewIndex((index) => index + 1); setPromptPreviewError(false); }}>다음</Button>
+        </Stack>}
         <DialogActions><Button onClick={() => setPromptPreviewOption(null)}>닫기</Button></DialogActions>
       </Dialog>
 

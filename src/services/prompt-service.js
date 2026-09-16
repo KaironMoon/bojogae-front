@@ -1,14 +1,17 @@
 import apiCaller from "@/services/api-caller";
 
-function promptPreviewImageUrl(promptId, revision = "") {
+export const MAX_PREVIEW_IMAGES = 20;
+
+function promptPreviewImageUrl(promptId, revision = "", imageId = "") {
   const base = import.meta.env.VITE_API_BASE_URL || "";
-  return `${base}/api/v1/prompts/${promptId}/preview-image?revision=${encodeURIComponent(revision || "")}`;
+  return `${base}/api/v1/prompts/${promptId}/preview-image?revision=${encodeURIComponent(revision || "")}&image_id=${encodeURIComponent(imageId || "")}`;
 }
 
-async function uploadPromptPreviewImage(promptId, image) {
+async function uploadPromptPreviewImage(promptId, images, retainedIds = []) {
   const data = new FormData();
-  data.append("image", image);
-  return (await apiCaller.put(`/api/v1/admin/prompts/${promptId}/preview-image`, data)).data;
+  images.forEach((image) => data.append("images", image));
+  data.append("retained_ids", JSON.stringify(retainedIds));
+  return (await apiCaller.put(`/api/v1/admin/prompts/${promptId}/preview-images`, data)).data;
 }
 
 async function deletePromptPreviewImage(promptId) {
