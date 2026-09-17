@@ -107,18 +107,18 @@ const STATUS_LABELS = {
 const WORKFLOW_STEPS = [
   {
     eyebrow: "Step 1",
-    title: "1. 고객 문서 PDF 업로드",
-    description: "보험사 원본 PDF 첨부 및 분석",
-    icon: CloudUploadRoundedIcon,
+    title: "1. 카테고리 체크 & 프롬프트 선택",
+    description: "체크 항목 연동 추천 및 결과 미리보기",
+    icon: FactCheckRoundedIcon,
     color: "#2563eb",
     background: "#eff6ff",
     border: "#bfdbfe",
   },
   {
     eyebrow: "Step 2",
-    title: "2. 카테고리 체크 & 프롬프트",
-    description: "체크 항목 연동 추천 및 결과 미리보기",
-    icon: FactCheckRoundedIcon,
+    title: "2. 설계 제안서 업로드",
+    description: "보험사 원본 PDF 첨부 및 분석",
+    icon: CloudUploadRoundedIcon,
     color: "#4f46e5",
     background: "#eef2ff",
     border: "#c7d2fe",
@@ -259,10 +259,12 @@ function ProposalsPage() {
     return result;
   }, [page]);
 
-  const loadDocumentIntoWorkspace = useCallback(async (item) => {
+  const loadDocumentIntoWorkspace = useCallback(async (item, loadedDocument) => {
     const request = ++documentRequest.current;
-    const document = await getProposal(item.id);
+    const document = loadedDocument || await getProposal(item.id);
     if (request !== documentRequest.current) return;
+    setStatusItem(null);
+    setStatusMessage("");
     setPreviewItem({ id: item.id, title: document.title || item.title });
     setCanvasOpen(true);
     setOpenedDocument(document);
@@ -293,36 +295,44 @@ function ProposalsPage() {
 
   useEffect(() => {
     if (!activeId) return undefined;
+    let disposed = false;
+    let finishing = false;
     const source = proposalEventSource(activeId);
     const eventTypes = ["status", "uploading", "generating", "thought_summary", "completed", "failed", "cancelled"];
-    const handler = async (event) => {
-      if (["completed", "failed", "cancelled"].includes(event.type)) {
+    const refresh = async () => {
+      if (disposed || finishing) return;
+      try {
+        const job = await getProposal(activeId);
+        if (disposed || finishing || ACTIVE.has(job.status)) return;
+        finishing = true;
         source.close();
-        setActiveId(null);
+        window.clearInterval(poll);
+        if (isCompletedStatus(job.status)) {
+          await loadDocumentIntoWorkspace(job, job);
+        }
+        setActiveId((current) => current === activeId ? null : current);
         try {
           await loadList(1);
           setPointBalance(await getPointBalance());
         } catch {
           setError("목록을 갱신하지 못했습니다.");
         }
+      } catch {
+        // 일시적인 조회 실패는 다음 이벤트 또는 폴링에서 다시 확인합니다.
       }
     };
+    const handler = (event) => {
+      if (["completed", "failed", "cancelled"].includes(event.type)) refresh();
+    };
     eventTypes.forEach((type) => source.addEventListener(type, handler));
-    const poll = window.setInterval(() => {
-      getProposal(activeId).then(async (job) => {
-        if (!ACTIVE.has(job.status)) {
-          setActiveId(null);
-          source.close();
-          await loadList(1);
-          setPointBalance(await getPointBalance());
-        }
-      }).catch(() => {});
-    }, 5000);
+    const poll = window.setInterval(refresh, 5000);
+    refresh();
     return () => {
+      disposed = true;
       source.close();
       window.clearInterval(poll);
     };
-  }, [activeId, loadList]);
+  }, [activeId, loadList, loadDocumentIntoWorkspace]);
 
   const statusItemId = statusItem?.id;
   useEffect(() => {
@@ -334,7 +344,7 @@ function ProposalsPage() {
       try {
         const job = await getProposal(statusItemId);
         if (disposed) return;
-        setStatusItem(job);
+        setStatusItem((current) => current?.id === statusItemId ? job : current);
         if (!ACTIVE.has(job.status)) {
           source.close();
           window.clearInterval(poll);
