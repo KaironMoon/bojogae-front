@@ -1,17 +1,18 @@
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import { useCallback, useEffect, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Pagination, Paper, Stack, TextField, Typography } from '@mui/material';
-import { decideRequest, getRequest, listRequests, requestError, suggestionFileUrl } from '@/services/document-request-service';
+import { decideRequest, deleteRequest, getRequest, listRequests, requestError, suggestionFileUrl, updateRefund } from '@/services/document-request-service';
 import { getProposal, proposalFileUrl, proposalRawResponseUrl } from '@/services/proposal-service';
 
-const states = { PENDING: '접수', REVIEWING: '검토 중', REFUNDED: '환불 완료', REJECTED: '거절', ACCEPTED: '반영 예정', COMPLETED: '완료됨' };
+const states = { PENDING: '접수', REFUNDED: '환불 완료', REJECTED: '거절', ACCEPTED: '반영 예정', COMPLETED: '완료됨' };
 const kinds = { NEW_DOCUMENT: '새 양식 추가 요청', ADD_CONTENT: '기존 양식 수정 및 추가 요청' };
 
 // 접수 화면은 각각 분리하고, 내역 표시만 공통 컴포넌트를 사용합니다.
 export default function RequestHistoryPage({ kind, admin = false }) { // eslint-disable-line react/prop-types
   const refund = kind === 'refund';
   const location = useLocation();
+  const navigate = useNavigate();
   const [page, setPage] = useState(1);
   const [result, setResult] = useState(null);
   const [detail, setDetail] = useState(null);
@@ -19,19 +20,23 @@ export default function RequestHistoryPage({ kind, admin = false }) { // eslint-
   const [error, setError] = useState('');
   const [detailError, setDetailError] = useState('');
   const [response, setResponse] = useState('');
-  const [state, setState] = useState(refund ? 'REFUND' : 'REVIEWING');
+  const [state, setState] = useState(refund ? 'REFUND' : 'ACCEPTED');
   const [working, setWorking] = useState(false);
   const [opening, setOpening] = useState(false);
+  const [editingRefund, setEditingRefund] = useState(false);
+  const [content, setContent] = useState('');
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const load = useCallback(async () => {
     try { setResult(await listRequests(kind, page, admin)); }
     catch (err) { setError(requestError(err)); }
   }, [kind, page, admin]);
   useEffect(() => { setResult(null); setError(''); load(); }, [load]);
   async function open(item) {
+    setEditingRefund(false); setConfirmDelete(false);
     setOpening(true); setError(''); setDetailError(''); setDocument(null);
     try {
       const data = await getRequest(kind, item.id, admin);
-      setDetail(data); setResponse(data.response || ''); setState(refund ? 'REFUND' : data.status === 'PENDING' ? 'REVIEWING' : data.status);
+      setDetail(data); setContent(data.content); setResponse(data.response || ''); setState(refund ? 'REFUND' : data.status);
       if (admin && refund) {
         try { setDocument(await getProposal(data.generation_id, true)); }
         catch (err) { setDetailError(requestError(err)); }
@@ -45,6 +50,20 @@ export default function RequestHistoryPage({ kind, admin = false }) { // eslint-
       await decideRequest(kind, detail.id, state, response.trim());
       setDetail(null); await load();
     } catch (err) { setDetailError(requestError(err)); }
+    finally { setWorking(false); }
+  }
+  async function saveRefund(event) {
+    event.preventDefault(); setWorking(true); setDetailError('');
+    try {
+      await updateRefund(detail.id, content.trim());
+      setDetail(null); setEditingRefund(false); await load();
+    } catch (err) { setDetailError(requestError(err)); }
+    finally { setWorking(false); }
+  }
+  async function remove() {
+    setWorking(true); setDetailError('');
+    try { await deleteRequest(kind, detail.id); setConfirmDelete(false); setDetail(null); await load(); }
+    catch (err) { setConfirmDelete(false); setDetailError(requestError(err)); }
     finally { setWorking(false); }
   }
   const canProcess = detail && (!refund || detail.status === 'PENDING');
@@ -83,7 +102,10 @@ export default function RequestHistoryPage({ kind, admin = false }) { // eslint-
         <Typography variant="h6">{refund ? detail?.generation_title : detail?.title}</Typography>
         <Chip sx={{ alignSelf: 'flex-start' }} label={states[detail?.status] || ''} />
         {!refund && <Typography>{kinds[detail?.kind]}</Typography>}
-        <Typography sx={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{detail?.content}</Typography>
+        {editingRefund ? <Box component="form" id="refund-edit-form" onSubmit={saveRefund}>
+          <TextField fullWidth label="문제 내용 및 환불 요청 사유" required multiline minRows={6} value={content}
+            disabled={working} inputProps={{ maxLength: 10000 }} onChange={e => setContent(e.target.value)} />
+        </Box> : <Typography sx={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{detail?.content}</Typography>}
         {refund && <Typography>생성 건 #{detail?.generation_id} · 사용 포인트 {detail?.point_cost}P</Typography>}
         {document && <Paper variant="outlined" sx={{ p: 2 }}>
           <Stack spacing={1}>
@@ -101,14 +123,31 @@ export default function RequestHistoryPage({ kind, admin = false }) { // eslint-
         {admin && canProcess && <>
           <TextField select label="처리" value={state} disabled={working || opening} onChange={e => setState(e.target.value)}>
             {refund ? [<MenuItem key="refund" value="REFUND">사용 포인트 반환</MenuItem>, <MenuItem key="reject" value="REJECT">환불 거절</MenuItem>]
-              : [<MenuItem key="review" value="REVIEWING">검토 중</MenuItem>, <MenuItem key="accept" value="ACCEPTED">반영 예정</MenuItem>, <MenuItem key="complete" value="COMPLETED">완료됨</MenuItem>, <MenuItem key="reject" value="REJECTED">거절</MenuItem>]}
+              : [<MenuItem key="pending" value="PENDING">접수</MenuItem>, <MenuItem key="accept" value="ACCEPTED">반영 예정</MenuItem>, <MenuItem key="complete" value="COMPLETED">완료됨</MenuItem>, <MenuItem key="reject" value="REJECTED">거절</MenuItem>]}
           </TextField>
           <TextField label={refund ? '처리 사유' : '답변'} required multiline minRows={3} value={response} disabled={working || opening} inputProps={{ maxLength: refund ? 500 : 2000 }} onChange={e => setResponse(e.target.value)} />
         </>}
       </Stack></DialogContent>
-      <DialogActions>
+      <DialogActions sx={{ flexWrap: 'wrap', gap: 1 }}>
+        {!admin && detail?.status === 'PENDING' && <>
+          {editingRefund ? <>
+            <Button type="submit" form="refund-edit-form" variant="contained" disabled={working || !content.trim()}>수정 저장</Button>
+            <Button disabled={working} onClick={() => { setEditingRefund(false); setContent(detail.content); }}>수정 취소</Button>
+          </> : <>
+            <Button disabled={working || opening} onClick={() => refund ? setEditingRefund(true) : navigate(`/document-suggestions/${detail.id}/edit`)}>수정</Button>
+            <Button color="error" disabled={working || opening} onClick={() => setConfirmDelete(true)}>삭제</Button>
+          </>}
+        </>}
         {admin && canProcess && <Button variant="contained" disabled={working || opening || !response.trim()} onClick={decide}>{working ? '처리 중…' : '처리 저장'}</Button>}
         <Button disabled={working || opening} onClick={() => setDetail(null)}>닫기</Button>
+      </DialogActions>
+    </Dialog>
+    <Dialog open={confirmDelete} onClose={() => { if (!working) setConfirmDelete(false); }} fullWidth maxWidth="xs">
+      <DialogTitle>{refund ? '환불 요청 삭제' : '건의사항 삭제'}</DialogTitle>
+      <DialogContent><Typography>이 접수를 삭제할까요?</Typography></DialogContent>
+      <DialogActions>
+        <Button disabled={working} onClick={() => setConfirmDelete(false)}>취소</Button>
+        <Button color="error" variant="contained" disabled={working} onClick={remove}>{working ? '삭제 중…' : '삭제'}</Button>
       </DialogActions>
     </Dialog>
   </Box>;

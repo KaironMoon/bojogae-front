@@ -8,13 +8,17 @@ export async function createRefund(generationId, content) {
   return (await apiCaller.post(prefix('refund', false), { generation_id: generationId, content })).data;
 }
 
-export async function createSuggestion({ kind, title, content, generation, files }) {
+export async function createSuggestion({ kind, title, content, generation, files, requestId, keptFileIds = [] }) {
   const form = new FormData();
   form.append('kind', kind);
   form.append('title', title);
   form.append('content', content);
   if (generation) form.append('generation_id', generation.id);
   files.forEach(file => form.append('files', file));
+  if (requestId) {
+    form.append('kept_file_ids', JSON.stringify(keptFileIds));
+    return (await apiCaller.put(`${prefix('suggestion', false)}/${requestId}`, form, { timeout: 120000 })).data;
+  }
   return (await apiCaller.post(prefix('suggestion', false), form, { timeout: 120000 })).data;
 }
 
@@ -48,8 +52,20 @@ export function requestError(error) {
     invalid_file_count: '첨부파일은 최대 5개까지 가능합니다.',
     file_too_large: '파일당 최대 10MB까지 첨부할 수 있습니다.',
     empty_file: '빈 파일은 첨부할 수 없습니다.',
+    request_not_editable: '접수 상태에서만 수정할 수 있습니다. 새로고침해주세요.',
+    request_not_deletable: '접수 상태에서만 삭제할 수 있습니다. 새로고침해주세요.',
+    invalid_attachment_ids: '기존 첨부파일을 다시 확인해주세요.',
+    request_edit_schema_required: '접수 수정·삭제 기능의 DB 설정이 필요합니다. 관리자에게 문의해주세요.',
     request_not_found: '접수 내역을 찾을 수 없습니다.',
     document_requests_schema_required: '접수 기능을 준비 중입니다. 관리자에게 문의해주세요.',
   };
   return messages[error.response?.data?.detail] || '요청을 처리하지 못했습니다. 다시 시도해주세요.';
+}
+
+export async function updateRefund(id, content) {
+  return (await apiCaller.put(`${prefix('refund', false)}/${id}`, { content })).data;
+}
+
+export async function deleteRequest(kind, id) {
+  await apiCaller.delete(`${prefix(kind, false)}/${id}`);
 }
