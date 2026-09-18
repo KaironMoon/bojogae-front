@@ -31,7 +31,7 @@ export default function RequestHistoryPage({ kind, admin = false }) { // eslint-
     setOpening(true); setError(''); setDetailError(''); setDocument(null);
     try {
       const data = await getRequest(kind, item.id, admin);
-      setDetail(data); setResponse(data.response || ''); setState(refund ? 'REFUND' : data.status === 'ACCEPTED' ? 'COMPLETED' : 'REVIEWING');
+      setDetail(data); setResponse(data.response || ''); setState(refund ? 'REFUND' : data.status === 'PENDING' ? 'REVIEWING' : data.status);
       if (admin && refund) {
         try { setDocument(await getProposal(data.generation_id, true)); }
         catch (err) { setDetailError(requestError(err)); }
@@ -47,7 +47,7 @@ export default function RequestHistoryPage({ kind, admin = false }) { // eslint-
     } catch (err) { setDetailError(requestError(err)); }
     finally { setWorking(false); }
   }
-  const pending = detail && (refund ? detail.status === 'PENDING' : ['PENDING', 'REVIEWING', 'ACCEPTED'].includes(detail.status));
+  const canProcess = detail && (!refund || detail.status === 'PENDING');
   return <Box sx={{ maxWidth: 1000, mx: 'auto' }}>
     <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', sm: 'center' }} gap={2} sx={{ mb: 2 }}>
       <Typography variant="h5" fontWeight={800}>{refund ? (admin ? '환불 요청 관리' : '내 환불 요청') : (admin ? '문서 건의 관리' : '내 문서 건의')}</Typography>
@@ -98,17 +98,16 @@ export default function RequestHistoryPage({ kind, admin = false }) { // eslint-
         {!refund && detail?.generation_id && <Button href={suggestionFileUrl(detail.id, null, admin)}>첨부한 생성 문서: {detail.generation_title} 다운로드</Button>}
         {!refund && detail?.files?.map(file => <Button key={file.id} href={suggestionFileUrl(detail.id, file.id, admin)}>{file.original_filename} 다운로드</Button>)}
         {detail?.response && <Alert severity="info" sx={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>관리자 답변: {detail.response}{detail.decided_at && `\n처리 일시: ${new Date(detail.decided_at).toLocaleString('ko-KR')}`}</Alert>}
-        {admin && pending && <>
+        {admin && canProcess && <>
           <TextField select label="처리" value={state} disabled={working || opening} onChange={e => setState(e.target.value)}>
             {refund ? [<MenuItem key="refund" value="REFUND">사용 포인트 반환</MenuItem>, <MenuItem key="reject" value="REJECT">환불 거절</MenuItem>]
-              : detail?.status === 'ACCEPTED' ? [<MenuItem key="complete" value="COMPLETED">완료됨</MenuItem>]
-              : [<MenuItem key="review" value="REVIEWING">검토 중</MenuItem>, <MenuItem key="accept" value="ACCEPTED">반영 예정</MenuItem>, <MenuItem key="reject" value="REJECTED">거절</MenuItem>]}
+              : [<MenuItem key="review" value="REVIEWING">검토 중</MenuItem>, <MenuItem key="accept" value="ACCEPTED">반영 예정</MenuItem>, <MenuItem key="complete" value="COMPLETED">완료됨</MenuItem>, <MenuItem key="reject" value="REJECTED">거절</MenuItem>]}
           </TextField>
           <TextField label={refund ? '처리 사유' : '답변'} required multiline minRows={3} value={response} disabled={working || opening} inputProps={{ maxLength: refund ? 500 : 2000 }} onChange={e => setResponse(e.target.value)} />
         </>}
       </Stack></DialogContent>
       <DialogActions>
-        {admin && pending && <Button variant="contained" disabled={working || opening || !response.trim()} onClick={decide}>{working ? '처리 중…' : !refund && detail?.status === 'ACCEPTED' ? '완료 처리' : '처리 저장'}</Button>}
+        {admin && canProcess && <Button variant="contained" disabled={working || opening || !response.trim()} onClick={decide}>{working ? '처리 중…' : '처리 저장'}</Button>}
         <Button disabled={working || opening} onClick={() => setDetail(null)}>닫기</Button>
       </DialogActions>
     </Dialog>
