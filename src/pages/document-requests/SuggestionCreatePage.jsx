@@ -54,9 +54,9 @@ export default function SuggestionCreatePage() {
     {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
     <Paper component="form" onSubmit={submit} variant="outlined" sx={{ p: 3, borderRadius: 3 }}>
       <Stack spacing={2}>
-        <Typography color="text.secondary">새로운 문서나 기존 문서에 추가할 내용을 제안해주세요.</Typography>
+        <Typography color="text.secondary">새 양식 추가나 기존 양식의 수정 및 추가할 내용을 제안해주세요.</Typography>
         <TextField select label="건의 유형" value={kind} disabled={working} onChange={e => setKind(e.target.value)}>
-          <MenuItem value="NEW_DOCUMENT">새 문서 요청</MenuItem><MenuItem value="ADD_CONTENT">기존 문서 내용 추가</MenuItem>
+          <MenuItem value="NEW_DOCUMENT">새 양식 추가 요청</MenuItem><MenuItem value="ADD_CONTENT">기존 양식 수정 및 추가 요청</MenuItem>
         </TextField>
         <TextField label="제목" required value={title} disabled={working} inputProps={{ maxLength: 200 }} onChange={e => setTitle(e.target.value)} />
         <TextField label="건의 내용" required multiline minRows={6} value={content} disabled={working} inputProps={{ maxLength: 10000 }} onChange={e => setContent(e.target.value)} helperText={`${content.length}/10000`} />

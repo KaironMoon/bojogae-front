@@ -6,7 +6,7 @@ import { decideRequest, getRequest, listRequests, requestError, suggestionFileUr
 import { getProposal, proposalFileUrl, proposalRawResponseUrl } from '@/services/proposal-service';
 
 const states = { PENDING: '접수', REVIEWING: '검토 중', REFUNDED: '환불 완료', REJECTED: '거절', ACCEPTED: '반영 예정', COMPLETED: '완료됨' };
-const kinds = { NEW_DOCUMENT: '새 문서 요청', ADD_CONTENT: '기존 문서 내용 추가' };
+const kinds = { NEW_DOCUMENT: '새 양식 추가 요청', ADD_CONTENT: '기존 양식 수정 및 추가 요청' };
 
 // 접수 화면은 각각 분리하고, 내역 표시만 공통 컴포넌트를 사용합니다.
 export default function RequestHistoryPage({ kind, admin = false }) { // eslint-disable-line react/prop-types
