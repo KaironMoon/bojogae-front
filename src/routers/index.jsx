@@ -1,3 +1,6 @@
+import RefundCreatePage from "../pages/document-requests/RefundCreatePage";
+import SuggestionCreatePage from "../pages/document-requests/SuggestionCreatePage";
+import RequestHistoryPage from "../pages/document-requests/RequestHistoryPage";
 import GroupsPage from "../pages/groups/GroupsPage";
 import MyCoinsPage from "../pages/groups/MyCoinsPage";
 import GroupPasswordPage from "../pages/auth/GroupPasswordPage";
@@ -104,6 +107,10 @@ const router = createBrowserRouter([
             path: "/proposals",
             element: <ProposalsPage />,
           },
+          { path: "/proposals/:generationId/refund", element: <RefundCreatePage /> },
+          { path: "/refund-requests", element: <RequestHistoryPage key="refund-user" kind="refund" /> },
+          { path: "/document-suggestions", element: <RequestHistoryPage key="suggestion-user" kind="suggestion" /> },
+          { path: "/document-suggestions/new", element: <SuggestionCreatePage /> },
           { path: "/group", element: <GroupsPage /> },
           { path: "/group/:groupId", element: <GroupsPage /> },
           { path: "/my-coins", element: <MyCoinsPage /> },
@@ -120,6 +127,8 @@ const router = createBrowserRouter([
         children: [
           { path: "/admin/groups", element: <GroupsPage /> },
           { path: "/admin/groups/:groupId", element: <GroupsPage /> },
+          { path: "/admin/refund-requests", element: <RequestHistoryPage key="refund-admin" kind="refund" admin /> },
+          { path: "/admin/document-suggestions", element: <RequestHistoryPage key="suggestion-admin" kind="suggestion" admin /> },
           { path: "/admin/users", element: <UsersPage /> },
           { path: "/admin/points", element: <PointsPage /> },
           { path: "/admin/prompts", element: <PromptsPage /> },

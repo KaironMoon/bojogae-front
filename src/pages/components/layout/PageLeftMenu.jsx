@@ -26,6 +26,8 @@ const PRIMARY_MENU = [
   { label: "Home", path: "/home", icon: HomeOutlinedIcon },
   { label: "Info", path: "/info", icon: InfoOutlinedIcon },
   { label: "보고서 만들기", path: "/proposals", icon: DescriptionOutlinedIcon },
+  { label: "환불 요청 내역", path: "/refund-requests", icon: AccountBalanceWalletOutlinedIcon },
+  { label: "문서 개선 건의", path: "/document-suggestions", icon: DescriptionOutlinedIcon },
   { label: "내 코인", path: "/my-coins", icon: AccountBalanceWalletOutlinedIcon },
   { label: "내 정보", path: "/profile", icon: AccountCircleOutlinedIcon },
 ];
@@ -36,6 +38,8 @@ const ADMIN_MENU = [
   { label: "포인트 관리", path: "/admin/points", icon: AccountBalanceWalletOutlinedIcon },
   { label: "프롬프트 관리", path: "/admin/prompts", icon: AutoAwesomeOutlinedIcon },
   { label: "제안서 관리", path: "/admin/proposals", icon: DescriptionOutlinedIcon },
+  { label: "환불 요청 관리", path: "/admin/refund-requests", icon: AccountBalanceWalletOutlinedIcon },
+  { label: "문서 건의 관리", path: "/admin/document-suggestions", icon: DescriptionOutlinedIcon },
   { label: "사용량 / 통계", path: "/admin/usage", icon: AnalyticsOutlinedIcon },
   { label: "설정 및 서식", path: "/admin/proposal-settings", icon: TuneOutlinedIcon },
 ];

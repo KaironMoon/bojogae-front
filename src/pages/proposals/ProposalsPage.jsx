@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import PreviewImageCarousel from "@/pages/components/PreviewImageCarousel";
 import PromptInputForm from "@/pages/components/PromptInputForm";
 import { promptPreviewImageUrl } from "@/services/prompt-service";
@@ -1098,6 +1099,7 @@ function ProposalsPage() {
                   <Stack direction="row" alignItems="center" gap={1} flexWrap="wrap">
                     <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>{item.title}</Typography>
                     <Chip size="small" color={statusColor(item.status)} label={STATUS_LABELS[item.status] || item.status} />
+                    {item.point_status === "REFUNDED" && <Chip size="small" color="success" variant="outlined" label="포인트 반환 완료" />}
                     {(statusItem?.id ?? previewItem?.id) === item.id && (
                       <Chip size="small" color="primary" variant="outlined" label="선택됨" sx={{ fontWeight: 750 }} />
                     )}
@@ -1118,6 +1120,7 @@ function ProposalsPage() {
                   onKeyDown={(event) => event.stopPropagation()}
                 >
                   <Button size="small" onClick={() => showFiles(item)}>파일</Button>
+                  {["COMPLETED", "FAILED"].includes(item.status) && ["CONSUMED", "REVIEW_REQUIRED"].includes(item.point_status) && <Button size="small" color="warning" component={Link} to={`/proposals/${item.id}/refund`}>환불 요청</Button>}
                   {item.status === "FAILED" && item.response_available && (
                     <Button size="small" href={proposalRawResponseUrl(item.id, true, false)}>LLM 응답 다운로드</Button>
                   )}
@@ -1171,6 +1174,7 @@ function ProposalsPage() {
               {ACTIVE.has(selectedReport.status) && <CircularProgress size={20} />}
               <Chip color={statusColor(selectedReport.status)} label={STATUS_LABELS[selectedReport.status] || selectedReport.status || "상태 확인 중"} />
             </Stack>
+            {selectedReport.point_status === "REFUNDED" && <Alert severity="success">포인트 반환 완료 · 이 문서 생성에 사용한 포인트가 반환되었습니다.</Alert>}
             {statusItem && <Typography role="status" aria-live="polite" sx={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>
               {statusMessage || STATUS_LABELS[statusItem.status] || "진행 상태를 확인하고 있습니다."}
             </Typography>}
