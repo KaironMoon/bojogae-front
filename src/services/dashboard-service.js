@@ -6,8 +6,9 @@ export async function getDashboard() {
   return (await apiCaller.get("/api/v1/dashboard")).data;
 }
 
-export function dashboardBannerImageUrl(bannerId, revision = "") {
-  return `${baseUrl}/api/v1/dashboard-banners/${bannerId}/image?revision=${encodeURIComponent(revision)}`;
+export function dashboardBannerImageUrl(bannerId, revision = "", variant = "desktop") {
+  const query = new URLSearchParams({ revision, variant });
+  return `${baseUrl}/api/v1/dashboard-banners/${bannerId}/image?${query.toString()}`;
 }
 
 export async function listDashboardBanners() {
@@ -24,6 +25,7 @@ function bannerForm(values) {
   form.append("sort_order", String(values.sortOrder || 0));
   form.append("is_active", String(values.isActive));
   if (values.image) form.append("image", values.image);
+  if (values.mobileImage) form.append("mobile_image", values.mobileImage);
   return form;
 }
 

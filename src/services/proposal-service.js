@@ -45,10 +45,11 @@ async function createProposal({ title, promptId, files, idempotencyKey, inputVal
   return response.data;
 }
 
-async function getProposals(page = 1, pageSize = 10) {
+async function getProposals(page = 1, pageSize = 10, includeFailed = true) {
   const response = await apiCaller.get("/api/v1/proposals", {
     page,
     page_size: pageSize,
+    include_failed: includeFailed,
   });
   return response.data;
 }

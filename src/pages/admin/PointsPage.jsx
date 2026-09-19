@@ -185,7 +185,7 @@ function PointsPage() {
             onChange={(event) => setSearch(event.target.value)}
             fullWidth
           />
-          <TextField select label="계정 상태" value={status} onChange={(event) => setStatus(event.target.value)} sx={{ minWidth: 180 }}>
+          <TextField select label="계정 상태" value={status} onChange={(event) => setStatus(event.target.value)} sx={{ minWidth: { sm: 180 } }}>
             {USER_STATUSES.map((item) => <MenuItem key={item.value || "all"} value={item.value}>{item.label}</MenuItem>)}
           </TextField>
         </Stack>

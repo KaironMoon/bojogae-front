@@ -117,7 +117,7 @@ function AdminProposalsPage() {
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, mb: 2 }}>
         <Stack direction={{ xs: "column", md: "row" }} gap={2} alignItems={{ md: "center" }}>
-          <TextField select label="상태" value={status} onChange={(event) => setStatus(event.target.value)} sx={{ minWidth: 190 }}>
+          <TextField select label="상태" value={status} onChange={(event) => setStatus(event.target.value)} sx={{ minWidth: { md: 190 } }}>
             {STATUSES.map((value) => <MenuItem key={value || "ALL"} value={value}>{value || "전체 상태"}</MenuItem>)}
           </TextField>
           <TextField label="사용자 ID" type="number" value={userId} onChange={(event) => setUserId(event.target.value)} />

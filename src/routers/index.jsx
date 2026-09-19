@@ -121,6 +121,7 @@ const router = createBrowserRouter([
           { path: "/group/:groupId", element: <GroupsPage /> },
           { path: "/my-coins", element: <MyCoinsPage /> },
           { path: "/boards/:boardType", element: <BoardListPage /> },
+          { path: "/boards/:boardType/:postId", element: <BoardPostPage embedded /> },
           ...ProductRouter,
         ],
       },

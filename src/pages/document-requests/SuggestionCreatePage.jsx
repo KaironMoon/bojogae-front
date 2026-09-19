@@ -76,11 +76,11 @@ export default function SuggestionCreatePage() {
     } catch (err) { setError(requestError(err)); }
     finally { setWorking(false); }
   }
-  return <Box sx={{ maxWidth: 800, mx: 'auto' }}>
+  return <Box component="main" sx={{ maxWidth: 800, mx: 'auto', p: { xs: 2, md: 4 } }}>
     <Typography variant="h5" fontWeight={800} sx={{ mb: 2 }}>{editing ? '문서 개선 건의 수정' : '문서 개선 건의'}</Typography>
     {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
     {loading && <Typography sx={{ mb: 2 }}>접수 내역을 불러오는 중입니다.</Typography>}
-    <Paper component="form" onSubmit={submit} variant="outlined" sx={{ p: 3, borderRadius: 3 }}>
+    <Paper component="form" onSubmit={submit} variant="outlined" sx={{ p: { xs: 2, sm: 3 }, borderRadius: 3 }}>
       <Stack spacing={2}>
         <Typography color="text.secondary">새 양식 추가나 기존 양식의 수정 및 추가할 내용을 제안해주세요.</Typography>
         <TextField select label="건의 유형" value={kind} disabled={working || loading || !editable} onChange={e => setKind(e.target.value)}>
@@ -97,7 +97,7 @@ export default function SuggestionCreatePage() {
             <Typography fontWeight={700} sx={{ overflowWrap: 'anywhere' }}>{generation.title}</Typography>
             {generation.prompt_title && <Typography variant="body2" sx={{ overflowWrap: 'anywhere' }}>서식: {generation.prompt_title}</Typography>}
             <Typography variant="caption" color="text.secondary">{generation.created_at ? documentMetadata(generation) : `문서 #${generation.id}`}</Typography>
-            <Stack direction="row" spacing={1} justifyContent="flex-end">
+            <Stack direction="row" spacing={1} justifyContent="flex-end" flexWrap="wrap" useFlexGap>
               <Button href={editing && !generation.created_at ? suggestionFileUrl(requestId, null) : proposalFileUrl(generation.id, 'output')} target="_blank" rel="noopener noreferrer">{editing && !generation.created_at ? '첨부한 문서 다운로드' : '생성 결과 보기'}</Button>
               <Button disabled={working || loading || !editable} onClick={() => setGeneration(null)}>연결 해제</Button>
             </Stack>
@@ -105,15 +105,15 @@ export default function SuggestionCreatePage() {
         </Paper>}
         <Typography variant="subtitle2">별도 파일 첨부 (선택 · 최대 5개 · 파일당 10MB)</Typography>
         <Button component="label" variant="outlined" disabled={working || loading || !editable}>파일 추가<input hidden type="file" multiple disabled={working || loading || !editable} onChange={chooseFiles} /></Button>
-        {existingFiles.map(file => <Stack key={file.id} direction="row" justifyContent="space-between" alignItems="center" gap={1}>
-          <Button href={suggestionFileUrl(requestId, file.id)} sx={{ overflowWrap: 'anywhere', textAlign: 'left' }}>{file.original_filename}</Button>
+        {existingFiles.map(file => <Stack key={file.id} direction="row" justifyContent="space-between" alignItems="center" gap={1} sx={{ minWidth: 0 }}>
+          <Button href={suggestionFileUrl(requestId, file.id)} sx={{ minWidth: 0, overflowWrap: 'anywhere', textAlign: 'left', justifyContent: 'flex-start' }}>{file.original_filename}</Button>
           <Button disabled={working || loading || !editable} onClick={() => setExistingFiles(current => current.filter(item => item.id !== file.id))}>제거</Button>
         </Stack>)}
-        {files.map((file, index) => <Stack key={index} direction="row" justifyContent="space-between" alignItems="center">
-          <Typography sx={{ overflowWrap: 'anywhere' }}>{file.name}</Typography>
+        {files.map((file, index) => <Stack key={index} direction="row" justifyContent="space-between" alignItems="center" gap={1} sx={{ minWidth: 0 }}>
+          <Typography sx={{ minWidth: 0, overflowWrap: 'anywhere' }}>{file.name}</Typography>
           <Button disabled={working || loading || !editable} onClick={() => setFiles(current => current.filter((_, i) => i !== index))}>제거</Button>
         </Stack>)}
-        <Stack direction="row" spacing={1}>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
           <Button type="submit" variant="contained" disabled={working || loading || !editable || !title.trim() || !content.trim()}>{working ? '저장 중…' : editing ? '수정 저장' : '건의사항 접수'}</Button>
           <Button disabled={working} onClick={() => navigate('/document-suggestions')}>건의 내역으로</Button>
         </Stack>

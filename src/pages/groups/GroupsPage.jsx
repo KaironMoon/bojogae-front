@@ -103,13 +103,13 @@ export default function GroupsPage() {
   const selectedMembers = selectableMembers.filter((item) => selectedIds.includes(item.id));
   const allSelected = selectableMembers.length > 0 && selectedMembers.length === selectableMembers.length;
   const leader = detail?.members.find((item) => item.group_role === 'LEADER');
-  return <Stack spacing={3}>
-    <Stack direction="row" justifyContent="space-between" alignItems="center"><Typography variant="h4" fontWeight={800}>그룹 관리</Typography>{admin && <Button variant="contained" disabled={busy} onClick={() => open('create')}>그룹·리더 등록</Button>}</Stack>
+  return <Stack component="main" spacing={3} sx={{ p: { xs: 2, md: 4 }, maxWidth: 1440, width: '100%', mx: 'auto', boxSizing: 'border-box', minWidth: 0 }}>
+    <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', sm: 'center' }} gap={1.5}><Typography variant="h4" fontWeight={800}>그룹 관리</Typography>{admin && <Button variant="contained" disabled={busy} onClick={() => open('create')} sx={{ alignSelf: { xs: 'flex-start', sm: 'center' } }}>그룹·리더 등록</Button>}</Stack>
     {!modal && error && <Alert severity="error">{error}</Alert>}
     {notice && <Alert severity="success">{notice}</Alert>}
     {admin && !groupId && <>
       {admin && <TextField label="그룹명 검색" value={query} onChange={(e) => setQuery(e.target.value)} sx={{ maxWidth: 420 }} />}
-      <Paper variant="outlined"><TableContainer><Table>
+      <Paper variant="outlined" sx={{ overflow: 'hidden' }}><TableContainer><Table>
         <TableHead><TableRow><TableCell>그룹명</TableCell><TableCell align="right">관리</TableCell></TableRow></TableHead>
         <TableBody>
           {groups.map((group) => <TableRow key={group.id} hover onClick={() => navigate(`${listPath}/${group.id}`)} sx={{ cursor: 'pointer' }}>
@@ -120,25 +120,25 @@ export default function GroupsPage() {
         </TableBody>
       </Table></TableContainer></Paper>
     </>}
-    {groupId && <Stack direction="row" alignItems="center" spacing={2}>
+    {groupId && <Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ xs: 'flex-start', sm: 'center' }} spacing={2}>
       {admin && <Button component={Link} to={listPath} disabled={busy}>그룹 목록으로 돌아가기</Button>}
       <Typography variant="h6">{detail?.group.name || (error ? '그룹을 불러오지 못했습니다.' : '그룹을 불러오는 중…')}</Typography>
     </Stack>}
     {detail && <>
-      <Paper sx={{ p: 3 }}><Stack spacing={2}>
+      <Paper sx={{ p: { xs: 2, sm: 3 }, minWidth: 0 }}><Stack spacing={2}>
         <Stack component="form" direction={{ xs: 'column', sm: 'row' }} spacing={2} onSubmit={(e) => { e.preventDefault(); run(async () => { await renameGroup(groupId, name.trim()); await refresh(); }, '그룹명을 변경했습니다.'); }}>
           <TextField label="그룹명" value={name} onChange={(e) => setName(e.target.value)} required inputProps={{ maxLength: 150 }} sx={{ flex: 1 }} />
           <Button type="submit" disabled={busy || !name.trim() || name.trim() === detail.group.name}>그룹명 변경</Button>
         </Stack>
-        <Stack direction="row" spacing={2} alignItems="center"><Typography>그룹 기본 지급 코인: 1인당 매월 {detail.group.monthly_basic_points ?? 0}P · 그룹 생성일 기준 매월 지급·만료</Typography>{admin && <Button disabled={busy} onClick={() => open('monthly')}>월 지급량 설정</Button>}</Stack>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'flex-start', sm: 'center' }}><Typography>그룹 기본 지급 코인: 1인당 매월 {detail.group.monthly_basic_points ?? 0}P · 그룹 생성일 기준 매월 지급·만료</Typography>{admin && <Button disabled={busy} onClick={() => open('monthly')} sx={{ flexShrink: 0 }}>월 지급량 설정</Button>}</Stack>
         <Typography variant="body2" color="text.secondary">무료 코인은 지급·회수 대상에서 제외됩니다. 추가 구매한 유료 코인만 일괄 지급·회수할 수 있습니다.</Typography>
         <Typography fontWeight={700}>리더 코인: 무료 {leader?.balance.free_points ?? 0}P · 유료 {leader?.balance.paid_points ?? 0}P</Typography>
         {!admin && <Button variant="outlined" disabled={busy} onClick={() => open('purchase')}>추가 코인 구매 요청</Button>}
       </Stack></Paper>
-      <Paper sx={{ p: 3 }}><Stack spacing={2}>
-        <Stack direction="row" justifyContent="space-between"><Typography variant="h6">구성원</Typography><Button disabled={busy} onClick={() => open('add')}>구성원 등록</Button></Stack>
-        <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap"><Typography>{selectedMembers.length}명 선택</Typography><Button variant="contained" disabled={busy || !selectedMembers.length || selectedMembers.some((item) => item.status !== 'ACTIVE')} onClick={() => open('give')}>일괄 지급</Button><Button variant="outlined" disabled={busy || !selectedMembers.length} onClick={() => open('reclaim')}>일괄 회수</Button></Stack>
-        <TableContainer><Table size="small"><TableHead><TableRow><TableCell padding="checkbox"><Checkbox inputProps={{ 'aria-label': '구성원 전체 선택' }} disabled={busy || !selectableMembers.length} checked={allSelected} indeterminate={selectedMembers.length > 0 && !allSelected} onChange={(e) => setSelectedIds(e.target.checked ? selectableMembers.map((item) => item.id) : [])} /></TableCell>{['사번' , '구분명', '이메일', '상태', '무료 / 유료', '관리'].map((label) => <TableCell key={label}>{label}</TableCell>)}</TableRow></TableHead>
+      <Paper sx={{ p: { xs: 2, sm: 3 }, minWidth: 0 }}><Stack spacing={2}>
+        <Stack direction="row" justifyContent="space-between" alignItems="center" gap={1}><Typography variant="h6">구성원</Typography><Button disabled={busy} onClick={() => open('add')} sx={{ flexShrink: 0 }}>구성원 등록</Button></Stack>
+        <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap><Typography>{selectedMembers.length}명 선택</Typography><Button variant="contained" disabled={busy || !selectedMembers.length || selectedMembers.some((item) => item.status !== 'ACTIVE')} onClick={() => open('give')}>일괄 지급</Button><Button variant="outlined" disabled={busy || !selectedMembers.length} onClick={() => open('reclaim')}>일괄 회수</Button></Stack>
+        <TableContainer sx={{ maxWidth: '100%' }}><Table size="small" sx={{ minWidth: 860 }}><TableHead><TableRow><TableCell padding="checkbox"><Checkbox inputProps={{ 'aria-label': '구성원 전체 선택' }} disabled={busy || !selectableMembers.length} checked={allSelected} indeterminate={selectedMembers.length > 0 && !allSelected} onChange={(e) => setSelectedIds(e.target.checked ? selectableMembers.map((item) => item.id) : [])} /></TableCell>{['사번' , '구분명', '이메일', '상태', '무료 / 유료', '관리'].map((label) => <TableCell key={label} sx={{ whiteSpace: 'nowrap' }}>{label}</TableCell>)}</TableRow></TableHead>
           <TableBody>{detail.members.map((item) => <TableRow key={item.id} selected={selectedIds.includes(item.id)}>
             <TableCell padding="checkbox">{item.group_role === 'MEMBER' && <Checkbox inputProps={{ 'aria-label': `${item.employee_number} 선택` }} disabled={busy} checked={selectedIds.includes(item.id)} onChange={(e) => setSelectedIds((prev) => e.target.checked ? [...prev, item.id] : prev.filter((id) => id !== item.id))} />}</TableCell>
             <TableCell>{item.employee_number}{item.group_role === 'LEADER' && <Chip label="리더" size="small" sx={{ ml: 1 }} />}</TableCell>
@@ -152,13 +152,13 @@ export default function GroupsPage() {
             </Stack></TableCell>
           </TableRow>)}</TableBody></Table></TableContainer>
       </Stack></Paper>
-      <Paper sx={{ p: 3 }}><Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}><Typography variant="h6">추가 코인 구매 내역</Typography>{admin && <Button variant="contained" disabled={busy || !leader || leader.status !== 'ACTIVE'} onClick={() => open('direct')}>추가 코인 직접 지급</Button>}</Stack>
-        <TableContainer><Table size="small"><TableHead><TableRow>{['요청일', '수량', '상태', '결제 확인 번호', '처리'].map((label) => <TableCell key={label}>{label}</TableCell>)}</TableRow></TableHead><TableBody>
+      <Paper sx={{ p: { xs: 2, sm: 3 }, minWidth: 0 }}><Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} gap={1} sx={{ mb: 2 }}><Typography variant="h6">추가 코인 구매 내역</Typography>{admin && <Button variant="contained" disabled={busy || !leader || leader.status !== 'ACTIVE'} onClick={() => open('direct')}>추가 코인 직접 지급</Button>}</Stack>
+        <TableContainer sx={{ maxWidth: '100%' }}><Table size="small" sx={{ minWidth: 680 }}><TableHead><TableRow>{['요청일', '수량', '상태', '결제 확인 번호', '처리'].map((label) => <TableCell key={label} sx={{ whiteSpace: 'nowrap' }}>{label}</TableCell>)}</TableRow></TableHead><TableBody>
           {detail.purchases.map((item) => <TableRow key={item.id}><TableCell>{time(item.created_at)}</TableCell><TableCell>{item.amount}P</TableCell><TableCell>{purchaseStatus[item.status]}{item.is_direct && <Typography variant="caption" display="block">관리자 직접 지급</Typography>}</TableCell><TableCell>{item.payment_reference || '—'}</TableCell><TableCell>{admin && item.status === 'PENDING' && <Button disabled={busy} onClick={() => open('decision', item)}>결제 확인·처리</Button>}</TableCell></TableRow>)}
           {!detail.purchases.length && <TableRow><TableCell colSpan={5}>구매 요청이 없습니다.</TableCell></TableRow>}
         </TableBody></Table></TableContainer>
       </Paper>
-      <Paper sx={{ p: 3 }}><Typography variant="h6" sx={{ mb: 2 }}>지급·회수 내역</Typography><TableContainer><Table size="small"><TableHead><TableRow>{['일시', '종류', '보낸 사번', '받은 사번', '수량'].map((label) => <TableCell key={label}>{label}</TableCell>)}</TableRow></TableHead><TableBody>
+      <Paper sx={{ p: { xs: 2, sm: 3 }, minWidth: 0 }}><Typography variant="h6" sx={{ mb: 2 }}>지급·회수 내역</Typography><TableContainer sx={{ maxWidth: '100%' }}><Table size="small" sx={{ minWidth: 620 }}><TableHead><TableRow>{['일시', '종류', '보낸 사번', '받은 사번', '수량'].map((label) => <TableCell key={label} sx={{ whiteSpace: 'nowrap' }}>{label}</TableCell>)}</TableRow></TableHead><TableBody>
         {detail.transfers.map((item) => <TableRow key={item.id}><TableCell>{time(item.created_at)}</TableCell><TableCell>{item.action === 'DISTRIBUTE' ? '지급' : '회수'}</TableCell><TableCell>{item.sender_number}</TableCell><TableCell>{item.recipient_number}</TableCell><TableCell>{item.amount}P</TableCell></TableRow>)}
         {!detail.transfers.length && <TableRow><TableCell colSpan={5}>지급·회수 내역이 없습니다.</TableCell></TableRow>}
       </TableBody></Table></TableContainer></Paper>

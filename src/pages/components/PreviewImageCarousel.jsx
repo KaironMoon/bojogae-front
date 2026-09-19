@@ -1,19 +1,23 @@
 /* eslint-disable react/prop-types */
 import { useRef, useState } from "react";
-import { Alert, Box, Button, ButtonBase, Dialog, IconButton, Stack, Typography } from "@mui/material";
+import { Alert, Box, Button, ButtonBase, Dialog, IconButton, Stack, Typography, useMediaQuery } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import CloseIcon from "@mui/icons-material/Close";
 
-const VISIBLE_IMAGES = 3;
+const DESKTOP_VISIBLE_IMAGES = 3;
+const IMAGE_GAP = 12;
 
 export default function PreviewImageCarousel({ slides, title = "결과 미리보기", onRemove, disabled = false }) {
+  const theme = useTheme();
+  const visibleImages = useMediaQuery(theme.breakpoints.down("sm")) ? 1 : DESKTOP_VISIBLE_IMAGES;
   const [position, setPosition] = useState(0);
   const [expanded, setExpanded] = useState(null);
   const [failed, setFailed] = useState({});
   const pointerStart = useRef(null);
   const suppressClick = useRef(false);
-  const lastPosition = Math.max(0, slides.length - VISIBLE_IMAGES);
+  const lastPosition = Math.max(0, slides.length - visibleImages);
   const index = Math.min(position, lastPosition);
   const move = (next) => setPosition(Math.max(0, Math.min(next, lastPosition)));
   const navigation = (direction) => {
@@ -53,12 +57,12 @@ export default function PreviewImageCarousel({ slides, title = "결과 미리보
           }
         }} onPointerCancel={() => { pointerStart.current = null; }}>
         <Box sx={{ display: "flex", gap: "12px", height: "100%", touchAction: "pan-y",
-          transform: `translateX(calc(-${index * 100 / VISIBLE_IMAGES}% - ${index * 4}px))`,
+          transform: `translateX(calc(-${index * 100 / visibleImages}% - ${index * IMAGE_GAP / visibleImages}px))`,
           transition: "transform 240ms ease", "@media (prefers-reduced-motion: reduce)": { transition: "none" } }}>
           {slides.map((slide, slideIndex) => <Stack key={slide.id || slide.url || slideIndex}
-            aria-hidden={slideIndex < index || slideIndex >= index + VISIBLE_IMAGES}
-            sx={{ flex: "0 0 calc((100% - 24px) / 3)", minWidth: 0, height: "100%", gap: 0.75 }}>
-            <ButtonBase tabIndex={slideIndex >= index && slideIndex < index + VISIBLE_IMAGES ? 0 : -1}
+            aria-hidden={slideIndex < index || slideIndex >= index + visibleImages}
+            sx={{ flex: `0 0 calc((100% - ${IMAGE_GAP * (visibleImages - 1)}px) / ${visibleImages})`, minWidth: 0, height: "100%", gap: 0.75 }}>
+            <ButtonBase tabIndex={slideIndex >= index && slideIndex < index + visibleImages ? 0 : -1}
               aria-label={`${title} ${slideIndex + 1}번 이미지 확대`} onClick={() => {
                 if (suppressClick.current) { suppressClick.current = false; return; }
                 setExpanded(slide);
@@ -70,7 +74,7 @@ export default function PreviewImageCarousel({ slides, title = "결과 미리보
             </ButtonBase>
             {onRemove && <Stack alignItems="center" sx={{ flexShrink: 0, height: 58 }}>
               <Typography noWrap variant="caption" sx={{ maxWidth: "100%" }}>{slide.filename || `이미지 ${slideIndex + 1}`}</Typography>
-              <Button size="small" color="error" disabled={disabled} tabIndex={slideIndex >= index && slideIndex < index + VISIBLE_IMAGES ? 0 : -1}
+              <Button size="small" color="error" disabled={disabled} tabIndex={slideIndex >= index && slideIndex < index + visibleImages ? 0 : -1}
                 aria-label={`${slideIndex + 1}번 이미지 삭제`} onClick={() => onRemove(slide)}>삭제</Button>
             </Stack>}
           </Stack>)}
@@ -90,7 +94,9 @@ export default function PreviewImageCarousel({ slides, title = "결과 미리보
             {page + 1}
           </ButtonBase>)}
         </Box>
-        <Typography variant="caption" color="text.secondary">{index + 1}–{Math.min(index + VISIBLE_IMAGES, slides.length)} / {slides.length}</Typography>
+        <Typography variant="caption" color="text.secondary">
+          {visibleImages === 1 ? `${index + 1} / ${slides.length}` : `${index + 1}–${Math.min(index + visibleImages, slides.length)} / ${slides.length}`}
+        </Typography>
       </Stack>
     </Stack>
     <Dialog fullScreen open={Boolean(expanded)} onClose={() => setExpanded(null)}

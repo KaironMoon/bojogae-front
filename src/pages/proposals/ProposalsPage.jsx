@@ -34,6 +34,8 @@ import {
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
 import CloudUploadRoundedIcon from "@mui/icons-material/CloudUploadRounded";
+import ChevronLeftRoundedIcon from "@mui/icons-material/ChevronLeftRounded";
+import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import DescriptionRoundedIcon from "@mui/icons-material/DescriptionRounded";
@@ -95,6 +97,17 @@ const PROMPT_META = [
     description: "여러 보장 항목과 주요 조건을 빠짐없이 보여주는 상세 분석형 템플릿입니다.",
   },
 ];
+
+const CATEGORY_ACCENTS = {
+  "보고서": "#2563eb",
+  "건강": "#16a34a",
+  "간병/시니어": "#7c3aed",
+  "종신/연금": "#ea580c",
+  "실손": "#0891b2",
+  "태아": "#db2777",
+  "재물/운전자": "#4f46e5",
+  "펫보험": "#92400e",
+};
 
 const STATUS_LABELS = {
   QUEUED: "대기 중",
@@ -164,6 +177,7 @@ function ProposalsPage() {
   const [searchParams] = useSearchParams();
   const theme = useTheme();
   const mobilePreview = useMediaQuery(theme.breakpoints.down("sm"));
+  const listPageSize = mobilePreview ? 5 : 10;
   const [promptOptions, setPromptOptions] = useState([]);
   const [promptTab, setPromptTab] = useState("recommended");
   const [favoriteSavingId, setFavoriteSavingId] = useState(null);
@@ -178,6 +192,7 @@ function ProposalsPage() {
   const [inputValues, setInputValues] = useState({});
   const [fieldUploads, setFieldUploads] = useState({});
   const [items, setItems] = useState([]);
+  const [includeFailed, setIncludeFailed] = useState(false);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -196,9 +211,14 @@ function ProposalsPage() {
   const fileInputRef = useRef(null);
   const statusPanelRef = useRef(null);
   const documentRequest = useRef(0);
+  const promptScrollerRef = useRef(null);
+  const [promptSlide, setPromptSlide] = useState(0);
 
   const tabPromptOptions = useMemo(() => promptsForTab(promptOptions, promptTab), [promptOptions, promptTab]);
   const categoryGroups = useMemo(() => groupPromptCategories(promptOptions), [promptOptions]);
+  const mobileCategories = useMemo(() => categoryGroups.flatMap((group) => (
+    group.children.map((child) => ({ ...child, parentName: group.name }))
+  )), [categoryGroups]);
   const filteredPromptOptions = useMemo(
     () => filterPromptCategories(tabPromptOptions, selectedCategoryIds),
     [tabPromptOptions, selectedCategoryIds],
@@ -233,6 +253,25 @@ function ProposalsPage() {
   const inputSchema = selectedPrompt?.input_schema || [];
   const customInputs = inputSchema.length > 0;
 
+  const movePromptSlide = (nextIndex) => {
+    const boundedIndex = Math.max(0, Math.min(nextIndex, displayedPromptOptions.length - 1));
+    const card = promptScrollerRef.current?.querySelector(`[data-prompt-index="${boundedIndex}"]`);
+    card?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+    setPromptSlide(boundedIndex);
+  };
+
+  const updatePromptSlide = () => {
+    const scroller = promptScrollerRef.current;
+    if (!scroller) return;
+    const center = scroller.scrollLeft + scroller.clientWidth / 2;
+    const cards = [...scroller.querySelectorAll("[data-prompt-index]")];
+    const closest = cards.reduce((best, card, index) => (
+      Math.abs(card.offsetLeft + card.offsetWidth / 2 - center)
+        < Math.abs(cards[best].offsetLeft + cards[best].offsetWidth / 2 - center) ? index : best
+    ), 0);
+    setPromptSlide(closest);
+  };
+
   useEffect(() => {
     setInputValues({});
     setFieldUploads({});
@@ -251,15 +290,34 @@ function ProposalsPage() {
     }
   }, [filteredPromptOptions, promptId]);
 
+  useEffect(() => {
+    const selectedIndex = displayedPromptOptions.findIndex((option) => option.id === promptId);
+    setPromptSlide(Math.max(0, selectedIndex));
+  }, [displayedPromptOptions, promptId]);
+
   const loadList = useCallback(async (targetPage = page) => {
-    const result = await getProposals(targetPage, 10);
+    const result = await getProposals(targetPage, listPageSize, includeFailed);
     setItems(result.items);
     setPage(result.page);
     setTotalPages(result.total_pages);
     const active = result.items.find((item) => ACTIVE.has(item.status));
     if (active) setActiveId((current) => current || active.id);
     return result;
-  }, [page]);
+  }, [includeFailed, listPageSize, page]);
+
+  const toggleFailedItems = async () => {
+    const nextValue = !includeFailed;
+    setIncludeFailed(nextValue);
+    try {
+      const result = await getProposals(1, listPageSize, nextValue);
+      setItems(result.items);
+      setPage(result.page);
+      setTotalPages(result.total_pages);
+    } catch {
+      setIncludeFailed(!nextValue);
+      setError("보고서 목록을 불러오지 못했습니다.");
+    }
+  };
 
   const loadDocumentIntoWorkspace = useCallback(async (item, loadedDocument) => {
     const request = ++documentRequest.current;
@@ -273,7 +331,7 @@ function ProposalsPage() {
   }, []);
 
   useEffect(() => {
-    Promise.all([getPromptOptions(), getProposals(1, 10), getPointBalance()])
+    Promise.all([getPromptOptions(), getProposals(1, listPageSize, false), getPointBalance()])
       .then(([options, result, balance]) => {
         setPromptOptions(options);
         const requestedPromptId = Number(searchParams.get("promptId"));
@@ -291,7 +349,7 @@ function ProposalsPage() {
         ? "즐겨찾기 DB 설정이 필요합니다. 관리자에게 문의해 주세요."
         : "문서 화면을 불러오지 못했습니다."))
       .finally(() => setLoading(false));
-  }, [searchParams]);
+  }, [listPageSize, searchParams]);
 
   useEffect(() => {
     setPreviewZoom(mobilePreview ? 0.4 : 1);
@@ -657,7 +715,7 @@ function ProposalsPage() {
         <Stack spacing={2} sx={{ gridColumn: { md: "span 5", xl: "span 3" }, minWidth: 0, minHeight: 0, alignSelf: "stretch" }}>
           <Paper
             variant="outlined"
-            sx={{ borderRadius: "16px", height: 600, boxSizing: "border-box", flexShrink: 0, minHeight: 0, display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 1px 3px rgba(15, 23, 42, 0.05)" }}
+            sx={{ borderRadius: "16px", height: { xs: "auto", md: 600 }, boxSizing: "border-box", flexShrink: 0, minHeight: 0, display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 1px 3px rgba(15, 23, 42, 0.05)" }}
           >
             <Box sx={{ px: 2, py: 1.75, flexShrink: 0, borderBottom: 1, borderColor: "divider" }}>
               <Stack direction="row" justifyContent="space-between" alignItems="center">
@@ -693,7 +751,51 @@ function ProposalsPage() {
                 />
               </Stack>
             </Box>
-            <Box sx={{ p: 1.5, flex: 1, minHeight: 0, overflowY: "auto" }}>
+            <Box
+              aria-label="보험 카테고리 선택"
+              sx={{
+                display: { xs: "grid", md: "none" },
+                gridTemplateRows: "repeat(2, auto)",
+                gridAutoFlow: "column",
+                gridAutoColumns: "max-content",
+                gap: 0.75,
+                p: 1.25,
+                overflowX: "auto",
+                overscrollBehaviorX: "contain",
+                scrollbarWidth: "none",
+                "&::-webkit-scrollbar": { display: "none" },
+              }}
+            >
+              {mobileCategories.map((category) => {
+                const selected = selectedCategoryIds.includes(category.id);
+                const accent = CATEGORY_ACCENTS[category.parentName] || "#64748b";
+                return (
+                  <Chip
+                    key={category.id}
+                    label={`${category.parentName} · ${category.name}`}
+                    variant="outlined"
+                    onClick={() => setSelectedCategoryIds((current) => (
+                      selected ? current.filter((id) => id !== category.id) : [...current, category.id]
+                    ))}
+                    sx={{
+                      justifyContent: "flex-start",
+                      borderWidth: 2,
+                      borderColor: accent,
+                      color: selected ? accent : "text.primary",
+                      backgroundColor: selected ? `${accent}2e` : "background.paper",
+                      fontWeight: selected ? 800 : 650,
+                      "&&:hover": {
+                        borderWidth: 2,
+                        borderColor: accent,
+                        backgroundColor: selected ? `${accent}38` : `${accent}0d`,
+                      },
+                    }}
+                  />
+                );
+              })}
+              {!mobileCategories.length && <Typography variant="body2" color="text.secondary">등록된 카테고리가 없습니다.</Typography>}
+            </Box>
+            <Box sx={{ display: { xs: "none", md: "block" }, p: 1.5, flex: 1, minHeight: 0, overflowY: "auto" }}>
               <Stack spacing={1.25}>
                 {categoryGroups.map((group) => (
                   <Paper key={group.id} variant="outlined" sx={{ p: 1.25, borderRadius: "10px" }}>
@@ -734,12 +836,12 @@ function ProposalsPage() {
         <Stack spacing={0} sx={{ gridColumn: { md: "span 7", xl: "span 9" }, minWidth: 0, alignSelf: "start" }}>
           <Paper
             variant="outlined"
-            sx={{ p: 2, borderRadius: "16px", height: 600, boxSizing: "border-box", minHeight: 0, mb: 2, display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 1px 3px rgba(15, 23, 42, 0.05)" }}
+            sx={{ p: { xs: 1.5, sm: 2 }, borderRadius: "16px", height: { xs: "auto", md: 600 }, boxSizing: "border-box", minHeight: 0, mb: 2, display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 1px 3px rgba(15, 23, 42, 0.05)" }}
           >
-            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ pb: 1.25, borderBottom: 1, borderColor: "divider" }}>
-              <Box>
+            <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ xs: "stretch", sm: "center" }} gap={1} sx={{ pb: 1.25, borderBottom: 1, borderColor: "divider" }}>
+              <Box sx={{ minWidth: 0 }}>
                 <Stack direction="row" spacing={0.75} alignItems="center">
-                  <Tabs value={promptTab} onChange={changePromptTab} aria-label="프롬프트 목록" sx={{ minHeight: 36 }}>
+                  <Tabs value={promptTab} onChange={changePromptTab} aria-label="프롬프트 목록" variant="scrollable" scrollButtons={false} sx={{ minHeight: 36, maxWidth: "100%" }}>
                     <Tab value="favorites" label="즐겨찾기" icon={<StarRoundedIcon fontSize="small" sx={{ color: "#f59e0b" }} />} iconPosition="start" sx={{ minHeight: 36, px: 1 }} />
                     <Tab value="recommended" label="추천 프롬프트" sx={{ minHeight: 36, px: 1 }} />
                   </Tabs>
@@ -748,16 +850,38 @@ function ProposalsPage() {
                   {selectedCategoryIds.length ? "선택한 카테고리를 모두 포함한 프롬프트입니다." : promptTab === "favorites" ? "내가 즐겨찾기한 프롬프트 목록입니다." : "사용 가능한 프롬프트 전체 목록입니다."}
                 </Typography>
               </Box>
-              <Chip label={`${displayedPromptOptions.length}개`} size="small" color="primary" variant="outlined" />
+              <Chip label={`${displayedPromptOptions.length}개`} size="small" color="primary" variant="outlined" sx={{ alignSelf: { xs: "flex-start", sm: "center" } }} />
             </Stack>
 
-            <Box sx={{ display: "grid", gridTemplateColumns: { xs: "minmax(0, 1fr)", md: "repeat(2, minmax(0, 1fr))" }, gap: 0.75, alignContent: "start", py: 1, pr: 0.5, flex: 1, minHeight: 0, overflowY: "auto" }}>
+            <Box sx={{ position: "relative", minWidth: 0, flex: 1 }}>
+            <Box
+              ref={promptScrollerRef}
+              onScroll={updatePromptSlide}
+              sx={{
+                display: { xs: "flex", md: "grid" },
+                gridTemplateColumns: { md: "repeat(2, minmax(0, 1fr))" },
+                gap: { xs: 1, md: 0.75 },
+                alignContent: "start",
+                py: 1,
+                px: { xs: "4%", md: 0 },
+                pr: { md: 0.5 },
+                minHeight: 0,
+                overflowX: { xs: "auto", md: "hidden" },
+                overflowY: { xs: "hidden", md: "auto" },
+                scrollSnapType: { xs: "x mandatory", md: "none" },
+                scrollPaddingInline: { xs: "4%", md: 0 },
+                overscrollBehaviorX: "contain",
+                scrollbarWidth: "none",
+                "&::-webkit-scrollbar": { display: "none" },
+              }}
+            >
               {displayedPromptOptions.map((option, index) => {
                 const meta = PROMPT_META[index % PROMPT_META.length];
                 const selected = promptId === option.id;
                 return (
                   <Paper
                     key={option.id}
+                    data-prompt-index={index}
                     variant="outlined"
                     onClick={() => {
                       if (promptId !== option.id || selectedReport) {
@@ -767,9 +891,12 @@ function ProposalsPage() {
                       submissionKey.current = null;
                     }}
                     sx={{
-                      p: 1.4,
-                      minWidth: 0,
-                      flexShrink: 0,
+                      p: { xs: 1.1, sm: 1.4 },
+                      minWidth: { xs: "calc(100% - 16px)", md: 0 },
+                      width: { xs: "calc(100% - 16px)", md: "auto" },
+                      flex: { xs: "0 0 calc(100% - 16px)", md: "initial" },
+                      boxSizing: "border-box",
+                      scrollSnapAlign: { xs: "center", md: "none" },
                       borderRadius: "12px",
                       borderWidth: selected ? 2 : 1,
                       borderColor: selected ? "primary.main" : "divider",
@@ -778,7 +905,7 @@ function ProposalsPage() {
                     }}
                   >
                     <Box sx={{ minWidth: 0 }}>
-                      <Stack direction="row" justifyContent="space-between" alignItems="flex-start" gap={1}>
+                      <Stack direction="row" justifyContent="space-between" alignItems="flex-start" gap={0.75}>
                         <Stack direction="row" alignItems="center" gap={0.75} sx={{ minWidth: 0 }}>
                         <Chip label={`${index + 1}순위`} size="small"
                           color={selected ? "primary" : "default"}
@@ -799,17 +926,30 @@ function ProposalsPage() {
                             {option.title} <Typography component="span" variant="caption" color="text.secondary">v{option.current_version_no}</Typography>
                           </Typography>
                         </Stack>
+                        <Tooltip title="결과 미리보기">
+                          <span>
+                            <IconButton
+                              size="small"
+                              aria-label={`${option.title} 결과 미리보기`}
+                              disabled={!option.preview_image_available}
+                              onClick={(event) => { event.stopPropagation(); setPromptPreviewOption(option); }}
+                              sx={{ display: { xs: "inline-flex", sm: "none" }, flexShrink: 0, border: 1, borderColor: "divider", borderRadius: "8px" }}
+                            >
+                              <VisibilityOutlinedIcon fontSize="small" />
+                            </IconButton>
+                          </span>
+                        </Tooltip>
                         <Button type="button" size="small" variant="outlined" startIcon={<VisibilityOutlinedIcon />}
                           disabled={!option.preview_image_available}
                           onClick={(event) => { event.stopPropagation(); setPromptPreviewOption(option); }}
-                          sx={{ borderRadius: "8px", minHeight: 36, flexShrink: 0, whiteSpace: "nowrap" }}>
+                          sx={{ display: { xs: "none", sm: "inline-flex" }, borderRadius: "8px", minHeight: 36, flexShrink: 0, whiteSpace: "nowrap" }}>
                           결과 미리보기
                         </Button>
                       </Stack>
-                      <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.8, lineHeight: 1.45 }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ display: "-webkit-box", mt: 0.65, lineHeight: 1.4, WebkitBoxOrient: "vertical", WebkitLineClamp: { xs: 2, sm: "unset" }, overflow: "hidden" }}>
                         {meta.description}
                       </Typography>
-                      <Stack direction="row" alignItems="center" gap={0.6} flexWrap="wrap" sx={{ mt: 1 }}>
+                      <Stack direction="row" alignItems="center" gap={0.6} flexWrap={{ xs: "nowrap", sm: "wrap" }} sx={{ mt: 0.75, overflowX: { xs: "auto", sm: "visible" }, scrollbarWidth: "none", "&::-webkit-scrollbar": { display: "none" }, "& .MuiChip-root": { flexShrink: 0 } }}>
                           <Chip label={`적합도 ${meta.fit}%`} size="small" color="primary" variant="outlined" />
                           <Chip label={`${option.point_cost.toLocaleString()}P`} size="small" color="warning" variant="outlined" />
                           {(option.categories || []).map((category) => (
@@ -823,6 +963,41 @@ function ProposalsPage() {
               })}
               {!displayedPromptOptions.length && <Alert severity="info">{promptTab === "favorites" && !tabPromptOptions.length ? "즐겨찾기한 프롬프트가 없습니다. 추천 프롬프트에서 별표를 눌러 등록해 주세요." : "조건에 맞는 프롬프트가 없습니다."}</Alert>}
             </Box>
+            {displayedPromptOptions.length > 1 && (
+              <>
+                <IconButton
+                  aria-label="이전 프롬프트"
+                  disabled={promptSlide === 0}
+                  onClick={() => movePromptSlide(promptSlide - 1)}
+                  sx={{ display: { xs: "inline-flex", md: "none" }, position: "absolute", left: 0, top: "50%", transform: "translateY(-50%)", zIndex: 1, bgcolor: "rgba(255,255,255,.94)", boxShadow: 1, "&:hover": { bgcolor: "white" } }}
+                >
+                  <ChevronLeftRoundedIcon />
+                </IconButton>
+                <IconButton
+                  aria-label="다음 프롬프트"
+                  disabled={promptSlide >= displayedPromptOptions.length - 1}
+                  onClick={() => movePromptSlide(promptSlide + 1)}
+                  sx={{ display: { xs: "inline-flex", md: "none" }, position: "absolute", right: 0, top: "50%", transform: "translateY(-50%)", zIndex: 1, bgcolor: "rgba(255,255,255,.94)", boxShadow: 1, "&:hover": { bgcolor: "white" } }}
+                >
+                  <ChevronRightRoundedIcon />
+                </IconButton>
+              </>
+            )}
+            </Box>
+            {displayedPromptOptions.length > 1 && (
+              <Stack direction="row" justifyContent="center" spacing={0.65} sx={{ display: { xs: "flex", md: "none" }, pt: 0.5 }}>
+                {displayedPromptOptions.map((option, index) => (
+                  <Box
+                    component="button"
+                    type="button"
+                    key={option.id}
+                    aria-label={`${index + 1}번째 프롬프트로 이동`}
+                    onClick={() => movePromptSlide(index)}
+                    sx={{ width: promptSlide === index ? 18 : 7, height: 7, p: 0, border: 0, borderRadius: 99, bgcolor: promptSlide === index ? "primary.main" : "action.disabled", cursor: "pointer", transition: "width .2s ease" }}
+                  />
+                ))}
+              </Stack>
+            )}
           </Paper>
           <Paper variant="outlined" sx={{ p: 2.25, borderRadius: "16px 16px 0 0", boxShadow: "0 1px 3px rgba(15, 23, 42, 0.05)" }}>
             {customInputs ? <PromptInputForm fields={inputSchema} values={inputValues} uploads={fieldUploads} disabled={working}
@@ -886,7 +1061,7 @@ function ProposalsPage() {
                 }
               }}
               sx={{
-                p: { xs: 1.5, sm: 2 },
+                p: { xs: 1, sm: 2 },
                 borderRadius: "12px",
                 borderStyle: "dashed",
                 borderWidth: 2,
@@ -896,14 +1071,23 @@ function ProposalsPage() {
                 opacity: working ? 0.6 : 1,
                 textAlign: "center",
                 display: "block",
-                minHeight: { xs: 112, sm: 124 },
+                minHeight: { xs: 60, sm: 124 },
                 "&:hover": { borderColor: "primary.main", bgcolor: "primary.light" },
                 "&:focus-visible": { outline: "3px solid", outlineColor: "primary.light", outlineOffset: 2 },
               }}
             >
-              <CloudUploadRoundedIcon color="primary" />
-              <Typography variant="body2" fontWeight={750}>{filesDragging ? "여기에 PDF 파일을 놓으세요" : "PDF 선택 또는 파일 드래그"}</Typography>
-              <Typography variant="caption" color="text.secondary">최대 5개 · 파일당 10MB</Typography>
+              <Stack direction="row" alignItems="center" justifyContent="center" spacing={1} sx={{ display: { xs: "flex", sm: "none" } }}>
+                <CloudUploadRoundedIcon color="primary" sx={{ fontSize: 22 }} />
+                <Box sx={{ textAlign: "left" }}>
+                  <Typography variant="body2" fontWeight={750}>PDF 파일 선택</Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: "block", lineHeight: 1.2 }}>최대 5개 · 파일당 10MB</Typography>
+                </Box>
+              </Stack>
+              <Box sx={{ display: { xs: "none", sm: "block" } }}>
+                <CloudUploadRoundedIcon color="primary" />
+                <Typography variant="body2" fontWeight={750}>{filesDragging ? "여기에 PDF 파일을 놓으세요" : "PDF 선택 또는 파일 드래그"}</Typography>
+                <Typography variant="caption" color="text.secondary">최대 5개 · 파일당 10MB</Typography>
+              </Box>
               <input ref={fileInputRef} hidden type="file" accept="application/pdf,.pdf" multiple disabled={working} onChange={chooseFiles} />
             </Paper>
             <Stack spacing={0.75} sx={{ mt: 1.25 }}>
@@ -1055,7 +1239,7 @@ function ProposalsPage() {
       </Drawer>
 
       <Paper variant="outlined" sx={{ p: { xs: 2, md: 2.5 }, borderRadius: "16px", mt: 3, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.05)" }}>
-        <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ xs: "stretch", sm: "center" }} gap={1.5} sx={{ mb: 2 }}>
+        <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ xs: "stretch", sm: "center" }} gap={1} sx={{ mb: { xs: 1, sm: 2 } }}>
           <Box>
             <Stack direction="row" alignItems="center" spacing={1}>
               <Typography variant="h6" sx={{ fontWeight: 800 }}>보고서 리스트</Typography>
@@ -1065,7 +1249,12 @@ function ProposalsPage() {
             </Stack>
             <Typography variant="caption" color="text.secondary">최근 생성한 맞춤 문서 보관함</Typography>
           </Box>
-          <Button startIcon={<RefreshRoundedIcon />} onClick={() => loadList(page)} sx={{ alignSelf: { xs: "flex-start", sm: "center" } }}>새로고침</Button>
+          <Stack direction="row" spacing={0.5} alignItems="center">
+            <Button size="small" variant={includeFailed ? "contained" : "outlined"} onClick={toggleFailedItems}>
+              {includeFailed ? "실패 포함 중" : "실패 포함"}
+            </Button>
+            <IconButton aria-label="보고서 목록 새로고침" onClick={() => loadList(page)}><RefreshRoundedIcon /></IconButton>
+          </Stack>
         </Stack>
         <Stack>
           {items.map((item) => (
@@ -1084,8 +1273,8 @@ function ProposalsPage() {
                 }
               }}
               sx={{
-                px: 1,
-                py: 1.5,
+                px: { xs: 0.5, sm: 1 },
+                py: { xs: 1, sm: 1.5 },
                 borderTop: "1px solid #f1f5f9",
                 borderRadius: "10px",
                 cursor: "pointer",
@@ -1097,28 +1286,38 @@ function ProposalsPage() {
                 "&:focus-visible": { outline: "2px solid #2563eb", outlineOffset: "-2px" },
               }}
             >
-              <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between" gap={1.5}>
+              <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between" gap={{ xs: 0.5, md: 1.5 }}>
                 <Box sx={{ minWidth: 0 }}>
-                  <Stack direction="row" alignItems="center" gap={1} flexWrap="wrap">
-                    <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>{item.title}</Typography>
+                  <Stack direction="row" alignItems="center" gap={0.75} flexWrap={{ xs: "nowrap", sm: "wrap" }}>
+                    <Typography variant="subtitle2" noWrap sx={{ fontWeight: 800, minWidth: 0, flex: { xs: 1, sm: "initial" } }}>{item.title}</Typography>
                     <Chip size="small" color={statusColor(item.status)} label={STATUS_LABELS[item.status] || item.status} />
-                    {item.point_status === "REFUNDED" && <Chip size="small" color="success" variant="outlined" label="포인트 반환 완료" />}
+                    {item.point_status === "REFUNDED" && <Chip size="small" color="success" variant="outlined" label="포인트 반환 완료" sx={{ display: { xs: "none", sm: "inline-flex" } }} />}
                     {(statusItem?.id ?? previewItem?.id) === item.id && (
-                      <Chip size="small" color="primary" variant="outlined" label="선택됨" sx={{ fontWeight: 750 }} />
+                      <Chip size="small" color="primary" variant="outlined" label="선택됨" sx={{ display: { xs: "none", sm: "inline-flex" }, fontWeight: 750 }} />
                     )}
                   </Stack>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5 }}>
+                  <Typography variant="caption" color="text.secondary" noWrap sx={{ display: { xs: "none", sm: "block" }, mt: 0.5 }}>
                     {item.prompt_title} v{item.prompt_version_no} · PDF {item.input_file_count}개 ({formatBytes(item.total_input_bytes)}) · {formatDate(item.created_at)}
                   </Typography>
-                  {item.error_message && <Typography color="error" variant="caption">{item.error_message}</Typography>}
+                  <Typography variant="caption" color="text.secondary" noWrap sx={{ display: { xs: "block", sm: "none" }, mt: 0.25 }}>
+                    {item.prompt_title} · {formatDate(item.created_at)}{item.point_status === "REFUNDED" ? " · 포인트 반환" : ""}
+                  </Typography>
+                  {item.error_message && <Typography color="error" variant="caption" noWrap sx={{ display: "block" }}>{item.error_message}</Typography>}
                 </Box>
                 <Stack
                   direction="row"
                   alignItems="center"
                   justifyContent={{ xs: "flex-end", md: "flex-start" }}
-                  gap={0.5}
-                  flexWrap="wrap"
-                  sx={{ width: { xs: "100%", md: "auto" } }}
+                  gap={0.25}
+                  flexWrap={{ xs: "nowrap", sm: "wrap" }}
+                  sx={{
+                    width: { xs: "100%", md: "auto" },
+                    "& .MuiButton-root": {
+                      flexShrink: 0,
+                      minWidth: { xs: "auto", sm: 64 },
+                      px: { xs: 0.75, sm: 1 },
+                    },
+                  }}
                   onClick={(event) => event.stopPropagation()}
                   onKeyDown={(event) => event.stopPropagation()}
                 >

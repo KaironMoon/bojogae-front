@@ -7,8 +7,8 @@ function PageFooter() {
   return (
     <Box
       sx={{
-        py: 2, // 상하 패딩
-        px: 3, // 좌우 패딩
+        py: 2,
+        px: { xs: 2, sm: 3 },
         backgroundColor: theme.palette.background.footer,
         color: theme.palette.text.primary,
       }}
@@ -16,19 +16,21 @@ function PageFooter() {
       <Box
         sx={{
           display: "flex",
+          flexDirection: { xs: "column", sm: "row" },
           justifyContent: "space-between",
-          alignItems: "center",
+          alignItems: { xs: "flex-start", sm: "center" },
+          gap: 1.25,
         }}
       >
-        <Typography variant="body2">© {new Date().getFullYear()} Your Company Name. All rights reserved.</Typography>
-        <Box>
-          <Link href="#" color="inherit" underline="hover" sx={{ mr: 2 }}>
+        <Typography variant="body2">© {new Date().getFullYear()} BOJOGAE. All rights reserved.</Typography>
+        <Box sx={{ display: "flex", flexWrap: "wrap", gap: { xs: 1.5, sm: 2 } }}>
+          <Link href="#" color="inherit" underline="hover" sx={{ whiteSpace: "nowrap" }}>
             Privacy Policy
           </Link>
-          <Link href="#" color="inherit" underline="hover" sx={{ mr: 2 }}>
+          <Link href="#" color="inherit" underline="hover" sx={{ whiteSpace: "nowrap" }}>
             Terms of Service
           </Link>
-          <Link href="#" color="inherit" underline="hover">
+          <Link href="#" color="inherit" underline="hover" sx={{ whiteSpace: "nowrap" }}>
             Contact Us
           </Link>
         </Box>

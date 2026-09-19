@@ -4,12 +4,14 @@ import AutoAwesomeRoundedIcon from "@mui/icons-material/AutoAwesomeRounded";
 import BoltRoundedIcon from "@mui/icons-material/BoltRounded";
 import CampaignRoundedIcon from "@mui/icons-material/CampaignRounded";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
+import ChevronLeftRoundedIcon from "@mui/icons-material/ChevronLeftRounded";
+import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
 import CoinsRoundedIcon from "@mui/icons-material/PaidRounded";
 import LocalFireDepartmentRoundedIcon from "@mui/icons-material/LocalFireDepartmentRounded";
 import {
-  Alert, Box, Button, Chip, CircularProgress, Paper, Skeleton, Stack, Typography,
+  Alert, Box, Button, Chip, CircularProgress, IconButton, Paper, Skeleton, Stack, Typography,
 } from "@mui/material";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { useAuth } from "@/auth/AuthContext";
@@ -39,19 +41,52 @@ function StatCard({ icon, label, value, accent }) {
 
 function PromptCard({ prompt, rank }) {
   const preview = prompt.preview_images?.[0];
-  const [previewFailed, setPreviewFailed] = useState(false);
-  const showPreview = preview && !previewFailed;
+  const previewCount = prompt.preview_images?.length || 0;
+  const visiblePreviews = prompt.preview_images?.slice(0, 3) || [];
+  const [failedPreviewIds, setFailedPreviewIds] = useState({});
+  const showPreview = preview && !failedPreviewIds[preview.id];
+  const failPreview = (id) => setFailedPreviewIds((current) => ({ ...current, [id]: true }));
   return (
-    <Paper variant="outlined" sx={{ flex: "0 0 auto", width: { xs: "min(78vw, 240px)", sm: 215 }, borderRadius: 3, overflow: "hidden", borderColor: "#e7ebf2", transition: "transform .18s, box-shadow .18s", scrollSnapAlign: "start", "&:hover": { transform: "translateY(-3px)", boxShadow: "0 12px 30px rgba(29,47,78,.10)" } }}>
+    <Paper variant="outlined" sx={{ flex: "0 0 auto", width: { xs: "min(78vw, 240px)", sm: 215 }, borderRadius: 3, overflow: "hidden", borderColor: "#e7ebf2", transition: "transform .18s, box-shadow .18s", scrollSnapAlign: { xs: "center", sm: "start" }, "&:hover": { transform: "translateY(-3px)", boxShadow: "0 12px 30px rgba(29,47,78,.10)" } }}>
       <Box sx={{ height: 146, position: "relative", overflow: "hidden", bgcolor: "#eef3ff" }}>
         {showPreview ? (
-          <Box
-            component="img"
-            src={promptPreviewImageUrl(prompt.id, prompt.preview_image_revision, preview.id)}
-            alt={`${prompt.title} 미리보기`}
-            onError={() => setPreviewFailed(true)}
-            sx={{ width: "100%", height: "100%", display: "block", objectFit: "cover", objectPosition: "top center" }}
-          />
+          previewCount > 1 ? (
+            <Box sx={{ position: "relative", width: 103 + (visiblePreviews.length - 1) * 30, height: "100%", mx: "auto" }}>
+              {visiblePreviews.map((item, index) => !failedPreviewIds[item.id] && (
+                <Box
+                  key={item.id}
+                  component="img"
+                  src={promptPreviewImageUrl(prompt.id, prompt.preview_image_revision, item.id)}
+                  alt={`${prompt.title} 미리보기 ${index + 1}`}
+                  onError={() => failPreview(item.id)}
+                  sx={{
+                    position: "absolute",
+                    top: 0,
+                    left: index * 30,
+                    width: 103,
+                    height: "100%",
+                    zIndex: visiblePreviews.length - index,
+                    display: "block",
+                    boxSizing: "border-box",
+                    objectFit: "contain",
+                    objectPosition: "center",
+                    bgcolor: "white",
+                    border: "1px solid #cbd5e1",
+                    borderRadius: "2px",
+                    boxShadow: "0 4px 10px rgba(15,23,42,.14)",
+                  }}
+                />
+              ))}
+            </Box>
+          ) : (
+            <Box
+              component="img"
+              src={promptPreviewImageUrl(prompt.id, prompt.preview_image_revision, preview.id)}
+              alt={`${prompt.title} 미리보기`}
+              onError={() => failPreview(preview.id)}
+              sx={{ width: "100%", height: "100%", display: "block", objectFit: "contain", objectPosition: "center", bgcolor: "#eef3ff" }}
+            />
+          )
         ) : (
           <Box
             sx={{
@@ -71,7 +106,7 @@ function PromptCard({ prompt, rank }) {
             <Typography sx={{ position: "absolute", left: 12, bottom: 8, zIndex: 1, color: "rgba(255,244,225,.82)", fontSize: 9, fontWeight: 900, letterSpacing: ".12em" }}>BOJOGAE REPORT</Typography>
           </Box>
         )}
-        {rank && <Box sx={{ position: "absolute", top: 10, left: 10, width: 30, height: 30, borderRadius: 2, bgcolor: rank <= 3 ? "#111827" : "rgba(17,24,39,.78)", color: "white", display: "grid", placeItems: "center", fontWeight: 900 }}>{rank}</Box>}
+        {rank && <Box sx={{ position: "absolute", zIndex: 10, top: 10, left: 10, width: 30, height: 30, borderRadius: 2, bgcolor: rank <= 3 ? "#111827" : "rgba(17,24,39,.78)", color: "white", display: "grid", placeItems: "center", fontWeight: 900, boxShadow: "0 2px 8px rgba(15,23,42,.24)" }}>{rank}</Box>}
       </Box>
       <Stack spacing={1.2} sx={{ p: 2 }}>
         <Typography fontWeight={800} noWrap title={prompt.title}>{prompt.title}</Typography>
@@ -85,16 +120,103 @@ function PromptCard({ prompt, rank }) {
 }
 
 function PromptSection({ title, subtitle, prompts, ranked = false }) {
+  const scrollerRef = useRef(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  const updateScrollState = useCallback(() => {
+    const scroller = scrollerRef.current;
+    if (!scroller) return;
+    const center = scroller.scrollLeft + scroller.clientWidth / 2;
+    const cards = Array.from(scroller.children);
+    const closestIndex = cards.reduce((closest, card, index) => {
+      const distance = Math.abs(card.offsetLeft + card.clientWidth / 2 - center);
+      return distance < closest.distance ? { index, distance } : closest;
+    }, { index: 0, distance: Number.POSITIVE_INFINITY }).index;
+    setActiveIndex(closestIndex);
+  }, []);
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(updateScrollState);
+    window.addEventListener("resize", updateScrollState);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener("resize", updateScrollState);
+    };
+  }, [prompts?.length, updateScrollState]);
+
+  const moveTo = (index) => {
+    const scroller = scrollerRef.current;
+    const card = scroller?.children[index];
+    if (!scroller || !card) return;
+    const left = card.offsetLeft - (scroller.clientWidth - card.clientWidth) / 2;
+    scroller.scrollTo({ left, behavior: "smooth" });
+  };
+
   if (!prompts?.length) return null;
   return (
-    <Box component="section" sx={{ minWidth: 0 }}>
-      <Stack direction="row" justifyContent="space-between" alignItems="end" sx={{ mb: 1.7 }}>
-        <Box><Typography variant="h6" fontWeight={850}>{title}</Typography><Typography variant="body2" color="text.secondary">{subtitle}</Typography></Box>
-        <Button component={Link} to="/proposals" size="small">전체 보기</Button>
+    <Box component="section" sx={{ minWidth: 0, width: "100%", maxWidth: "100%", overflow: "hidden" }}>
+      <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ xs: "flex-start", sm: "end" }} gap={0.5} sx={{ mb: 1.7 }}>
+        <Box sx={{ minWidth: 0 }}><Typography variant="h6" fontWeight={850}>{title}</Typography><Typography variant="body2" color="text.secondary">{subtitle}</Typography></Box>
+        <Button component={Link} to="/proposals" size="small" sx={{ flexShrink: 0 }}>전체 보기</Button>
       </Stack>
-      <Box sx={{ display: "flex", gap: 1.7, overflowX: "auto", pb: 1.2, scrollSnapType: "x proximity", scrollbarWidth: "thin" }}>
-        {prompts.map((prompt, index) => <PromptCard key={prompt.id} prompt={prompt} rank={ranked ? index + 1 : null} />)}
+      <Box sx={{ position: "relative" }}>
+        <IconButton
+          aria-label={`${title} 이전 보고서`}
+          disabled={activeIndex === 0}
+          onClick={() => moveTo(activeIndex - 1)}
+          sx={{
+            display: { xs: "inline-flex", sm: "none" }, position: "absolute", left: 4, top: "50%",
+            zIndex: 2, transform: "translateY(-50%)", bgcolor: "rgba(255,255,255,.94)", boxShadow: 2,
+            "&:hover": { bgcolor: "white" }, "&.Mui-disabled": { opacity: 0.32, bgcolor: "rgba(255,255,255,.8)" },
+          }}
+        >
+          <ChevronLeftRoundedIcon />
+        </IconButton>
+        <Box
+          ref={scrollerRef}
+          onScroll={updateScrollState}
+          sx={{
+            display: "flex", width: "100%", maxWidth: "100%", boxSizing: "border-box", gap: 1.7,
+            px: { xs: "calc((100% - min(78vw, 240px)) / 2)", sm: 0 },
+            overflowX: "auto", pb: { xs: 0.5, sm: 1.2 }, scrollSnapType: "x mandatory",
+            scrollPaddingInline: { xs: "calc((100% - min(78vw, 240px)) / 2)", sm: 0 },
+            scrollbarWidth: { xs: "none", sm: "thin" },
+            "&::-webkit-scrollbar": { display: { xs: "none", sm: "block" } },
+          }}
+        >
+          {prompts.map((prompt, index) => <PromptCard key={prompt.id} prompt={prompt} rank={ranked ? index + 1 : null} />)}
+        </Box>
+        <IconButton
+          aria-label={`${title} 다음 보고서`}
+          disabled={activeIndex === prompts.length - 1}
+          onClick={() => moveTo(activeIndex + 1)}
+          sx={{
+            display: { xs: "inline-flex", sm: "none" }, position: "absolute", right: 4, top: "50%",
+            zIndex: 2, transform: "translateY(-50%)", bgcolor: "rgba(255,255,255,.94)", boxShadow: 2,
+            "&:hover": { bgcolor: "white" }, "&.Mui-disabled": { opacity: 0.32, bgcolor: "rgba(255,255,255,.8)" },
+          }}
+        >
+          <ChevronRightRoundedIcon />
+        </IconButton>
       </Box>
+      <Stack direction="row" justifyContent="center" spacing={0.8} sx={{ display: { xs: "flex", sm: "none" }, mt: 1 }}>
+        {prompts.map((prompt, index) => (
+          <Box
+            key={prompt.id}
+            component="button"
+            type="button"
+            aria-label={`${title} ${index + 1}번째 보고서로 이동`}
+            aria-current={activeIndex === index ? "true" : undefined}
+            onClick={() => moveTo(index)}
+            sx={{
+              width: 8, height: 8, p: 0, border: 0, borderRadius: "50%", cursor: "pointer",
+              bgcolor: activeIndex === index ? "primary.main" : "grey.300",
+              transition: "background-color 160ms ease, transform 160ms ease",
+              transform: activeIndex === index ? "scale(1.2)" : "scale(1)",
+            }}
+          />
+        ))}
+      </Stack>
     </Box>
   );
 }
@@ -111,14 +233,14 @@ export default function Home() {
   if (!data && !error) return <Box sx={{ p: { xs: 2, md: 4 }, maxWidth: 1440, mx: "auto" }}><Skeleton height={190} sx={{ borderRadius: 4 }} /><Stack alignItems="center" sx={{ mt: 5 }}><CircularProgress size={28} /></Stack></Box>;
 
   return (
-    <Box sx={{ p: { xs: 2, md: 4 }, maxWidth: 1440, mx: "auto" }}>
+    <Box sx={{ p: { xs: 2, md: 4 }, maxWidth: 1440, width: "100%", minWidth: 0, boxSizing: "border-box", overflowX: "hidden", mx: "auto" }}>
       {error && <Alert severity="error">{error}</Alert>}
       {data && <Stack spacing={{ xs: 3.5, md: 4.5 }}>
         <Paper sx={{ p: { xs: 2.5, md: 4 }, borderRadius: 4, color: "white", overflow: "hidden", position: "relative", background: "linear-gradient(120deg,#172554 0%,#1d4ed8 57%,#6366f1 100%)", boxShadow: "0 18px 50px rgba(30,64,175,.22)" }}>
           <Box sx={{ position: "absolute", width: 260, height: 260, borderRadius: "50%", bgcolor: "rgba(255,255,255,.09)", right: -70, top: -120 }} />
           <Box sx={{ position: "relative", maxWidth: 720 }}>
             <Chip icon={<AutoAwesomeRoundedIcon />} label="BOJOGAE AI" sx={{ mb: 2, color: "white", bgcolor: "rgba(255,255,255,.14)", "& .MuiChip-icon": { color: "#fef08a" } }} />
-            <Typography variant="h3" sx={{ fontSize: { xs: 28, md: 40 }, fontWeight: 900, letterSpacing: "-.04em" }}>{user?.display_name || "고객"}님, 오늘은 어떤 보고서를 만들까요?</Typography>
+            <Typography variant="h3" sx={{ fontSize: { xs: 28, md: 40 }, fontWeight: 900, letterSpacing: "-.04em", overflowWrap: "anywhere" }}>{user?.display_name || "고객"}님, 오늘은 어떤 보고서를 만들까요?</Typography>
             <Typography sx={{ mt: 1.2, color: "rgba(255,255,255,.78)" }}>필요한 보고서를 선택하면 보조개가 빠르게 작업을 시작합니다.</Typography>
             <Button component={Link} to="/proposals" variant="contained" size="large" endIcon={<ArrowForwardRoundedIcon />} sx={{ mt: 3, bgcolor: "white", color: "#1d4ed8", fontWeight: 850, px: 2.6, "&:hover": { bgcolor: "#eff6ff" } }}>보고서 만들기</Button>
           </Box>
@@ -137,8 +259,8 @@ export default function Home() {
           <PromptSection title="내가 자주 만드는 보고서" subtitle="내 완료 기록을 기준으로 빠르게 다시 시작할 수 있습니다." prompts={data.personal_prompts} ranked />
         </Stack>
 
-        {!!data.banners.length && <Box sx={{ display: "grid", gridAutoFlow: "column", gridAutoColumns: { xs: "88%", md: data.banners.length === 1 ? "100%" : "minmax(460px,1fr)" }, overflowX: "auto", gap: 2, pb: 0.5, scrollSnapType: "x mandatory" }}>
-          {data.banners.map(banner => <Paper key={banner.id} component={banner.link_url ? "a" : "div"} href={banner.link_url || undefined} target={banner.link_url ? "_blank" : undefined} rel="noreferrer" sx={{ minHeight: { xs: 170, md: 210 }, p: { xs: 2.5, md: 4 }, borderRadius: 4, color: "white", textDecoration: "none", display: "flex", alignItems: "end", position: "relative", overflow: "hidden", scrollSnapAlign: "start", backgroundImage: `linear-gradient(90deg,rgba(15,23,42,.84),rgba(15,23,42,.12)),url(${dashboardBannerImageUrl(banner.id, banner.image_revision)})`, backgroundSize: "cover", backgroundPosition: "center" }}>
+        {!!data.banners.length && <Box sx={{ display: "grid", gridAutoFlow: "column", gridAutoColumns: { xs: data.banners.length === 1 ? "100%" : "88%", md: data.banners.length === 1 ? "100%" : "minmax(460px,1fr)" }, overflowX: "auto", gap: 2, pb: 0.5, scrollSnapType: "x mandatory" }}>
+          {data.banners.map(banner => <Paper key={banner.id} component={banner.link_url ? "a" : "div"} href={banner.link_url || undefined} target={banner.link_url ? "_blank" : undefined} rel="noreferrer" sx={{ minHeight: { xs: 170, md: 210 }, p: { xs: 2.5, md: 4 }, borderRadius: 4, color: "white", textDecoration: "none", display: "flex", alignItems: "end", position: "relative", overflow: "hidden", scrollSnapAlign: "start", backgroundImage: { xs: `linear-gradient(90deg,rgba(15,23,42,.84),rgba(15,23,42,.12)),url(${dashboardBannerImageUrl(banner.id, banner.mobile_image_revision || banner.image_revision, "mobile")})`, md: `linear-gradient(90deg,rgba(15,23,42,.84),rgba(15,23,42,.12)),url(${dashboardBannerImageUrl(banner.id, banner.image_revision)})` }, backgroundSize: "cover", backgroundPosition: "center" }}>
             <Box sx={{ position: "relative", maxWidth: 620 }}><Typography variant="h5" fontWeight={900}>{banner.title}</Typography><Typography sx={{ mt: 0.7, color: "rgba(255,255,255,.84)" }}>{banner.description}</Typography></Box>
           </Paper>)}
         </Box>}

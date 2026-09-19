@@ -112,12 +112,24 @@ function UsersPage() {
 
   return (
     <Box sx={{ p: { xs: 2, md: 4 } }}>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
-        <div>
+      <Stack
+        direction={{ xs: "column", sm: "row" }}
+        justifyContent="space-between"
+        alignItems={{ xs: "stretch", sm: "center" }}
+        gap={1.5}
+        sx={{ mb: 3 }}
+      >
+        <Box sx={{ minWidth: 0 }}>
           <Typography variant="h4" sx={{ fontWeight: 800 }}>사용자 관리</Typography>
           <Typography color="text.secondary">가입 요청을 승인하거나 계정 상태를 관리합니다.</Typography>
-        </div>
-        <Button onClick={() => loadUsers(page)} startIcon={<RefreshRoundedIcon />}>새로고침</Button>
+        </Box>
+        <Button
+          onClick={() => loadUsers(page)}
+          startIcon={<RefreshRoundedIcon />}
+          sx={{ alignSelf: { xs: "flex-start", sm: "center" } }}
+        >
+          새로고침
+        </Button>
       </Stack>
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
@@ -136,12 +148,12 @@ function UsersPage() {
                   </Stack>
                   <Typography variant="body2" color="text.secondary">{user.email || "이메일 없음"}</Typography>
                   <Typography variant="caption" color="text.secondary">{user.providers.join(" · ")}</Typography>
-                  <Stack direction="row" spacing={1}>
+                  <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                     <Chip label={`무료 ${user.free_points.toLocaleString()}P`} size="small" variant="outlined" color="success" />
                     <Chip label={`유료 ${user.paid_points.toLocaleString()}P`} size="small" variant="outlined" color="primary" />
                   </Stack>
                 </Stack>
-                <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+                <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
                   {user.role !== "ADMIN" && (
                     <>
                       {user.status === "PENDING" ? (

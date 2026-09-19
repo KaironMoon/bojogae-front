@@ -11,7 +11,7 @@ import {
   listDashboardBanners, saveDashboardBanner,
 } from "@/services/dashboard-service";
 
-const EMPTY = { title: "", description: "", linkUrl: "", startsAt: "", endsAt: "", sortOrder: 0, isActive: true, image: null };
+const EMPTY = { title: "", description: "", linkUrl: "", startsAt: "", endsAt: "", sortOrder: 0, isActive: true, image: null, mobileImage: null };
 
 function localDateTime(value) {
   if (!value) return "";
@@ -33,7 +33,7 @@ export default function DashboardBannersPage() {
 
   const edit = item => {
     setEditingId(item.id);
-    setDraft({ title: item.title, description: item.description, linkUrl: item.link_url || "", startsAt: localDateTime(item.starts_at), endsAt: localDateTime(item.ends_at), sortOrder: item.sort_order, isActive: item.is_active, image: null });
+    setDraft({ title: item.title, description: item.description, linkUrl: item.link_url || "", startsAt: localDateTime(item.starts_at), endsAt: localDateTime(item.ends_at), sortOrder: item.sort_order, isActive: item.is_active, image: null, mobileImage: null });
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -71,11 +71,25 @@ export default function DashboardBannersPage() {
             <TextField type="datetime-local" label="노출 종료" value={draft.endsAt} InputLabelProps={{ shrink: true }} onChange={e => setDraft({ ...draft, endsAt: e.target.value })} />
             <TextField type="number" label="노출 순서" value={draft.sortOrder} inputProps={{ min: 0, max: 10000 }} onChange={e => setDraft({ ...draft, sortOrder: Number(e.target.value) })} />
           </Box>
+          <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
+            <Stack spacing={0.75}>
+              <Typography variant="subtitle2">데스크톱 이미지</Typography>
+              <Button component="label" variant="outlined" startIcon={<AddPhotoAlternateRoundedIcon />} sx={{ alignSelf: "flex-start" }}>
+                {draft.image ? draft.image.name : editingId ? "데스크톱 이미지 변경" : "데스크톱 이미지 선택"}
+                <input hidden type="file" accept="image/jpeg,image/png,image/webp" onChange={e => setDraft({ ...draft, image: e.target.files?.[0] || null })} />
+              </Button>
+              <Typography variant="caption" color="text.secondary">권장 1600 × 480px · JPG, PNG, WebP · 최대 5MB</Typography>
+            </Stack>
+            <Stack spacing={0.75}>
+              <Typography variant="subtitle2">모바일 이미지 (선택)</Typography>
+              <Button component="label" variant="outlined" startIcon={<AddPhotoAlternateRoundedIcon />} sx={{ alignSelf: "flex-start" }}>
+                {draft.mobileImage ? draft.mobileImage.name : editingId ? "모바일 이미지 변경" : "모바일 이미지 선택"}
+                <input hidden type="file" accept="image/jpeg,image/png,image/webp" onChange={e => setDraft({ ...draft, mobileImage: e.target.files?.[0] || null })} />
+              </Button>
+              <Typography variant="caption" color="text.secondary">권장 900 × 560px · 미등록 시 데스크톱 이미지 사용 · 최대 5MB</Typography>
+            </Stack>
+          </Box>
           <Stack direction={{ xs: "column", sm: "row" }} alignItems={{ sm: "center" }} spacing={2}>
-            <Button component="label" variant="outlined" startIcon={<AddPhotoAlternateRoundedIcon />}>
-              {draft.image ? draft.image.name : editingId ? "이미지 변경" : "이미지 선택"}
-              <input hidden type="file" accept="image/jpeg,image/png,image/webp" onChange={e => setDraft({ ...draft, image: e.target.files?.[0] || null })} />
-            </Button>
             <FormControlLabel control={<Checkbox checked={draft.isActive} onChange={e => setDraft({ ...draft, isActive: e.target.checked })} />} label="활성화" />
           </Stack>
           <Stack direction="row" justifyContent="flex-end" spacing={1}>
@@ -86,10 +100,14 @@ export default function DashboardBannersPage() {
       </Paper>
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(2,minmax(0,1fr))" }, gap: 2 }}>
         {items.map(item => <Paper key={item.id} variant="outlined" sx={{ borderRadius: 3, overflow: "hidden", opacity: item.is_active ? 1 : 0.62 }}>
-          <Box component="img" src={dashboardBannerImageUrl(item.id, item.image_revision)} alt="" sx={{ width: "100%", height: 180, objectFit: "cover", display: "block" }} />
+          <Box sx={{ display: "grid", gridTemplateColumns: item.mobile_image_revision ? "1fr 1fr" : "1fr", bgcolor: "#eef2f7" }}>
+            <Box component="img" src={dashboardBannerImageUrl(item.id, item.image_revision)} alt="데스크톱 배너 미리보기" sx={{ width: "100%", height: 180, objectFit: "cover", display: "block" }} />
+            {item.mobile_image_revision && <Box component="img" src={dashboardBannerImageUrl(item.id, item.mobile_image_revision, "mobile")} alt="모바일 배너 미리보기" sx={{ width: "100%", height: 180, objectFit: "cover", display: "block" }} />}
+          </Box>
           <Stack spacing={1} sx={{ p: 2.2 }}>
             <Stack direction="row" justifyContent="space-between"><Typography fontWeight={850}>{item.title}</Typography><Typography variant="caption" color={item.is_active ? "success.main" : "text.secondary"}>{item.is_active ? "활성" : "비활성"}</Typography></Stack>
             <Typography variant="body2" color="text.secondary">{item.description || "설명 없음"}</Typography>
+            <Typography variant="caption" color="text.secondary">데스크톱 {item.original_filename} · 모바일 {item.mobile_original_filename || "미등록 (데스크톱 이미지 사용)"}</Typography>
             <Typography variant="caption" color="text.secondary">순서 {item.sort_order} · {item.starts_at ? new Date(item.starts_at).toLocaleString("ko-KR") : "즉시"} ~ {item.ends_at ? new Date(item.ends_at).toLocaleString("ko-KR") : "계속"}</Typography>
             <Stack direction="row" justifyContent="flex-end" spacing={1}><Button size="small" startIcon={<EditRoundedIcon />} onClick={() => edit(item)}>수정</Button><Button size="small" color="error" startIcon={<DeleteOutlineRoundedIcon />} onClick={() => remove(item)}>삭제</Button></Stack>
           </Stack>

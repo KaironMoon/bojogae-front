@@ -7,7 +7,7 @@ import {
   Divider, Paper, Stack, Typography,
 } from "@mui/material";
 import { useCallback, useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 
 import { boardConfig, categoryLabel } from "@/services/board-config";
 import {
@@ -15,9 +15,10 @@ import {
 } from "@/services/board-service";
 
 
-export default function BoardPostPage({ admin = false }) { // eslint-disable-line react/prop-types
+export default function BoardPostPage({ admin = false, embedded = false }) { // eslint-disable-line react/prop-types
   const { boardType, postId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [post, setPost] = useState(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -60,10 +61,24 @@ export default function BoardPostPage({ admin = false }) { // eslint-disable-lin
 
   const resolvedType = post?.board_type || boardType;
   const config = boardConfig(resolvedType);
+  const fromBoardList = embedded && Boolean(location.state?.fromBoardList);
+  const publicListButton = (sx = {}) => embedded && fromBoardList ? (
+    <Button onClick={() => navigate(-1)} startIcon={<ArrowBackRoundedIcon />} sx={sx}>
+      목록으로 돌아가기
+    </Button>
+  ) : embedded ? (
+    <Button component={Link} to={`/boards/${resolvedType}`} startIcon={<ArrowBackRoundedIcon />} sx={sx}>
+      {config?.label || "게시판"} 목록으로
+    </Button>
+  ) : (
+    <Button component={Link} to="/" startIcon={<ArrowBackRoundedIcon />} sx={sx}>
+      보조개 메인으로
+    </Button>
+  );
   const body = (
-    <Box sx={{ width: "100%", maxWidth: 900, mx: "auto", p: { xs: 2, md: 4 } }}>
+    <Box sx={{ width: "100%", maxWidth: 1100, mx: "auto", p: { xs: 2, md: 4 } }}>
       {admin && <Button component={Link} to={`/admin/boards/${boardType}`} startIcon={<ArrowBackRoundedIcon />} sx={{ mb: 2 }}>목록으로</Button>}
-      {!admin && <Button component={Link} to="/" startIcon={<ArrowBackRoundedIcon />} sx={{ mb: 2 }}>보조개로 이동</Button>}
+      {!admin && post && publicListButton({ mb: 2 })}
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       {notice && <Alert severity="success" onClose={() => setNotice("")} sx={{ mb: 2 }}>{notice}</Alert>}
       {!post && !error && <Typography color="text.secondary">게시글을 불러오는 중입니다.</Typography>}
@@ -97,7 +112,12 @@ export default function BoardPostPage({ admin = false }) { // eslint-disable-lin
           </Box>
           <Divider />
           <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" spacing={1} sx={{ p: 2 }}>
-            <Button onClick={copyLink} startIcon={<ContentCopyRoundedIcon />}>공유 링크 복사</Button>
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={1} alignItems={{ xs: "stretch", sm: "center" }}>
+              {!admin && (
+                publicListButton()
+              )}
+              <Button onClick={copyLink} startIcon={<ContentCopyRoundedIcon />}>공유 링크 복사</Button>
+            </Stack>
             {admin && (
               <Stack direction="row" spacing={1}>
                 <Button component={Link} to={`/admin/boards/${boardType}/${post.id}/edit`} startIcon={<EditRoundedIcon />}>수정</Button>
@@ -118,7 +138,7 @@ export default function BoardPostPage({ admin = false }) { // eslint-disable-lin
     </Box>
   );
 
-  if (admin) return body;
+  if (admin || embedded) return body;
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
       <Box component="header" sx={{ bgcolor: "#fff", borderBottom: "1px solid #e5eaf1", px: 2.5, py: 1.75 }}>

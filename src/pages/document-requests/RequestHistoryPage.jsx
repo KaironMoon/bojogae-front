@@ -67,10 +67,10 @@ export default function RequestHistoryPage({ kind, admin = false }) { // eslint-
     finally { setWorking(false); }
   }
   const canProcess = detail && (!refund || detail.status === 'PENDING');
-  return <Box sx={{ maxWidth: 1000, mx: 'auto' }}>
+  return <Box component="main" sx={{ maxWidth: 1000, mx: 'auto', p: { xs: 2, md: 4 } }}>
     <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', sm: 'center' }} gap={2} sx={{ mb: 2 }}>
       <Typography variant="h5" fontWeight={800}>{refund ? (admin ? '환불 요청 관리' : '내 환불 요청') : (admin ? '문서 건의 관리' : '내 문서 건의')}</Typography>
-      <Stack direction="row" alignItems="center" justifyContent="flex-end" spacing={1} sx={{ flexShrink: 0 }}>
+      <Stack direction="row" alignItems="center" justifyContent={{ xs: "flex-start", sm: "flex-end" }} spacing={1} sx={{ flexShrink: 0, flexWrap: 'wrap' }} useFlexGap>
         <Button onClick={() => { setError(''); load(); }}>새로고침</Button>
         {!admin && !refund && <Button component={Link} to="/document-suggestions/new" variant="contained" startIcon={<AddRoundedIcon />} sx={{ whiteSpace: 'nowrap' }}>건의사항 작성</Button>}
       </Stack>
@@ -86,7 +86,7 @@ export default function RequestHistoryPage({ kind, admin = false }) { // eslint-
             <Typography fontWeight={700} sx={{ overflowWrap: 'anywhere' }}>{refund ? item.generation_title : item.title}</Typography>
             <Typography variant="caption" color="text.secondary">#{item.id} · {new Date(item.created_at).toLocaleString('ko-KR')}{admin ? ` · 사용자 #${item.user_id}` : ''} · {refund ? `${item.point_cost}P` : kinds[item.kind]}</Typography>
           </Box>
-          <Stack direction="row" alignItems="center" spacing={1}>
+          <Stack direction="row" alignItems="center" spacing={1} flexWrap="wrap" useFlexGap>
             <Chip size="small" label={states[item.status] || item.status} />
             <Button disabled={opening} onClick={() => open(item)}>상세 보기</Button>
           </Stack>

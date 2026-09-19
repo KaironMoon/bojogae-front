@@ -71,7 +71,7 @@ export default function BoardListPage({ admin = false }) { // eslint-disable-lin
       <Paper component="form" onSubmit={search} variant="outlined" sx={{ p: 2, mb: 2.5, borderRadius: 2.5 }}>
         <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
           <TextField
-            select size="small" label="분류" value={category} sx={{ minWidth: 210 }}
+            select size="small" label="분류" value={category} sx={{ minWidth: { sm: 210 } }}
             onChange={event => { setCategory(event.target.value); setPage(1); }}
           >
             <MenuItem value="">전체 분류</MenuItem>
@@ -90,9 +90,16 @@ export default function BoardListPage({ admin = false }) { // eslint-disable-lin
       {!result && !error && <Typography color="text.secondary">게시글을 불러오는 중입니다.</Typography>}
       <Stack spacing={1.25}>
         {result?.items.map(item => {
-          const target = admin ? `/admin/boards/${boardType}/${item.id}` : `/board/posts/${item.id}`;
+          const target = admin ? `/admin/boards/${boardType}/${item.id}` : `/boards/${boardType}/${item.id}`;
           return (
-            <Paper key={item.id} component={Link} to={target} variant="outlined" sx={{ p: 2.25, borderRadius: 2.5, textDecoration: "none", color: "inherit", "&:hover": { borderColor: "primary.light", bgcolor: "#fbfdff" } }}>
+            <Paper
+              key={item.id}
+              component={Link}
+              to={target}
+              state={admin ? undefined : { fromBoardList: true }}
+              variant="outlined"
+              sx={{ p: 2.25, borderRadius: 2.5, textDecoration: "none", color: "inherit", "&:hover": { borderColor: "primary.light", bgcolor: "#fbfdff" } }}
+            >
               <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" spacing={1.5}>
                 <Box sx={{ minWidth: 0 }}>
                   <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.75 }}>
