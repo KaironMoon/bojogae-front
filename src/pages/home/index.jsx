@@ -132,21 +132,10 @@ export default function Home() {
         </Box>
 
         <PromptSection title="새로 나온 보고서" subtitle="최근 등록되거나 업데이트된 보고서입니다." prompts={data.latest_prompts} />
-        <Box
-          sx={{
-            display: "grid",
-            gridTemplateColumns: {
-              xs: "minmax(0,1fr)",
-              lg: data.popular_prompts.length && data.personal_prompts.length
-                ? "repeat(2,minmax(0,1fr))"
-                : "minmax(0,1fr)",
-            },
-            gap: { xs: 3.5, md: 4.5 },
-          }}
-        >
+        <Stack spacing={{ xs: 3.5, md: 4.5 }}>
           <PromptSection title="요즘 많이 사용하는 보고서" subtitle="최근 30일 동안 완성된 보고서를 기준으로 집계했습니다." prompts={data.popular_prompts} ranked />
           <PromptSection title="내가 자주 만드는 보고서" subtitle="내 완료 기록을 기준으로 빠르게 다시 시작할 수 있습니다." prompts={data.personal_prompts} ranked />
-        </Box>
+        </Stack>
 
         {!!data.banners.length && <Box sx={{ display: "grid", gridAutoFlow: "column", gridAutoColumns: { xs: "88%", md: data.banners.length === 1 ? "100%" : "minmax(460px,1fr)" }, overflowX: "auto", gap: 2, pb: 0.5, scrollSnapType: "x mandatory" }}>
           {data.banners.map(banner => <Paper key={banner.id} component={banner.link_url ? "a" : "div"} href={banner.link_url || undefined} target={banner.link_url ? "_blank" : undefined} rel="noreferrer" sx={{ minHeight: { xs: 170, md: 210 }, p: { xs: 2.5, md: 4 }, borderRadius: 4, color: "white", textDecoration: "none", display: "flex", alignItems: "end", position: "relative", overflow: "hidden", scrollSnapAlign: "start", backgroundImage: `linear-gradient(90deg,rgba(15,23,42,.84),rgba(15,23,42,.12)),url(${dashboardBannerImageUrl(banner.id, banner.image_revision)})`, backgroundSize: "cover", backgroundPosition: "center" }}>
