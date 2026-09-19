@@ -212,6 +212,7 @@ function ProposalsPage() {
   const statusPanelRef = useRef(null);
   const documentRequest = useRef(0);
   const promptScrollerRef = useRef(null);
+  const pendingPromptScrollId = useRef(null);
   const [promptSlide, setPromptSlide] = useState(0);
 
   const tabPromptOptions = useMemo(() => promptsForTab(promptOptions, promptTab), [promptOptions, promptTab]);
@@ -295,6 +296,21 @@ function ProposalsPage() {
     setPromptSlide(Math.max(0, selectedIndex));
   }, [displayedPromptOptions, promptId]);
 
+  useEffect(() => {
+    if (pendingPromptScrollId.current !== promptId) return undefined;
+
+    const selectedIndex = displayedPromptOptions.findIndex((option) => option.id === promptId);
+    if (selectedIndex < 0) return undefined;
+
+    const frame = requestAnimationFrame(() => {
+      const card = promptScrollerRef.current?.querySelector(`[data-prompt-index="${selectedIndex}"]`);
+      card?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+      pendingPromptScrollId.current = null;
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [displayedPromptOptions, promptId]);
+
   const loadList = useCallback(async (targetPage = page) => {
     const result = await getProposals(targetPage, listPageSize, includeFailed);
     setItems(result.items);
@@ -337,7 +353,9 @@ function ProposalsPage() {
         const requestedPromptId = Number(searchParams.get("promptId"));
         const requestedPrompt = options.find(option => option.id === requestedPromptId);
         const initialTab = requestedPrompt ? "recommended" : defaultPromptTab(options);
+        pendingPromptScrollId.current = requestedPrompt?.id || null;
         setPromptTab(initialTab);
+        setSelectedCategoryIds(requestedPrompt?.categories?.map((category) => category.id) || []);
         setPromptId(requestedPrompt?.id || promptsForTab(options, initialTab)[0]?.id || "");
         setItems(result.items);
         setTotalPages(result.total_pages);
@@ -853,7 +871,7 @@ function ProposalsPage() {
               <Chip label={`${displayedPromptOptions.length}개`} size="small" color="primary" variant="outlined" sx={{ alignSelf: { xs: "flex-start", sm: "center" } }} />
             </Stack>
 
-            <Box sx={{ position: "relative", minWidth: 0, flex: 1 }}>
+            <Box sx={{ position: "relative", minWidth: 0, minHeight: { xs: "auto", md: 0 }, flex: 1 }}>
             <Box
               ref={promptScrollerRef}
               onScroll={updatePromptSlide}
@@ -866,6 +884,7 @@ function ProposalsPage() {
                 px: { xs: "4%", md: 0 },
                 pr: { md: 0.5 },
                 minHeight: 0,
+                height: { xs: "auto", md: "100%" },
                 overflowX: { xs: "auto", md: "hidden" },
                 overflowY: { xs: "hidden", md: "auto" },
                 scrollSnapType: { xs: "x mandatory", md: "none" },
