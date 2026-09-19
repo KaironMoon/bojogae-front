@@ -50,6 +50,7 @@ function PromptCategoryList({ prompts, categories, selectedId, onSelect }) {
             primary={(
               <Stack direction="row" gap={1} alignItems="center">
                 <Typography title={prompt.title} noWrap sx={{ fontSize: 14, flex: 1, minWidth: 0 }}>{prompt.title}</Typography>
+                {prompt.is_default_favorite && <Chip label="기본" size="small" color="primary" variant="outlined" />}
                 {prompt.is_deleted && <Chip label="삭제됨" size="small" />}
               </Stack>
             )}

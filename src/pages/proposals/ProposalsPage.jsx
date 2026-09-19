@@ -230,6 +230,15 @@ function ProposalsPage() {
     setSelectedCategoryIds([]);
   };
 
+  const updateCategorySelection = (categoryId, checked) => {
+    if (checked) setPromptTab("recommended");
+    setSelectedCategoryIds((current) => (
+      checked
+        ? [...new Set([...current, categoryId])]
+        : current.filter((id) => id !== categoryId)
+    ));
+  };
+
   const toggleFavorite = async (option) => {
     if (favoriteRequest.current) return;
     favoriteRequest.current = true;
@@ -792,9 +801,7 @@ function ProposalsPage() {
                     key={category.id}
                     label={`${category.parentName} · ${category.name}`}
                     variant="outlined"
-                    onClick={() => setSelectedCategoryIds((current) => (
-                      selected ? current.filter((id) => id !== category.id) : [...current, category.id]
-                    ))}
+                    onClick={() => updateCategorySelection(category.id, !selected)}
                     sx={{
                       justifyContent: "flex-start",
                       borderWidth: 2,
@@ -826,11 +833,7 @@ function ProposalsPage() {
                             <Checkbox
                               size="small"
                               checked={selectedCategoryIds.includes(child.id)}
-                              onChange={(event) => setSelectedCategoryIds((current) => (
-                                event.target.checked
-                                  ? [...current, child.id]
-                                  : current.filter((id) => id !== child.id)
-                              ))}
+                              onChange={(event) => updateCategorySelection(child.id, event.target.checked)}
                             />
                           )}
                           label={child.name}
@@ -929,7 +932,9 @@ function ProposalsPage() {
                         <Chip label={`${index + 1}순위`} size="small"
                           color={selected ? "primary" : "default"}
                           sx={{ height: 22, fontSize: 10, fontWeight: 850, borderRadius: "5px", flexShrink: 0 }} />
-                          <Tooltip title={option.is_favorite ? "즐겨찾기 해제" : "즐겨찾기 등록"}>
+                          <Tooltip title={option.is_default_favorite
+                            ? option.is_favorite ? "기본 즐겨찾기에서 제외" : "기본 즐겨찾기에 다시 추가"
+                            : option.is_favorite ? "즐겨찾기 해제" : "즐겨찾기 등록"}>
                             <span><IconButton
                               size="small"
                               aria-label={`${option.title} ${option.is_favorite ? "즐겨찾기 해제" : "즐겨찾기 등록"}`}

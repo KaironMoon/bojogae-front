@@ -52,6 +52,13 @@ async function updatePrompt(promptId, title, body, categoryIds = [], inputSchema
   return response.data;
 }
 
+async function setPromptDefaultFavorite(promptId, isDefaultFavorite) {
+  const response = await apiCaller.put(`/api/v1/admin/prompts/${promptId}/default-favorite`, {
+    is_default_favorite: isDefaultFavorite,
+  });
+  return response.data;
+}
+
 async function getPromptCategories() {
   const response = await apiCaller.get("/api/v1/admin/prompt-categories");
   return response.data;
@@ -124,6 +131,7 @@ export {
   recoverPrompt,
   recoverPromptVersion,
   restorePromptVersion,
+  setPromptDefaultFavorite,
   updatePrompt,
   updatePromptCategory,
 };

@@ -39,7 +39,7 @@ function StatCard({ icon, label, value, accent }) {
   );
 }
 
-function PromptCard({ prompt, rank }) {
+function PromptCard({ prompt, rank, showThumbnail = true }) {
   const preview = prompt.preview_images?.[0];
   const previewCount = prompt.preview_images?.length || 0;
   const visiblePreviews = prompt.preview_images?.slice(0, 3) || [];
@@ -47,8 +47,8 @@ function PromptCard({ prompt, rank }) {
   const showPreview = preview && !failedPreviewIds[preview.id];
   const failPreview = (id) => setFailedPreviewIds((current) => ({ ...current, [id]: true }));
   return (
-    <Paper variant="outlined" sx={{ flex: "0 0 auto", width: { xs: "min(78vw, 240px)", sm: 215 }, borderRadius: 3, overflow: "hidden", borderColor: "#e7ebf2", transition: "transform .18s, box-shadow .18s", scrollSnapAlign: { xs: "center", sm: "start" }, "&:hover": { transform: "translateY(-3px)", boxShadow: "0 12px 30px rgba(29,47,78,.10)" } }}>
-      <Box sx={{ height: 146, position: "relative", overflow: "hidden", bgcolor: "#eef3ff" }}>
+    <Paper variant="outlined" sx={{ flex: showThumbnail ? "0 0 auto" : "initial", width: showThumbnail ? { xs: "min(78vw, 240px)", sm: 215 } : "100%", borderRadius: 3, overflow: "hidden", borderColor: "#e7ebf2", transition: "transform .18s, box-shadow .18s", scrollSnapAlign: showThumbnail ? { xs: "center", sm: "start" } : "none", "&:hover": { transform: "translateY(-3px)", boxShadow: "0 12px 30px rgba(29,47,78,.10)" } }}>
+      {showThumbnail && <Box sx={{ height: 146, position: "relative", overflow: "hidden", bgcolor: "#eef3ff" }}>
         {showPreview ? (
           previewCount > 1 ? (
             <Box sx={{ position: "relative", width: 103 + (visiblePreviews.length - 1) * 30, height: "100%", mx: "auto" }}>
@@ -107,19 +107,46 @@ function PromptCard({ prompt, rank }) {
           </Box>
         )}
         {rank && <Box sx={{ position: "absolute", zIndex: 10, top: 10, left: 10, width: 30, height: 30, borderRadius: 2, bgcolor: rank <= 3 ? "#111827" : "rgba(17,24,39,.78)", color: "white", display: "grid", placeItems: "center", fontWeight: 900, boxShadow: "0 2px 8px rgba(15,23,42,.24)" }}>{rank}</Box>}
-      </Box>
-      <Stack spacing={1.2} sx={{ p: 2 }}>
-        <Typography fontWeight={800} noWrap title={prompt.title}>{prompt.title}</Typography>
-        <Stack direction="row" justifyContent="space-between" alignItems="center">
-          <Typography variant="caption" color="text.secondary">{prompt.usage_count ? `${prompt.usage_count.toLocaleString("ko-KR")}회 사용` : `필요 코인 ${prompt.point_cost}`}</Typography>
-          <Button component={Link} to={`/proposals?promptId=${prompt.id}`} size="small" endIcon={<ArrowForwardRoundedIcon />}>만들기</Button>
+      </Box>}
+      {showThumbnail ? (
+        <Stack spacing={1.2} sx={{ p: 2 }}>
+          <Typography
+            fontWeight={800}
+            title={prompt.title}
+            sx={{ minWidth: 0, minHeight: 48, overflowWrap: "anywhere", lineHeight: 1.45 }}
+          >
+            {prompt.title}
+          </Typography>
+          <Stack direction="row" justifyContent="space-between" alignItems="center">
+            <Typography variant="caption" color="text.secondary">{prompt.usage_count ? `${prompt.usage_count.toLocaleString("ko-KR")}회 사용` : `필요 코인 ${prompt.point_cost}`}</Typography>
+            <Button component={Link} to={`/proposals?promptId=${prompt.id}`} size="small" endIcon={<ArrowForwardRoundedIcon />}>만들기</Button>
+          </Stack>
         </Stack>
-      </Stack>
+      ) : (
+        <Stack direction="row" spacing={{ xs: 0.5, sm: 1 }} alignItems="center" sx={{ p: { xs: 1.25, sm: 1.5 }, minWidth: 0 }}>
+          {rank && (
+            <Box sx={{ width: 28, height: 28, flexShrink: 0, borderRadius: 1.5, bgcolor: rank <= 3 ? "#111827" : "rgba(17,24,39,.78)", color: "white", display: "grid", placeItems: "center", fontWeight: 900 }}>
+              {rank}
+            </Box>
+          )}
+          <Typography
+            fontWeight={800}
+            title={prompt.title}
+            sx={{ minWidth: 0, flex: 1, overflowWrap: "anywhere", lineHeight: 1.4 }}
+          >
+            {prompt.title}
+          </Typography>
+          <Button component={Link} to={`/proposals?promptId=${prompt.id}`} size="small" sx={{ flexShrink: 0, minWidth: 0, px: 0.75 }}>만들기</Button>
+          <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0, whiteSpace: "nowrap", minWidth: 48, textAlign: "right" }}>
+            {prompt.usage_count ? `${prompt.usage_count.toLocaleString("ko-KR")}회 사용` : `${prompt.point_cost}코인`}
+          </Typography>
+        </Stack>
+      )}
     </Paper>
   );
 }
 
-function PromptSection({ title, subtitle, prompts, ranked = false }) {
+function PromptSection({ title, subtitle, prompts, ranked = false, showThumbnails = true }) {
   const scrollerRef = useRef(null);
   const [activeIndex, setActiveIndex] = useState(0);
 
@@ -160,7 +187,7 @@ function PromptSection({ title, subtitle, prompts, ranked = false }) {
         <Button component={Link} to="/proposals" size="small" sx={{ flexShrink: 0 }}>전체 보기</Button>
       </Stack>
       <Box sx={{ position: "relative" }}>
-        <IconButton
+        {showThumbnails && <IconButton
           aria-label={`${title} 이전 보고서`}
           disabled={activeIndex === 0}
           onClick={() => moveTo(activeIndex - 1)}
@@ -171,22 +198,24 @@ function PromptSection({ title, subtitle, prompts, ranked = false }) {
           }}
         >
           <ChevronLeftRoundedIcon />
-        </IconButton>
+        </IconButton>}
         <Box
           ref={scrollerRef}
           onScroll={updateScrollState}
           sx={{
-            display: "flex", width: "100%", maxWidth: "100%", boxSizing: "border-box", gap: 1.7,
-            px: { xs: "calc((100% - min(78vw, 240px)) / 2)", sm: 0 },
-            overflowX: "auto", pb: { xs: 0.5, sm: 1.2 }, scrollSnapType: "x mandatory",
-            scrollPaddingInline: { xs: "calc((100% - min(78vw, 240px)) / 2)", sm: 0 },
-            scrollbarWidth: { xs: "none", sm: "thin" },
-            "&::-webkit-scrollbar": { display: { xs: "none", sm: "block" } },
+            display: showThumbnails ? "flex" : "grid", gridTemplateColumns: "minmax(0, 1fr)",
+            width: "100%", maxWidth: "100%", boxSizing: "border-box", gap: showThumbnails ? 1.7 : 1,
+            px: showThumbnails ? { xs: "calc((100% - min(78vw, 240px)) / 2)", sm: 0 } : 0,
+            overflowX: showThumbnails ? "auto" : "visible", pb: showThumbnails ? { xs: 0.5, sm: 1.2 } : 0,
+            scrollSnapType: showThumbnails ? "x mandatory" : "none",
+            scrollPaddingInline: showThumbnails ? { xs: "calc((100% - min(78vw, 240px)) / 2)", sm: 0 } : 0,
+            scrollbarWidth: showThumbnails ? { xs: "none", sm: "thin" } : "auto",
+            "&::-webkit-scrollbar": { display: showThumbnails ? { xs: "none", sm: "block" } : "none" },
           }}
         >
-          {prompts.map((prompt, index) => <PromptCard key={prompt.id} prompt={prompt} rank={ranked ? index + 1 : null} />)}
+          {prompts.map((prompt, index) => <PromptCard key={prompt.id} prompt={prompt} rank={ranked ? index + 1 : null} showThumbnail={showThumbnails} />)}
         </Box>
-        <IconButton
+        {showThumbnails && <IconButton
           aria-label={`${title} 다음 보고서`}
           disabled={activeIndex === prompts.length - 1}
           onClick={() => moveTo(activeIndex + 1)}
@@ -197,9 +226,9 @@ function PromptSection({ title, subtitle, prompts, ranked = false }) {
           }}
         >
           <ChevronRightRoundedIcon />
-        </IconButton>
+        </IconButton>}
       </Box>
-      <Stack direction="row" justifyContent="center" spacing={0.8} sx={{ display: { xs: "flex", sm: "none" }, mt: 1 }}>
+      {showThumbnails && <Stack direction="row" justifyContent="center" spacing={0.8} sx={{ display: { xs: "flex", sm: "none" }, mt: 1 }}>
         {prompts.map((prompt, index) => (
           <Box
             key={prompt.id}
@@ -216,7 +245,7 @@ function PromptSection({ title, subtitle, prompts, ranked = false }) {
             }}
           />
         ))}
-      </Stack>
+      </Stack>}
     </Box>
   );
 }
@@ -254,10 +283,10 @@ export default function Home() {
         </Box>
 
         <PromptSection title="새로 나온 보고서" subtitle="최근 등록되거나 업데이트된 보고서입니다." prompts={data.latest_prompts} />
-        <Stack spacing={{ xs: 3.5, md: 4.5 }}>
-          <PromptSection title="요즘 많이 사용하는 보고서" subtitle="최근 30일 동안 완성된 보고서를 기준으로 집계했습니다." prompts={data.popular_prompts} ranked />
-          <PromptSection title="내가 자주 만드는 보고서" subtitle="내 완료 기록을 기준으로 빠르게 다시 시작할 수 있습니다." prompts={data.personal_prompts} ranked />
-        </Stack>
+        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "minmax(0, 1fr)", md: "repeat(2, minmax(0, 1fr))" }, gap: { xs: 3.5, md: 3 } }}>
+          <PromptSection title="요즘 많이 사용하는 보고서" subtitle="최근 30일 동안 완성된 보고서를 기준으로 집계했습니다." prompts={data.popular_prompts} ranked showThumbnails={false} />
+          <PromptSection title="내가 자주 만드는 보고서" subtitle="내 완료 기록을 기준으로 빠르게 다시 시작할 수 있습니다." prompts={data.personal_prompts} ranked showThumbnails={false} />
+        </Box>
 
         {!!data.banners.length && <Box sx={{ display: "grid", gridAutoFlow: "column", gridAutoColumns: { xs: data.banners.length === 1 ? "100%" : "88%", md: data.banners.length === 1 ? "100%" : "minmax(460px,1fr)" }, overflowX: "auto", gap: 2, pb: 0.5, scrollSnapType: "x mandatory" }}>
           {data.banners.map(banner => <Paper key={banner.id} component={banner.link_url ? "a" : "div"} href={banner.link_url || undefined} target={banner.link_url ? "_blank" : undefined} rel="noreferrer" sx={{ minHeight: { xs: 170, md: 210 }, p: { xs: 2.5, md: 4 }, borderRadius: 4, color: "white", textDecoration: "none", display: "flex", alignItems: "end", position: "relative", overflow: "hidden", scrollSnapAlign: "start", backgroundImage: { xs: `linear-gradient(90deg,rgba(15,23,42,.84),rgba(15,23,42,.12)),url(${dashboardBannerImageUrl(banner.id, banner.mobile_image_revision || banner.image_revision, "mobile")})`, md: `linear-gradient(90deg,rgba(15,23,42,.84),rgba(15,23,42,.12)),url(${dashboardBannerImageUrl(banner.id, banner.image_revision)})` }, backgroundSize: "cover", backgroundPosition: "center" }}>

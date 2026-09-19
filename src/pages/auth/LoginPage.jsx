@@ -146,8 +146,8 @@ function LoginPage() {
             <Stack spacing={1.5}>
               {searchParams.get("passwordChanged") && <Alert severity="success">비밀번호가 변경되었습니다. 다시 로그인해 주세요.</Alert>}
               <Tabs value={loginMethod} onChange={(_, value) => { setLoginMethod(value); setLastLoginMethod(value); }} variant="fullWidth" aria-label="로그인 방식" sx={{ mb: 1 }}>
-                <Tab value="group" label="사무실 그룹 로그인" id="login-tab-group" aria-controls="login-panel-group" />
-                <Tab value="personal" label="개인 로그인" id="login-tab-personal" aria-controls="login-panel-personal" />
+                <Tab value="group" label="단체 회원 로그인" id="login-tab-group" aria-controls="login-panel-group" />
+                <Tab value="personal" label="개인 회원 로그인" id="login-tab-personal" aria-controls="login-panel-personal" />
               </Tabs>
               {loginMethod === "group" ? (
                 <Box role="tabpanel" id="login-panel-group" aria-labelledby="login-tab-group"><GroupLoginForm /></Box>

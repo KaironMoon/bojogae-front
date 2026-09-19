@@ -53,6 +53,7 @@ import {
 } from "@/services/prompt-service";
 import PromptCategoriesPanel from "./PromptCategoriesPanel";
 import PromptCategoryList from "./PromptCategoryList";
+import DefaultPromptFavoritesPanel from "./DefaultPromptFavoritesPanel";
 
 
 const EMPTY_PROMPT = { title: "", body: "", category_ids: [], input_schema: [] };
@@ -416,6 +417,7 @@ function PromptsPage() {
         >
           <Tab label="프롬프트" />
           <Tab label="카테고리 관리" />
+          <Tab label="기본 즐겨찾기 관리" />
         </Tabs>
       </Paper>
 
@@ -627,8 +629,10 @@ function PromptsPage() {
           )}
         </Paper>
       </Box>
-      ) : (
+      ) : activeTab === 1 ? (
         <PromptCategoriesPanel />
+      ) : (
+        <DefaultPromptFavoritesPanel />
       )}
 
       <Drawer
