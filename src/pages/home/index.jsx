@@ -166,8 +166,8 @@ function PromptSection({ title, subtitle, prompts, ranked = false }) {
           onClick={() => moveTo(activeIndex - 1)}
           sx={{
             display: { xs: "inline-flex", sm: "none" }, position: "absolute", left: 4, top: "50%",
-            zIndex: 2, transform: "translateY(-50%)", bgcolor: "rgba(255,255,255,.94)", boxShadow: 2,
-            "&:hover": { bgcolor: "white" }, "&.Mui-disabled": { opacity: 0.32, bgcolor: "rgba(255,255,255,.8)" },
+            zIndex: 2, transform: "translateY(-50%)", opacity: 0.75, bgcolor: "rgba(255,255,255,.86)", boxShadow: 2,
+            "&:hover": { opacity: 0.75, bgcolor: "rgba(255,255,255,.86)" }, "&.Mui-disabled": { opacity: 0.3, bgcolor: "rgba(255,255,255,.72)" },
           }}
         >
           <ChevronLeftRoundedIcon />
@@ -192,8 +192,8 @@ function PromptSection({ title, subtitle, prompts, ranked = false }) {
           onClick={() => moveTo(activeIndex + 1)}
           sx={{
             display: { xs: "inline-flex", sm: "none" }, position: "absolute", right: 4, top: "50%",
-            zIndex: 2, transform: "translateY(-50%)", bgcolor: "rgba(255,255,255,.94)", boxShadow: 2,
-            "&:hover": { bgcolor: "white" }, "&.Mui-disabled": { opacity: 0.32, bgcolor: "rgba(255,255,255,.8)" },
+            zIndex: 2, transform: "translateY(-50%)", opacity: 0.75, bgcolor: "rgba(255,255,255,.86)", boxShadow: 2,
+            "&:hover": { opacity: 0.75, bgcolor: "rgba(255,255,255,.86)" }, "&.Mui-disabled": { opacity: 0.3, bgcolor: "rgba(255,255,255,.72)" },
           }}
         >
           <ChevronRightRoundedIcon />
@@ -265,18 +265,18 @@ export default function Home() {
           </Paper>)}
         </Box>}
 
-        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "1.15fr .85fr" }, gap: 2 }}>
-          <Paper variant="outlined" sx={{ p: { xs: 2, md: 2.7 }, borderRadius: 3.5, borderColor: "#e7ebf2" }}>
-            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.5 }}><Typography variant="h6" fontWeight={850}>최근 작업</Typography><Button component={Link} to="/proposals" size="small">전체 보기</Button></Stack>
+        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "minmax(0, 1fr)", lg: "minmax(0, 1.15fr) minmax(0, .85fr)" }, gap: 2, minWidth: 0 }}>
+          <Paper variant="outlined" sx={{ p: { xs: 2, md: 2.7 }, minWidth: 0, overflow: "hidden", borderRadius: 3.5, borderColor: "#e7ebf2" }}>
+            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.5, minWidth: 0 }}><Typography variant="h6" fontWeight={850} sx={{ minWidth: 0 }}>최근 작업</Typography><Button component={Link} to="/proposals" size="small" sx={{ flexShrink: 0 }}>전체 보기</Button></Stack>
             <Stack divider={<Box sx={{ borderTop: "1px solid #eef1f5" }} />}>
-              {data.recent_reports.map(report => <Stack key={report.id} direction="row" justifyContent="space-between" alignItems="center" spacing={2} sx={{ py: 1.4 }}><Box sx={{ minWidth: 0 }}><Typography fontWeight={750} noWrap>{report.title}</Typography><Typography variant="caption" color="text.secondary">{report.prompt_title} · {new Date(report.created_at).toLocaleDateString("ko-KR")}</Typography></Box><Chip size="small" label={(STATUS[report.status] || [report.status])[0]} color={(STATUS[report.status] || [null, "default"])[1]} /></Stack>)}
+              {data.recent_reports.map(report => <Stack key={report.id} direction="row" justifyContent="space-between" alignItems="center" spacing={1} sx={{ py: 1.4, minWidth: 0 }}><Box sx={{ minWidth: 0, flex: 1 }}><Typography fontWeight={750} noWrap>{report.title}</Typography><Typography variant="caption" color="text.secondary" noWrap sx={{ display: "block" }}>{report.prompt_title} · {new Date(report.created_at).toLocaleDateString("ko-KR")}</Typography></Box><Chip size="small" label={(STATUS[report.status] || [report.status])[0]} color={(STATUS[report.status] || [null, "default"])[1]} sx={{ flexShrink: 0 }} /></Stack>)}
               {!data.recent_reports.length && <Typography color="text.secondary" sx={{ py: 4, textAlign: "center" }}>아직 만든 보고서가 없습니다.</Typography>}
             </Stack>
           </Paper>
-          <Paper variant="outlined" sx={{ p: { xs: 2, md: 2.7 }, borderRadius: 3.5, borderColor: "#e7ebf2" }}>
+          <Paper variant="outlined" sx={{ p: { xs: 2, md: 2.7 }, minWidth: 0, overflow: "hidden", borderRadius: 3.5, borderColor: "#e7ebf2" }}>
             <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.5 }}><Typography variant="h6" fontWeight={850}>최신 소식</Typography><LocalFireDepartmentRoundedIcon sx={{ color: "#f97316" }} /></Stack>
             <Stack spacing={0.4}>
-              {data.latest_posts.map(post => <Box key={post.id} component={Link} to={`/board/posts/${post.id}`} sx={{ px: 1, py: 1.1, borderRadius: 2, textDecoration: "none", color: "inherit", "&:hover": { bgcolor: "#f8fafc" } }}><Stack direction="row" spacing={1} alignItems="center"><Chip size="small" label={BOARD_NAMES[post.board_type]} sx={{ flexShrink: 0 }} /><Typography fontWeight={700} noWrap>{post.title}</Typography></Stack></Box>)}
+              {data.latest_posts.map(post => <Box key={post.id} component={Link} to={`/board/posts/${post.id}`} sx={{ display: "block", minWidth: 0, overflow: "hidden", px: 1, py: 1.1, borderRadius: 2, textDecoration: "none", color: "inherit", "&:hover": { bgcolor: "#f8fafc" } }}><Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0 }}><Chip size="small" label={BOARD_NAMES[post.board_type]} sx={{ flexShrink: 0 }} /><Typography fontWeight={700} noWrap sx={{ minWidth: 0, flex: 1 }}>{post.title}</Typography></Stack></Box>)}
               {!data.latest_posts.length && <Typography color="text.secondary" sx={{ py: 4, textAlign: "center" }}>등록된 소식이 없습니다.</Typography>}
             </Stack>
           </Paper>
