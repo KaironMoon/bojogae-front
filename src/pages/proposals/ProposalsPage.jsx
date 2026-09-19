@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import PreviewImageCarousel from "@/pages/components/PreviewImageCarousel";
 import PromptInputForm from "@/pages/components/PromptInputForm";
 import { promptPreviewImageUrl } from "@/services/prompt-service";
@@ -161,6 +161,7 @@ function isCompletedStatus(status) {
 
 
 function ProposalsPage() {
+  const [searchParams] = useSearchParams();
   const theme = useTheme();
   const mobilePreview = useMediaQuery(theme.breakpoints.down("sm"));
   const [promptOptions, setPromptOptions] = useState([]);
@@ -275,9 +276,11 @@ function ProposalsPage() {
     Promise.all([getPromptOptions(), getProposals(1, 10), getPointBalance()])
       .then(([options, result, balance]) => {
         setPromptOptions(options);
-        const initialTab = defaultPromptTab(options);
+        const requestedPromptId = Number(searchParams.get("promptId"));
+        const requestedPrompt = options.find(option => option.id === requestedPromptId);
+        const initialTab = requestedPrompt ? "recommended" : defaultPromptTab(options);
         setPromptTab(initialTab);
-        setPromptId(promptsForTab(options, initialTab)[0]?.id || "");
+        setPromptId(requestedPrompt?.id || promptsForTab(options, initialTab)[0]?.id || "");
         setItems(result.items);
         setTotalPages(result.total_pages);
         setPointBalance(balance);
@@ -288,7 +291,7 @@ function ProposalsPage() {
         ? "즐겨찾기 DB 설정이 필요합니다. 관리자에게 문의해 주세요."
         : "문서 화면을 불러오지 못했습니다."))
       .finally(() => setLoading(false));
-  }, []);
+  }, [searchParams]);
 
   useEffect(() => {
     setPreviewZoom(mobilePreview ? 0.4 : 1);

@@ -35,9 +35,7 @@ function PageHeader({ onMenuClick }) { // eslint-disable-line react/prop-types
         >
           <MenuRoundedIcon />
         </IconButton>
-        <Box sx={{ width: 32, height: 32, borderRadius: "8px", bgcolor: "#2563eb", color: "white", display: "grid", placeItems: "center", fontWeight: 900 }}>
-          B
-        </Box>
+        <Box component="img" src="/bojogae-icon.png" alt="" sx={{ width: 32, height: 32, borderRadius: "8px", display: "block" }} />
         <Typography variant="h6" component="div" sx={{ color: theme.palette.text.primary, fontWeight: 900, letterSpacing: "-0.03em" }}>
           BOJOGAE
         </Typography>

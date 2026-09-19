@@ -24,6 +24,10 @@ import AdminProposalsPage from "../pages/admin/ProposalsPage";
 import UsagePage from "../pages/admin/UsagePage";
 import ProposalSettingsPage from "../pages/admin/ProposalSettingsPage";
 import PointsPage from "../pages/admin/PointsPage";
+import DashboardBannersPage from "../pages/admin/DashboardBannersPage";
+import BoardListPage from "../pages/boards/BoardListPage";
+import BoardPostPage from "../pages/boards/BoardPostPage";
+import BoardEditorPage from "../pages/boards/BoardEditorPage";
 import {
   ActiveUserRoute,
   AdminRoute,
@@ -54,6 +58,7 @@ const ProductRouter = [
 ];
 
 const router = createBrowserRouter([
+  { path: "/board/posts/:postId", element: <BoardPostPage /> },
   { path: "/group/change-password", element: <GroupPasswordPage /> },
   { path: "/group/password-reset", element: <GroupPasswordPage /> },
   {
@@ -115,6 +120,7 @@ const router = createBrowserRouter([
           { path: "/group", element: <GroupsPage /> },
           { path: "/group/:groupId", element: <GroupsPage /> },
           { path: "/my-coins", element: <MyCoinsPage /> },
+          { path: "/boards/:boardType", element: <BoardListPage /> },
           ...ProductRouter,
         ],
       },
@@ -136,6 +142,11 @@ const router = createBrowserRouter([
           { path: "/admin/proposals", element: <AdminProposalsPage /> },
           { path: "/admin/usage", element: <UsagePage /> },
           { path: "/admin/proposal-settings", element: <ProposalSettingsPage /> },
+          { path: "/admin/dashboard-banners", element: <DashboardBannersPage /> },
+          { path: "/admin/boards/:boardType", element: <BoardListPage admin /> },
+          { path: "/admin/boards/:boardType/new", element: <BoardEditorPage /> },
+          { path: "/admin/boards/:boardType/:postId", element: <BoardPostPage admin /> },
+          { path: "/admin/boards/:boardType/:postId/edit", element: <BoardEditorPage /> },
         ],
       },
     ],

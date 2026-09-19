@@ -11,6 +11,8 @@ import {
 import SaveRoundedIcon from "@mui/icons-material/SaveRounded";
 import MarkEmailReadOutlinedIcon from "@mui/icons-material/MarkEmailReadOutlined";
 import AccountBalanceWalletRoundedIcon from "@mui/icons-material/AccountBalanceWalletRounded";
+import NotificationsActiveRoundedIcon from "@mui/icons-material/NotificationsActiveRounded";
+import NotificationsOffRoundedIcon from "@mui/icons-material/NotificationsOffRounded";
 import { useEffect, useState } from "react";
 
 import { useAuth } from "@/auth/AuthContext";
@@ -22,6 +24,11 @@ import {
 } from "@/services/profile-service";
 import { getPointBalance } from "@/services/proposal-service";
 import ExpiringPoints from "@/pages/components/ExpiringPoints";
+import {
+  disableBrowserPush,
+  enableBrowserPush,
+  getBrowserPushState,
+} from "@/services/web-push-service";
 
 const emptyProfile = { email: "", name: "", nickname: "", phone: "" };
 
@@ -50,6 +57,10 @@ function ProfilePage() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [pointBalance, setPointBalance] = useState({ free_points: 0, paid_points: 0, total_points: 0 });
+  const [pushState, setPushState] = useState(null);
+  const [pushBusy, setPushBusy] = useState(false);
+  const [pushMessage, setPushMessage] = useState("");
+  const [pushError, setPushError] = useState("");
 
   useEffect(() => {
     Promise.all([getMyProfile(), getPointBalance()])
@@ -65,6 +76,12 @@ function ProfilePage() {
       })
       .catch(() => setError("profile_load_failed"))
       .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    getBrowserPushState()
+      .then(setPushState)
+      .catch(() => setPushState({ supported: true, configured: false, permission: Notification.permission, subscribed: false }));
   }, []);
 
   const updateField = (field) => (event) => {
@@ -134,6 +151,27 @@ function ProfilePage() {
       setError(requestErrorCode(requestError));
     } finally {
       setSaving(false);
+    }
+  };
+
+  const changePushSubscription = async () => {
+    setPushBusy(true);
+    setPushMessage("");
+    setPushError("");
+    try {
+      const next = pushState?.subscribed
+        ? await disableBrowserPush()
+        : await enableBrowserPush(pushState?.publicKey);
+      setPushState(next);
+      setPushMessage(next.subscribed ? "이 브라우저에서 알림을 받습니다." : "이 브라우저의 알림을 해제했습니다.");
+    } catch (pushRequestError) {
+      const code = pushRequestError.response?.data?.detail || pushRequestError.message;
+      setPushError(code === "browser_push_permission_denied"
+        ? "브라우저에서 알림 권한이 차단되었습니다. 브라우저 사이트 설정에서 권한을 허용해주세요."
+        : "브라우저 알림 설정을 변경하지 못했습니다. 잠시 후 다시 시도해주세요.");
+      getBrowserPushState().then(setPushState).catch(() => {});
+    } finally {
+      setPushBusy(false);
     }
   };
 
@@ -238,6 +276,36 @@ function ProfilePage() {
             </Stack>
           </Box>
         </Stack>
+      </Paper>
+
+      <Paper elevation={0} sx={{ p: { xs: 2.5, md: 3 }, mt: 3, border: "1px solid", borderColor: "divider", borderRadius: 3 }}>
+        <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ sm: "center" }} gap={2.5}>
+          <Stack direction="row" spacing={1.5} alignItems="flex-start">
+            <Box sx={{ width: 44, height: 44, flexShrink: 0, display: "grid", placeItems: "center", borderRadius: 2.5, color: pushState?.subscribed ? "success.main" : "text.secondary", bgcolor: pushState?.subscribed ? "#ecfdf5" : "#f3f4f6" }}>
+              {pushState?.subscribed ? <NotificationsActiveRoundedIcon /> : <NotificationsOffRoundedIcon />}
+            </Box>
+            <Box>
+              <Typography fontWeight={850}>브라우저 알림</Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.4 }}>
+                요청·환불·결제 처리 결과와 새로운 공지를 이 브라우저로 알려드립니다.
+              </Typography>
+            </Box>
+          </Stack>
+          <Button
+            variant={pushState?.subscribed ? "outlined" : "contained"}
+            color={pushState?.subscribed ? "inherit" : "primary"}
+            onClick={changePushSubscription}
+            disabled={pushBusy || !pushState?.supported || !pushState?.configured || pushState?.permission === "denied"}
+            sx={{ flexShrink: 0 }}
+          >
+            {pushBusy ? "처리 중…" : pushState?.subscribed ? "알림 해제" : "알림 받기"}
+          </Button>
+        </Stack>
+        {pushMessage && <Alert severity="success" sx={{ mt: 2 }}>{pushMessage}</Alert>}
+        {pushError && <Alert severity="error" sx={{ mt: 2 }}>{pushError}</Alert>}
+        {pushState && !pushState.supported && <Alert severity="info" sx={{ mt: 2 }}>이 브라우저에서는 Web Push를 사용할 수 없습니다. HTTPS로 접속했는지도 확인해주세요.</Alert>}
+        {pushState?.supported && !pushState.configured && <Alert severity="warning" sx={{ mt: 2 }}>브라우저 알림 서버 설정이 아직 완료되지 않았습니다.</Alert>}
+        {pushState?.permission === "denied" && <Alert severity="warning" sx={{ mt: 2 }}>알림 권한이 차단되어 있습니다. 브라우저 사이트 설정에서 알림을 허용해주세요.</Alert>}
       </Paper>
     </Box>
   );
