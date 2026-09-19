@@ -755,7 +755,7 @@ function ProposalsPage() {
               aria-label="보험 카테고리 선택"
               sx={{
                 display: { xs: "grid", md: "none" },
-                gridTemplateRows: "repeat(2, auto)",
+                gridTemplateRows: "repeat(3, auto)",
                 gridAutoFlow: "column",
                 gridAutoColumns: "max-content",
                 gap: 0.75,
