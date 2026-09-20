@@ -24,7 +24,7 @@ export default function GroupPasswordPage() {
       if (token) {
         await completePasswordReset({ token, new_password: password });
         await logout();
-        navigate('/?passwordChanged=1', { replace: true });
+        navigate('/login?passwordChanged=1', { replace: true });
       } else {
         await changeGroupPassword({ current_password: current, new_password: password });
         try {
@@ -34,7 +34,7 @@ export default function GroupPasswordPage() {
           navigate('/home', { replace: true });
         } catch {
           await logout();
-          navigate('/?passwordChanged=1', { replace: true });
+          navigate('/login?passwordChanged=1', { replace: true });
         }
       }
     } catch (e) { setError(groupErrorMessage(e)); } finally { setBusy(false); }
@@ -47,6 +47,6 @@ export default function GroupPasswordPage() {
     <TextField label="새 비밀번호" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required helperText="8자 이상 입력하세요." inputProps={{ minLength: 8, maxLength: 128, autoComplete: 'new-password' }} />
     <TextField label="새 비밀번호 확인" type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} required inputProps={{ minLength: 8, maxLength: 128, autoComplete: 'new-password' }} />
     <Button type="submit" variant="contained" disabled={busy || loading}>비밀번호 변경</Button>
-    <Button disabled={busy} onClick={async () => { await logout(); navigate('/'); }}>로그인 화면으로</Button>
+    <Button disabled={busy} onClick={async () => { await logout(); navigate('/login'); }}>로그인 화면으로</Button>
   </Stack></Paper></Container>;
 }

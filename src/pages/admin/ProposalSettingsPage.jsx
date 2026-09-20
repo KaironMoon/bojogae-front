@@ -3,8 +3,6 @@ import { useEffect, useState } from "react";
 
 import {
   getPromptPointCosts,
-  getPersonalMonthlyPoints,
-  updatePersonalMonthlyPoints,
   getProposalSettings,
   updatePromptPointCost,
   updateProposalSettings,
@@ -20,11 +18,6 @@ const FIELDS = [
 ];
 
 function ProposalSettingsPage() {
-  const [monthlyAmount, setMonthlyAmount] = useState('');
-  const [monthlyLoaded, setMonthlyLoaded] = useState(false);
-  const [monthlyError, setMonthlyError] = useState('');
-  const [monthlyMessage, setMonthlyMessage] = useState('');
-  const [monthlySaving, setMonthlySaving] = useState(false);
   const [values, setValues] = useState(null);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -34,9 +27,6 @@ function ProposalSettingsPage() {
   const [workingPromptId, setWorkingPromptId] = useState(null);
 
   useEffect(() => {
-    getPersonalMonthlyPoints()
-      .then((settings) => { setMonthlyAmount(settings.amount); setMonthlyLoaded(true); })
-      .catch(() => setMonthlyError('개인 월 기본 코인 설정을 불러오지 못했습니다. DB 설정 적용 여부를 확인해 주세요.'));
     Promise.all([getProposalSettings(), getPromptPointCosts()])
       .then(([settings, costs]) => {
         setValues(settings);
@@ -65,18 +55,6 @@ function ProposalSettingsPage() {
     }
   };
 
-  const saveMonthlyAmount = async (event) => {
-    event.preventDefault();
-    setMonthlySaving(true); setMonthlyError(''); setMonthlyMessage('');
-    try {
-      const saved = await updatePersonalMonthlyPoints(Number(monthlyAmount));
-      setMonthlyAmount(saved.amount);
-      setMonthlyMessage('저장했습니다. 이미 지급한 코인은 유지되며 다음 지급 주기부터 적용됩니다.');
-    } catch {
-      setMonthlyError('개인 월 기본 코인을 저장하지 못했습니다. 설정값과 DB 설정을 확인해 주세요.');
-    } finally { setMonthlySaving(false); }
-  };
-
   const savePromptCost = async (promptId) => {
     setWorkingPromptId(promptId);
     setError("");
@@ -103,15 +81,12 @@ function ProposalSettingsPage() {
       <Typography color="text.secondary" sx={{ mb: 3 }}>제한과 모델 설정은 서버가 검증하며 작업 생성 시점에 고정됩니다.</Typography>
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       {message && <Alert severity="success" sx={{ mb: 2 }}>{message}</Alert>}
-      <Paper component="form" onSubmit={saveMonthlyAmount} variant="outlined" sx={{ p: 3, borderRadius: 3, mb: 3 }}>
+      <Paper variant="outlined" sx={{ p: 3, borderRadius: 3, mb: 3 }}>
         <Stack spacing={2}>
-          <Typography variant="h6" fontWeight={800}>개인 월 기본 무료 코인</Typography>
-          <Typography variant="body2" color="text.secondary">개인 회원에게 가입일 기준으로 매월 지급합니다. 다음 지급일에 기존 코인이 만료됩니다. 기본값은 30코인이며, 0이면 신규 지급을 중지합니다.</Typography>
-          {monthlyError && <Alert severity="error">{monthlyError}</Alert>}
-          {monthlyMessage && <Alert severity="success">{monthlyMessage}</Alert>}
-          <TextField label="매월 지급할 무료 코인" type="number" required value={monthlyAmount} disabled={!monthlyLoaded || monthlySaving}
-            inputProps={{ min: 0, max: 1000000, step: 1 }} onChange={(event) => setMonthlyAmount(event.target.value)} />
-          <Button type="submit" variant="contained" disabled={!monthlyLoaded || monthlySaving}>{monthlySaving ? '저장 중…' : '개인 기본 코인 저장'}</Button>
+          <Typography variant="h6" fontWeight={800}>개인 무료체험 코인</Typography>
+          <Typography variant="body2" color="text.secondary">
+            FREE 가입자에게 계정 승인 시 20코인을 최초 1회 지급합니다. 지급일부터 30일간 사용할 수 있으며 월별 리셋이나 재지급은 없습니다.
+          </Typography>
         </Stack>
       </Paper>
       <Paper variant="outlined" sx={{ p: 3, borderRadius: 3 }}>

@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { getLastLoginMethod, setLastLoginMethod } from "@/auth/login-method-storage";
+import { showLandingFromNowOn } from "@/auth/landing-preference-storage";
 import GroupLoginForm from "./GroupLoginForm";
 import { useAuth } from "@/auth/AuthContext";
 import {
@@ -55,7 +56,15 @@ function LoginPage() {
   const { refreshUser } = useAuth();
   const [searchParams] = useSearchParams();
   const error = searchParams.get("error");
-  const [loginMethod, setLoginMethod] = useState(() => error ? "personal" : searchParams.get("passwordChanged") ? "group" : getLastLoginMethod());
+  const requestedMethod = searchParams.get("method");
+  const requestedPlan = searchParams.get("plan") === "BASIC" ? "BASIC" : "FREE";
+  const [loginMethod, setLoginMethod] = useState(() => error
+    ? "personal"
+    : searchParams.get("passwordChanged")
+      ? "group"
+      : ["group", "personal"].includes(requestedMethod)
+        ? requestedMethod
+        : getLastLoginMethod());
   const [lastProvider] = useState(getLastSocialLoginProvider);
   const [authOptions, setAuthOptions] = useState(null);
   const [email, setEmail] = useState("bojoge.smith@gmail.com");
@@ -82,7 +91,7 @@ function LoginPage() {
     setLocalWorking(true);
     setLocalError("");
     try {
-      await localEmailLogin(email.trim());
+      await localEmailLogin(email.trim(), requestedPlan);
       setLastLoginMethod("personal");
       const user = await refreshUser();
       const destination = user?.status === "ACTIVE"
@@ -153,6 +162,11 @@ function LoginPage() {
                 <Box role="tabpanel" id="login-panel-group" aria-labelledby="login-tab-group"><GroupLoginForm /></Box>
               ) : (
                 <Stack role="tabpanel" id="login-panel-personal" aria-labelledby="login-tab-personal" spacing={1.5}>
+              <Alert severity={requestedPlan === "BASIC" ? "info" : "success"}>
+                {requestedPlan === "BASIC"
+                  ? "베이직 가입 신청으로 진행합니다. 가입 후 관리자 승인 시 베이직이 적용됩니다."
+                  : "무료체험으로 진행합니다. 가입 승인 시 20코인이 한 번 지급되며 30일간 사용할 수 있습니다."}
+              </Alert>
               {error && <Alert severity="error">{errorMessages[error] || "로그인 중 오류가 발생했습니다."}</Alert>}
               {localError && <Alert severity="error">{localError}</Alert>}
 
@@ -186,7 +200,7 @@ function LoginPage() {
                 <Button
                   key={provider.id}
                   component="a"
-                  href={getOAuthLoginUrl(provider.id)}
+                  href={getOAuthLoginUrl(provider.id, requestedPlan)}
                   onClick={() => setPendingSocialLoginProvider(provider.id)}
                   fullWidth
                   variant="outlined"
@@ -251,6 +265,17 @@ function LoginPage() {
           <Typography variant="caption" color="text.secondary">
             로그인하면 서비스 운영 정책에 동의한 것으로 간주합니다.
           </Typography>
+          <Button
+            color="inherit"
+            size="small"
+            onClick={() => {
+              showLandingFromNowOn();
+              navigate("/", { replace: true });
+            }}
+            sx={{ color: "text.secondary" }}
+          >
+            랜딩페이지 다시 보기
+          </Button>
         </Stack>
       </Container>
     </Box>

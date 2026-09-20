@@ -37,6 +37,7 @@ function errorCode(error) {
 function SignupCompletePage() {
   const [searchParams] = useSearchParams();
   const signupToken = searchParams.get("token") || "";
+  const requestedPlan = searchParams.get("plan") === "BASIC" ? "BASIC" : "FREE";
   const navigate = useNavigate();
   const { refreshUser } = useAuth();
   const [email, setEmail] = useState("");
@@ -103,6 +104,12 @@ function SignupCompletePage() {
                 소셜 계정과 연결할 이메일을 입력해 주세요. 같은 이메일로 인증하면 기존 계정에 연결됩니다.
               </Typography>
             </Stack>
+
+            <Alert severity={requestedPlan === "BASIC" ? "info" : "success"}>
+              {requestedPlan === "BASIC"
+                ? "베이직 가입 신청입니다. 이메일 인증과 계정 승인 후 베이직 승인 절차가 이어집니다."
+                : "무료체험 가입입니다. 계정 승인 시 30일간 사용할 수 있는 20코인이 한 번 지급됩니다."}
+            </Alert>
 
             {error && <Alert severity="error">{errorMessages[error] || "요청을 처리하지 못했습니다."}</Alert>}
 

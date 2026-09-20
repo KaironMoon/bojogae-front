@@ -12,8 +12,8 @@ async function getAuthOptions() {
   return response.data;
 }
 
-async function localEmailLogin(email) {
-  const response = await apiCaller.post("/api/v1/auth/local-login", { email });
+async function localEmailLogin(email, planCode = "FREE") {
+  const response = await apiCaller.post("/api/v1/auth/local-login", { email, plan_code: planCode });
   return response.data;
 }
 
@@ -46,6 +46,14 @@ async function updateUserRole(userId, role) {
   const response = await apiCaller.axiosInstance.patch(
     `${API_BASE_URL}/api/v1/admin/users/${userId}/role`,
     { role },
+  );
+  return response.data;
+}
+
+async function decidePersonalPlanRequest(requestId, action, note = null) {
+  const response = await apiCaller.axiosInstance.patch(
+    `${API_BASE_URL}/api/v1/admin/personal-plan-requests/${requestId}`,
+    { action, note },
   );
   return response.data;
 }
@@ -89,11 +97,12 @@ async function verifySignupLink(token) {
   return response.data;
 }
 
-function getOAuthLoginUrl(provider) {
-  return `${API_BASE_URL}/api/v1/auth/${provider}/login`;
+function getOAuthLoginUrl(provider, plan = "FREE") {
+  return `${API_BASE_URL}/api/v1/auth/${provider}/login?plan=${encodeURIComponent(plan)}`;
 }
 
 export {
+  decidePersonalPlanRequest,
   deleteUser,
   getAuthOptions,
   getCurrentUser,

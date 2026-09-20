@@ -1,0 +1,53 @@
+.skip-landing-button {
+  padding: 10px 4px;
+  background: transparent;
+  color: #667085;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.skip-landing-button:hover {
+  color: var(--blue);
+}
+
+@media (max-width: 700px) {
+  .landing-header .brand > span:last-child {
+    display: none;
+  }
+
+  .landing-header .brand-mark {
+    width: 32px;
+    min-width: 32px;
+    padding: 0;
+    color: #fff;
+    font-size: 13px;
+  }
+
+  .landing-header .brand-full {
+    display: none;
+  }
+
+  .landing-header .brand-mobile {
+    display: inline;
+  }
+
+  .landing-header .header-actions {
+    min-width: 0;
+    gap: 5px;
+  }
+
+  .skip-landing-button {
+    max-width: none;
+    padding: 6px 1px;
+    font-size: 8.5px;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  .landing-header .pill-button {
+    min-width: 80px;
+    flex-shrink: 0;
+    padding: 0 11px;
+    white-space: nowrap;
+  }
+}

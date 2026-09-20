@@ -25,6 +25,7 @@ import UsagePage from "../pages/admin/UsagePage";
 import ProposalSettingsPage from "../pages/admin/ProposalSettingsPage";
 import PointsPage from "../pages/admin/PointsPage";
 import DashboardBannersPage from "../pages/admin/DashboardBannersPage";
+import GroupInquiriesPage from "../pages/admin/GroupInquiriesPage";
 import BoardListPage from "../pages/boards/BoardListPage";
 import BoardPostPage from "../pages/boards/BoardPostPage";
 import BoardEditorPage from "../pages/boards/BoardEditorPage";
@@ -35,6 +36,7 @@ import {
   PublicOnlyRoute,
   RestrictedUserRoute,
 } from "../auth/RouteGuards";
+import LandingPage from "../pages/landing/LandingPage";
 
 const ProductLayout = lazy(() => import("../pages/product/ProductLayout"));
 const ProductList = lazy(() => import("../pages/product"));
@@ -78,6 +80,10 @@ const router = createBrowserRouter([
     children: [
       {
         path: "/",
+        element: <LandingPage />,
+      },
+      {
+        path: "/login",
         element: <LoginPage />,
       },
     ],
@@ -144,6 +150,7 @@ const router = createBrowserRouter([
           { path: "/admin/usage", element: <UsagePage /> },
           { path: "/admin/proposal-settings", element: <ProposalSettingsPage /> },
           { path: "/admin/dashboard-banners", element: <DashboardBannersPage /> },
+          { path: "/admin/group-inquiries", element: <GroupInquiriesPage /> },
           { path: "/admin/boards/:boardType", element: <BoardListPage admin /> },
           { path: "/admin/boards/:boardType/new", element: <BoardEditorPage /> },
           { path: "/admin/boards/:boardType/:postId", element: <BoardPostPage admin /> },

@@ -22,6 +22,7 @@ import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
 import { useCallback, useEffect, useState } from "react";
 
 import {
+  decidePersonalPlanRequest,
   deleteUser,
   getUsers,
   updateUserRole,
@@ -67,6 +68,19 @@ function UsersPage() {
       await loadUsers(page);
     } catch {
       setError("사용자 상태를 변경하지 못했습니다.");
+    } finally {
+      setWorkingUserId(null);
+    }
+  };
+
+  const decidePlan = async (user, action) => {
+    setWorkingUserId(user.id);
+    setError("");
+    try {
+      await decidePersonalPlanRequest(user.pending_plan_request_id, action);
+      await loadUsers(page);
+    } catch {
+      setError("베이직 가입 신청을 처리하지 못했습니다.");
     } finally {
       setWorkingUserId(null);
     }
@@ -145,6 +159,8 @@ function UsersPage() {
                     <Typography variant="h6" sx={{ fontWeight: 750 }}>{user.display_name}</Typography>
                     <Chip label={user.status} size="small" color={user.status === "ACTIVE" ? "success" : user.status === "PENDING" ? "warning" : "default"} />
                     {user.role === "ADMIN" && <Chip label="ADMIN" size="small" color="primary" />}
+                    <Chip label={user.plan_code === "BASIC" ? "BASIC" : "FREE"} size="small" color={user.plan_code === "BASIC" ? "primary" : "default"} variant="outlined" />
+                    {user.plan_request_status === "PENDING" && <Chip label="베이직 신청 대기" size="small" color="warning" />}
                   </Stack>
                   <Typography variant="body2" color="text.secondary">{user.email || "이메일 없음"}</Typography>
                   <Typography variant="caption" color="text.secondary">{user.providers.join(" · ")}</Typography>
@@ -154,6 +170,12 @@ function UsersPage() {
                   </Stack>
                 </Stack>
                 <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+                  {user.pending_plan_request_id && (
+                    <>
+                      <Button variant="contained" color="primary" disabled={workingUserId === user.id} onClick={() => decidePlan(user, "APPROVE")}>베이직 승인</Button>
+                      <Button variant="outlined" color="warning" disabled={workingUserId === user.id} onClick={() => decidePlan(user, "REJECT")}>베이직 거절</Button>
+                    </>
+                  )}
                   {user.role !== "ADMIN" && (
                     <>
                       {user.status === "PENDING" ? (

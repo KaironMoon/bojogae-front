@@ -25,6 +25,7 @@ import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
 import NewspaperOutlinedIcon from "@mui/icons-material/NewspaperOutlined";
 import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
 import ViewCarouselOutlinedIcon from "@mui/icons-material/ViewCarouselOutlined";
+import ContactPhoneOutlinedIcon from "@mui/icons-material/ContactPhoneOutlined";
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
@@ -48,6 +49,7 @@ const ADMIN_MENU = [
   { label: "사용량 / 통계", path: "/admin/usage", icon: AnalyticsOutlinedIcon },
   { label: "설정 및 서식", path: "/admin/proposal-settings", icon: TuneOutlinedIcon },
   { label: "메인 배너 관리", path: "/admin/dashboard-banners", icon: ViewCarouselOutlinedIcon },
+  { label: "단체 문의 관리", path: "/admin/group-inquiries", icon: ContactPhoneOutlinedIcon },
 ];
 
 const BOARD_MENU = [
@@ -238,6 +240,11 @@ function PageLeftMenu({ onNavigate }) { // eslint-disable-line react/prop-types
 
       <Box sx={{ flex: 1 }} />
       <Box sx={{ px: 2, py: 1.75, borderTop: "1px solid #eef1f5", textAlign: "center" }}>
+        {user && !user.group_id && (
+          <Typography sx={{ color: user?.plan_code === "BASIC" ? "primary.main" : "#64748b", fontSize: 11, fontWeight: 800, mb: 0.5 }}>
+            개인 {user?.plan_code === "BASIC" ? "BASIC" : "FREE"} 요금제
+          </Typography>
+        )}
         <StackVersion />
       </Box>
     </Box>
