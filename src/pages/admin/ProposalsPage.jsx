@@ -19,6 +19,7 @@ import {
 } from "@mui/material";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import RestoreRoundedIcon from "@mui/icons-material/RestoreRounded";
+import ReplayRoundedIcon from "@mui/icons-material/ReplayRounded";
 import { useCallback, useEffect, useState } from "react";
 
 import {
@@ -29,6 +30,7 @@ import {
   proposalFileUrl,
   proposalRawResponseUrl,
   recoverProposal,
+  rerenderProposalShare,
 } from "@/services/proposal-service";
 
 
@@ -57,6 +59,7 @@ function AdminProposalsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [detail, setDetail] = useState(null);
+  const [shareRerendering, setShareRerendering] = useState(false);
 
   const load = useCallback(async (page = 1) => {
     setLoading(true);
@@ -78,6 +81,23 @@ function AdminProposalsPage() {
 
   useEffect(() => { load(1); }, [load]);
 
+  useEffect(() => {
+    if (!detail || detail.share_status !== "RENDERING") return undefined;
+    let disposed = false;
+    const poll = window.setInterval(async () => {
+      try {
+        const fresh = await getProposal(detail.id, true);
+        if (!disposed) setDetail((current) => (current && current.id === fresh.id ? fresh : current));
+      } catch {
+        // 다음 폴링에서 재시도
+      }
+    }, 3000);
+    return () => {
+      disposed = true;
+      window.clearInterval(poll);
+    };
+  }, [detail]);
+
   const openDetail = async (id) => {
     try {
       setDetail(await getProposal(id, true));
@@ -94,6 +114,20 @@ function AdminProposalsPage() {
       setDetail(null);
     } catch {
       setError("삭제 상태를 변경하지 못했습니다.");
+    }
+  };
+
+  const rerenderShare = async () => {
+    if (!detail) return;
+    setShareRerendering(true);
+    setError("");
+    try {
+      await rerenderProposalShare(detail.id);
+      setDetail((current) => (current ? { ...current, share_status: "RENDERING" } : current));
+    } catch {
+      setError("공유 이미지 재렌더링 요청에 실패했습니다.");
+    } finally {
+      setShareRerendering(false);
     }
   };
 
@@ -202,6 +236,33 @@ function AdminProposalsPage() {
                   <Button onClick={() => window.open(proposalFileUrl(detail.id, "output", { admin: true }), "_blank", "noopener,noreferrer")}>결과 열기</Button>
                   <Button href={proposalFileUrl(detail.id, "output", { admin: true, download: true })}>결과 다운로드</Button>
                 </Stack>
+              )}
+              {detail.status === "COMPLETED" && detail.share_uuid && (
+                <Paper variant="outlined" sx={{ p: 1.5 }}>
+                  <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={1} flexWrap="wrap">
+                    <Box>
+                      <Typography variant="body2" sx={{ fontWeight: 700 }}>공유 이미지 상태: {detail.share_status || "PENDING"}</Typography>
+                      <Typography variant="caption" color="text.secondary">{detail.share_uuid}</Typography>
+                    </Box>
+                    <Stack direction="row" spacing={1}>
+                      <Button size="small" onClick={() => window.open(`/s/${detail.share_uuid}`, "_blank", "noopener,noreferrer")}>공유 페이지 열기</Button>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        startIcon={shareRerendering || detail.share_status === "RENDERING" ? <CircularProgress size={14} /> : <ReplayRoundedIcon fontSize="small" />}
+                        disabled={shareRerendering || detail.share_status === "RENDERING"}
+                        onClick={rerenderShare}
+                      >
+                        {detail.share_status === "RENDERING" ? "렌더링 중..." : "재렌더링"}
+                      </Button>
+                    </Stack>
+                  </Stack>
+                  {detail.share_status === "FAILED" && (
+                    <Typography variant="caption" color="error" sx={{ display: "block", mt: 1 }}>
+                      마지막 렌더링이 실패했습니다. 재렌더링을 눌러 다시 시도해 주세요.
+                    </Typography>
+                  )}
+                </Paper>
               )}
               {detail.calls.map((call) => (
                 <Paper key={call.id} variant="outlined" sx={{ p: 2 }}>

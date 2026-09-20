@@ -9,6 +9,7 @@ import { groupPromptCategories } from "@/services/prompt-category-utils";
 import { acceptsFile, fileTypeLabel, missingInputGroup } from "@/services/prompt-input-utils";
 import {
   Alert,
+  Autocomplete,
   Box,
   Button,
   Checkbox,
@@ -32,6 +33,7 @@ import {
   useMediaQuery,
 } from "@mui/material";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
+import AttachFileRoundedIcon from "@mui/icons-material/AttachFileRounded";
 import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
 import CloudUploadRoundedIcon from "@mui/icons-material/CloudUploadRounded";
 import ChevronLeftRoundedIcon from "@mui/icons-material/ChevronLeftRounded";
@@ -213,6 +215,8 @@ function ProposalsPage() {
   const [shareDraft, setShareDraft] = useState("");
   const [shareSaving, setShareSaving] = useState(false);
   const [shareSaveError, setShareSaveError] = useState("");
+  const [showAttachPicker, setShowAttachPicker] = useState(false);
+  const [attachedDocs, setAttachedDocs] = useState([]);
   const [openedDocument, setOpenedDocument] = useState(null);
   const [previewZoom, setPreviewZoom] = useState(1);
   const submissionKey = useRef(null);
@@ -572,8 +576,8 @@ function ProposalsPage() {
         }
       }
     }
-    if (selectedFiles.length > MAX_FILES) {
-      setError("전체 파일은 최대 5개까지 첨부할 수 있습니다.");
+    if (selectedFiles.length + attachedDocs.length > MAX_FILES) {
+      setError(`전체 파일(첨부 문서 포함)은 최대 ${MAX_FILES}개까지 첨부할 수 있습니다.`);
       return;
     }
     if (!promptId || !title.trim() || (!customInputs && selectedFiles.length === 0)) {
@@ -590,6 +594,7 @@ function ProposalsPage() {
         files: selectedFiles,
         inputValues: values,
         fileFields,
+        attachedGenerationIds: attachedDocs.map((doc) => doc.id),
         promptVersionId: selectedPrompt.current_version_id,
         idempotencyKey: submissionKey.current,
       });
@@ -603,6 +608,8 @@ function ProposalsPage() {
       setFilesDragging(false);
       setInputValues({});
       setFieldUploads({});
+      setAttachedDocs([]);
+      setShowAttachPicker(false);
       setOpenedDocument(null);
       setPreviewItem(null);
       setCanvasOpen(false);
@@ -1216,6 +1223,47 @@ function ProposalsPage() {
               ))}
             </Stack>
             </>}
+            <Box sx={{ mt: 1.5 }}>
+              {!showAttachPicker ? (
+                <Button
+                  size="small"
+                  variant="text"
+                  startIcon={<AttachFileRoundedIcon fontSize="small" />}
+                  disabled={working}
+                  onClick={() => setShowAttachPicker(true)}
+                  sx={{ px: 0.5 }}
+                >
+                  기존 생성 문서 첨부
+                </Button>
+              ) : (
+                <Box>
+                  <Typography variant="body2" fontWeight={700}>기존 생성 문서 첨부</Typography>
+                  <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.75 }}>
+                    완료된 내 문서를 골라 이번 생성 시 참고 자료로 함께 보내요. (전체 첨부 최대 {MAX_FILES}개)
+                  </Typography>
+                  <Autocomplete
+                    multiple
+                    size="small"
+                    options={items.filter((item) => item.status === "COMPLETED")}
+                    getOptionLabel={(option) => option.title}
+                    isOptionEqualToValue={(option, value) => option.id === value.id}
+                    value={attachedDocs}
+                    disabled={working}
+                    onChange={(event, value) => {
+                      if (value.length > MAX_FILES) return;
+                      setAttachedDocs(value);
+                      submissionKey.current = null;
+                    }}
+                    renderInput={(params) => <TextField {...params} placeholder="문서 검색 및 선택" />}
+                    renderTags={(value, getTagProps) =>
+                      value.map((option, index) => (
+                        <Chip key={option.id} label={option.title} size="small" {...getTagProps({ index })} />
+                      ))
+                    }
+                  />
+                </Box>
+              )}
+            </Box>
             <TextField
               fullWidth
               size="small"

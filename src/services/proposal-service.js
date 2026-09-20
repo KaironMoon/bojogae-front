@@ -30,13 +30,17 @@ async function getPointBalance() {
   return response.data;
 }
 
-async function createProposal({ title, promptId, files, idempotencyKey, inputValues = {}, fileFields = [], promptVersionId }) {
+async function createProposal({
+  title, promptId, files, idempotencyKey, inputValues = {}, fileFields = [],
+  attachedGenerationIds = [], promptVersionId,
+}) {
   const form = new FormData();
   form.append("title", title);
   form.append("prompt_id", String(promptId));
   files.forEach((file) => form.append("files", file));
   form.append("input_values", JSON.stringify(inputValues));
   form.append("file_fields", JSON.stringify(fileFields));
+  form.append("attached_generation_ids", JSON.stringify(attachedGenerationIds));
   if (promptVersionId) form.append("prompt_version_id", String(promptVersionId));
   const response = await apiCaller.post("/api/v1/proposals", form, {
     headers: { "Idempotency-Key": idempotencyKey },
@@ -86,6 +90,11 @@ async function deleteProposal(id, admin = false) {
 
 async function recoverProposal(id) {
   const response = await apiCaller.post(`/api/v1/admin/proposals/${id}/recover`);
+  return response.data;
+}
+
+async function rerenderProposalShare(id) {
+  const response = await apiCaller.post(`/api/v1/admin/proposals/${id}/share-rerender`);
   return response.data;
 }
 
@@ -171,6 +180,7 @@ export {
   updatePromptPointCost,
   updateProposalSettings,
   updateShareSummary,
+  rerenderProposalShare,
 };
 
 export async function getPersonalMonthlyPoints() {

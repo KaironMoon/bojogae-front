@@ -58,7 +58,6 @@ const BOARD_MENU = [
 ];
 
 const REPORT_MENU = [
-  { label: "보고서 만들기", path: "/proposals", icon: DescriptionOutlinedIcon },
   { label: "환불 요청 내역", path: "/refund-requests", icon: AccountBalanceWalletOutlinedIcon },
   { label: "문서 개선 건의", path: "/document-suggestions", icon: DescriptionOutlinedIcon },
 ];
@@ -214,7 +213,7 @@ function PageLeftMenu({ onNavigate }) { // eslint-disable-line react/prop-types
     >
       <List sx={{ pt: 2, pb: 1 }}>
         {PRIMARY_MENU.map(renderMenuItem)}
-        {renderMenuGroup({ label: "보고서", icon: DescriptionOutlinedIcon, items: REPORT_MENU, open: reportOpen, setOpen: setReportOpen, prefix: "/report-menu/" })}
+        {renderMenuGroup({ label: "요청하기", icon: DescriptionOutlinedIcon, items: REPORT_MENU, open: reportOpen, setOpen: setReportOpen, prefix: "/report-menu/" })}
         {renderMenuGroup({ label: "내 정보", icon: AccountCircleOutlinedIcon, items: PROFILE_MENU, open: profileOpen, setOpen: setProfileOpen, prefix: "/account/" })}
         {renderMenuGroup({ label: "게시판", icon: ArticleOutlinedIcon, items: BOARD_MENU, open: boardsOpen, setOpen: setBoardsOpen, prefix: "/boards/" })}
         {user?.group_role === "LEADER" && renderMenuItem({ label: "그룹 관리", path: "/group", icon: GroupOutlinedIcon })}
