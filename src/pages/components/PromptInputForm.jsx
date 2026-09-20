@@ -1,7 +1,7 @@
 /* eslint-disable react/prop-types */
 import CloudUploadRoundedIcon from "@mui/icons-material/CloudUploadRounded";
 import InsertDriveFileOutlinedIcon from "@mui/icons-material/InsertDriveFileOutlined";
-import { Alert, Box, Button, MenuItem, Paper, Stack, TextField, Typography } from "@mui/material";
+import { Alert, Autocomplete, Box, Button, Chip, MenuItem, Paper, Stack, TextField, Typography } from "@mui/material";
 import { useRef, useState } from "react";
 import { fileAccept, fileTypeLabel } from "@/services/prompt-input-utils";
 
@@ -101,7 +101,17 @@ function FileInputField({ field, uploads, onFiles, disabled }) {
   );
 }
 
-export default function PromptInputForm({ fields, values = {}, uploads = {}, onValue = () => {}, onFiles = () => {}, disabled = false }) {
+export default function PromptInputForm({
+  fields,
+  values = {},
+  uploads = {},
+  documents = {},
+  documentOptions = [],
+  onValue = () => {},
+  onFiles = () => {},
+  onDocuments = () => {},
+  disabled = false,
+}) {
   return (
     <Stack spacing={2}>
       {[...new Set(fields.map((field) => field.required_group).filter(Boolean))].map((group) => (
@@ -109,6 +119,33 @@ export default function PromptInputForm({ fields, values = {}, uploads = {}, onV
       ))}
       {fields.map((field) => field.type === "file" ? (
         <FileInputField key={field.key} field={field} uploads={uploads} onFiles={onFiles} disabled={disabled} />
+      ) : field.type === "generated_document" ? (
+        <Autocomplete
+          key={field.key}
+          multiple
+          size="small"
+          options={documentOptions}
+          value={documents[field.key] || []}
+          disabled={disabled}
+          getOptionLabel={(option) => option.title}
+          isOptionEqualToValue={(option, value) => option.id === value.id}
+          filterSelectedOptions
+          onChange={(_, next) => {
+            if (next.length <= field.max_files) onDocuments(field.key, next);
+          }}
+          renderTags={(selected, getTagProps) => selected.map((option, index) => (
+            <Chip {...getTagProps({ index })} key={option.id} size="small" label={option.title} />
+          ))}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              label={field.label || "기존 생성 문서"}
+              required={field.required}
+              helperText={field.help || `완료된 내 생성 문서 중 최대 ${field.max_files}개를 선택하세요.`}
+              placeholder="생성 문서 검색 및 선택"
+            />
+          )}
+        />
       ) : (
         <TextField key={field.key} fullWidth size="small" label={field.label || "항목 이름"}
           helperText={field.help} required={field.required} disabled={disabled}

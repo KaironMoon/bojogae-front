@@ -9,7 +9,6 @@ import { groupPromptCategories } from "@/services/prompt-category-utils";
 import { acceptsFile, fileTypeLabel, missingInputGroup } from "@/services/prompt-input-utils";
 import {
   Alert,
-  Autocomplete,
   Box,
   Button,
   Checkbox,
@@ -33,7 +32,6 @@ import {
   useMediaQuery,
 } from "@mui/material";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
-import AttachFileRoundedIcon from "@mui/icons-material/AttachFileRounded";
 import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
 import CloudUploadRoundedIcon from "@mui/icons-material/CloudUploadRounded";
 import ChevronLeftRoundedIcon from "@mui/icons-material/ChevronLeftRounded";
@@ -196,6 +194,8 @@ function ProposalsPage() {
   const [filesDragging, setFilesDragging] = useState(false);
   const [inputValues, setInputValues] = useState({});
   const [fieldUploads, setFieldUploads] = useState({});
+  const [fieldDocuments, setFieldDocuments] = useState({});
+  const [generatedDocumentOptions, setGeneratedDocumentOptions] = useState([]);
   const [items, setItems] = useState([]);
   const [includeFailed, setIncludeFailed] = useState(false);
   const [page, setPage] = useState(1);
@@ -215,8 +215,6 @@ function ProposalsPage() {
   const [shareDraft, setShareDraft] = useState("");
   const [shareSaving, setShareSaving] = useState(false);
   const [shareSaveError, setShareSaveError] = useState("");
-  const [showAttachPicker, setShowAttachPicker] = useState(false);
-  const [attachedDocs, setAttachedDocs] = useState([]);
   const [openedDocument, setOpenedDocument] = useState(null);
   const [previewZoom, setPreviewZoom] = useState(1);
   const submissionKey = useRef(null);
@@ -297,6 +295,7 @@ function ProposalsPage() {
   useEffect(() => {
     setInputValues({});
     setFieldUploads({});
+    setFieldDocuments({});
     submissionKey.current = null;
   }, [promptId, selectedPrompt?.current_version_id]);
 
@@ -335,6 +334,11 @@ function ProposalsPage() {
   const loadList = useCallback(async (targetPage = page) => {
     const result = await getProposals(targetPage, listPageSize, includeFailed);
     setItems(result.items);
+    setGeneratedDocumentOptions((current) => {
+      const completed = result.items.filter((item) => item.status === "COMPLETED");
+      const completedIds = new Set(completed.map((item) => item.id));
+      return [...completed, ...current.filter((item) => !completedIds.has(item.id))].slice(0, 100);
+    });
     setPage(result.page);
     setTotalPages(result.total_pages);
     const active = result.items.find((item) => ACTIVE.has(item.status));
@@ -374,9 +378,17 @@ function ProposalsPage() {
   }, []);
 
   useEffect(() => {
-    Promise.all([getPromptOptions(), getProposals(1, listPageSize, false), getPointBalance()])
-      .then(([options, result, balance]) => {
+    Promise.all([
+      getPromptOptions(),
+      getProposals(1, listPageSize, false),
+      getProposals(1, 100, false),
+      getPointBalance(),
+    ])
+      .then(([options, result, documentResult, balance]) => {
         setPromptOptions(options);
+        setGeneratedDocumentOptions(
+          documentResult.items.filter((item) => item.status === "COMPLETED"),
+        );
         const requestedPromptId = Number(searchParams.get("promptId"));
         const requestedPrompt = options.find(option => option.id === requestedPromptId);
         const initialTab = requestedPrompt ? "recommended" : defaultPromptTab(options);
@@ -553,12 +565,26 @@ function ProposalsPage() {
     if (groupError) { setError(groupError); return; }
     const selectedFiles = customInputs ? inputSchema.flatMap((field) => fieldUploads[field.key] || []) : files;
     const fileFields = customInputs ? inputSchema.flatMap((field) => (fieldUploads[field.key] || []).map(() => field.key)) : [];
+    const selectedDocuments = inputSchema.flatMap((field) => (
+      field.type === "generated_document" ? fieldDocuments[field.key] || [] : []
+    ));
+    const documentFields = inputSchema.flatMap((field) => (
+      field.type === "generated_document"
+        ? (fieldDocuments[field.key] || []).map(() => field.key)
+        : []
+    ));
     const values = {};
     for (const field of inputSchema) {
       if (field.type === "file") {
         const count = (fieldUploads[field.key] || []).length;
         if ((field.required && !count) || count > field.max_files) {
           setError(`${field.label}: ${fileTypeLabel(field)} 파일을 ${field.required ? "1" : "0"}~${field.max_files}개 선택해 주세요.`);
+          return;
+        }
+      } else if (field.type === "generated_document") {
+        const count = (fieldDocuments[field.key] || []).length;
+        if ((field.required && !count) || count > field.max_files) {
+          setError(`${field.label}: 기존 생성 문서를 ${field.required ? "1" : "0"}~${field.max_files}개 선택해 주세요.`);
           return;
         }
       } else {
@@ -576,8 +602,8 @@ function ProposalsPage() {
         }
       }
     }
-    if (selectedFiles.length + attachedDocs.length > MAX_FILES) {
-      setError(`전체 파일(첨부 문서 포함)은 최대 ${MAX_FILES}개까지 첨부할 수 있습니다.`);
+    if (selectedFiles.length + selectedDocuments.length > MAX_FILES) {
+      setError(`전체 입력 자료(파일·기존 생성 문서)는 최대 ${MAX_FILES}개까지 선택할 수 있습니다.`);
       return;
     }
     if (!promptId || !title.trim() || (!customInputs && selectedFiles.length === 0)) {
@@ -594,7 +620,8 @@ function ProposalsPage() {
         files: selectedFiles,
         inputValues: values,
         fileFields,
-        attachedGenerationIds: attachedDocs.map((doc) => doc.id),
+        attachedGenerationIds: selectedDocuments.map((doc) => doc.id),
+        attachedGenerationFields: documentFields,
         promptVersionId: selectedPrompt.current_version_id,
         idempotencyKey: submissionKey.current,
       });
@@ -608,8 +635,7 @@ function ProposalsPage() {
       setFilesDragging(false);
       setInputValues({});
       setFieldUploads({});
-      setAttachedDocs([]);
-      setShowAttachPicker(false);
+      setFieldDocuments({});
       setOpenedDocument(null);
       setPreviewItem(null);
       setCanvasOpen(false);
@@ -626,7 +652,7 @@ function ProposalsPage() {
             ? "포인트가 부족합니다. 잔액을 확인해 주세요."
           : detailCode === "prompt_version_changed"
             ? "프롬프트가 변경되었습니다. 페이지를 새로고침한 후 입력해 주세요."
-          : ["invalid_input_values", "invalid_input_files", "required_input_missing", "required_input_group_missing", "invalid_input_file_type"].includes(detailCode)
+          : ["invalid_input_values", "invalid_input_files", "required_input_missing", "required_input_group_missing", "invalid_input_file_type", "invalid_attached_generation_fields"].includes(detailCode)
             ? "입력 항목과 필수 자료, 파일 형식을 확인해 주세요."
           : ["invalid_html_document", "html_utf8_required", "html_text_too_large"].includes(detailCode)
             ? "본문이 있는 UTF-8 HTML 파일을 첨부해 주세요. HTML의 본문은 20만 자 이하여야 합니다."
@@ -1116,7 +1142,8 @@ function ProposalsPage() {
             )}
           </Paper>
           <Paper variant="outlined" sx={{ p: 2.25, borderRadius: "16px 16px 0 0", boxShadow: "0 1px 3px rgba(15, 23, 42, 0.05)" }}>
-            {customInputs ? <PromptInputForm fields={inputSchema} values={inputValues} uploads={fieldUploads} disabled={working}
+            {customInputs ? <PromptInputForm fields={inputSchema} values={inputValues} uploads={fieldUploads}
+              documents={fieldDocuments} documentOptions={generatedDocumentOptions} disabled={working}
               onValue={(key, value) => {
                 setInputValues((current) => ({ ...current, [key]: value }));
                 clearReportSelection();
@@ -1124,7 +1151,14 @@ function ProposalsPage() {
               }}
               onFiles={(key, selected) => {
                 const field = inputSchema.find((item) => item.key === key);
-                const total = Object.entries(fieldUploads).reduce((sum, [id, items]) => sum + (id === key ? 0 : items.length), selected.length);
+                const documentCount = Object.values(fieldDocuments).reduce(
+                  (sum, documents) => sum + documents.length,
+                  0,
+                );
+                const total = Object.entries(fieldUploads).reduce(
+                  (sum, [id, items]) => sum + (id === key ? 0 : items.length),
+                  selected.length + documentCount,
+                );
                 if (selected.length > field.max_files || total > MAX_FILES) {
                   setError("항목별 첨부 개수와 전체 파일 최대 5개 제한을 확인해 주세요.");
                   return;
@@ -1140,6 +1174,23 @@ function ProposalsPage() {
                 if (firstPdf && !titleTouched) {
                   setTitle(firstPdf.name.replace(/\.pdf$/i, ""));
                 }
+                submissionKey.current = null;
+              }}
+              onDocuments={(key, selected) => {
+                const field = inputSchema.find((item) => item.key === key);
+                const otherFileCount = Object.values(fieldUploads).reduce((sum, items) => sum + items.length, 0);
+                const otherDocumentCount = Object.entries(fieldDocuments).reduce(
+                  (sum, [id, documents]) => sum + (id === key ? 0 : documents.length),
+                  0,
+                );
+                if (selected.length > field.max_files
+                  || otherFileCount + otherDocumentCount + selected.length > MAX_FILES) {
+                  setError("항목별 선택 개수와 전체 입력 자료 최대 5개 제한을 확인해 주세요.");
+                  return;
+                }
+                setError("");
+                setFieldDocuments((current) => ({ ...current, [key]: selected }));
+                clearReportSelection();
                 submissionKey.current = null;
               }} /> : <>
             <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5 }}>
@@ -1223,47 +1274,6 @@ function ProposalsPage() {
               ))}
             </Stack>
             </>}
-            <Box sx={{ mt: 1.5 }}>
-              {!showAttachPicker ? (
-                <Button
-                  size="small"
-                  variant="text"
-                  startIcon={<AttachFileRoundedIcon fontSize="small" />}
-                  disabled={working}
-                  onClick={() => setShowAttachPicker(true)}
-                  sx={{ px: 0.5 }}
-                >
-                  기존 생성 문서 첨부
-                </Button>
-              ) : (
-                <Box>
-                  <Typography variant="body2" fontWeight={700}>기존 생성 문서 첨부</Typography>
-                  <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.75 }}>
-                    완료된 내 문서를 골라 이번 생성 시 참고 자료로 함께 보내요. (전체 첨부 최대 {MAX_FILES}개)
-                  </Typography>
-                  <Autocomplete
-                    multiple
-                    size="small"
-                    options={items.filter((item) => item.status === "COMPLETED")}
-                    getOptionLabel={(option) => option.title}
-                    isOptionEqualToValue={(option, value) => option.id === value.id}
-                    value={attachedDocs}
-                    disabled={working}
-                    onChange={(event, value) => {
-                      if (value.length > MAX_FILES) return;
-                      setAttachedDocs(value);
-                      submissionKey.current = null;
-                    }}
-                    renderInput={(params) => <TextField {...params} placeholder="문서 검색 및 선택" />}
-                    renderTags={(value, getTagProps) =>
-                      value.map((option, index) => (
-                        <Chip key={option.id} label={option.title} size="small" {...getTagProps({ index })} />
-                      ))
-                    }
-                  />
-                </Box>
-              )}
-            </Box>
             <TextField
               fullWidth
               size="small"

@@ -3,7 +3,13 @@ import { useState } from "react";
 import { Alert, Box, Button, Checkbox, Divider, FormControlLabel, MenuItem, Paper, Stack, TextField, Typography } from "@mui/material";
 import PromptInputForm from "@/pages/components/PromptInputForm";
 
-const TYPES = { file: "파일 (PDF / HTML)", text: "텍스트", number: "숫자", select: "선택 목록" };
+const TYPES = {
+  file: "파일 (PDF / HTML)",
+  generated_document: "기존 생성 문서",
+  text: "텍스트",
+  number: "숫자",
+  select: "선택 목록",
+};
 
 export default function InputSchemaEditor({ value = [], onChange, disabled }) {
   const [preview, setPreview] = useState(false);
@@ -50,7 +56,7 @@ export default function InputSchemaEditor({ value = [], onChange, disabled }) {
                 {field.type === "file" && <TextField select size="small" label="허용 파일 형식" value={(field.file_types || ["pdf"]).join(",")} disabled={disabled} onChange={(e) => update(index, { file_types: e.target.value.split(",") })}>
                   <MenuItem value="pdf">PDF</MenuItem><MenuItem value="html">HTML</MenuItem><MenuItem value="pdf,html">PDF / HTML</MenuItem>
                 </TextField>}
-                {field.type === "file" && <TextField select size="small" label="최대 파일 개수" value={field.max_files} disabled={disabled} onChange={(e) => update(index, { max_files: Number(e.target.value) })}>
+                {["file", "generated_document"].includes(field.type) && <TextField select size="small" label={field.type === "file" ? "최대 파일 개수" : "최대 선택 개수"} value={field.max_files} disabled={disabled} onChange={(e) => update(index, { max_files: Number(e.target.value) })}>
                   {[1, 2, 3, 4, 5].map((count) => <MenuItem key={count} value={count}>{count}개</MenuItem>)}
                 </TextField>}
                 <FormControlLabel control={<Checkbox checked={field.required} disabled={disabled} onChange={(e) => update(index, { required: e.target.checked, required_group: e.target.checked ? "" : field.required_group || "" })} />} label="필수 입력" />
