@@ -2,6 +2,7 @@ import PreviewImageEditor from "./PreviewImageEditor";
 import InputSchemaEditor from "./InputSchemaEditor";
 import {
   Alert,
+  Autocomplete,
   Box,
   Button,
   Checkbox,
@@ -44,6 +45,7 @@ import {
   deletePromptVersion,
   getPrompt,
   getPromptCategories,
+  getPromptReferenceOptions,
   getPrompts,
   getPromptVersions,
   recoverPrompt,
@@ -56,10 +58,20 @@ import PromptCategoryList from "./PromptCategoryList";
 import DefaultPromptFavoritesPanel from "./DefaultPromptFavoritesPanel";
 
 
-const EMPTY_PROMPT = { title: "", body: "", category_ids: [], input_schema: [] };
+const EMPTY_PROMPT = {
+  title: "",
+  body: "",
+  category_ids: [],
+  input_schema: [],
+  reference_generation_ids: [],
+};
 
 function categoryIds(prompt) {
   return (prompt?.categories || []).map((category) => category.id).sort((a, b) => a - b);
+}
+
+function referenceGenerationIds(prompt) {
+  return (prompt?.reference_documents || []).map((document) => document.id);
 }
 
 function formatDate(value) {
@@ -88,10 +100,24 @@ function PromptsPage() {
   const [viewVersion, setViewVersion] = useState(null);
   const [confirmAction, setConfirmAction] = useState(null);
   const [categories, setCategories] = useState([]);
+  const [referenceOptions, setReferenceOptions] = useState([]);
   const [activeTab, setActiveTab] = useState(0);
   const [categoryPickerOpen, setCategoryPickerOpen] = useState(false);
   const [categorySearch, setCategorySearch] = useState("");
   const [categoryGroup, setCategoryGroup] = useState("all");
+  const availableReferenceOptions = useMemo(() => {
+    const options = [...referenceOptions];
+    for (const document of selectedPrompt?.reference_documents || []) {
+      if (!options.some((option) => option.id === document.id)) options.push(document);
+    }
+    return options;
+  }, [referenceOptions, selectedPrompt]);
+  const selectedReferenceOptions = useMemo(
+    () => draft.reference_generation_ids
+      .map((id) => availableReferenceOptions.find((option) => option.id === id))
+      .filter(Boolean),
+    [availableReferenceOptions, draft.reference_generation_ids],
+  );
   const categoryOptions = useMemo(
     () => categories.flatMap((root) => root.children.map((child) => ({
       ...child,
@@ -122,6 +148,8 @@ function PromptsPage() {
     return draft.title !== selectedPrompt.title
       || draft.body !== selectedPrompt.body
       || JSON.stringify(draft.input_schema) !== JSON.stringify(selectedPrompt.input_schema || [])
+      || JSON.stringify(draft.reference_generation_ids)
+        !== JSON.stringify(referenceGenerationIds(selectedPrompt))
       || JSON.stringify([...draft.category_ids].sort((a, b) => a - b))
         !== JSON.stringify(categoryIds(selectedPrompt));
   }, [draft, isNew, selectedPrompt, previewFile, previewRemoved]);
@@ -170,7 +198,13 @@ function PromptsPage() {
         setSelectedPrompt(prompt);
         setPreviewFile(null);
         setPreviewRemoved([]);
-        setDraft({ title: prompt.title, body: prompt.body, category_ids: categoryIds(prompt), input_schema: prompt.input_schema || [] });
+        setDraft({
+          title: prompt.title,
+          body: prompt.body,
+          category_ids: categoryIds(prompt),
+          input_schema: prompt.input_schema || [],
+          reference_generation_ids: referenceGenerationIds(prompt),
+        });
         setVersions(versionRows);
       } catch {
         setError("프롬프트를 불러오지 못했습니다.");
@@ -226,6 +260,12 @@ function PromptsPage() {
   }, [activeTab]);
 
   useEffect(() => {
+    getPromptReferenceOptions().then(setReferenceOptions).catch(() => {
+      setError("참고 생성 문서 목록을 불러오지 못했습니다.");
+    });
+  }, []);
+
+  useEffect(() => {
     if (categoryGroup !== "all" && !categories.some((root) => root.id === categoryGroup)) {
       setCategoryGroup("all");
     }
@@ -276,8 +316,14 @@ function PromptsPage() {
     setError("");
     try {
       let saved = isNew
-        ? await createPrompt(title, draft.body, draft.category_ids, draft.input_schema)
-        : await updatePrompt(selectedPrompt.id, title, draft.body, draft.category_ids, draft.input_schema);
+        ? await createPrompt(
+          title, draft.body, draft.category_ids, draft.input_schema,
+          draft.reference_generation_ids,
+        )
+        : await updatePrompt(
+          selectedPrompt.id, title, draft.body, draft.category_ids, draft.input_schema,
+          draft.reference_generation_ids,
+        );
       setSelectedPrompt(saved);
       setSelectedId(saved.id);
       if (previewFile?.length || previewRemoved.length) {
@@ -288,14 +334,24 @@ function PromptsPage() {
       setSelectedPrompt(saved);
       setPreviewFile(null);
       setPreviewRemoved([]);
-      setDraft({ title: saved.title, body: saved.body, category_ids: categoryIds(saved), input_schema: saved.input_schema || [] });
+      setDraft({
+        title: saved.title,
+        body: saved.body,
+        category_ids: categoryIds(saved),
+        input_schema: saved.input_schema || [],
+        reference_generation_ids: referenceGenerationIds(saved),
+      });
       await Promise.all([
         loadVersions(saved.id, includeDeletedVersions),
         loadList(saved.id),
       ]);
     } catch (requestError) {
       const detail = requestError.response?.data?.detail;
-      setError(detail === "prompt_preview_schema_required"
+      setError(detail === "invalid_reference_documents"
+        ? "선택한 참고 문서를 사용할 수 없습니다. 완료된 생성 문서를 다시 선택해 주세요."
+        : detail === "prompt_reference_documents_schema_required"
+          ? "참고 생성 문서 저장을 위한 DB 설정이 필요합니다."
+        : detail === "prompt_preview_schema_required"
         ? "프롬프트는 저장됐지만 이미지 저장을 위한 DB 설정이 필요합니다."
         : detail?.startsWith("preview_image_")
           ? "프롬프트는 저장됐지만 이미지 저장에 실패했습니다. 파일 형식과 10MB 제한을 확인해 주세요."
@@ -324,7 +380,13 @@ function PromptsPage() {
           action.version.id,
         );
         setSelectedPrompt(restored);
-        setDraft({ title: restored.title, body: restored.body, category_ids: categoryIds(restored), input_schema: restored.input_schema || [] });
+        setDraft({
+          title: restored.title,
+          body: restored.body,
+          category_ids: categoryIds(restored),
+          input_schema: restored.input_schema || [],
+          reference_generation_ids: referenceGenerationIds(restored),
+        });
         await Promise.all([
           loadVersions(restored.id, includeDeletedVersions),
           loadList(restored.id),
@@ -348,7 +410,13 @@ function PromptsPage() {
     try {
       const recovered = await recoverPrompt(selectedPrompt.id);
       setSelectedPrompt(recovered);
-      setDraft({ title: recovered.title, body: recovered.body, category_ids: categoryIds(recovered), input_schema: recovered.input_schema || [] });
+      setDraft({
+        title: recovered.title,
+        body: recovered.body,
+        category_ids: categoryIds(recovered),
+        input_schema: recovered.input_schema || [],
+        reference_generation_ids: referenceGenerationIds(recovered),
+      });
       await loadList(recovered.id);
     } catch {
       setError("프롬프트를 복구하지 못했습니다.");
@@ -598,6 +666,52 @@ function PromptsPage() {
               <InputSchemaEditor value={draft.input_schema}
                 disabled={selectedPrompt?.is_deleted || working}
                 onChange={(input_schema) => setDraft((current) => ({ ...current, input_schema }))} />
+              <Box>
+                <Typography variant="subtitle2" fontWeight={750} sx={{ mb: 1 }}>
+                  참고 생성 문서
+                </Typography>
+                <Autocomplete
+                  multiple
+                  options={availableReferenceOptions}
+                  value={selectedReferenceOptions}
+                  disabled={selectedPrompt?.is_deleted || working}
+                  getOptionLabel={(option) => option.title}
+                  isOptionEqualToValue={(option, value) => option.id === value.id}
+                  filterSelectedOptions
+                  onChange={(_, value) => {
+                    if (value.length > 5) return;
+                    setDraft((current) => ({
+                      ...current,
+                      reference_generation_ids: value.map((option) => option.id),
+                    }));
+                  }}
+                  renderOption={(props, option) => (
+                    <li {...props} key={option.id}>
+                      <Stack sx={{ minWidth: 0 }}>
+                        <Typography variant="body2" noWrap>{option.title}</Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          #{option.id} · {option.user_display_name} · {formatDate(option.created_at)}
+                        </Typography>
+                      </Stack>
+                    </li>
+                  )}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      placeholder="완료된 생성 문서 검색 및 선택"
+                      helperText="최대 5개 · 선택한 문서의 원문 HTML이 이 프롬프트의 LLM 호출에 자동으로 포함됩니다."
+                    />
+                  )}
+                  renderTags={(value, getTagProps) => value.map((option, index) => (
+                    <Chip
+                      {...getTagProps({ index })}
+                      key={option.id}
+                      label={option.title}
+                      size="small"
+                    />
+                  ))}
+                />
+              </Box>
               <TextField
                 label="본문"
                 value={draft.body}
@@ -616,7 +730,7 @@ function PromptsPage() {
               />
               {!isNew && (
                 <Typography variant="caption" color="text.secondary">
-                  마지막 수정 {formatDate(selectedPrompt.updated_at)} · 제목·본문·입력 UI를 변경하면 새 버전이 생성되며, 카테고리만 바꾸면 현재 프롬프트에 즉시 반영됩니다.
+                  마지막 수정 {formatDate(selectedPrompt.updated_at)} · 제목·본문·입력 UI·참고 생성 문서를 변경하면 새 버전이 생성되며, 카테고리만 바꾸면 현재 프롬프트에 즉시 반영됩니다.
                 </Typography>
               )}
             </Stack>
@@ -744,6 +858,20 @@ function PromptsPage() {
       <Dialog open={Boolean(viewVersion)} onClose={() => setViewVersion(null)} fullWidth maxWidth="md">
         <DialogTitle>버전 {viewVersion?.version_no} · {viewVersion?.title}</DialogTitle>
         <DialogContent>
+          <Typography variant="subtitle2" fontWeight={750} sx={{ mb: 1 }}>
+            참고 생성 문서
+          </Typography>
+          <Stack direction="row" gap={0.75} flexWrap="wrap" sx={{ mb: 2 }}>
+            {(viewVersion?.reference_documents || []).map((document) => (
+              <Chip key={document.id} size="small" label={document.title} />
+            ))}
+            {!viewVersion?.reference_documents?.length && (
+              <Typography variant="body2" color="text.secondary">없음</Typography>
+            )}
+          </Stack>
+          <Typography variant="subtitle2" fontWeight={750} sx={{ mb: 1 }}>
+            본문
+          </Typography>
           <Box
             component="pre"
             sx={{
