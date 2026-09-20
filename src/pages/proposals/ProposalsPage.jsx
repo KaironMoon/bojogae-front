@@ -48,6 +48,8 @@ import TaskAltRoundedIcon from "@mui/icons-material/TaskAltRounded";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import ZoomInRoundedIcon from "@mui/icons-material/ZoomInRounded";
 import ZoomOutRoundedIcon from "@mui/icons-material/ZoomOutRounded";
+import IosShareRoundedIcon from "@mui/icons-material/IosShareRounded";
+import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTheme } from "@mui/material/styles";
 import ExpiringPoints from "@/pages/components/ExpiringPoints";
@@ -66,6 +68,7 @@ import {
   proposalFileUrl,
   proposalRawResponseUrl,
   retryProposal,
+  updateShareSummary,
 } from "@/services/proposal-service";
 
 
@@ -205,6 +208,11 @@ function ProposalsPage() {
   const [statusMessage, setStatusMessage] = useState("");
   const [previewItem, setPreviewItem] = useState(null);
   const [canvasOpen, setCanvasOpen] = useState(false);
+  const [copiedShareId, setCopiedShareId] = useState(null);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [shareDraft, setShareDraft] = useState("");
+  const [shareSaving, setShareSaving] = useState(false);
+  const [shareSaveError, setShareSaveError] = useState("");
   const [openedDocument, setOpenedDocument] = useState(null);
   const [previewZoom, setPreviewZoom] = useState(1);
   const submissionKey = useRef(null);
@@ -350,7 +358,13 @@ function ProposalsPage() {
     if (request !== documentRequest.current) return;
     setStatusItem(null);
     setStatusMessage("");
-    setPreviewItem({ id: item.id, title: document.title || item.title });
+    setPreviewItem({
+      id: item.id,
+      title: document.title || item.title,
+      share_uuid: document.share_uuid ?? item.share_uuid ?? null,
+      share_status: document.share_status ?? item.share_status ?? null,
+      summary: document.summary ?? item.summary ?? "",
+    });
     setCanvasOpen(true);
     setOpenedDocument(document);
   }, []);
@@ -459,6 +473,38 @@ function ProposalsPage() {
       window.clearInterval(poll);
     };
   }, [statusItemId]);
+
+  const previewItemId = previewItem?.id;
+  const previewShareUuid = previewItem?.share_uuid;
+  const previewShareStatus = previewItem?.share_status;
+  useEffect(() => {
+    if (!canvasOpen || !previewItemId || !previewShareUuid) return undefined;
+    if (previewShareStatus === "READY" || previewShareStatus === "FAILED") return undefined;
+    let disposed = false;
+    const refresh = async () => {
+      try {
+        const job = await getProposal(previewItemId);
+        if (disposed) return;
+        setPreviewItem((current) => (
+          current && current.id === previewItemId
+            ? {
+                ...current,
+                share_uuid: job.share_uuid ?? current.share_uuid,
+                share_status: job.share_status ?? current.share_status,
+                summary: job.summary ?? current.summary,
+              }
+            : current
+        ));
+      } catch {
+        // 일시적인 조회 실패는 다음 폴링에서 다시 확인합니다.
+      }
+    };
+    const poll = window.setInterval(refresh, 3000);
+    return () => {
+      disposed = true;
+      window.clearInterval(poll);
+    };
+  }, [canvasOpen, previewItemId, previewShareUuid, previewShareStatus]);
 
   const clearReportSelection = () => {
     documentRequest.current += 1;
@@ -640,6 +686,45 @@ function ProposalsPage() {
 
   const changeZoom = (amount) => {
     setPreviewZoom((current) => Math.min(1.25, Math.max(0.3, Number((current + amount).toFixed(2)))));
+  };
+
+  const openShareDialog = (item) => {
+    if (!item?.share_uuid) return;
+    setShareDraft(item.summary || "");
+    setShareSaveError("");
+    setShareDialogOpen(true);
+  };
+
+  const closeShareDialog = () => setShareDialogOpen(false);
+
+  const copyShareDraft = async () => {
+    if (!previewItem?.share_uuid) return;
+    const url = `${window.location.origin}/s/${previewItem.share_uuid}`;
+    const trimmed = shareDraft.trim();
+    if (trimmed && trimmed !== (previewItem.summary || "")) {
+      setShareSaving(true);
+      setShareSaveError("");
+      try {
+        const updated = await updateShareSummary(previewItem.id, trimmed);
+        setPreviewItem((current) => (
+          current && current.id === previewItem.id
+            ? { ...current, summary: updated.summary ?? trimmed }
+            : current
+        ));
+      } catch {
+        setShareSaveError("요약 저장에 실패했어요. 이번 복사에는 적용되지만 다음에 다시 열면 원래 요약으로 보일 수 있어요.");
+      } finally {
+        setShareSaving(false);
+      }
+    }
+    const text = trimmed ? `${trimmed}\n${url}` : url;
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedShareId(previewItem.id);
+      window.setTimeout(() => setCopiedShareId((current) => (current === previewItem.id ? null : current)), 1500);
+    } catch {
+      // 클립보드 접근이 막힌 환경 - 조용히 무시
+    }
   };
 
   const resetWorkspace = () => {
@@ -1215,6 +1300,21 @@ function ProposalsPage() {
                   전체보기
                 </Button>
               )}
+              {previewItem?.share_uuid && (
+                <Tooltip title={previewItem.share_status === "READY" ? "카카오톡 등에 공유할 링크 복사" : "링크는 지금 복사 가능 - 공유 페이지 이미지는 준비되는 대로 채워집니다"}>
+                  <span>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      startIcon={copiedShareId === previewItem.id ? <CheckRoundedIcon fontSize="small" /> : <IosShareRoundedIcon fontSize="small" />}
+                      onClick={() => openShareDialog(previewItem)}
+                      sx={{ minHeight: 36, ml: 0.5 }}
+                    >
+                      {copiedShareId === previewItem.id ? "복사됨" : "공유 링크"}
+                    </Button>
+                  </span>
+                </Tooltip>
+              )}
               <Tooltip title="캔버스 접기"><IconButton aria-label="캔버스 접기" onClick={() => setCanvasOpen(false)}><CloseRoundedIcon /></IconButton></Tooltip>
             </Stack>
           </Stack>
@@ -1462,6 +1562,51 @@ function ProposalsPage() {
           </Stack>
         </DialogContent>
         <DialogActions><Button onClick={() => setDetail(null)}>닫기</Button></DialogActions>
+      </Dialog>
+
+      <Dialog open={shareDialogOpen} onClose={closeShareDialog} fullWidth maxWidth="sm">
+        <DialogTitle>공유 링크</DialogTitle>
+        <DialogContent>
+          <Stack spacing={1.5} sx={{ mt: 1 }}>
+            {previewItem?.share_status !== "READY" && (
+              <Alert severity="info" variant="outlined">
+                공유용 이미지를 아직 준비 중이에요. 링크는 지금 복사해도 되고, 상대방이 열어보는 시점엔 이미지가 채워져 있을 가능성이 높아요.
+              </Alert>
+            )}
+            {shareSaveError && <Alert severity="warning" variant="outlined">{shareSaveError}</Alert>}
+            <TextField
+              label="공유 요약 (100자 내외, 수정 가능)"
+              value={shareDraft}
+              onChange={(event) => setShareDraft(event.target.value.slice(0, 200))}
+              multiline
+              minRows={3}
+              fullWidth
+              helperText={`${shareDraft.length}/200자 - 카카오톡 등으로 링크와 함께 복사됩니다.`}
+            />
+            <TextField
+              label="링크"
+              value={previewItem?.share_uuid ? `${window.location.origin}/s/${previewItem.share_uuid}` : ""}
+              fullWidth
+              InputProps={{ readOnly: true }}
+              size="small"
+            />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeShareDialog}>닫기</Button>
+          <Button
+            variant="contained"
+            disabled={shareSaving}
+            startIcon={
+              shareSaving
+                ? <CircularProgress size={16} color="inherit" />
+                : copiedShareId === previewItem?.id ? <CheckRoundedIcon fontSize="small" /> : <IosShareRoundedIcon fontSize="small" />
+            }
+            onClick={copyShareDraft}
+          >
+            {shareSaving ? "저장 중..." : copiedShareId === previewItem?.id ? "복사됨" : "요약+링크 복사"}
+          </Button>
+        </DialogActions>
       </Dialog>
     </Box>
   );

@@ -107,10 +107,6 @@ const router = createBrowserRouter([
             element: <Home />,
           },
           {
-            path: "/info",
-            element: <Info />,
-          },
-          {
             path: "/profile",
             element: <ProfilePage />,
           },
@@ -139,6 +135,7 @@ const router = createBrowserRouter([
       {
         element: <PageLayout />,
         children: [
+          { path: "/admin/info", element: <Info /> },
           { path: "/admin/groups", element: <GroupsPage /> },
           { path: "/admin/groups/:groupId", element: <GroupsPage /> },
           { path: "/admin/refund-requests", element: <RequestHistoryPage key="refund-admin" kind="refund" admin /> },

@@ -66,6 +66,11 @@ async function cancelProposal(id) {
   return response.data;
 }
 
+async function updateShareSummary(id, summary) {
+  const response = await apiCaller.put(`/api/v1/proposals/${id}/share-summary`, { summary });
+  return response.data;
+}
+
 async function retryProposal(id) {
   const response = await apiCaller.post(`/api/v1/proposals/${id}/retry`, {
     idempotency_key: createIdempotencyKey(),
@@ -165,6 +170,7 @@ export {
   decideProposalPoints,
   updatePromptPointCost,
   updateProposalSettings,
+  updateShareSummary,
 };
 
 export async function getPersonalMonthlyPoints() {

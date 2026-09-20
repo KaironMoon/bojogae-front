@@ -34,7 +34,6 @@ import { useAuth } from "@/auth/AuthContext";
 
 const PRIMARY_MENU = [
   { label: "Home", path: "/home", icon: HomeOutlinedIcon },
-  { label: "Info", path: "/info", icon: InfoOutlinedIcon },
   { label: "보고서 만들기", path: "/proposals", icon: DescriptionOutlinedIcon },
 ];
 
@@ -234,6 +233,7 @@ function PageLeftMenu({ onNavigate }) { // eslint-disable-line react/prop-types
           <List sx={{ py: 0 }}>
             {ADMIN_MENU.map(renderMenuItem)}
             {renderMenuGroup({ label: "게시판 관리", icon: ArticleOutlinedIcon, items: ADMIN_BOARD_MENU, open: adminBoardsOpen, setOpen: setAdminBoardsOpen, prefix: "/admin/boards/" })}
+            {renderMenuItem({ label: "Info", path: "/admin/info", icon: InfoOutlinedIcon })}
           </List>
         </>
       )}
