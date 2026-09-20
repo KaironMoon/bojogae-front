@@ -343,7 +343,7 @@ export default function LandingPage() {
 
   if (authRedirect) return <Navigate to={`/login?${searchParams.toString()}`} replace />;
   if (shouldSkipLanding()) return <Navigate to="/login" replace />;
-  const goLogin = (method = "personal", plan = "FREE") => navigate(`/login?method=${method}&plan=${plan}`);
+  const goLogin = (method = "personal", plan) => navigate(plan ? `/login?method=${method}&plan=${plan}` : `/login?method=${method}`);
   const skipLanding = () => {
     skipLandingFromNowOn();
     navigate("/login", { replace: true });
@@ -435,7 +435,7 @@ export default function LandingPage() {
 
         <section className="faq-section"><div className="faq-heading" data-reveal><span>FAQ</span><h2>자주 묻는 질문</h2><p>보조개 서비스 이용에 관해 궁금한 점을 확인하세요.</p></div><div className="faq-list">{faqs.map(([question, answer], index) => <article key={question} className={openFaq === index ? "open" : ""} data-reveal><button onClick={() => setOpenFaq(openFaq === index ? -1 : index)} aria-expanded={openFaq === index}><span>{question}</span><i>+</i></button><div><p>{answer}</p></div></article>)}</div></section>
 
-        <section className="final-cta" data-reveal><div><span>YOUR NEXT PROPOSAL</span><h2>다음 제안서는<br />보조개와 시작하세요.</h2><p>정리는 AI에게 맡기고, 설계사님은 고객의 마음에 집중하세요.</p></div><div className="final-actions"><button onClick={() => goLogin()}>1달 무료 체험 시작 (20회 제공) <ArrowForwardRoundedIcon /></button><button className="outline" onClick={() => setInquiryOpen(true)}>단체 도입 문의</button></div></section>
+        <section className="final-cta" data-reveal><div><span>YOUR NEXT PROPOSAL</span><h2>다음 제안서는<br />보조개와 시작하세요.</h2><p>정리는 AI에게 맡기고, 설계사님은 고객의 마음에 집중하세요.</p></div><div className="final-actions"><button onClick={() => goLogin("personal", "FREE")}>1달 무료 체험 시작 (20회 제공) <ArrowForwardRoundedIcon /></button><button className="outline" onClick={() => setInquiryOpen(true)}>단체 도입 문의</button></div></section>
       </main>
 
       <footer className="landing-footer"><a className="brand footer-brand" href="#top"><span className="brand-mark">B</span><span>보조개<small>보험설계사를 조력하는 AI 개인비서</small></span></a><div><button onClick={() => goLogin("group")}>단체 로그인</button><button onClick={() => goLogin()}>개인 로그인</button><a href="#pricing">이용 요금</a></div><p>© 2026 BOJOGAE. All rights reserved.</p></footer>
