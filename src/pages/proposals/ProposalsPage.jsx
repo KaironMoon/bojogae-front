@@ -617,7 +617,7 @@ function ProposalsPage() {
     setError("");
     try {
       submissionKey.current ||= createIdempotencyKey();
-      const job = await createProposal({
+      const buildPayload = (promptVersionId) => ({
         title: title.trim(),
         promptId,
         files: selectedFiles,
@@ -625,9 +625,23 @@ function ProposalsPage() {
         fileFields,
         attachedGenerationIds: selectedDocuments.map((doc) => doc.id),
         attachedGenerationFields: documentFields,
-        promptVersionId: selectedPrompt.current_version_id,
+        promptVersionId,
         idempotencyKey: submissionKey.current,
       });
+      let job;
+      try {
+        job = await createProposal(buildPayload(selectedPrompt.current_version_id));
+      } catch (requestError) {
+        if (requestError.response?.data?.detail !== "prompt_version_changed") throw requestError;
+        // 창을 띄워둔 사이 프롬프트가 업데이트된 경우 - 최신 버전을 다시
+        // 받아와 입력해 둔 제목/파일/값은 그대로 유지한 채 한 번만 자동
+        // 재시도한다. 새 스키마와 안 맞으면 그때는 그 에러가 그대로 보인다.
+        const refreshed = await getPromptOptions();
+        setPromptOptions(refreshed);
+        const latest = refreshed.find((option) => option.id === promptId);
+        if (!latest) throw requestError;
+        job = await createProposal(buildPayload(latest.current_version_id));
+      }
       submissionKey.current = null;
       setActiveId(job.id);
       setStatusItem(null);
