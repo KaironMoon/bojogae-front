@@ -15,6 +15,7 @@ import {
   Paper,
   Stack,
   TextField,
+  Tooltip,
   Typography,
 } from "@mui/material";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
@@ -50,6 +51,65 @@ function providerErrorMessage(value) {
     return value;
   }
 }
+
+// LLM 호출 단계별 소요 시간(ms)을 가로 막대 타임라인으로 보여준다.
+// response_metadata는 관리자 상세 조회에만 내려오므로(일반 사용자에게는
+// 노출되지 않음) 이 관리자 페이지에서만 표시한다. 구간 폭은 각 단계
+// 소요 시간에 비례하고, 스트림 단계 전에 실패한 호출은 "실패까지" 구간으로
+// 표시해 어디서 멈췄는지 보여준다.
+/* eslint-disable react/prop-types -- timing은 자유 형식 JSON(response_metadata.timing)이라 shape을 고정할 수 없다 */
+function TimingTimeline({ timing }) {
+  if (!timing) return null;
+  const prep = timing.prep_ms ?? 0;
+  const firstEvent = timing.first_event_ms;
+  const stream = timing.stream_ms;
+  const cleanup = timing.cleanup_ms ?? 0;
+  const total = timing.total_ms ?? prep + (stream ?? 0);
+  const grand = total + cleanup;
+  if (grand <= 0) return null;
+
+  const segments = [];
+  if (prep > 0) segments.push({ key: "prep", label: `준비 ${prep}ms`, ms: prep, color: "#94a3b8" });
+  if (typeof stream === "number") {
+    if (typeof firstEvent === "number") {
+      const wait = firstEvent;
+      const rest = Math.max(stream - firstEvent, 0);
+      if (wait > 0) segments.push({ key: "wait", label: `첫응답 대기 ${wait}ms`, ms: wait, color: "#f59e0b" });
+      if (rest > 0) segments.push({ key: "rest", label: `스트리밍 ${rest}ms`, ms: rest, color: "#3b82f6" });
+    } else if (stream > 0) {
+      segments.push({ key: "stream", label: `요청 ${stream}ms`, ms: stream, color: "#3b82f6" });
+    }
+  } else {
+    const gap = Math.max(total - prep, 0);
+    if (gap > 0) segments.push({ key: "gap", label: `실패까지 ${gap}ms`, ms: gap, color: "#ef4444" });
+  }
+  if (cleanup > 0) segments.push({ key: "cleanup", label: `정리 ${cleanup}ms`, ms: cleanup, color: "#a855f7" });
+  if (segments.length === 0) return null;
+
+  return (
+    <Box sx={{ mt: 0.75 }}>
+      <Box sx={{ display: "flex", height: 10, borderRadius: 1, overflow: "hidden", border: "1px solid", borderColor: "divider" }}>
+        {segments.map((seg) => (
+          <Tooltip key={seg.key} title={seg.label} arrow>
+            <Box sx={{ flexGrow: seg.ms, flexBasis: 0, bgcolor: seg.color, minWidth: 2 }} />
+          </Tooltip>
+        ))}
+      </Box>
+      <Stack direction="row" spacing={1.25} flexWrap="wrap" alignItems="center" sx={{ mt: 0.5 }}>
+        {segments.map((seg) => (
+          <Stack key={seg.key} direction="row" spacing={0.5} alignItems="center">
+            <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: seg.color }} />
+            <Typography variant="caption" color="text.secondary">{seg.label}</Typography>
+          </Stack>
+        ))}
+        <Typography variant="caption" sx={{ fontWeight: 700 }}>
+          총 {grand}ms{typeof timing.inline === "boolean" ? ` · ${timing.inline ? "인라인" : "업로드"}` : ""}
+        </Typography>
+      </Stack>
+    </Box>
+  );
+}
+/* eslint-enable react/prop-types */
 
 function AdminProposalsPage() {
   const [result, setResult] = useState({ items: [], page: 1, total_pages: 0, total: 0 });
@@ -146,7 +206,7 @@ function AdminProposalsPage() {
 
   return (
     <Box sx={{ p: { xs: 2, md: 4 }, maxWidth: 1440, mx: "auto" }}>
-      <Typography variant="h4" sx={{ fontWeight: 800 }}>제안서 관리</Typography>
+      <Typography variant="h4" sx={{ fontWeight: 800 }}>보고서 관리</Typography>
       <Typography color="text.secondary" sx={{ mb: 3 }}>본문을 노출하지 않고 파일, 처리 상태, 토큰 사용량을 관리합니다.</Typography>
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, mb: 2 }}>
@@ -274,6 +334,7 @@ function AdminProposalsPage() {
                     Interaction {call.provider_interaction_status || "-"} · 종료 사유 {call.provider_finish_reason || "-"} · 원문 {bytes(call.response_bytes)}
                     {call.response_repaired ? " · 자동 복원됨" : ""}
                   </Typography>
+                  <TimingTimeline timing={call.response_metadata?.timing} />
                   {(call.error_code || call.provider_error_detail) && (
                     <Alert severity="error" sx={{ mt: 1 }}>
                       <Typography variant="body2" sx={{ fontWeight: 700 }}>

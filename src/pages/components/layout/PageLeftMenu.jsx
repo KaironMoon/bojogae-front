@@ -42,7 +42,7 @@ const ADMIN_MENU = [
   { label: "고객 관리", path: "/admin/users", icon: GroupOutlinedIcon },
   { label: "포인트 관리", path: "/admin/points", icon: AccountBalanceWalletOutlinedIcon },
   { label: "프롬프트 관리", path: "/admin/prompts", icon: AutoAwesomeOutlinedIcon },
-  { label: "제안서 관리", path: "/admin/proposals", icon: DescriptionOutlinedIcon },
+  { label: "보고서 관리", path: "/admin/proposals", icon: DescriptionOutlinedIcon },
   { label: "환불 요청 관리", path: "/admin/refund-requests", icon: AccountBalanceWalletOutlinedIcon },
   { label: "문서 건의 관리", path: "/admin/document-suggestions", icon: DescriptionOutlinedIcon },
   { label: "사용량 / 통계", path: "/admin/usage", icon: AnalyticsOutlinedIcon },
