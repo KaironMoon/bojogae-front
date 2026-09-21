@@ -8,6 +8,7 @@ export const renameGroup = async (id, name) => (await api.put(`${base}/groups/${
 export const addMember = async (id, data) => (await api.post(`${base}/groups/${id}/members`, data)).data;
 export const editMember = async (id, member, data) => (await api.put(`${base}/groups/${id}/members/${member}`, data)).data;
 export const setMemberStatus = async (id, member, active) => (await api.put(`${base}/groups/${id}/members/${member}/status`, { active })).data;
+export const deleteMember = async (id, member) => api.delete(`${base}/groups/${id}/members/${member}`);
 export const resetMemberPassword = async (id, member) => api.post(`${base}/groups/${id}/members/${member}/password-reset`);
 export const transferPoints = async (id, member, data) => (await api.post(`${base}/groups/${id}/members/${member}/points`, data)).data;
 export const requestPurchase = async (id, data) => (await api.post(`${base}/groups/${id}/purchases`, data)).data;
@@ -33,10 +34,13 @@ const messages = {
   payment_reference_duplicate: '이미 처리된 결제 확인 번호입니다.',
   invalid_expiration_date: '기본 코인의 만료일을 확인해 주세요.',
   group_account_use_group_management: '그룹 계정은 그룹 관리에서 변경해 주세요.',
+  member_already_deleted: '이미 삭제된 구성원입니다.',
+  group_member_limit_reached: '그룹 인원수 제한에 도달했습니다. 인원 제한을 늘리거나 기존 구성원을 정리해 주세요.',
 };
 export const groupErrorMessage = (error) => messages[error.response?.data?.detail] || '요청을 처리하지 못했습니다. 다시 시도해 주세요.';
 
 export const setMonthlyPoints = async (id, amount) => (await api.put(`${base}/admin/groups/${id}/monthly-points`, { monthly_basic_points: amount })).data;
+export const setMaxMembers = async (id, amount) => (await api.put(`${base}/admin/groups/${id}/max-members`, { max_members: amount })).data;
 
 export const bulkPoints = async (id, data) => (await api.post(`${base}/groups/${id}/points/bulk`, data)).data;
 

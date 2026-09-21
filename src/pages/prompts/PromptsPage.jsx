@@ -431,7 +431,7 @@ function PromptsPage() {
       <Box
         sx={{
           display: "grid",
-          gridTemplateColumns: { xs: "1fr", lg: "360px minmax(0, 1fr)" },
+          gridTemplateColumns: { xs: "1fr", md: "360px minmax(0, 1fr)" },
           gap: 2,
           alignItems: "start",
         }}

@@ -31,7 +31,7 @@ function PageHeader({ onMenuClick }) { // eslint-disable-line react/prop-types
           edge="start"
           aria-label="메뉴 열기"
           onClick={onMenuClick}
-          sx={{ display: { xs: "inline-flex", md: "none" }, mr: 0.25 }}
+          sx={{ display: { xs: "inline-flex", lg: "none" }, mr: 0.25 }}
         >
           <MenuRoundedIcon />
         </IconButton>

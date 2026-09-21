@@ -10,7 +10,7 @@ import PageFooter from "@/pages/components/layout/PageFooter";
 
 function PageLayout() {
   const theme = useTheme();
-  const mobile = useMediaQuery(theme.breakpoints.down("md"));
+  const compactMenu = useMediaQuery(theme.breakpoints.down("lg"));
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
@@ -27,21 +27,21 @@ function PageLayout() {
       <AppBar
         position="static"
         sx={{
-          position: { xs: "sticky", md: "static" },
-          top: { xs: 0, md: "auto" },
-          zIndex: { xs: theme.zIndex.drawer + 1, md: theme.zIndex.appBar },
+          position: { xs: "sticky", lg: "static" },
+          top: { xs: 0, lg: "auto" },
+          zIndex: { xs: theme.zIndex.drawer + 1, lg: theme.zIndex.appBar },
           backgroundColor: theme.palette.background.paper,
         }}
       >
         <PageHeader onMenuClick={() => setMobileMenuOpen(true)} />
       </AppBar>
       <Box sx={{ display: "flex", flexGrow: 1 }}>
-        <Box sx={{ display: { xs: "none", md: "block" }, backgroundColor: theme.palette.background.leftMenu, minHeight: "100%", flexShrink: 0 }}>
+        <Box sx={{ display: { xs: "none", lg: "block" }, backgroundColor: theme.palette.background.leftMenu, minHeight: "100%", flexShrink: 0 }}>
           <PageLeftMenu />
         </Box>
         <Drawer
           anchor="left"
-          open={mobile && mobileMenuOpen}
+          open={compactMenu && mobileMenuOpen}
           onClose={() => setMobileMenuOpen(false)}
           ModalProps={{ keepMounted: true }}
           slotProps={{

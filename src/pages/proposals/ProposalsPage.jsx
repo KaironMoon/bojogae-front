@@ -204,6 +204,7 @@ function ProposalsPage() {
   const [working, setWorking] = useState(false);
   const [error, setError] = useState("");
   const [activeId, setActiveId] = useState(null);
+  const [failureModal, setFailureModal] = useState(null);
   const [detail, setDetail] = useState(null);
   const [promptPreviewOption, setPromptPreviewOption] = useState(null);
   const [statusItem, setStatusItem] = useState(null);
@@ -428,6 +429,8 @@ function ProposalsPage() {
         window.clearInterval(poll);
         if (isCompletedStatus(job.status)) {
           await loadDocumentIntoWorkspace(job, job);
+        } else if (job.status === "FAILED") {
+          setFailureModal(job);
         }
         setActiveId((current) => current === activeId ? null : current);
         try {
@@ -852,12 +855,12 @@ function ProposalsPage() {
       <Box
         sx={{
           display: "grid",
-          gridTemplateColumns: { xs: "minmax(0, 1fr)", md: "repeat(12, minmax(0, 1fr))" },
+          gridTemplateColumns: { xs: "minmax(0, 1fr)", md: "240px minmax(0, 1fr)" },
           gap: { xs: 2, md: 2.5, xl: 3 },
           alignItems: "stretch",
         }}
       >
-        <Stack spacing={2} sx={{ gridColumn: { md: "span 5", xl: "span 3" }, minWidth: 0, minHeight: 0, alignSelf: "stretch" }}>
+        <Stack spacing={2} sx={{ minWidth: 0, minHeight: 0, alignSelf: "stretch" }}>
           <Paper
             variant="outlined"
             sx={{ borderRadius: "16px", height: { xs: "auto", md: 600 }, boxSizing: "border-box", flexShrink: 0, minHeight: 0, display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 1px 3px rgba(15, 23, 42, 0.05)" }}
@@ -972,7 +975,7 @@ function ProposalsPage() {
 
         </Stack>
 
-        <Stack spacing={0} sx={{ gridColumn: { md: "span 7", xl: "span 9" }, minWidth: 0, alignSelf: "start" }}>
+        <Stack spacing={0} sx={{ minWidth: 0, alignSelf: "start" }}>
           <Paper
             variant="outlined"
             sx={{ p: { xs: 1.5, sm: 2 }, borderRadius: "16px", height: { xs: "auto", md: 600 }, boxSizing: "border-box", minHeight: 0, mb: 2, display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 1px 3px rgba(15, 23, 42, 0.05)" }}
@@ -1068,7 +1071,7 @@ function ProposalsPage() {
                             {option.title} <Typography component="span" variant="caption" color="text.secondary">v{option.current_version_no}</Typography>
                           </Typography>
                         </Stack>
-                        <Tooltip title="결과 미리보기">
+                        <Tooltip title="미리보기">
                           <span>
                             <IconButton
                               size="small"
@@ -1085,7 +1088,7 @@ function ProposalsPage() {
                           disabled={!option.preview_image_available}
                           onClick={(event) => { event.stopPropagation(); setPromptPreviewOption(option); }}
                           sx={{ display: { xs: "none", sm: "inline-flex" }, borderRadius: "8px", minHeight: 36, flexShrink: 0, whiteSpace: "nowrap" }}>
-                          결과 미리보기
+                          미리보기
                         </Button>
                       </Stack>
                       <Typography variant="caption" color="text.secondary" sx={{ display: "-webkit-box", mt: 0.65, lineHeight: 1.4, WebkitBoxOrient: "vertical", WebkitLineClamp: { xs: 2, sm: "unset" }, overflow: "hidden" }}>
@@ -1324,6 +1327,7 @@ function ProposalsPage() {
         anchor="right"
         open={canvasOpen}
         onClose={() => setCanvasOpen(false)}
+        sx={{ zIndex: (theme) => theme.zIndex.drawer + 2 }}
         PaperProps={{
           id: "document-canvas-panel", role: "dialog", "aria-modal": true,
           "aria-labelledby": "document-canvas-title",
@@ -1504,7 +1508,6 @@ function ProposalsPage() {
                   onKeyDown={(event) => event.stopPropagation()}
                 >
                   <Button size="small" onClick={() => showFiles(item)}>파일</Button>
-                  {["COMPLETED", "FAILED"].includes(item.status) && ["CONSUMED", "REVIEW_REQUIRED"].includes(item.point_status) && <Button size="small" color="warning" component={Link} to={`/proposals/${item.id}/refund`}>환불 요청</Button>}
                   {item.status === "FAILED" && item.response_available && (
                     <Button size="small" href={proposalRawResponseUrl(item.id, true, false)}>LLM 응답 다운로드</Button>
                   )}
@@ -1559,6 +1562,7 @@ function ProposalsPage() {
               <Chip color={statusColor(selectedReport.status)} label={STATUS_LABELS[selectedReport.status] || selectedReport.status || "상태 확인 중"} />
             </Stack>
             {selectedReport.point_status === "REFUNDED" && <Alert severity="success">포인트 반환 완료 · 이 문서 생성에 사용한 포인트가 반환되었습니다.</Alert>}
+            {["COMPLETED", "FAILED"].includes(selectedReport.status) && ["CONSUMED", "REVIEW_REQUIRED"].includes(selectedReport.point_status) && <Button variant="outlined" color="warning" sx={{ alignSelf: "flex-start" }} component={Link} to={`/proposals/${selectedReport.id}/refund`}>환불 요청</Button>}
             {statusItem && <Typography role="status" aria-live="polite" sx={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>
               {statusMessage || STATUS_LABELS[statusItem.status] || "진행 상태를 확인하고 있습니다."}
             </Typography>}
@@ -1626,9 +1630,17 @@ function ProposalsPage() {
         <DialogTitle>공유 링크</DialogTitle>
         <DialogContent>
           <Stack spacing={1.5} sx={{ mt: 1 }}>
-            {previewItem?.share_status !== "READY" && (
-              <Alert severity="info" variant="outlined">
-                공유용 이미지를 아직 준비 중이에요. 링크는 지금 복사해도 되고, 상대방이 열어보는 시점엔 이미지가 채워져 있을 가능성이 높아요.
+            {previewItem?.share_status === "FAILED" ? (
+              <Alert severity="warning" variant="outlined">
+                공유용 이미지 생성에 실패했어요. 링크는 그대로 복사할 수 있지만 미리보기 이미지는 표시되지 않을 수 있어요.
+              </Alert>
+            ) : previewItem?.share_status === "READY" ? (
+              <Alert severity="success" variant="outlined">
+                공유용 이미지 준비가 완료됐어요.
+              </Alert>
+            ) : (
+              <Alert severity="info" variant="outlined" icon={<CircularProgress size={18} thickness={5} />}>
+                공유용 이미지를 생성하고 있어요. 이미지가 생성되는 데 30초가량 걸릴 수 있습니다. 링크는 지금 복사해도 되고, 상대방이 열어보는 시점엔 이미지가 채워져 있을 가능성이 높아요.
               </Alert>
             )}
             {shareSaveError && <Alert severity="warning" variant="outlined">{shareSaveError}</Alert>}
@@ -1664,6 +1676,34 @@ function ProposalsPage() {
           >
             {shareSaving ? "저장 중..." : copiedShareId === previewItem?.id ? "복사됨" : "요약+링크 복사"}
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={Boolean(failureModal)} onClose={() => setFailureModal(null)} fullWidth maxWidth="sm">
+        <DialogTitle>보고서 생성 실패</DialogTitle>
+        <DialogContent>
+          <Stack spacing={1.5} sx={{ mt: 1 }}>
+            <Typography sx={{ fontWeight: 700 }} noWrap>{failureModal?.title}</Typography>
+            <Alert severity="error" sx={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>
+              {failureModal?.error_message || "보고서 생성 중 오류가 발생했습니다."}
+            </Alert>
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setFailureModal(null)}>닫기</Button>
+          {failureModal?.retryable && (
+            <Button
+              variant="contained"
+              startIcon={<ReplayRoundedIcon />}
+              onClick={async () => {
+                const item = failureModal;
+                setFailureModal(null);
+                await runAction("retry", item);
+              }}
+            >
+              재시도
+            </Button>
+          )}
         </DialogActions>
       </Dialog>
     </Box>
