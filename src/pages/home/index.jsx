@@ -118,7 +118,7 @@ function PromptCard({ prompt, rank, showThumbnail = true }) {
             {prompt.title}
           </Typography>
           <Stack direction="row" justifyContent="space-between" alignItems="center">
-            <Typography variant="caption" color="text.secondary">{prompt.usage_count ? `${prompt.usage_count.toLocaleString("ko-KR")}회 사용` : `필요 코인 ${prompt.point_cost}`}</Typography>
+            <Typography variant="caption" color="text.secondary">{prompt.usage_count ? `${prompt.usage_count.toLocaleString("ko-KR")}회 사용` : `필요 포인트 ${prompt.point_cost}`}</Typography>
             <Button component={Link} to={`/proposals?promptId=${prompt.id}`} size="small" endIcon={<ArrowForwardRoundedIcon />}>만들기</Button>
           </Stack>
         </Stack>
@@ -138,7 +138,7 @@ function PromptCard({ prompt, rank, showThumbnail = true }) {
           </Typography>
           <Button component={Link} to={`/proposals?promptId=${prompt.id}`} size="small" sx={{ flexShrink: 0, minWidth: 0, px: 0.75 }}>만들기</Button>
           <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0, whiteSpace: "nowrap", minWidth: 48, textAlign: "right" }}>
-            {prompt.usage_count ? `${prompt.usage_count.toLocaleString("ko-KR")}회 사용` : `${prompt.point_cost}코인`}
+            {prompt.usage_count ? `${prompt.usage_count.toLocaleString("ko-KR")}회 사용` : `${prompt.point_cost}P`}
           </Typography>
         </Stack>
       )}
@@ -276,7 +276,7 @@ export default function Home() {
         </Paper>
 
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "repeat(2,minmax(0,1fr))", lg: "repeat(4,minmax(0,1fr))" }, gap: 1.5 }}>
-          <StatCard icon={<CoinsRoundedIcon />} label="보유 코인" value={data.summary.total_points} accent="#2563eb" />
+          <StatCard icon={<CoinsRoundedIcon />} label="보유 포인트" value={data.summary.total_points} accent="#2563eb" />
           <StatCard icon={<BoltRoundedIcon />} label="진행 중" value={data.summary.active_reports} accent="#7c3aed" />
           <StatCard icon={<CheckCircleRoundedIcon />} label="완료한 보고서" value={data.summary.completed_reports} accent="#059669" />
           <StatCard icon={<CampaignRoundedIcon />} label="새로운 소식" value={data.latest_posts.length} accent="#ea580c" />

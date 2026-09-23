@@ -137,10 +137,10 @@ export default function GroupsPage() {
           <TextField label="그룹명" value={name} onChange={(e) => setName(e.target.value)} required inputProps={{ maxLength: 150 }} sx={{ flex: 1 }} />
           <Button type="submit" disabled={busy || !name.trim() || name.trim() === detail.group.name}>그룹명 변경</Button>
         </Stack>
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'flex-start', sm: 'center' }}><Typography>그룹 기본 지급 코인: 1인당 매월 {detail.group.monthly_basic_points ?? 0}P · 그룹 생성일 기준 매월 지급·만료</Typography>{admin && <Button disabled={busy} onClick={() => open('monthly')} sx={{ flexShrink: 0 }}>월 지급량 설정</Button>}</Stack>
-        <Typography variant="body2" color="text.secondary">무료 코인은 지급·회수 대상에서 제외됩니다. 추가 구매한 유료 코인만 일괄 지급·회수할 수 있습니다.</Typography>
-        <Typography fontWeight={700}>리더 코인: 무료 {leader?.balance.free_points ?? 0}P · 유료 {leader?.balance.paid_points ?? 0}P</Typography>
-        {!admin && <Button variant="outlined" disabled={busy} onClick={() => open('purchase')}>추가 코인 구매 요청</Button>}
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'flex-start', sm: 'center' }}><Typography>그룹 기본 지급 포인트: 1인당 매월 {detail.group.monthly_basic_points ?? 0}P · 그룹 생성일 기준 매월 지급·만료</Typography>{admin && <Button disabled={busy} onClick={() => open('monthly')} sx={{ flexShrink: 0 }}>월 지급량 설정</Button>}</Stack>
+        <Typography variant="body2" color="text.secondary">지급 포인트는 분배·회수 대상에서 제외됩니다. 구매 포인트만 일괄 분배·회수할 수 있습니다.</Typography>
+        <Typography fontWeight={700}>리더 포인트: 지급 {leader?.balance.free_points ?? 0}P · 구매 {leader?.balance.paid_points ?? 0}P</Typography>
+        {!admin && <Button variant="outlined" disabled={busy} onClick={() => open('purchase')}>추가 포인트 구매 요청</Button>}
       </Stack></Paper>
       <Paper sx={{ p: { xs: 2, sm: 3 }, minWidth: 0 }}><Stack spacing={2}>
         <Stack direction="row" justifyContent="space-between" alignItems="center" gap={1} flexWrap="wrap">
@@ -153,7 +153,7 @@ export default function GroupsPage() {
         </Stack>
         {memberLimitReached && <Alert severity="warning">인원수 제한({detail.group.max_members}명)에 도달했습니다. 새 구성원을 등록하려면 인원 제한을 늘리거나 기존 구성원을 정리해 주세요.</Alert>}
         <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap><Typography>{selectedMembers.length}명 선택</Typography><Button variant="contained" disabled={busy || !selectedMembers.length || selectedMembers.some((item) => item.status !== 'ACTIVE')} onClick={() => open('give')}>일괄 지급</Button><Button variant="outlined" disabled={busy || !selectedMembers.length} onClick={() => open('reclaim')}>일괄 회수</Button></Stack>
-        <TableContainer sx={{ maxWidth: '100%' }}><Table size="small" sx={{ minWidth: 860 }}><TableHead><TableRow><TableCell padding="checkbox"><Checkbox inputProps={{ 'aria-label': '구성원 전체 선택' }} disabled={busy || !selectableMembers.length} checked={allSelected} indeterminate={selectedMembers.length > 0 && !allSelected} onChange={(e) => setSelectedIds(e.target.checked ? selectableMembers.map((item) => item.id) : [])} /></TableCell>{['사번' , '구분명', '이메일', '상태', '무료 / 유료', '관리'].map((label) => <TableCell key={label} sx={{ whiteSpace: 'nowrap' }}>{label}</TableCell>)}</TableRow></TableHead>
+        <TableContainer sx={{ maxWidth: '100%' }}><Table size="small" sx={{ minWidth: 860 }}><TableHead><TableRow><TableCell padding="checkbox"><Checkbox inputProps={{ 'aria-label': '구성원 전체 선택' }} disabled={busy || !selectableMembers.length} checked={allSelected} indeterminate={selectedMembers.length > 0 && !allSelected} onChange={(e) => setSelectedIds(e.target.checked ? selectableMembers.map((item) => item.id) : [])} /></TableCell>{['사번' , '구분명', '이메일', '상태', '지급 / 구매', '관리'].map((label) => <TableCell key={label} sx={{ whiteSpace: 'nowrap' }}>{label}</TableCell>)}</TableRow></TableHead>
           <TableBody>{detail.members.map((item) => <TableRow key={item.id} selected={selectedIds.includes(item.id)}>
             <TableCell padding="checkbox">{item.group_role === 'MEMBER' && <Checkbox inputProps={{ 'aria-label': `${item.employee_number} 선택` }} disabled={busy} checked={selectedIds.includes(item.id)} onChange={(e) => setSelectedIds((prev) => e.target.checked ? [...prev, item.id] : prev.filter((id) => id !== item.id))} />}</TableCell>
             <TableCell>{item.employee_number}{item.group_role === 'LEADER' && <Chip label="리더" size="small" sx={{ ml: 1 }} />}</TableCell>
@@ -168,7 +168,7 @@ export default function GroupsPage() {
             </Stack></TableCell>
           </TableRow>)}</TableBody></Table></TableContainer>
       </Stack></Paper>
-      <Paper sx={{ p: { xs: 2, sm: 3 }, minWidth: 0 }}><Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} gap={1} sx={{ mb: 2 }}><Typography variant="h6">추가 코인 구매 내역</Typography>{admin && <Button variant="contained" disabled={busy || !leader || leader.status !== 'ACTIVE'} onClick={() => open('direct')}>추가 코인 직접 지급</Button>}</Stack>
+      <Paper sx={{ p: { xs: 2, sm: 3 }, minWidth: 0 }}><Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} gap={1} sx={{ mb: 2 }}><Typography variant="h6">추가 포인트 구매 내역</Typography>{admin && <Button variant="contained" disabled={busy || !leader || leader.status !== 'ACTIVE'} onClick={() => open('direct')}>추가 포인트 직접 지급</Button>}</Stack>
         <TableContainer sx={{ maxWidth: '100%' }}><Table size="small" sx={{ minWidth: 680 }}><TableHead><TableRow>{['요청일', '수량', '상태', '결제 확인 번호', '처리'].map((label) => <TableCell key={label} sx={{ whiteSpace: 'nowrap' }}>{label}</TableCell>)}</TableRow></TableHead><TableBody>
           {detail.purchases.map((item) => <TableRow key={item.id}><TableCell>{time(item.created_at)}</TableCell><TableCell>{item.amount}P</TableCell><TableCell>{purchaseStatus[item.status]}{item.is_direct && <Typography variant="caption" display="block">관리자 직접 지급</Typography>}</TableCell><TableCell>{item.payment_reference || '—'}</TableCell><TableCell>{admin && item.status === 'PENDING' && <Button disabled={busy} onClick={() => open('decision', item)}>결제 확인·처리</Button>}</TableCell></TableRow>)}
           {!detail.purchases.length && <TableRow><TableCell colSpan={5}>구매 요청이 없습니다.</TableCell></TableRow>}
@@ -180,33 +180,33 @@ export default function GroupsPage() {
       </TableBody></Table></TableContainer></Paper>
     </>}
     <Dialog open={!!modal} onClose={() => { if (!busy) setModal(null); }} fullWidth maxWidth="sm"><Stack component="form" onSubmit={submit}>
-      <DialogTitle>{{ direct: '추가 코인 직접 지급', monthly: '그룹 월 기본 지급 코인 설정', 'members-limit': '인원 제한 설정', create: '그룹·리더 등록', add: '구성원 등록', edit: '계정 정보 수정', give: '일괄 지급', reclaim: '일괄 회수', purchase: '추가 코인 구매 요청', decision: '구매 요청 처리', reset: '비밀번호 초기화', status: '구성원 상태 변경', delete: '구성원 삭제' }[modal?.type]}</DialogTitle>
+      <DialogTitle>{{ direct: '추가 포인트 직접 지급', monthly: '그룹 월 기본 지급 포인트 설정', 'members-limit': '인원 제한 설정', create: '그룹·리더 등록', add: '구성원 등록', edit: '계정 정보 수정', give: '일괄 지급', reclaim: '일괄 회수', purchase: '추가 포인트 구매 요청', decision: '구매 요청 처리', reset: '비밀번호 초기화', status: '구성원 상태 변경', delete: '구성원 삭제' }[modal?.type]}</DialogTitle>
       <DialogContent><Stack spacing={2} sx={{ pt: 1 }}>
         {error && <Alert severity="error">{error}</Alert>}
-        {modal?.type === 'create' && <>{field('name', '그룹명', { required: true, inputProps: { maxLength: 150 } })}{field('monthly_basic_points', '그룹 기본 지급 코인 (1인당 월 지급량)', { required: true, type: 'number', inputProps: { min: 1, max: 1000000 }, helperText: '리더 포함 활성 구성원에게 매월 지급되는 무료 코인입니다. 그룹 생성일 기준으로 매월 지급되며 다음 지급일에 만료됩니다.' })}</>}
+        {modal?.type === 'create' && <>{field('name', '그룹명', { required: true, inputProps: { maxLength: 150 } })}{field('monthly_basic_points', '그룹 기본 지급 포인트 (1인당 월 지급량)', { required: true, type: 'number', inputProps: { min: 1, max: 1000000 }, helperText: '리더 포함 활성 구성원에게 매월 지급되는 무료 포인트입니다. 그룹 생성일 기준으로 매월 지급되며 다음 지급일에 만료됩니다.' })}</>}
         {modal?.type === 'create' && field('max_members', '인원수 제한 (리더 포함, 선택)', { type: 'number', inputProps: { min: 1, max: 10000 }, helperText: '비워두면 인원수 제한이 없습니다.' })}
         {modal?.type === 'members-limit' && field('max_members', '인원수 제한 (리더 포함, 선택)', { type: 'number', inputProps: { min: 1, max: 10000 }, helperText: '비워두면 인원수 제한이 없습니다. 기존 인원은 유지되며, 초과 상태에서는 새 구성원만 등록할 수 없습니다.' })}
         {['create', 'add'].includes(modal?.type) && field('employee_number', modal?.type === 'create' ? '리더 사번' : '사번', { required: true, inputProps: { maxLength: 50 }, helperText: '기본 비밀번호는 사번과 동일하게 생성되며 첫 로그인 시 변경해야 합니다.' })}
         {modal?.type === 'edit' && field('employee_number', '사번', { required: true, inputProps: { maxLength: 50 }, helperText: '그룹 내에서 중복될 수 없습니다.' })}
         {['create', 'add', 'edit'].includes(modal?.type) && <>{field('display_name', '구분명 (선택)', { inputProps: { maxLength: 100 } })}{field('email', '이메일 (선택)', { type: 'email' })}</>}
-        {modal?.type === 'monthly' && field('monthly_basic_points', '1인당 월 기본 지급 코인', { type: 'number', required: true, inputProps: { min: 0, max: 1000000 }, helperText: '현재 주기에 이미 지급받은 구성원은 다음 지급일부터 변경 수량이 적용됩니다. 0이면 신규 지급을 중지합니다.' })}
+        {modal?.type === 'monthly' && field('monthly_basic_points', '1인당 월 기본 지급 포인트', { type: 'number', required: true, inputProps: { min: 0, max: 1000000 }, helperText: '현재 주기에 이미 지급받은 구성원은 다음 지급일부터 변경 수량이 적용됩니다. 0이면 신규 지급을 중지합니다.' })}
         {['give', 'reclaim'].includes(modal?.type) && <>
-          <Typography>{modal.member_ids.length}명 선택 · 유료 코인만 처리합니다.</Typography>
-          {field('amount', '1인당 코인 수량', { type: 'number', required: true, inputProps: { min: 1, max: 1000000 } })}
-          <Typography color="text.secondary">{modal.type === 'give' ? `각 구성원에게 입력 수량을 지급합니다. 총 지급량: ${Number(form.amount || 0) * modal.member_ids.length}P` : '각 구성원에게서 입력 수량만큼 회수합니다. 잔액이 부족하면 남은 유료 코인만 회수합니다.'}</Typography>
+          <Typography>{modal.member_ids.length}명 선택 · 구매 포인트만 처리합니다.</Typography>
+          {field('amount', '1인당 포인트 수량', { type: 'number', required: true, inputProps: { min: 1, max: 1000000 } })}
+          <Typography color="text.secondary">{modal.type === 'give' ? `각 구성원에게 입력 수량을 지급합니다. 총 지급량: ${Number(form.amount || 0) * modal.member_ids.length}P` : '각 구성원에게서 입력 수량만큼 회수합니다. 잔액이 부족하면 남은 구매 포인트만 회수합니다.'}</Typography>
         </>}
         {modal?.type === 'direct' && <>
-          <Typography>{detail?.group.name}의 리더 {leader?.employee_number}에게 유료 코인을 지급합니다.</Typography>
-          {field('amount', '지급 코인 수량', { type: 'number', required: true, inputProps: { min: 1, max: 1000000, step: 1 } })}
+          <Typography>{detail?.group.name}의 리더 {leader?.employee_number}에게 구매 포인트를 지급합니다.</Typography>
+          {field('amount', '구매 포인트 수량', { type: 'number', required: true, inputProps: { min: 1, max: 1000000, step: 1 } })}
           {field('payment_reference', '결제 확인 번호', { required: true, inputProps: { maxLength: 100 } })}
           <Typography color="text.secondary">실제 결제를 확인한 후 지급하세요. 구매 요청 없이 바로 지급되며 구매 내역에 기록됩니다.</Typography>
         </>}
-        {modal?.type === 'purchase' && field('amount', '코인 수량', { type: 'number', required: true, inputProps: { min: 1, max: 1000000 } })}
-        {modal?.type === 'purchase' && <Typography color="text.secondary">결제 확인 후 리더 계정에 유료 코인이 지급됩니다.</Typography>}
+        {modal?.type === 'purchase' && field('amount', '포인트 수량', { type: 'number', required: true, inputProps: { min: 1, max: 1000000 } })}
+        {modal?.type === 'purchase' && <Typography color="text.secondary">결제 확인 후 리더 계정에 구매 포인트가 지급됩니다.</Typography>}
         {modal?.type === 'decision' && <>{field('action', '처리', { select: true, children: [<MenuItem key="approve" value="APPROVE">결제 확인 후 지급</MenuItem>, <MenuItem key="reject" value="REJECT">거절</MenuItem>] })}{form.action === 'APPROVE' && field('payment_reference', '결제 확인 번호', { required: true, inputProps: { maxLength: 100 } })}<Typography>{modal.item.amount}P 요청입니다. 실제 결제를 확인한 후 지급하세요.</Typography></>}
         {modal?.type === 'reset' && <Typography>{modal.item.employee_number} 계정을 기본 비밀번호(사번과 동일)로 초기화합니다. 기존 로그인은 종료되며 다음 로그인 시 변경해야 합니다.</Typography>}
-        {modal?.type === 'delete' && <Typography>{modal.item.employee_number} 계정을 삭제합니다. 비활성화되어 로그인할 수 없게 되고, 미사용 유료 코인은 리더에게 자동 회수되며 기존 로그인은 종료됩니다. 사번과 이메일이 비워져 사번 {modal.item.employee_number}와 등록된 이메일 모두 이후 다른 구성원 등록에 다시 사용할 수 있습니다.</Typography>}
-        {modal?.type === 'status' && <Typography>{modal.item.employee_number} 계정을 {modal.item.status === 'ACTIVE' ? '비활성화합니다. 미사용 유료 코인만 리더에게 자동 회수되고 기존 로그인은 종료됩니다.' : '활성화합니다.'}</Typography>}
+        {modal?.type === 'delete' && <Typography>{modal.item.employee_number} 계정을 삭제합니다. 비활성화되어 로그인할 수 없게 되고, 미사용 구매 포인트는 리더에게 자동 회수되며 기존 로그인은 종료됩니다. 사번과 이메일이 비워져 사번 {modal.item.employee_number}와 등록된 이메일 모두 이후 다른 구성원 등록에 다시 사용할 수 있습니다.</Typography>}
+        {modal?.type === 'status' && <Typography>{modal.item.employee_number} 계정을 {modal.item.status === 'ACTIVE' ? '비활성화합니다. 미사용 구매 포인트만 리더에게 자동 회수되고 기존 로그인은 종료됩니다.' : '활성화합니다.'}</Typography>}
       </Stack></DialogContent>
       <DialogActions><Button disabled={busy} onClick={() => setModal(null)}>취소</Button><Button type="submit" variant="contained" disabled={busy}>{busy ? '처리 중…' : '확인'}</Button></DialogActions>
     </Stack></Dialog>

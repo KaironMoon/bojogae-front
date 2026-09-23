@@ -31,8 +31,25 @@ async function verifyEmailChangeLink(token) {
   return response.data;
 }
 
+async function getMyPlan() {
+  const response = await apiCaller.get("/api/v1/users/me/plan");
+  return response.data;
+}
+
+async function requestPlanChange(planCode) {
+  const response = await apiCaller.post("/api/v1/users/me/plan-requests", { plan_code: planCode });
+  return response.data;
+}
+
+async function cancelPlanRequest(requestId) {
+  await apiCaller.delete(`/api/v1/users/me/plan-requests/${requestId}`);
+}
+
 export {
+  cancelPlanRequest,
+  getMyPlan,
   getMyProfile,
+  requestPlanChange,
   requestEmailChange,
   updateMyProfile,
   verifyEmailChangeCode,

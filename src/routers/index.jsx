@@ -37,6 +37,7 @@ import {
   RestrictedUserRoute,
 } from "../auth/RouteGuards";
 import LandingPage from "../pages/landing/LandingPage";
+import PolicyPage from "../pages/policy/PolicyPage";
 
 const ProductLayout = lazy(() => import("../pages/product/ProductLayout"));
 const ProductList = lazy(() => import("../pages/product"));
@@ -61,6 +62,8 @@ const ProductRouter = [
 
 const router = createBrowserRouter([
   { path: "/board/posts/:postId", element: <BoardPostPage /> },
+  { path: "/terms", element: <PolicyPage key="terms" kind="terms" /> },
+  { path: "/privacy", element: <PolicyPage key="privacy" kind="privacy" /> },
   { path: "/group/change-password", element: <GroupPasswordPage /> },
   { path: "/group/password-reset", element: <GroupPasswordPage /> },
   {

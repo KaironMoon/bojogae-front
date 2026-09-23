@@ -75,10 +75,12 @@ async function grantFreePoints(userId, { amount, expirationDate, reason, idempot
   return response.data;
 }
 
-async function sendSignupEmail(signupToken, email) {
+async function sendSignupEmail(signupToken, email, termsAgreed, planCode) {
   await apiCaller.post("/api/v1/auth/signup/email", {
     signup_token: signupToken,
     email,
+    terms_agreed: termsAgreed === true,
+    plan_code: planCode,
   });
 }
 

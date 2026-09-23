@@ -20,6 +20,7 @@ import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import ManageAccountsRoundedIcon from "@mui/icons-material/ManageAccountsRounded";
 import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
 import { useCallback, useEffect, useState } from "react";
+import { planName } from "@/constants/plans";
 
 import {
   decidePersonalPlanRequest,
@@ -80,7 +81,7 @@ function UsersPage() {
       await decidePersonalPlanRequest(user.pending_plan_request_id, action);
       await loadUsers(page);
     } catch {
-      setError("베이직 가입 신청을 처리하지 못했습니다.");
+      setError("요금제 신청을 처리하지 못했습니다.");
     } finally {
       setWorkingUserId(null);
     }
@@ -159,21 +160,28 @@ function UsersPage() {
                     <Typography variant="h6" sx={{ fontWeight: 750 }}>{user.display_name}</Typography>
                     <Chip label={user.status} size="small" color={user.status === "ACTIVE" ? "success" : user.status === "PENDING" ? "warning" : "default"} />
                     {user.role === "ADMIN" && <Chip label="ADMIN" size="small" color="primary" />}
-                    <Chip label={user.plan_code === "BASIC" ? "BASIC" : "FREE"} size="small" color={user.plan_code === "BASIC" ? "primary" : "default"} variant="outlined" />
-                    {user.plan_request_status === "PENDING" && <Chip label="베이직 신청 대기" size="small" color="warning" />}
+                    <Chip label={planName(user.plan_code)} size="small" color={user.plan_code && user.plan_code !== "FREE" ? "primary" : "default"} variant="outlined" />
+                    {user.next_plan_code && <Chip label={`${new Date(user.next_plan_effective_at).toLocaleDateString("ko-KR")}부터 ${user.next_plan_code === "FREE" ? "해지" : planName(user.next_plan_code)}`} size="small" variant="outlined" />}
+                    {user.plan_request_status === "PENDING" && (
+                      <Chip
+                        label={`${user.requested_plan_code === "FREE" ? "해지" : planName(user.requested_plan_code)} 신청 대기${user.status === "PENDING" ? " · 계정 승인 시 적용" : ""}`}
+                        size="small"
+                        color="warning"
+                      />
+                    )}
                   </Stack>
                   <Typography variant="body2" color="text.secondary">{user.email || "이메일 없음"}</Typography>
                   <Typography variant="caption" color="text.secondary">{user.providers.join(" · ")}</Typography>
                   <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                    <Chip label={`무료 ${user.free_points.toLocaleString()}P`} size="small" variant="outlined" color="success" />
-                    <Chip label={`유료 ${user.paid_points.toLocaleString()}P`} size="small" variant="outlined" color="primary" />
+                    <Chip label={`지급 ${user.free_points.toLocaleString()}P`} size="small" variant="outlined" color="success" />
+                    <Chip label={`구매 ${user.paid_points.toLocaleString()}P`} size="small" variant="outlined" color="primary" />
                   </Stack>
                 </Stack>
                 <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
-                  {user.pending_plan_request_id && (
+                  {user.pending_plan_request_id && user.status !== "PENDING" && (
                     <>
-                      <Button variant="contained" color="primary" disabled={workingUserId === user.id} onClick={() => decidePlan(user, "APPROVE")}>베이직 승인</Button>
-                      <Button variant="outlined" color="warning" disabled={workingUserId === user.id} onClick={() => decidePlan(user, "REJECT")}>베이직 거절</Button>
+                      <Button variant="contained" color="primary" disabled={workingUserId === user.id} onClick={() => decidePlan(user, "APPROVE")}>{user.requested_plan_code === "FREE" ? "해지" : planName(user.requested_plan_code)} 승인</Button>
+                      <Button variant="outlined" color="warning" disabled={workingUserId === user.id} onClick={() => decidePlan(user, "REJECT")}>{user.requested_plan_code === "FREE" ? "해지" : planName(user.requested_plan_code)} 거절</Button>
                     </>
                   )}
                   {user.role !== "ADMIN" && (

@@ -83,9 +83,9 @@ function ProposalSettingsPage() {
       {message && <Alert severity="success" sx={{ mb: 2 }}>{message}</Alert>}
       <Paper variant="outlined" sx={{ p: 3, borderRadius: 3, mb: 3 }}>
         <Stack spacing={2}>
-          <Typography variant="h6" fontWeight={800}>개인 무료체험 코인</Typography>
+          <Typography variant="h6" fontWeight={800}>개인 무료체험 포인트</Typography>
           <Typography variant="body2" color="text.secondary">
-            FREE 가입자에게 계정 승인 시 20코인을 최초 1회 지급합니다. 지급일부터 30일간 사용할 수 있으며 월별 리셋이나 재지급은 없습니다.
+            FREE 가입자에게 계정 승인 시 20P를 최초 1회 지급합니다. 지급일부터 30일간 사용할 수 있으며 월별 리셋이나 재지급은 없습니다.
           </Typography>
         </Stack>
       </Paper>

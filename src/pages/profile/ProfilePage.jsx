@@ -24,6 +24,7 @@ import {
 } from "@/services/profile-service";
 import { getPointBalance } from "@/services/proposal-service";
 import ExpiringPoints from "@/pages/components/ExpiringPoints";
+import PlanSection from "@/pages/profile/PlanSection";
 import {
   disableBrowserPush,
   enableBrowserPush,
@@ -199,18 +200,10 @@ function ProfilePage() {
               <Typography variant="h5" fontWeight={850}>{pointBalance.total_points.toLocaleString()}P</Typography>
             </Box>
           </Stack>
-          <Stack direction="row" spacing={3}>
-            <Box>
-              <Typography variant="caption" color="text.secondary">무료 포인트</Typography>
-              <Typography fontWeight={800} color="success.main">{pointBalance.free_points.toLocaleString()}P</Typography>
-            </Box>
-            <Box>
-              <Typography variant="caption" color="text.secondary">유료 포인트</Typography>
-              <Typography fontWeight={800} color="primary.main">{pointBalance.paid_points.toLocaleString()}P</Typography>
-            </Box>
-          </Stack>
         </Stack>
       </Paper>
+
+      <PlanSection />
 
       <Paper elevation={0} sx={{ p: { xs: 2.5, md: 4 }, border: "1px solid", borderColor: "divider", borderRadius: 3 }}>
         <ExpiringPoints balance={pointBalance} />

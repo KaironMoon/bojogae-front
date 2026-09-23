@@ -13,8 +13,8 @@ export default function MyCoinsPage() {
     return () => { active = false; };
   }, [page]);
   return <Box component="main" sx={{ p: { xs: 2, md: 4 }, maxWidth: 1280, mx: 'auto' }}>
-    <Paper sx={{ p: { xs: 2, sm: 3 } }}><Stack spacing={2}><Typography variant="h5" fontWeight={800}>내 코인</Typography>{error && <Alert severity="error">{error}</Alert>}
-      {detail && <><Typography sx={{ overflowWrap: 'anywhere' }}>무료 {detail.summary.free_points}P · 유료 {detail.summary.paid_points}P · 예약 중 {detail.summary.reserved_points}P</Typography><PointGrantsTable items={detail.items} />{!detail.items.length && <Typography>지급 내역이 없습니다.</Typography>}<Pagination count={Math.max(1, detail.total_pages)} page={page} onChange={(_, value) => setPage(value)} /></>}
+    <Paper sx={{ p: { xs: 2, sm: 3 } }}><Stack spacing={2}><Typography variant="h5" fontWeight={800}>내 포인트</Typography>{error && <Alert severity="error">{error}</Alert>}
+      {detail && <><Typography sx={{ overflowWrap: 'anywhere' }}>보유 {(detail.summary.free_points + detail.summary.paid_points).toLocaleString()}P · 예약 중 {detail.summary.reserved_points}P</Typography><PointGrantsTable items={detail.items} hideType />{!detail.items.length && <Typography>지급 내역이 없습니다.</Typography>}<Pagination count={Math.max(1, detail.total_pages)} page={page} onChange={(_, value) => setPage(value)} /></>}
     </Stack></Paper>
   </Box>;
 }

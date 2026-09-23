@@ -2,7 +2,11 @@ import {
   Alert,
   Box,
   Button,
+  ButtonBase,
+  Checkbox,
   Container,
+  FormControlLabel,
+  Link as MuiLink,
   Paper,
   Stack,
   TextField,
@@ -14,6 +18,40 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
 import { useAuth } from "@/auth/AuthContext";
 import { sendSignupEmail, verifySignupCode } from "@/services/auth-service";
+import { PLAN_INFO, isSignupPlan } from "@/constants/plans";
+
+const PLAN_OPTIONS = ["FREE", "BASIC", "STANDARD", "PRO"];
+
+function PlanOption({ code, selected, disabled, onSelect }) { // eslint-disable-line react/prop-types
+  const plan = PLAN_INFO[code];
+  const unavailable = plan.comingSoon;
+  return (
+    <ButtonBase
+      onClick={() => onSelect(code)}
+      disabled={disabled || unavailable}
+      aria-pressed={selected}
+      sx={{
+        display: "block",
+        textAlign: "left",
+        p: 1.75,
+        borderRadius: 3,
+        border: "1.5px solid",
+        borderColor: selected ? "primary.main" : "divider",
+        bgcolor: selected ? "primary.light" : "background.paper",
+        opacity: unavailable ? 0.55 : 1,
+        transition: "border-color .15s, background-color .15s",
+      }}
+    >
+      <Stack direction="row" justifyContent="space-between" alignItems="baseline" spacing={1}>
+        <Typography fontWeight={800} color={selected ? "primary.dark" : "text.primary"}>{plan.name}</Typography>
+        <Typography variant="caption" color="text.secondary" noWrap>
+          {plan.price}{code === "FREE" ? "" : ` / ${plan.priceUnit}`}
+        </Typography>
+      </Stack>
+      <Typography variant="caption" color="text.secondary">{plan.summary}</Typography>
+    </ButtonBase>
+  );
+}
 
 const errorMessages = {
   signup_expired: "가입 요청이 만료되었습니다. 소셜 로그인을 다시 진행해 주세요.",
@@ -22,6 +60,8 @@ const errorMessages = {
   invalid_verification_code: "인증번호가 올바르지 않습니다.",
   verification_locked: "인증번호 입력 횟수를 초과했습니다. 인증메일을 다시 받아 주세요.",
   verification_expired: "인증번호가 만료되었습니다. 인증메일을 다시 받아 주세요.",
+  terms_agreement_required: "서비스이용약관 및 개인정보처리방침에 동의해 주세요.",
+  invalid_plan: "선택할 수 없는 요금제입니다.",
 };
 
 function destinationFor(user) {
@@ -37,10 +77,12 @@ function errorCode(error) {
 function SignupCompletePage() {
   const [searchParams] = useSearchParams();
   const signupToken = searchParams.get("token") || "";
-  const requestedPlan = searchParams.get("plan") === "BASIC" ? "BASIC" : "FREE";
+  const urlPlan = searchParams.get("plan");
   const navigate = useNavigate();
   const { refreshUser } = useAuth();
   const [email, setEmail] = useState("");
+  const [termsAgreed, setTermsAgreed] = useState(false);
+  const [planCode, setPlanCode] = useState(isSignupPlan(urlPlan) ? urlPlan : "");
   const [code, setCode] = useState("");
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -59,7 +101,7 @@ function SignupCompletePage() {
     setLoading(true);
     setError("");
     try {
-      await sendSignupEmail(signupToken, email);
+      await sendSignupEmail(signupToken, email, termsAgreed, planCode);
       setSent(true);
       setCooldown(60);
     } catch (requestError) {
@@ -105,11 +147,21 @@ function SignupCompletePage() {
               </Typography>
             </Stack>
 
-            <Alert severity={requestedPlan === "BASIC" ? "info" : "success"}>
-              {requestedPlan === "BASIC"
-                ? "베이직 가입 신청입니다. 이메일 인증과 계정 승인 후 베이직 승인 절차가 이어집니다."
-                : "무료체험 가입입니다. 계정 승인 시 30일간 사용할 수 있는 20코인이 한 번 지급됩니다."}
-            </Alert>
+            <Stack spacing={1.25}>
+              <Typography variant="subtitle2" fontWeight={800}>요금제 선택 (필수)</Typography>
+              <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 1.25 }}>
+                {PLAN_OPTIONS.map((code) => (
+                  <PlanOption key={code} code={code} selected={planCode === code} disabled={loading || sent} onSelect={setPlanCode} />
+                ))}
+              </Box>
+              {planCode && (
+                <Alert severity={planCode === "FREE" ? "success" : "info"}>
+                  {planCode === "FREE"
+                    ? "무료체험 가입입니다. 계정 승인 시 30일간 사용할 수 있는 20P가 한 번 지급됩니다."
+                    : `${PLAN_INFO[planCode].name} 가입 신청입니다. 계정 승인 시 요금제가 함께 적용되며 매월 ${PLAN_INFO[planCode].monthlyPoints}P가 지급됩니다.`}
+                </Alert>
+              )}
+            </Stack>
 
             {error && <Alert severity="error">{errorMessages[error] || "요청을 처리하지 못했습니다."}</Alert>}
 
@@ -122,11 +174,29 @@ function SignupCompletePage() {
               fullWidth
               autoFocus
             />
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={termsAgreed}
+                  onChange={(event) => setTermsAgreed(event.target.checked)}
+                  disabled={loading}
+                />
+              }
+              label={
+                <Typography variant="body2" color="text.secondary">
+                  <MuiLink component={Link} to="/terms" target="_blank" rel="noopener">서비스이용약관</MuiLink>
+                  {" 및 "}
+                  <MuiLink component={Link} to="/privacy" target="_blank" rel="noopener">개인정보처리방침</MuiLink>
+                  에 동의합니다. (필수)
+                </Typography>
+              }
+              sx={{ alignItems: "flex-start", mx: 0, "& .MuiCheckbox-root": { mt: -0.75, ml: -1.25 } }}
+            />
             <Button
               variant="contained"
               size="large"
               onClick={requestEmail}
-              disabled={loading || !email || (sent && cooldown > 0)}
+              disabled={loading || !email || !planCode || !termsAgreed || (sent && cooldown > 0)}
             >
               {sent && cooldown > 0 ? `${cooldown}초 후 재발송` : sent ? "인증메일 다시 보내기" : "인증메일 보내기"}
             </Button>

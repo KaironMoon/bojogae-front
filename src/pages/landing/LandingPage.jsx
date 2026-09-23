@@ -25,7 +25,7 @@ import SendRoundedIcon from "@mui/icons-material/SendRounded";
 import TaskAltRoundedIcon from "@mui/icons-material/TaskAltRounded";
 import UploadFileRoundedIcon from "@mui/icons-material/UploadFileRounded";
 import { useEffect, useRef, useState } from "react";
-import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 
 import { createGroupInquiry, groupInquiryError } from "@/services/group-inquiry-service";
 import { shouldSkipLanding, skipLandingFromNowOn } from "@/auth/landing-preference-storage";
@@ -100,8 +100,9 @@ const reviews = [
 
 const plans = [
   { name: "1달 무료 체험", code: "FREE", price: "0원", unit: "30일", tag: "20회 무료", features: ["AI 요약 보고서 20회", "카드 등록 없이 시작", "월별 리셋·재지급 없음"] },
-  { name: "개인 베이직", code: "BASIC", price: "29,000원", unit: "월", tag: "가장 선호", featured: true, features: ["월간 요약 보고서 50회", "쉬운 설명 자동 변환", "생성 보고서 아카이빙"] },
-  { name: "프로", price: "49,000원", unit: "월", tag: "준비 중", comingSoon: true, features: ["월간 요약 보고서 100회", "우선순위 AI 프로세싱", "개인 브랜딩 서명"] },
+  { name: "베이직", code: "BASIC", price: "19,000원", unit: "월", tag: "가볍게 시작", features: ["매월 30P 지급", "쉬운 설명 자동 변환", "생성 보고서 아카이빙"] },
+  { name: "스탠다드", code: "STANDARD", price: "29,000원", unit: "월", tag: "가장 선호", featured: true, features: ["매월 50P 지급", "쉬운 설명 자동 변환", "생성 보고서 아카이빙"] },
+  { name: "프로", price: "49,000원", unit: "월", tag: "준비 중", comingSoon: true, features: ["프로 전용 부가 기능", "월 지급 포인트 추후 안내"] },
   { name: "사무실 그룹", price: "별도 문의", unit: "단체 할인", tag: "지점 · 본부 · GA", dark: true, features: ["사번 기반 그룹 로그인", "지점장 관리자 대시보드", "단체 맞춤형 운영 지원"] },
 ];
 
@@ -430,7 +431,7 @@ export default function LandingPage() {
 
         <section id="pricing" className="pricing-section">
           <div className="section-heading" data-reveal><span>PRICING PLAN</span><h2>부담 없는 요금으로<br />나만의 AI 영업 비서를 두세요</h2><p>1달간 20회 무료 체험으로 먼저 효과를 검증해보세요. 유료 전환은 직접 선택합니다.</p></div>
-          <div className="pricing-grid">{plans.map(plan => <article key={plan.name} className={`${plan.featured ? "featured" : ""} ${plan.dark ? "dark" : ""} ${plan.comingSoon ? "coming-soon" : ""}`} data-reveal><span className="plan-tag">{plan.tag}</span><h3>{plan.name}</h3><div className="plan-price"><strong>{plan.price}</strong><small>/ {plan.unit}</small></div><ul>{plan.features.map(feature => <li key={feature}><CheckRoundedIcon />{feature}</li>)}</ul><button disabled={plan.comingSoon} onClick={() => plan.dark ? setInquiryOpen(true) : goLogin("personal", plan.code)}>{plan.comingSoon ? "출시 준비 중" : plan.dark ? "단체 도입 문의" : plan.code === "BASIC" ? "베이직 가입 신청" : "무료로 시작"}{!plan.comingSoon && <ArrowForwardRoundedIcon />}</button></article>)}</div>
+          <div className="pricing-grid">{plans.map(plan => <article key={plan.name} className={`${plan.featured ? "featured" : ""} ${plan.dark ? "dark" : ""} ${plan.comingSoon ? "coming-soon" : ""}`} data-reveal><span className="plan-tag">{plan.tag}</span><h3>{plan.name}</h3><div className="plan-price"><strong>{plan.price}</strong><small>/ {plan.unit}</small></div><ul>{plan.features.map(feature => <li key={feature}><CheckRoundedIcon />{feature}</li>)}</ul><button disabled={plan.comingSoon} onClick={() => plan.dark ? setInquiryOpen(true) : goLogin("personal", plan.code)}>{plan.comingSoon ? "출시 준비 중" : plan.dark ? "단체 도입 문의" : plan.code === "FREE" ? "무료로 시작" : `${plan.name} 가입 신청`}{!plan.comingSoon && <ArrowForwardRoundedIcon />}</button></article>)}</div>
         </section>
 
         <section className="faq-section"><div className="faq-heading" data-reveal><span>FAQ</span><h2>자주 묻는 질문</h2><p>보조개 서비스 이용에 관해 궁금한 점을 확인하세요.</p></div><div className="faq-list">{faqs.map(([question, answer], index) => <article key={question} className={openFaq === index ? "open" : ""} data-reveal><button onClick={() => setOpenFaq(openFaq === index ? -1 : index)} aria-expanded={openFaq === index}><span>{question}</span><i>+</i></button><div><p>{answer}</p></div></article>)}</div></section>
@@ -438,7 +439,7 @@ export default function LandingPage() {
         <section className="final-cta" data-reveal><div><span>YOUR NEXT PROPOSAL</span><h2>다음 제안서는<br />보조개와 시작하세요.</h2><p>정리는 AI에게 맡기고, 설계사님은 고객의 마음에 집중하세요.</p></div><div className="final-actions"><button onClick={() => goLogin("personal", "FREE")}>1달 무료 체험 시작 (20회 제공) <ArrowForwardRoundedIcon /></button><button className="outline" onClick={() => setInquiryOpen(true)}>단체 도입 문의</button></div></section>
       </main>
 
-      <footer className="landing-footer"><a className="brand footer-brand" href="#top"><span className="brand-mark">B</span><span>보조개<small>보험설계사를 조력하는 AI 개인비서</small></span></a><div><button onClick={() => goLogin("group")}>단체 로그인</button><button onClick={() => goLogin()}>개인 로그인</button><a href="#pricing">이용 요금</a></div><p>© 2026 BOJOGAE. All rights reserved.</p></footer>
+      <footer className="landing-footer"><a className="brand footer-brand" href="#top"><span className="brand-mark">B</span><span>보조개<small>보험설계사를 조력하는 AI 개인비서</small></span></a><div><button onClick={() => goLogin("group")}>단체 로그인</button><button onClick={() => goLogin()}>개인 로그인</button><a href="#pricing">이용 요금</a><Link to="/terms">서비스이용약관</Link><Link to="/privacy">개인정보처리방침</Link></div><p>© 2026 BOJOGAE. All rights reserved.</p></footer>
       <InquiryDialog open={inquiryOpen} onClose={() => setInquiryOpen(false)} />
     </Box>
   );

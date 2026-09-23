@@ -808,8 +808,7 @@ function ProposalsPage() {
         <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" gap={1}>
           <Typography variant="h4" sx={{ fontSize: { xs: 26, sm: 30, md: 34 }, fontWeight: 850, letterSpacing: "-0.04em" }}>보고서 만들기</Typography>
           <Stack direction="row" spacing={1}>
-            <Chip label={`무료 ${pointBalance.free_points.toLocaleString()}P`} color="success" variant="outlined" />
-            <Chip label={`유료 ${pointBalance.paid_points.toLocaleString()}P`} color="primary" variant="outlined" />
+            <Chip label={`보유 ${pointBalance.total_points.toLocaleString()}P`} color="primary" variant="outlined" />
           </Stack>
         </Stack>
         <Typography color="text.secondary" sx={{ mt: 0.5, fontSize: { xs: 13, sm: 14 } }}>

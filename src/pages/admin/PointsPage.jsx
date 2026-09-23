@@ -152,7 +152,7 @@ function PointsPage() {
       setMessage(`${targetName} 사용자에게 ${amount.toLocaleString()}P를 지급했습니다.`);
       await load(result.page);
     } catch {
-      setError("무료 포인트를 지급하지 못했습니다.");
+      setError("포인트를 지급하지 못했습니다.");
     } finally {
       setWorking(false);
     }
@@ -163,7 +163,7 @@ function PointsPage() {
       <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" gap={2} sx={{ mb: 3 }}>
         <Box>
           <Typography variant="h4" component="h1" fontWeight={850}>포인트 관리</Typography>
-          <Typography color="text.secondary">사용자별 무료·유료 포인트 잔액을 확인하고 무료 포인트를 지급합니다.</Typography>
+          <Typography color="text.secondary">사용자별 지급·구매 포인트 잔액을 확인하고 포인트를 지급합니다.</Typography>
         </Box>
         <Button startIcon={<RefreshRoundedIcon />} onClick={() => load(result.page)}>새로고침</Button>
       </Stack>
@@ -172,8 +172,8 @@ function PointsPage() {
       {message && <Alert severity="success" onClose={() => setMessage("")} sx={{ mb: 2 }}>{message}</Alert>}
 
       <Stack direction={{ xs: "column", md: "row" }} spacing={2} sx={{ mb: 3 }}>
-        <SummaryCard title="현재 페이지 무료 포인트" value={totals.free} icon={RedeemRoundedIcon} color="#059669" background="#ecfdf5" />
-        <SummaryCard title="현재 페이지 유료 포인트" value={totals.paid} icon={PaymentsRoundedIcon} color="#2563eb" background="#eff6ff" />
+        <SummaryCard title="현재 페이지 지급 포인트" value={totals.free} icon={RedeemRoundedIcon} color="#059669" background="#ecfdf5" />
+        <SummaryCard title="현재 페이지 구매 포인트" value={totals.paid} icon={PaymentsRoundedIcon} color="#2563eb" background="#eff6ff" />
         <SummaryCard title="현재 페이지 전체 포인트" value={totals.total} icon={AccountBalanceWalletRoundedIcon} color="#7c3aed" background="#f5f3ff" />
       </Stack>
 
@@ -207,13 +207,13 @@ function PointsPage() {
                   <Typography variant="body2" color="text.secondary">{user.email || "이메일 없음"}</Typography>
                 </Box>
                 <Stack direction={{ xs: "column", sm: "row" }} alignItems={{ sm: "center" }} gap={1.25}>
-                  <Chip label={`무료 ${user.free_points.toLocaleString()}P`} color="success" variant="outlined" />
-                  <Chip label={`유료 ${user.paid_points.toLocaleString()}P`} color="primary" variant="outlined" />
+                  <Chip label={`지급 ${user.free_points.toLocaleString()}P`} color="success" variant="outlined" />
+                  <Chip label={`구매 ${user.paid_points.toLocaleString()}P`} color="primary" variant="outlined" />
                   <Typography sx={{ minWidth: 100, textAlign: { sm: "right" }, fontWeight: 850 }}>
                     총 {user.total_points.toLocaleString()}P
                   </Typography>
                   <Button variant="contained" startIcon={<AddCardRoundedIcon />} onClick={() => openGrant(user)}>
-                    무료 포인트 지급
+                    포인트 지급
                   </Button>
                   <Button onClick={() => showDetails(user)}>포인트 상세</Button>
                 </Stack>
@@ -230,7 +230,7 @@ function PointsPage() {
 
       <Dialog open={Boolean(grantTarget)} onClose={() => !working && setGrantTarget(null)} fullWidth maxWidth="xs">
  
-        <DialogTitle>무료 포인트 지급</DialogTitle>
+        <DialogTitle>포인트 지급</DialogTitle>
         <DialogContent>
           <DialogContentText sx={{ mb: 2 }}>
             {grantTarget?.display_name} 사용자에게 지급할 포인트를 입력하세요.
@@ -282,9 +282,9 @@ function PointsPage() {
           {detailError ? <Alert severity="error">{detailError}</Alert> : !details ? <CircularProgress /> : (
             <Stack spacing={2}>
               <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(4, 1fr)' }, gap: 1 }}>
-                {[['free_points', '무료 사용 가능'], ['paid_points', '유료 사용 가능'], ['reserved_points', '예약 중'], ['expiring_points', '7일 내 만료 예정']].map(([key, label]) => <Paper key={key} variant="outlined" sx={{ p: 2, borderRadius: 2 }}><Typography variant="body2" color="text.secondary">{label}</Typography><Typography variant="h6" fontWeight={800}>{details.summary[key].toLocaleString()}P</Typography></Paper>)}
+                {[['free_points', '지급 사용 가능'], ['paid_points', '구매 사용 가능'], ['reserved_points', '예약 중'], ['expiring_points', '7일 내 만료 예정']].map(([key, label]) => <Paper key={key} variant="outlined" sx={{ p: 2, borderRadius: 2 }}><Typography variant="body2" color="text.secondary">{label}</Typography><Typography variant="h6" fontWeight={800}>{details.summary[key].toLocaleString()}P</Typography></Paper>)}
               </Box>
-              <Typography variant="caption" color="text.secondary">사용자 전체 잔액 기준 · 예약 중 포인트는 사용 가능 잔액에서 제외됩니다. 무료는 만료 임박 순, 유료는 마지막에 표시됩니다.</Typography>
+              <Typography variant="caption" color="text.secondary">사용자 전체 잔액 기준 · 예약 중 포인트는 사용 가능 잔액에서 제외됩니다. 지급 포인트는 만료 임박 순, 구매 포인트는 마지막에 표시됩니다.</Typography>
               <PointGrantsTable items={details.items} />
               {!details.items.length && <Alert severity="info">지급 내역이 없습니다.</Alert>}
               {details.total_pages > 1 && <Pagination page={details.page} count={details.total_pages} onChange={(_, page) => showDetails(detailUser, page, grantFilter)} />}

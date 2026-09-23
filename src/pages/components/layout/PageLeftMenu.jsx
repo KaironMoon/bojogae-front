@@ -28,6 +28,7 @@ import ViewCarouselOutlinedIcon from "@mui/icons-material/ViewCarouselOutlined";
 import ContactPhoneOutlinedIcon from "@mui/icons-material/ContactPhoneOutlined";
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { planName } from "@/constants/plans";
 
 import { useAuth } from "@/auth/AuthContext";
 
@@ -64,7 +65,7 @@ const REPORT_MENU = [
 
 const PROFILE_MENU = [
   { label: "정보 수정", path: "/profile", icon: AccountCircleOutlinedIcon },
-  { label: "내 코인", path: "/my-coins", icon: AccountBalanceWalletOutlinedIcon },
+  { label: "내 포인트", path: "/my-coins", icon: AccountBalanceWalletOutlinedIcon },
 ];
 
 const ADMIN_BOARD_MENU = [
@@ -240,8 +241,11 @@ function PageLeftMenu({ onNavigate }) { // eslint-disable-line react/prop-types
       <Box sx={{ flex: 1 }} />
       <Box sx={{ px: 2, py: 1.75, borderTop: "1px solid #eef1f5", textAlign: "center" }}>
         {user && !user.group_id && (
-          <Typography sx={{ color: user?.plan_code === "BASIC" ? "primary.main" : "#64748b", fontSize: 11, fontWeight: 800, mb: 0.5 }}>
-            개인 {user?.plan_code === "BASIC" ? "BASIC" : "FREE"} 요금제
+          <Typography
+            onClick={() => navigate("/profile#plan")}
+            sx={{ color: user?.plan_code && user.plan_code !== "FREE" ? "primary.main" : "#64748b", fontSize: 11, fontWeight: 800, mb: 0.5, cursor: "pointer" }}
+          >
+            개인 {planName(user?.plan_code)} 요금제
           </Typography>
         )}
         <StackVersion />

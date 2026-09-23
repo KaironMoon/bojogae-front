@@ -1,5 +1,6 @@
 import { Box, Typography, Link } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
+import { Link as RouterLink } from "react-router-dom";
 
 function PageFooter() {
   const theme = useTheme();
@@ -24,11 +25,11 @@ function PageFooter() {
       >
         <Typography variant="body2">© {new Date().getFullYear()} BOJOGAE. All rights reserved.</Typography>
         <Box sx={{ display: "flex", flexWrap: "wrap", gap: { xs: 1.5, sm: 2 } }}>
-          <Link href="#" color="inherit" underline="hover" sx={{ whiteSpace: "nowrap" }}>
-            Privacy Policy
+          <Link component={RouterLink} to="/privacy" color="inherit" underline="hover" sx={{ whiteSpace: "nowrap" }}>
+            개인정보처리방침
           </Link>
-          <Link href="#" color="inherit" underline="hover" sx={{ whiteSpace: "nowrap" }}>
-            Terms of Service
+          <Link component={RouterLink} to="/terms" color="inherit" underline="hover" sx={{ whiteSpace: "nowrap" }}>
+            서비스이용약관
           </Link>
           <Link href="#" color="inherit" underline="hover" sx={{ whiteSpace: "nowrap" }}>
             Contact Us
