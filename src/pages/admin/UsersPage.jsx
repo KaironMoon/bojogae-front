@@ -11,9 +11,12 @@ import {
   DialogTitle,
   Paper,
   Pagination,
+  InputAdornment,
   Stack,
+  TextField,
   Typography,
 } from "@mui/material";
+import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
@@ -41,12 +44,14 @@ function UsersPage() {
   const [roleTarget, setRoleTarget] = useState(null);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
+  const [draftQuery, setDraftQuery] = useState("");
+  const [query, setQuery] = useState("");
 
   const loadUsers = useCallback(async (targetPage = 1) => {
     setLoading(true);
     setError("");
     try {
-      const result = await getUsers(undefined, targetPage, 20);
+      const result = await getUsers(undefined, targetPage, 20, query);
       setUsers(result.items);
       setPage(result.page);
       setTotalPages(result.total_pages);
@@ -55,7 +60,12 @@ function UsersPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [query]);
+
+  const search = (event) => {
+    event.preventDefault();
+    setQuery(draftQuery.trim());
+  };
 
   useEffect(() => {
     loadUsers();
@@ -147,6 +157,24 @@ function UsersPage() {
         </Button>
       </Stack>
 
+      <Paper component="form" onSubmit={search} variant="outlined" sx={{ p: 2, mb: 2.5, borderRadius: 2.5 }}>
+        <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
+          <TextField
+            size="small"
+            fullWidth
+            placeholder="이메일, 이름, 닉네임, 전화번호, 사번, 단체명 검색"
+            value={draftQuery}
+            inputProps={{ maxLength: 100 }}
+            onChange={(event) => setDraftQuery(event.target.value)}
+            InputProps={{ startAdornment: <InputAdornment position="start"><SearchRoundedIcon fontSize="small" /></InputAdornment> }}
+          />
+          <Button type="submit" variant="outlined" sx={{ flexShrink: 0 }}>검색</Button>
+          {query && (
+            <Button sx={{ flexShrink: 0 }} onClick={() => { setDraftQuery(""); setQuery(""); }}>초기화</Button>
+          )}
+        </Stack>
+      </Paper>
+
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       {loading ? (
         <Box sx={{ py: 8, display: "grid", placeItems: "center" }}><CircularProgress /></Box>
@@ -236,7 +264,7 @@ function UsersPage() {
               </Stack>
             </Paper>
           ))}
-          {users.length === 0 && <Typography color="text.secondary">등록된 사용자가 없습니다.</Typography>}
+          {users.length === 0 && <Typography color="text.secondary">{query ? "검색 결과가 없습니다." : "등록된 사용자가 없습니다."}</Typography>}
           {totalPages > 1 && (
             <Pagination
               count={totalPages}

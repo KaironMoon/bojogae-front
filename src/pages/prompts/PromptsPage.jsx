@@ -56,7 +56,7 @@ import PromptCategoryList from "./PromptCategoryList";
 import DefaultPromptFavoritesPanel from "./DefaultPromptFavoritesPanel";
 
 
-const EMPTY_PROMPT = { title: "", body: "", category_ids: [], input_schema: [] };
+const EMPTY_PROMPT = { title: "", description: "", body: "", category_ids: [], input_schema: [] };
 
 function categoryIds(prompt) {
   return (prompt?.categories || []).map((category) => category.id).sort((a, b) => a - b);
@@ -117,9 +117,10 @@ function PromptsPage() {
   const isNew = selectedId === "new";
   const isDirty = useMemo(() => {
     if (previewFile?.length || previewRemoved.length) return true;
-    if (isNew) return Boolean(draft.title || draft.body || draft.category_ids.length || draft.input_schema.length);
+    if (isNew) return Boolean(draft.title || draft.description || draft.body || draft.category_ids.length || draft.input_schema.length);
     if (!selectedPrompt || selectedPrompt.is_deleted) return false;
     return draft.title !== selectedPrompt.title
+      || draft.description !== (selectedPrompt.description || "")
       || draft.body !== selectedPrompt.body
       || JSON.stringify(draft.input_schema) !== JSON.stringify(selectedPrompt.input_schema || [])
       || JSON.stringify([...draft.category_ids].sort((a, b) => a - b))
@@ -170,7 +171,7 @@ function PromptsPage() {
         setSelectedPrompt(prompt);
         setPreviewFile(null);
         setPreviewRemoved([]);
-        setDraft({ title: prompt.title, body: prompt.body, category_ids: categoryIds(prompt), input_schema: prompt.input_schema || [] });
+        setDraft({ title: prompt.title, body: prompt.body, category_ids: categoryIds(prompt), input_schema: prompt.input_schema || [], description: prompt.description || "" });
         setVersions(versionRows);
       } catch {
         setError("프롬프트를 불러오지 못했습니다.");
@@ -276,8 +277,8 @@ function PromptsPage() {
     setError("");
     try {
       let saved = isNew
-        ? await createPrompt(title, draft.body, draft.category_ids, draft.input_schema)
-        : await updatePrompt(selectedPrompt.id, title, draft.body, draft.category_ids, draft.input_schema);
+        ? await createPrompt(title, draft.body, draft.category_ids, draft.input_schema, draft.description)
+        : await updatePrompt(selectedPrompt.id, title, draft.body, draft.category_ids, draft.input_schema, draft.description);
       setSelectedPrompt(saved);
       setSelectedId(saved.id);
       if (previewFile?.length || previewRemoved.length) {
@@ -288,7 +289,7 @@ function PromptsPage() {
       setSelectedPrompt(saved);
       setPreviewFile(null);
       setPreviewRemoved([]);
-      setDraft({ title: saved.title, body: saved.body, category_ids: categoryIds(saved), input_schema: saved.input_schema || [] });
+      setDraft({ title: saved.title, body: saved.body, category_ids: categoryIds(saved), input_schema: saved.input_schema || [], description: saved.description || "" });
       await Promise.all([
         loadVersions(saved.id, includeDeletedVersions),
         loadList(saved.id),
@@ -324,7 +325,7 @@ function PromptsPage() {
           action.version.id,
         );
         setSelectedPrompt(restored);
-        setDraft({ title: restored.title, body: restored.body, category_ids: categoryIds(restored), input_schema: restored.input_schema || [] });
+        setDraft({ title: restored.title, body: restored.body, category_ids: categoryIds(restored), input_schema: restored.input_schema || [], description: restored.description || "" });
         await Promise.all([
           loadVersions(restored.id, includeDeletedVersions),
           loadList(restored.id),
@@ -348,7 +349,7 @@ function PromptsPage() {
     try {
       const recovered = await recoverPrompt(selectedPrompt.id);
       setSelectedPrompt(recovered);
-      setDraft({ title: recovered.title, body: recovered.body, category_ids: categoryIds(recovered), input_schema: recovered.input_schema || [] });
+      setDraft({ title: recovered.title, body: recovered.body, category_ids: categoryIds(recovered), input_schema: recovered.input_schema || [], description: recovered.description || "" });
       await loadList(recovered.id);
     } catch {
       setError("프롬프트를 복구하지 못했습니다.");
@@ -551,6 +552,17 @@ function PromptsPage() {
                 onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))}
                 disabled={selectedPrompt?.is_deleted || working}
                 inputProps={{ maxLength: 200 }}
+                fullWidth
+              />
+              <TextField
+                label="간단한 설명"
+                value={draft.description}
+                onChange={(event) => setDraft((current) => ({ ...current, description: event.target.value }))}
+                disabled={selectedPrompt?.is_deleted || working}
+                helperText={`보고서 선택 화면에 표시됩니다. 버전 관리 대상이 아닙니다. (${draft.description.length}/300)`}
+                inputProps={{ maxLength: 300 }}
+                multiline
+                minRows={2}
                 fullWidth
               />
               <Box>

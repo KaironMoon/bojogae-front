@@ -78,29 +78,6 @@ const ACTIVE = new Set(["QUEUED", "RUNNING", "CANCEL_REQUESTED"]);
 const PREVIEW_WIDTH = 794;
 const PREVIEW_HEIGHT = 1123;
 
-const PROMPT_META = [
-  {
-    fit: 98,
-    categories: ["3대 진단비", "면책기간 표기", "보장강조"],
-    description: "핵심 보장과 가입 조건을 한눈에 보기 쉽게 카드형으로 정리하는 표준 템플릿입니다.",
-  },
-  {
-    fit: 94,
-    categories: ["보장 공백 비교", "가성비 갱신형"],
-    description: "기존 보험과 신규 문서의 보장 금액을 비교해 부족한 보장을 설득력 있게 전달합니다.",
-  },
-  {
-    fit: 91,
-    categories: ["간병 보장", "고객 설명형"],
-    description: "간병과 장기요양 관련 핵심 담보를 고객이 이해하기 쉬운 문장으로 안내합니다.",
-  },
-  {
-    fit: 88,
-    categories: ["종합 분석", "상세 리포트"],
-    description: "여러 보장 항목과 주요 조건을 빠짐없이 보여주는 상세 분석형 템플릿입니다.",
-  },
-];
-
 const CATEGORY_ACCENTS = {
   "보고서": "#2563eb",
   "건강": "#16a34a",
@@ -862,7 +839,6 @@ function ProposalsPage() {
         카테고리를 체크하시면 입력폼 상단의 추천 프롬프트가 실시간으로 재구성되며, [결과 미리보기]로 슬라이드를 확인할 수 있습니다.
       </Alert>
 
-      {error && <Alert severity="error" onClose={() => setError("")} sx={{ mb: 2 }}>{error}</Alert>}
       <ExpiringPoints balance={pointBalance} />
 
       <Box
@@ -1032,7 +1008,6 @@ function ProposalsPage() {
               }}
             >
               {displayedPromptOptions.map((option, index) => {
-                const meta = PROMPT_META[index % PROMPT_META.length];
                 const selected = promptId === option.id;
                 return (
                   <Paper
@@ -1104,11 +1079,12 @@ function ProposalsPage() {
                           미리보기
                         </Button>
                       </Stack>
-                      <Typography variant="caption" color="text.secondary" sx={{ display: "-webkit-box", mt: 0.65, lineHeight: 1.4, WebkitBoxOrient: "vertical", WebkitLineClamp: { xs: 2, sm: "unset" }, overflow: "hidden" }}>
-                        {meta.description}
-                      </Typography>
+                      {option.description && (
+                        <Typography variant="caption" color="text.secondary" sx={{ display: "-webkit-box", mt: 0.65, lineHeight: 1.4, WebkitBoxOrient: "vertical", WebkitLineClamp: { xs: 2, sm: "unset" }, overflow: "hidden", whiteSpace: "pre-line" }}>
+                          {option.description}
+                        </Typography>
+                      )}
                       <Stack direction="row" alignItems="center" gap={0.6} flexWrap={{ xs: "nowrap", sm: "wrap" }} sx={{ mt: 0.75, overflowX: { xs: "auto", sm: "visible" }, scrollbarWidth: "none", "&::-webkit-scrollbar": { display: "none" }, "& .MuiChip-root": { flexShrink: 0 } }}>
-                          <Chip label={`적합도 ${meta.fit}%`} size="small" color="primary" variant="outlined" />
                           <Chip label={`${option.point_cost.toLocaleString()}P`} size="small" color="warning" variant="outlined" />
                           {(option.categories || []).map((category) => (
                             <Chip key={category.id} label={`${category.parent_name} · ${category.name}`} size="small" />
@@ -1689,6 +1665,16 @@ function ProposalsPage() {
           >
             {shareSaving ? "저장 중..." : copiedShareId === previewItem?.id ? "복사됨" : "요약+링크 복사"}
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={Boolean(error)} onClose={() => setError("")} fullWidth maxWidth="xs">
+        <DialogTitle>확인이 필요합니다</DialogTitle>
+        <DialogContent>
+          <Alert severity="error" sx={{ mt: 1, whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{error}</Alert>
+        </DialogContent>
+        <DialogActions>
+          <Button variant="contained" onClick={() => setError("")} autoFocus>확인</Button>
         </DialogActions>
       </Dialog>
 

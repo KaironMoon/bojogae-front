@@ -31,7 +31,7 @@ import {
   getBrowserPushState,
 } from "@/services/web-push-service";
 
-const emptyProfile = { email: "", name: "", nickname: "", phone: "" };
+const emptyProfile = { email: "", name: "", nickname: "", phone: "", affiliation: "" };
 
 const errorMessages = {
   email_unchanged: "현재 사용 중인 이메일입니다.",
@@ -51,6 +51,7 @@ function ProfilePage() {
   const { refreshUser } = useAuth();
   const [profile, setProfile] = useState(emptyProfile);
   const [savedEmail, setSavedEmail] = useState("");
+  const [groupName, setGroupName] = useState("");
   const [requestToken, setRequestToken] = useState("");
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(true);
@@ -67,12 +68,14 @@ function ProfilePage() {
     Promise.all([getMyProfile(), getPointBalance()])
       .then(([data, balance]) => {
         setProfile({
-          email: data.email,
+          email: data.email || "",
           name: data.name || "",
           nickname: data.nickname || "",
           phone: data.phone || "",
+          affiliation: data.affiliation || "",
         });
-        setSavedEmail(data.email);
+        setSavedEmail(data.email || "");
+        setGroupName(data.group_name || "");
         setPointBalance(balance);
       })
       .catch(() => setError("profile_load_failed"))
@@ -104,12 +107,14 @@ function ProfilePage() {
         name: profile.name || null,
         nickname: profile.nickname || null,
         phone: profile.phone || null,
+        affiliation: profile.affiliation || null,
       });
       setProfile((value) => ({
         ...value,
         name: updated.name || "",
         nickname: updated.nickname || "",
         phone: updated.phone || "",
+        affiliation: updated.affiliation || "",
       }));
       await refreshUser();
       setMessage("내 정보가 저장되었습니다.");
@@ -142,8 +147,8 @@ function ProfilePage() {
     setError("");
     try {
       const updated = await verifyEmailChangeCode(requestToken, code);
-      setSavedEmail(updated.email);
-      setProfile((value) => ({ ...value, email: updated.email }));
+      setSavedEmail(updated.email || "");
+      setProfile((value) => ({ ...value, email: updated.email || "" }));
       setRequestToken("");
       setCode("");
       await refreshUser();
@@ -186,7 +191,9 @@ function ProfilePage() {
     <Box component="main" sx={{ p: { xs: 2, md: 4 }, maxWidth: 760 }}>
       <Stack spacing={0.75} sx={{ mb: 3 }}>
         <Typography variant="h4" component="h1" fontWeight={850}>내 정보</Typography>
-        <Typography color="text.secondary">이메일은 필수이며, 변경하려면 새 이메일 인증이 필요합니다.</Typography>
+        <Typography color="text.secondary">
+          {savedEmail ? "이메일은 필수이며, 변경하려면 새 이메일 인증이 필요합니다." : "이메일을 등록하려면 새 이메일 인증이 필요합니다."}
+        </Typography>
       </Stack>
 
       <Paper elevation={0} sx={{ p: { xs: 2.5, md: 3 }, mb: 3, border: "1px solid", borderColor: "divider", borderRadius: 3 }}>
@@ -215,6 +222,15 @@ function ProfilePage() {
             </Alert>
           )}
 
+          <TextField
+            label="소속"
+            value={profile.affiliation}
+            onChange={updateField("affiliation")}
+            placeholder={groupName || "예: 삼성생명 OO지점"}
+            helperText={groupName ? `비워두면 단체명(${groupName})을 사용합니다. 보고서 담당자 정보에 표시됩니다.` : "보고서 담당자 정보에 표시됩니다."}
+            inputProps={{ maxLength: 100 }}
+            fullWidth
+          />
           <TextField label="이름" value={profile.name} onChange={updateField("name")} inputProps={{ maxLength: 100 }} fullWidth />
           <TextField label="닉네임" value={profile.nickname} onChange={updateField("nickname")} inputProps={{ maxLength: 50 }} fullWidth />
           <TextField
@@ -238,7 +254,7 @@ function ProfilePage() {
                 type="email"
                 value={profile.email}
                 onChange={updateField("email")}
-                helperText={emailChanged ? "인증 전에는 기존 이메일이 유지됩니다." : "현재 인증된 이메일"}
+                helperText={emailChanged ? (savedEmail ? "인증 전에는 기존 이메일이 유지됩니다." : "인증을 완료하면 이메일이 등록됩니다.") : (savedEmail ? "현재 인증된 이메일" : "등록된 이메일이 없습니다.")}
                 fullWidth
               />
               {emailChanged && (

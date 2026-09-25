@@ -39,6 +39,11 @@ function StatCard({ icon, label, value, accent }) {
   );
 }
 
+const RELEASE_BADGES = {
+  NEW: { label: "신규", sx: { bgcolor: "#dcfce7", color: "#166534" } },
+  UPDATED: { label: "업데이트", sx: { bgcolor: "#dbeafe", color: "#1e40af" } },
+};
+
 function PromptCard({ prompt, rank, showThumbnail = true }) {
   const preview = prompt.preview_images?.[0];
   const previewCount = prompt.preview_images?.length || 0;
@@ -110,6 +115,13 @@ function PromptCard({ prompt, rank, showThumbnail = true }) {
       </Box>}
       {showThumbnail ? (
         <Stack spacing={1.2} sx={{ p: 2 }}>
+          {RELEASE_BADGES[prompt.release_badge] && (
+            <Chip
+              size="small"
+              label={RELEASE_BADGES[prompt.release_badge].label}
+              sx={{ alignSelf: "flex-start", height: 22, fontWeight: 800, fontSize: 11.5, ...RELEASE_BADGES[prompt.release_badge].sx }}
+            />
+          )}
           <Typography
             fontWeight={800}
             title={prompt.title}

@@ -9,6 +9,7 @@ import {
 import { useCallback, useEffect, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 
+import BoardContent from "@/pages/boards/BoardContent";
 import { boardConfig, categoryLabel } from "@/services/board-config";
 import {
   boardAttachmentUrl, boardError, deleteBoardPost, getAdminBoardPost, getPublicBoardPost,
@@ -96,7 +97,7 @@ export default function BoardPostPage({ admin = false, embedded = false }) { // 
               {post.updated_at !== post.created_at && ` · 수정 ${new Date(post.updated_at).toLocaleString("ko-KR")}`}
             </Typography>
             <Divider sx={{ my: 3 }} />
-            <Typography sx={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere", lineHeight: 1.85, minHeight: 180 }}>{post.content}</Typography>
+            <BoardContent post={post} />
             {post.files?.length > 0 && (
               <Box sx={{ mt: 4 }}>
                 <Typography fontWeight={750} sx={{ mb: 1 }}>첨부파일</Typography>

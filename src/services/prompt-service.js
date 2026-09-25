@@ -32,22 +32,24 @@ async function getPrompt(promptId) {
   return response.data;
 }
 
-async function createPrompt(title, body, categoryIds = [], inputSchema = []) {
+async function createPrompt(title, body, categoryIds = [], inputSchema = [], description = "") {
   const response = await apiCaller.post("/api/v1/admin/prompts", {
     title,
     body,
     category_ids: categoryIds,
     input_schema: inputSchema,
+    description: description || null,
   });
   return response.data;
 }
 
-async function updatePrompt(promptId, title, body, categoryIds = [], inputSchema = []) {
+async function updatePrompt(promptId, title, body, categoryIds = [], inputSchema = [], description = "") {
   const response = await apiCaller.put(`/api/v1/admin/prompts/${promptId}`, {
     title,
     body,
     category_ids: categoryIds,
     input_schema: inputSchema,
+    description: description || null,
   });
   return response.data;
 }
