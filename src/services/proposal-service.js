@@ -76,6 +76,11 @@ async function updateShareSummary(id, summary) {
   return response.data;
 }
 
+async function saveProposalDocument(id, html, revision) {
+  const response = await apiCaller.put(`/api/v1/proposals/${id}/output`, { html, revision });
+  return response.data;
+}
+
 async function retryProposal(id) {
   const response = await apiCaller.post(`/api/v1/proposals/${id}/retry`, {
     idempotency_key: createIdempotencyKey(),
@@ -181,6 +186,7 @@ export {
   updatePromptPointCost,
   updateProposalSettings,
   updateShareSummary,
+  saveProposalDocument,
   rerenderProposalShare,
 };
 

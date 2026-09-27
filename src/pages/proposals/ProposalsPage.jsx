@@ -69,6 +69,7 @@ import {
   proposalRawResponseUrl,
   retryProposal,
   updateShareSummary,
+  saveProposalDocument,
 } from "@/services/proposal-service";
 
 
@@ -193,12 +194,15 @@ function ProposalsPage() {
   const [shareDraft, setShareDraft] = useState("");
   const [shareSaving, setShareSaving] = useState(false);
   const [shareSaveError, setShareSaveError] = useState("");
+  const [sharePreparing, setSharePreparing] = useState(false);
   const [openedDocument, setOpenedDocument] = useState(null);
   const [previewZoom, setPreviewZoom] = useState(1);
   const submissionKey = useRef(null);
   const fileInputRef = useRef(null);
   const statusPanelRef = useRef(null);
   const documentRequest = useRef(0);
+  const previewFrameRef = useRef(null);
+  const snapshotRequests = useRef(new Map());
   const promptScrollerRef = useRef(null);
   const pendingPromptScrollId = useRef(null);
   const [promptSlide, setPromptSlide] = useState(0);
@@ -474,6 +478,54 @@ function ProposalsPage() {
   const previewShareUuid = previewItem?.share_uuid;
   const previewShareStatus = previewItem?.share_status;
   useEffect(() => {
+    const pendingRequests = snapshotRequests.current;
+    const onMessage = (event) => {
+      const frame = previewFrameRef.current;
+      if (!frame || event.source !== frame.contentWindow || event.origin !== new URL(frame.src).origin) return;
+      const message = event.data;
+      if (message?.source !== "bojogae-editor" || message.generationId !== previewItemId) return;
+      if (message.type === "snapshot") {
+        const pending = pendingRequests.get(message.requestId);
+        if (pending) {
+          window.clearTimeout(pending.timeout);
+          pendingRequests.delete(message.requestId);
+          pending.resolve(message);
+        }
+      } else if (message.type === "saved") {
+        setPreviewItem((current) => current?.id === message.generationId
+          ? { ...current, share_status: message.shareStatus || "RENDERING" }
+          : current);
+      }
+    };
+    window.addEventListener("message", onMessage);
+    return () => {
+      window.removeEventListener("message", onMessage);
+      pendingRequests.forEach((pending) => {
+        window.clearTimeout(pending.timeout);
+        pending.reject(new Error("문서가 닫혔습니다."));
+      });
+      pendingRequests.clear();
+    };
+  }, [previewItemId]);
+
+  const requestDocumentSnapshot = () => new Promise((resolve, reject) => {
+    const frame = previewFrameRef.current;
+    if (!frame?.contentWindow) {
+      reject(new Error("문서를 불러오지 못했습니다."));
+      return;
+    }
+    const requestId = globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}`;
+    const timeout = window.setTimeout(() => {
+      snapshotRequests.current.delete(requestId);
+      reject(new Error("편집 상태를 확인하지 못했습니다. 문서를 다시 열어 주세요."));
+    }, 4000);
+    snapshotRequests.current.set(requestId, { resolve, reject, timeout });
+    frame.contentWindow.postMessage(
+      { source: "bojogae-parent", type: "snapshot-request", requestId },
+      new URL(frame.src).origin,
+    );
+  });
+  useEffect(() => {
     if (!canvasOpen || !previewItemId || !previewShareUuid) return undefined;
     if (previewShareStatus === "READY" || previewShareStatus === "FAILED") return undefined;
     let disposed = false;
@@ -715,11 +767,31 @@ function ProposalsPage() {
     setPreviewZoom((current) => Math.min(1.25, Math.max(0.3, Number((current + amount).toFixed(2)))));
   };
 
-  const openShareDialog = (item) => {
+  const openShareDialog = async (item) => {
     if (!item?.share_uuid) return;
-    setShareDraft(item.summary || "");
-    setShareSaveError("");
-    setShareDialogOpen(true);
+    setSharePreparing(true);
+    try {
+      const snapshot = await requestDocumentSnapshot();
+      if (snapshot.dirty) {
+        const result = await saveProposalDocument(item.id, snapshot.html, snapshot.revision);
+        previewFrameRef.current?.contentWindow?.postMessage(
+          { source: "bojogae-parent", type: "mark-saved", html: snapshot.html, revision: result.revision },
+          new URL(previewFrameRef.current.src).origin,
+        );
+        setPreviewItem((current) => current?.id === item.id
+          ? { ...current, share_status: result.share_status }
+          : current);
+      }
+      setShareDraft(item.summary || "");
+      setShareSaveError("");
+      setShareDialogOpen(true);
+    } catch (cause) {
+      setError(cause?.response?.status === 409
+        ? "다른 창에서 문서가 변경되었습니다. 문서를 다시 열어 주세요."
+        : cause?.message || "문서를 저장하지 못했습니다.");
+    } finally {
+      setSharePreparing(false);
+    }
   };
 
   const closeShareDialog = () => setShareDialogOpen(false);
@@ -1359,9 +1431,10 @@ function ProposalsPage() {
                       variant="outlined"
                       startIcon={copiedShareId === previewItem.id ? <CheckRoundedIcon fontSize="small" /> : <IosShareRoundedIcon fontSize="small" />}
                       onClick={() => openShareDialog(previewItem)}
+                      disabled={sharePreparing}
                       sx={{ minHeight: 36, ml: 0.5 }}
                     >
-                      {copiedShareId === previewItem.id ? "복사됨" : "공유 링크"}
+                      {sharePreparing ? "저장 중..." : copiedShareId === previewItem.id ? "복사됨" : "공유 링크"}
                     </Button>
                   </span>
                 </Tooltip>
@@ -1382,6 +1455,7 @@ function ProposalsPage() {
               >
                 <Box
                   component="iframe"
+                  ref={previewFrameRef}
                   key={previewItem.id}
                   title={`${previewItem.title} 미리보기`}
                   src={proposalFileUrl(previewItem.id, "output")}
