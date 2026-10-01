@@ -1,4 +1,4 @@
-import { Box } from "@mui/material";
+import { Box, Link } from "@mui/material";
 
 function BusinessInfo() {
   return (
@@ -11,6 +11,9 @@ function BusinessInfo() {
         <span>상호: 마음 AI</span>
         <span>대표자: 김성춘</span>
         <span>사업자등록번호: 621-58-01016</span>
+        <span>
+          연락처: <Link href="tel:01097299649" color="inherit" underline="hover">010-9729-9649</Link>
+        </span>
       </Box>
       <Box>주소: 서울특별시 도봉구 노해로67길 2, B2호(창동, 한국빌딩)</Box>
     </Box>
