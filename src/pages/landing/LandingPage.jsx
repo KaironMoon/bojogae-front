@@ -28,6 +28,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 
 import { createGroupInquiry, groupInquiryError } from "@/services/group-inquiry-service";
+import BusinessInfo from "@/pages/components/layout/BusinessInfo";
 import { shouldSkipLanding, skipLandingFromNowOn } from "@/auth/landing-preference-storage";
 import "./landing.css";
 import "./landing-reveal.css";
@@ -439,7 +440,7 @@ export default function LandingPage() {
         <section className="final-cta" data-reveal><div><span>YOUR NEXT PROPOSAL</span><h2>다음 제안서는<br />보조개와 시작하세요.</h2><p>정리는 AI에게 맡기고, 설계사님은 고객의 마음에 집중하세요.</p></div><div className="final-actions"><button onClick={() => goLogin("personal", "FREE")}>1달 무료 체험 시작 (20회 제공) <ArrowForwardRoundedIcon /></button><button className="outline" onClick={() => setInquiryOpen(true)}>단체 도입 문의</button></div></section>
       </main>
 
-      <footer className="landing-footer"><a className="brand footer-brand" href="#top"><span className="brand-mark">B</span><span>보조개<small>보험설계사를 조력하는 AI 개인비서</small></span></a><div><button onClick={() => goLogin("group")}>단체 로그인</button><button onClick={() => goLogin()}>개인 로그인</button><a href="#pricing">이용 요금</a><Link to="/terms">서비스이용약관</Link><Link to="/privacy">개인정보처리방침</Link></div><p>© 2026 BOJOGAE. All rights reserved.</p></footer>
+      <footer className="landing-footer"><a className="brand footer-brand" href="#top"><span className="brand-mark">B</span><span>보조개<small>보험설계사를 조력하는 AI 개인비서</small></span></a><div><button onClick={() => goLogin("group")}>단체 로그인</button><button onClick={() => goLogin()}>개인 로그인</button><a href="#pricing">이용 요금</a><Link to="/terms">서비스이용약관</Link><Link to="/privacy">개인정보처리방침</Link></div><BusinessInfo /><p>© 2026 BOJOGAE. All rights reserved.</p></footer>
       <InquiryDialog open={inquiryOpen} onClose={() => setInquiryOpen(false)} />
     </Box>
   );

@@ -1,6 +1,7 @@
 import { Box, Typography, Link } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { Link as RouterLink } from "react-router-dom";
+import BusinessInfo from "./BusinessInfo";
 
 function PageFooter() {
   const theme = useTheme();
@@ -36,6 +37,7 @@ function PageFooter() {
           </Link>
         </Box>
       </Box>
+      <BusinessInfo />
     </Box>
   );
 }
