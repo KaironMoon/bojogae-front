@@ -6,6 +6,7 @@ import api from '@/services/api-caller';
 import { getPayments, paymentError, paymentPost } from '@/services/payment-service';
 
 const statuses = { READY:'결제 확인 대기', SCHEDULED:'다음 결제 예약', PAID:'결제 완료', FAILED:'결제 실패', CANCELED:'취소', REVIEW:'고객센터 확인 필요' };
+const verificationStatuses = { READY:'카드 확인 대기', CHARGING:'승인 결과 확인 중', CANCELING:'전액 취소 확인 중', COMPLETED:'전액 취소 완료 · 카드 등록', FAILED:'카드 확인 결제 실패', REVIEW:'고객센터 확인 필요' };
 const date = (value) => value ? new Date(value).toLocaleString('ko-KR') : '-';
 
 export default function PaymentHistoryPage({ admin=false }) {
@@ -16,9 +17,10 @@ export default function PaymentHistoryPage({ admin=false }) {
   const [page, setPage] = useState(0);
   const load = useCallback(async () => {
     const data = admin ? (await api.get('/api/v1/payments/admin/reservations')).data : await getPayments();
-    setOrders(data.orders || []);
+    const items = [...(data.orders || []), ...(data.card_verifications || []).map((row) => ({ ...row, is_card_verification:true }))].sort((a,b) => new Date(b.created_at || b.paid_at || 0) - new Date(a.created_at || a.paid_at || 0));
+    setOrders(items);
     setTerminationJobs(data.termination_jobs || []);
-    setPage((current) => Math.min(current, Math.max(0, Math.ceil((data.orders || []).length / 10) - 1)));
+    setPage((current) => Math.min(current, Math.max(0, Math.ceil(items.length / 10) - 1)));
   }, [admin]);
   useEffect(() => { load().catch((e) => setError(paymentError(e))); }, [load]);
   const perform = async (action) => {
@@ -56,7 +58,7 @@ export default function PaymentHistoryPage({ admin=false }) {
               {orders.slice(page * 10, (page + 1) * 10).map((order) => {
                 const pendingReservation = (admin || order.is_future_payment) && order.status === 'READY';
                 return <TableRow key={order.id}>
-                  <TableCell sx={{ whiteSpace:'nowrap' }}>{date(admin ? order.period_start : order.paid_at)}</TableCell>
+                  <TableCell sx={{ whiteSpace:'nowrap' }}>{date(admin ? order.period_start : order.paid_at || order.created_at)}</TableCell>
                   <TableCell><Typography variant="body2" fontWeight={700}>{order.order_name}</Typography>
                     {admin && <Typography variant="body2">회원 #{order.user_id}</Typography>}
                     <Typography variant="caption" color="text.secondary" sx={{ overflowWrap:'anywhere' }}>{order.id}</Typography>
@@ -64,9 +66,9 @@ export default function PaymentHistoryPage({ admin=false }) {
                   <TableCell sx={{ whiteSpace:'nowrap' }}>{order.amount.toLocaleString()}원
                     {order.refunded_amount > 0 && <Typography variant="caption" display="block" color="text.secondary">환불 {order.refunded_amount.toLocaleString()}원</Typography>}
                   </TableCell>
-                  <TableCell>{pendingReservation ? '자동결제 예약 대기' : statuses[order.status] || '상태 확인 필요'}{order.refund_status && <Typography variant="caption" display="block">환불 {({ PENDING:'처리 중', COMPLETED:'완료', REVIEW:'관리자 확인 중' })[order.refund_status]}</Typography>}</TableCell>
+                  <TableCell>{pendingReservation ? '자동결제 예약 대기' : (order.is_card_verification ? verificationStatuses : statuses)[order.status] || '상태 확인 필요'}{order.refund_status && <Typography variant="caption" display="block">환불 {({ PENDING:'처리 중', COMPLETED:'완료', REVIEW:'관리자 확인 중' })[order.refund_status]}</Typography>}</TableCell>
                   {!admin && <TableCell><Stack spacing={0.5}>
-                    {!pendingReservation && <Button size="small" disabled={busy} onClick={() => perform(() => paymentPost(`orders/${encodeURIComponent(order.id)}/complete`))}>결제 내역 확인</Button>}
+                    {!pendingReservation && !(order.is_card_verification && ['COMPLETED','FAILED'].includes(order.status)) && <Button size="small" disabled={busy} onClick={() => perform(() => paymentPost(order.is_card_verification ? `methods/verifications/${encodeURIComponent(order.id)}/check` : `orders/${encodeURIComponent(order.id)}/complete`))}>{order.is_card_verification ? '승인·취소 확인' : '결제 내역 확인'}</Button>}
                     {order.product_code === 'TOPUP' && order.status === 'PAID' && order.refunded_amount < order.amount && !['PENDING','REVIEW'].includes(order.refund_status) &&
                       <Button size="small" color="warning" disabled={busy} onClick={() => perform(() => refund(order))}>미사용분 환불</Button>}
                   </Stack></TableCell>}
