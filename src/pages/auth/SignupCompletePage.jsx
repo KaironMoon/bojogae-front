@@ -1,3 +1,4 @@
+import { signupDestination } from "@/auth/signup-destination";
 import {
   Alert,
   Box,
@@ -64,11 +65,7 @@ const errorMessages = {
   invalid_plan: "선택할 수 없는 요금제입니다.",
 };
 
-function destinationFor(user) {
-  if (user.status === "ACTIVE") return "/home";
-  if (user.status === "PENDING") return "/approval-pending";
-  return "/access-restricted";
-}
+
 
 function errorCode(error) {
   return error.response?.data?.detail || "unknown";
@@ -80,7 +77,7 @@ function SignupCompletePage() {
   const urlPlan = searchParams.get("plan");
   const navigate = useNavigate();
   const { refreshUser } = useAuth();
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(searchParams.get("email") || "");
   const [termsAgreed, setTermsAgreed] = useState(false);
   const [planCode, setPlanCode] = useState(isSignupPlan(urlPlan) ? urlPlan : "");
   const [code, setCode] = useState("");
@@ -117,7 +114,7 @@ function SignupCompletePage() {
     try {
       const user = await verifySignupCode(signupToken, code);
       await refreshUser();
-      navigate(destinationFor(user), { replace: true });
+      navigate(signupDestination(user), { replace: true });
     } catch (requestError) {
       setError(errorCode(requestError));
     } finally {
@@ -157,8 +154,8 @@ function SignupCompletePage() {
               {planCode && (
                 <Alert severity={planCode === "FREE" ? "success" : "info"}>
                   {planCode === "FREE"
-                    ? "무료체험 가입입니다. 계정 승인 시 30일간 사용할 수 있는 20P가 한 번 지급됩니다."
-                    : `${PLAN_INFO[planCode].name} 가입 신청입니다. 계정 승인 시 요금제가 함께 적용되며 매월 ${PLAN_INFO[planCode].monthlyPoints}P가 지급됩니다.`}
+                    ? "무료체험 가입입니다. 가입 완료 시 30일간 사용할 수 있는 200꼬막이 한 번 지급됩니다."
+                    : `${PLAN_INFO[planCode].name} 가입 신청입니다. 월 제공량은 ${PLAN_INFO[planCode].monthlyPoints}꼬막이며, 가입 완료 후 내정보에서 결제를 진행하면 유료 요금제가 적용됩니다.`}
                 </Alert>
               )}
             </Stack>

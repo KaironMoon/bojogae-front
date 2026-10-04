@@ -17,6 +17,12 @@ async function localEmailLogin(email, planCode = "FREE") {
   return response.data;
 }
 
+async function startLocalSignup(displayName, planCode = "FREE") {
+  return (await apiCaller.post("/api/v1/auth/local-signup", {
+    display_name: displayName, plan_code: planCode,
+  })).data;
+}
+
 async function logout() {
   await apiCaller.post("/api/v1/auth/logout");
 }
@@ -105,6 +111,7 @@ function getOAuthLoginUrl(provider, plan = "FREE") {
 }
 
 export {
+  startLocalSignup,
   decidePersonalPlanRequest,
   deleteUser,
   getAuthOptions,

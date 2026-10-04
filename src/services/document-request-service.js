@@ -45,7 +45,7 @@ export function requestError(error) {
     generation_not_refundable: '환불을 요청할 수 없는 생성 건입니다. 과금 및 반환 상태를 확인해주세요.',
     refund_already_requested: '이미 환불을 요청한 문서입니다. 환불 요청 내역을 확인해주세요.',
     refund_already_decided: '이미 처리된 환불 요청입니다. 새로고침해주세요.',
-    points_already_refunded: '이미 포인트가 반환된 생성 건입니다. 환불 처리로 접수 상태를 정리해주세요.',
+    points_already_refunded: '이미 꼬막이 반환된 생성 건입니다. 환불 처리로 접수 상태를 정리해주세요.',
     invalid_suggestion_status: '처리 상태를 다시 선택해주세요.',
     suggestion_completion_schema_required: '건의사항 완료 처리 기능의 DB 설정이 필요합니다. 관리자에게 문의해주세요.',
     invalid_suggestion: '제목과 내용을 입력해주세요.',

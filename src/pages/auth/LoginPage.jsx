@@ -1,4 +1,4 @@
-import { Alert, Box, Button, Chip, CircularProgress, Container, Paper, Stack, Tab, Tabs, TextField, Typography } from "@mui/material";
+import { Alert, Box, Button, Chip, CircularProgress, Container, Divider, Paper, Stack, Tab, Tabs, TextField, Typography } from "@mui/material";
 import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import { useEffect, useState } from "react";
@@ -13,7 +13,7 @@ import {
   getLastSocialLoginProvider,
   setPendingSocialLoginProvider,
 } from "@/auth/social-login-storage";
-import { getAuthOptions, getOAuthLoginUrl, localEmailLogin } from "@/services/auth-service";
+import { getAuthOptions, getOAuthLoginUrl, localEmailLogin, startLocalSignup } from "@/services/auth-service";
 import { PLAN_INFO, isSignupPlan } from "@/constants/plans";
 
 const providers = [
@@ -71,6 +71,7 @@ function LoginPage() {
   const [lastProvider] = useState(getLastSocialLoginProvider);
   const [authOptions, setAuthOptions] = useState(null);
   const [email, setEmail] = useState("bojoge.smith@gmail.com");
+  const [localSignupName, setLocalSignupName] = useState("");
   const [localError, setLocalError] = useState("");
   const [localWorking, setLocalWorking] = useState(false);
 
@@ -100,7 +101,7 @@ function LoginPage() {
       const destination = user?.status === "ACTIVE"
         ? "/home"
         : user?.status === "PENDING"
-          ? "/approval-pending"
+          ? "/access-restricted"
           : "/access-restricted";
       navigate(destination, { replace: true });
     } catch (requestError) {
@@ -109,6 +110,19 @@ function LoginPage() {
           ? "등록된 사용자를 찾을 수 없습니다."
           : "로컬 로그인에 실패했습니다.",
       );
+    } finally {
+      setLocalWorking(false);
+    }
+  };
+
+  const beginLocalSignup = async () => {
+    setLocalWorking(true);
+    setLocalError("");
+    try {
+      const { signup_token: token } = await startLocalSignup(localSignupName.trim(), requestedPlan);
+      navigate(`/signup/complete?${new URLSearchParams({ token, plan: requestedPlan, email: email.trim() })}`);
+    } catch {
+      setLocalError("로컬 가입을 시작하지 못했습니다. 서버 설정과 가입용 SQL 적용 여부를 확인해 주세요.");
     } finally {
       setLocalWorking(false);
     }
@@ -168,8 +182,8 @@ function LoginPage() {
               {showPlanNotice && (
                 <Alert severity={requestedPlan === "FREE" ? "success" : "info"}>
                   {requestedPlan === "FREE"
-                    ? "무료체험으로 진행합니다. 가입 승인 시 20P가 한 번 지급되며 30일간 사용할 수 있습니다."
-                    : `${PLAN_INFO[requestedPlan].name}(${PLAN_INFO[requestedPlan].price}/월, 매월 ${PLAN_INFO[requestedPlan].monthlyPoints}P) 가입 신청으로 진행합니다. 가입 화면에서 요금제를 바꿀 수 있습니다.`}
+                    ? "무료체험으로 진행합니다. 가입 완료 시 200꼬막이 한 번 지급되며 30일간 사용할 수 있습니다."
+                    : `${PLAN_INFO[requestedPlan].name}(${PLAN_INFO[requestedPlan].price}/월, 매월 ${PLAN_INFO[requestedPlan].monthlyPoints}꼬막) 가입 신청으로 진행합니다. 가입 화면에서 요금제를 바꿀 수 있습니다.`}
                 </Alert>
               )}
               {error && <Alert severity="error">{errorMessages[error] || "로그인 중 오류가 발생했습니다."}</Alert>}
@@ -199,6 +213,17 @@ function LoginPage() {
                     sx={{ minHeight: 54, borderRadius: 2.5, fontWeight: 800 }}
                   >
                     {localWorking ? "로그인 중..." : "로컬 이메일로 로그인"}
+                  </Button>
+                  <Divider />
+                  <Typography variant="body2" color="text.secondary">
+                    새 테스트 회원은 소셜 인증만 생략합니다. 약관 동의·이메일 인증 후 가입하며 유료 이용은 결제가 필요합니다.
+                  </Typography>
+                  <TextField label="가입할 이름" value={localSignupName}
+                    onChange={(event) => setLocalSignupName(event.target.value)}
+                    inputProps={{ maxLength: 100 }} fullWidth />
+                  <Button type="button" variant="outlined" onClick={beginLocalSignup}
+                    disabled={localWorking || !localSignupName.trim()}>
+                    로컬 테스트 회원가입
                   </Button>
                 </Stack>
               ) : providers.map((provider) => (
@@ -258,8 +283,8 @@ function LoginPage() {
                 <LockOutlinedIcon sx={{ fontSize: 16, color: "text.secondary" }} />
                 <Typography variant="caption" color="text.secondary">
                   {localMode
-                    ? "로컬 로그인은 기존에 등록된 사용자만 사용할 수 있습니다."
-                    : "처음 가입한 일반 사용자는 관리자 승인 후 서비스를 이용할 수 있습니다."}
+                    ? "기존 회원은 이메일로 로그인하고, 새 회원은 로컬 테스트 회원가입을 이용하세요."
+                    : "이메일 인증을 완료하면 바로 서비스를 이용할 수 있습니다. 유료 요금제는 결제 승인 후 적용됩니다."}
                 </Typography>
               </Stack>
                 </Stack>

@@ -65,9 +65,9 @@ function ProposalSettingsPage() {
         item.prompt_id === promptId ? saved : item
       )));
       setCostDrafts((current) => ({ ...current, [promptId]: saved.point_cost }));
-      setMessage("문서별 포인트를 저장했습니다. 새 작업부터 적용됩니다.");
+      setMessage("문서별 꼬막을 저장했습니다. 새 작업부터 적용됩니다.");
     } catch {
-      setError("문서별 포인트는 1 이상의 정수여야 합니다.");
+      setError("문서별 꼬막은 1 이상의 정수여야 합니다.");
     } finally {
       setWorkingPromptId(null);
     }
@@ -83,9 +83,9 @@ function ProposalSettingsPage() {
       {message && <Alert severity="success" sx={{ mb: 2 }}>{message}</Alert>}
       <Paper variant="outlined" sx={{ p: 3, borderRadius: 3, mb: 3 }}>
         <Stack spacing={2}>
-          <Typography variant="h6" fontWeight={800}>개인 무료체험 포인트</Typography>
+          <Typography variant="h6" fontWeight={800}>개인 무료체험 꼬막</Typography>
           <Typography variant="body2" color="text.secondary">
-            FREE 가입자에게 계정 승인 시 20P를 최초 1회 지급합니다. 지급일부터 30일간 사용할 수 있으며 월별 리셋이나 재지급은 없습니다.
+            FREE 가입자에게 계정 승인 시 200꼬막을 최초 1회 지급합니다. 지급일부터 30일간 사용할 수 있으며 월별 리셋이나 재지급은 없습니다.
           </Typography>
         </Stack>
       </Paper>
@@ -106,9 +106,9 @@ function ProposalSettingsPage() {
         </Stack>
       </Paper>
       <Paper variant="outlined" sx={{ p: 3, borderRadius: 3, mt: 3 }}>
-        <Typography variant="h6" fontWeight={800}>문서별 소진 포인트</Typography>
+        <Typography variant="h6" fontWeight={800}>문서별 소진 꼬막</Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          프롬프트를 이용해 문서 한 건을 생성할 때 예약되는 포인트입니다.
+          프롬프트를 이용해 문서 한 건을 생성할 때 예약되는 꼬막입니다.
         </Typography>
         <Stack divider={<Divider flexItem />}>
           {promptCosts.map((item) => (
@@ -125,7 +125,7 @@ function ProposalSettingsPage() {
                 <TextField
                   size="small"
                   type="number"
-                  label="포인트"
+                  label="꼬막"
                   value={costDrafts[item.prompt_id] ?? item.point_cost}
                   inputProps={{ min: 1 }}
                   onChange={(event) => setCostDrafts((current) => ({

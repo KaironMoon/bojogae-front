@@ -193,14 +193,14 @@ function AdminProposalsPage() {
 
   const decidePoints = async (action) => {
     const reason = window.prompt(
-      action === "REFUND" ? "포인트 반환 사유를 입력하세요." : "차감 유지 사유를 입력하세요.",
+      action === "REFUND" ? "꼬막 반환 사유를 입력하세요." : "차감 유지 사유를 입력하세요.",
     );
     if (!reason?.trim()) return;
     try {
       await decideProposalPoints(detail.id, action, reason.trim());
       await Promise.all([openDetail(detail.id), load(result.page)]);
     } catch {
-      setError("포인트 처리 결과를 저장하지 못했습니다.");
+      setError("꼬막 처리 결과를 저장하지 못했습니다.");
     }
   };
 
@@ -229,7 +229,7 @@ function AdminProposalsPage() {
                   <Stack direction="row" gap={1} alignItems="center" flexWrap="wrap">
                     <Typography sx={{ fontWeight: 750 }}>{item.title}</Typography>
                     <Chip label={item.status} size="small" />
-                    <Chip label={`${item.point_cost.toLocaleString()}P · ${item.point_status || "-"}`} size="small" color={item.point_status === "REVIEW_REQUIRED" ? "warning" : "default"} />
+                    <Chip label={`${item.point_cost.toLocaleString()}꼬막 · ${item.point_status || "-"}`} size="small" color={item.point_status === "REVIEW_REQUIRED" ? "warning" : "default"} />
                     {item.is_deleted && <Chip label="삭제됨" size="small" color="error" />}
                   </Stack>
                   <Typography variant="body2" color="text.secondary">
@@ -261,13 +261,13 @@ function AdminProposalsPage() {
               <Typography variant="body2">입력 합계 {bytes(detail.total_input_bytes)} · 출력 {bytes(detail.output_bytes)}</Typography>
               <Alert severity={detail.point_status === "REVIEW_REQUIRED" ? "warning" : "info"}>
                 <Typography variant="body2">
-                  포인트 {detail.point_cost.toLocaleString()}P · {detail.point_status || "처리 전"}
+                  꼬막 {detail.point_cost.toLocaleString()}꼬막 · {detail.point_status || "처리 전"}
                   {detail.fault_party ? ` · 귀책 ${detail.fault_party}` : ""}
                   {detail.llm_requested_at ? " · LLM 요청됨" : " · LLM 요청 전"}
                 </Typography>
                 {detail.point_status === "REVIEW_REQUIRED" && (
                   <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
-                    <Button size="small" variant="contained" color="success" onClick={() => decidePoints("REFUND")}>포인트 반환</Button>
+                    <Button size="small" variant="contained" color="success" onClick={() => decidePoints("REFUND")}>꼬막 반환</Button>
                     <Button size="small" variant="outlined" color="warning" onClick={() => decidePoints("KEEP")}>차감 유지</Button>
                   </Stack>
                 )}

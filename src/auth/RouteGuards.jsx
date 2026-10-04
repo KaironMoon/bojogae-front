@@ -15,7 +15,7 @@ function destinationFor(user) {
   if (!user) return "/";
   if (user.must_change_password) return "/group/change-password";
   if (user.status === "ACTIVE") return "/home";
-  if (user.status === "PENDING") return "/approval-pending";
+  if (user.status === "PENDING") return "/access-restricted";
   return "/access-restricted";
 }
 
@@ -31,16 +31,10 @@ function ActiveUserRoute() {
   return user?.status === "ACTIVE" && !user.must_change_password ? <Outlet /> : <Navigate to={destinationFor(user)} replace />;
 }
 
-function PendingUserRoute() {
-  const { user, loading } = useAuth();
-  if (loading) return <LoadingScreen />;
-  return user?.status === "PENDING" ? <Outlet /> : <Navigate to={destinationFor(user)} replace />;
-}
-
 function RestrictedUserRoute() {
   const { user, loading } = useAuth();
   if (loading) return <LoadingScreen />;
-  return user && ["REJECTED", "SUSPENDED"].includes(user.status) ? (
+  return user && ["PENDING", "REJECTED", "SUSPENDED"].includes(user.status) ? (
     <Outlet />
   ) : (
     <Navigate to={destinationFor(user)} replace />
@@ -57,4 +51,4 @@ function AdminRoute() {
   );
 }
 
-export { ActiveUserRoute, AdminRoute, PendingUserRoute, PublicOnlyRoute, RestrictedUserRoute };
+export { ActiveUserRoute, AdminRoute, PublicOnlyRoute, RestrictedUserRoute };

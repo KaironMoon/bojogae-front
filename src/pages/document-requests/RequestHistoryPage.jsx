@@ -84,7 +84,7 @@ export default function RequestHistoryPage({ kind, admin = false }) { // eslint-
         <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" gap={1}>
           <Box sx={{ minWidth: 0 }}>
             <Typography fontWeight={700} sx={{ overflowWrap: 'anywhere' }}>{refund ? item.generation_title : item.title}</Typography>
-            <Typography variant="caption" color="text.secondary">#{item.id} · {new Date(item.created_at).toLocaleString('ko-KR')}{admin ? ` · 사용자 #${item.user_id}` : ''} · {refund ? `${item.point_cost}P` : kinds[item.kind]}</Typography>
+            <Typography variant="caption" color="text.secondary">#{item.id} · {new Date(item.created_at).toLocaleString('ko-KR')}{admin ? ` · 사용자 #${item.user_id}` : ''} · {refund ? `${item.point_cost}꼬막` : kinds[item.kind]}</Typography>
           </Box>
           <Stack direction="row" alignItems="center" spacing={1} flexWrap="wrap" useFlexGap>
             <Chip size="small" label={states[item.status] || item.status} />
@@ -106,7 +106,7 @@ export default function RequestHistoryPage({ kind, admin = false }) { // eslint-
           <TextField fullWidth label="문제 내용 및 환불 요청 사유" required multiline minRows={6} value={content}
             disabled={working} inputProps={{ maxLength: 10000 }} onChange={e => setContent(e.target.value)} />
         </Box> : <Typography sx={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{detail?.content}</Typography>}
-        {refund && <Typography>생성 건 #{detail?.generation_id} · 사용 포인트 {detail?.point_cost}P</Typography>}
+        {refund && <Typography>생성 건 #{detail?.generation_id} · 사용 꼬막 {detail?.point_cost}꼬막</Typography>}
         {document && <Paper variant="outlined" sx={{ p: 2 }}>
           <Stack spacing={1}>
             <Typography fontWeight={700}>생성 문서 검토</Typography>
@@ -122,7 +122,7 @@ export default function RequestHistoryPage({ kind, admin = false }) { // eslint-
         {detail?.response && <Alert severity="info" sx={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>관리자 답변: {detail.response}{detail.decided_at && `\n처리 일시: ${new Date(detail.decided_at).toLocaleString('ko-KR')}`}</Alert>}
         {admin && canProcess && <>
           <TextField select label="처리" value={state} disabled={working || opening} onChange={e => setState(e.target.value)}>
-            {refund ? [<MenuItem key="refund" value="REFUND">사용 포인트 반환</MenuItem>, <MenuItem key="reject" value="REJECT">환불 거절</MenuItem>]
+            {refund ? [<MenuItem key="refund" value="REFUND">사용 꼬막 반환</MenuItem>, <MenuItem key="reject" value="REJECT">환불 거절</MenuItem>]
               : [<MenuItem key="pending" value="PENDING">접수</MenuItem>, <MenuItem key="accept" value="ACCEPTED">반영 예정</MenuItem>, <MenuItem key="complete" value="COMPLETED">완료됨</MenuItem>, <MenuItem key="reject" value="REJECTED">거절</MenuItem>]}
           </TextField>
           <TextField label={refund ? '처리 사유' : '답변'} required multiline minRows={3} value={response} disabled={working || opening} inputProps={{ maxLength: refund ? 500 : 2000 }} onChange={e => setResponse(e.target.value)} />

@@ -17,8 +17,6 @@ import {
   Typography,
 } from "@mui/material";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
-import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
-import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import ManageAccountsRoundedIcon from "@mui/icons-material/ManageAccountsRounded";
 import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
@@ -30,7 +28,6 @@ import {
   deleteUser,
   getUsers,
   updateUserRole,
-  updateUserStatus,
 } from "@/services/auth-service";
 
 const PROTECTED_ADMIN_EMAIL = "bojoge.smith@gmail.com";
@@ -70,19 +67,6 @@ function UsersPage() {
   useEffect(() => {
     loadUsers();
   }, [loadUsers]);
-
-  const changeStatus = async (userId, status) => {
-    setWorkingUserId(userId);
-    setError("");
-    try {
-      await updateUserStatus(userId, status);
-      await loadUsers(page);
-    } catch {
-      setError("사용자 상태를 변경하지 못했습니다.");
-    } finally {
-      setWorkingUserId(null);
-    }
-  };
 
   const decidePlan = async (user, action) => {
     setWorkingUserId(user.id);
@@ -146,7 +130,7 @@ function UsersPage() {
       >
         <Box sx={{ minWidth: 0 }}>
           <Typography variant="h4" sx={{ fontWeight: 800 }}>사용자 관리</Typography>
-          <Typography color="text.secondary">가입 요청을 승인하거나 계정 상태를 관리합니다.</Typography>
+          <Typography color="text.secondary">회원 정보와 계정 상태를 관리합니다.</Typography>
         </Box>
         <Button
           onClick={() => loadUsers(page)}
@@ -192,7 +176,7 @@ function UsersPage() {
                     {user.next_plan_code && <Chip label={`${new Date(user.next_plan_effective_at).toLocaleDateString("ko-KR")}부터 ${user.next_plan_code === "FREE" ? "해지" : planName(user.next_plan_code)}`} size="small" variant="outlined" />}
                     {user.plan_request_status === "PENDING" && (
                       <Chip
-                        label={`${user.requested_plan_code === "FREE" ? "해지" : planName(user.requested_plan_code)} 신청 대기${user.status === "PENDING" ? " · 계정 승인 시 적용" : ""}`}
+                        label={`${user.requested_plan_code === "FREE" ? "해지" : planName(user.requested_plan_code)} 신청 대기`}
                         size="small"
                         color="warning"
                       />
@@ -201,8 +185,8 @@ function UsersPage() {
                   <Typography variant="body2" color="text.secondary">{user.email || "이메일 없음"}</Typography>
                   <Typography variant="caption" color="text.secondary">{user.providers.join(" · ")}</Typography>
                   <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                    <Chip label={`지급 ${user.free_points.toLocaleString()}P`} size="small" variant="outlined" color="success" />
-                    <Chip label={`구매 ${user.paid_points.toLocaleString()}P`} size="small" variant="outlined" color="primary" />
+                    <Chip label={`지급 ${user.free_points.toLocaleString()}꼬막`} size="small" variant="outlined" color="success" />
+                    <Chip label={`구매 ${user.paid_points.toLocaleString()}꼬막`} size="small" variant="outlined" color="primary" />
                   </Stack>
                 </Stack>
                 <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
@@ -214,38 +198,8 @@ function UsersPage() {
                   )}
                   {user.role !== "ADMIN" && (
                     <>
-                      {user.status === "PENDING" ? (
-                        <>
-                        <Button
-                          variant="contained"
-                          color="success"
-                          disabled={workingUserId === user.id}
-                          onClick={() => changeStatus(user.id, "ACTIVE")}
-                          startIcon={<CheckRoundedIcon />}
-                        >
-                          승인
-                        </Button>
-                        <Button
-                          variant="outlined"
-                          color="error"
-                          disabled={workingUserId === user.id}
-                          onClick={() => changeStatus(user.id, "REJECTED")}
-                          startIcon={<CloseRoundedIcon />}
-                        >
-                          거절
-                        </Button>
-                        </>
-                      ) : (
-                        <Button
-                          variant="outlined"
-                          color="error"
-                          disabled={workingUserId === user.id}
-                          onClick={() => setDeleteTarget(user)}
-                          startIcon={<DeleteOutlineRoundedIcon />}
-                        >
-                          삭제
-                        </Button>
-                      )}
+                      <Button variant="outlined" color="error" disabled={workingUserId === user.id}
+                        onClick={() => setDeleteTarget(user)} startIcon={<DeleteOutlineRoundedIcon />}>삭제</Button>
                     </>
                   )}
                   <Button

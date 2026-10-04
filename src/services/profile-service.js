@@ -13,6 +13,13 @@ async function updateMyProfile(profile) {
   return response.data;
 }
 
+async function savePaymentContact(contact) {
+  const response = await apiCaller.axiosInstance.patch(
+    `${apiCaller.baseUrl}/api/v1/users/me/profile/payment-contact`, contact,
+  );
+  return response.data;
+}
+
 async function requestEmailChange(email) {
   const response = await apiCaller.post("/api/v1/users/me/email-change", { email });
   return response.data;
@@ -52,6 +59,7 @@ export {
   requestPlanChange,
   requestEmailChange,
   updateMyProfile,
+  savePaymentContact,
   verifyEmailChangeCode,
   verifyEmailChangeLink,
 };

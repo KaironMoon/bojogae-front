@@ -5,18 +5,18 @@ import GroupsPage from "../pages/groups/GroupsPage";
 import MyCoinsPage from "../pages/groups/MyCoinsPage";
 import GroupPasswordPage from "../pages/auth/GroupPasswordPage";
 import { lazy } from "react";
-import { createBrowserRouter } from "react-router-dom";
+import { createBrowserRouter, Navigate } from "react-router-dom";
 import Home from "../pages/home";
 import Info from "../pages/info";
 import NotFound from "../pages/error/NotFound";
 import PageLayout from "../pages/PageLayout";
 import LoginPage from "../pages/auth/LoginPage";
-import ApprovalPendingPage from "../pages/auth/ApprovalPendingPage";
 import AccessRestrictedPage from "../pages/auth/AccessRestrictedPage";
 import UsersPage from "../pages/admin/UsersPage";
 import SignupCompletePage from "../pages/auth/SignupCompletePage";
 import EmailVerificationPage from "../pages/auth/EmailVerificationPage";
 import ProfilePage from "../pages/profile/ProfilePage";
+import PaymentHistoryPage from "../pages/profile/PaymentHistoryPage";
 import EmailChangeVerificationPage from "../pages/profile/EmailChangeVerificationPage";
 import PromptsPage from "../pages/prompts/PromptsPage";
 import ProposalsPage from "../pages/proposals/ProposalsPage";
@@ -32,7 +32,6 @@ import BoardEditorPage from "../pages/boards/BoardEditorPage";
 import {
   ActiveUserRoute,
   AdminRoute,
-  PendingUserRoute,
   PublicOnlyRoute,
   RestrictedUserRoute,
 } from "../auth/RouteGuards";
@@ -92,8 +91,8 @@ const router = createBrowserRouter([
     ],
   },
   {
-    element: <PendingUserRoute />,
-    children: [{ path: "/approval-pending", element: <ApprovalPendingPage /> }],
+    path: "/approval-pending",
+    element: <Navigate to="/access-restricted" replace />,
   },
   {
     element: <RestrictedUserRoute />,
@@ -113,6 +112,7 @@ const router = createBrowserRouter([
             path: "/profile",
             element: <ProfilePage />,
           },
+          { path: "/payment-history", element: <PaymentHistoryPage /> },
           {
             path: "/proposals",
             element: <ProposalsPage />,
@@ -145,6 +145,7 @@ const router = createBrowserRouter([
           { path: "/admin/document-suggestions", element: <RequestHistoryPage key="suggestion-admin" kind="suggestion" admin /> },
           { path: "/admin/users", element: <UsersPage /> },
           { path: "/admin/points", element: <PointsPage /> },
+          { path: "/admin/payment-reservations", element: <PaymentHistoryPage key="admin-reservations" admin /> },
           { path: "/admin/prompts", element: <PromptsPage /> },
           { path: "/admin/proposals", element: <AdminProposalsPage /> },
           { path: "/admin/usage", element: <UsagePage /> },

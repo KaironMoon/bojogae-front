@@ -37,9 +37,9 @@ export default function RefundCreatePage() {
     {loading ? <CircularProgress /> : document && <Paper component="form" onSubmit={submit} variant="outlined" sx={{ p: { xs: 2, sm: 3 }, borderRadius: 3 }}>
       <Stack spacing={2}>
         <Typography variant="h6">{document.title}</Typography>
-        <Typography variant="body2">생성 건 #{document.id} · 사용 포인트 {document.point_cost}P</Typography>
+        <Typography variant="body2">생성 건 #{document.id} · 사용 꼬막 {document.point_cost}꼬막</Typography>
         <Alert severity={eligible ? 'info' : 'warning'}>{eligible
-          ? '문서의 품질 문제를 작성해주세요. 관리자가 생성 문서를 확인한 후 사용 포인트 반환 또는 거절을 결정합니다.'
+          ? '문서의 품질 문제를 작성해주세요. 관리자가 생성 문서를 확인한 후 사용 꼬막 반환 또는 거절을 결정합니다.'
           : '현재 과금 상태에서는 환불을 요청할 수 없습니다.'}</Alert>
         {document.status === 'COMPLETED' && <Button href={proposalFileUrl(document.id, 'output')} target="_blank" rel="noopener noreferrer">생성 문서 확인</Button>}
         <TextField label="문제 내용 및 환불 요청 사유" multiline minRows={6} required value={content} disabled={working || !eligible}

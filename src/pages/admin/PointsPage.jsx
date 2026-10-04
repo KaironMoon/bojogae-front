@@ -1,3 +1,5 @@
+import PaymentSupportPanel from "./PaymentSupportPanel";
+import KkomakIcon from "@/pages/components/KkomakIcon";
 import {
   Alert,
   Box,
@@ -54,7 +56,7 @@ function SummaryCard({ title, value, icon: Icon, color, background }) { // eslin
       <Stack direction="row" justifyContent="space-between" alignItems="center">
         <Box>
           <Typography variant="body2" color="text.secondary">{title}</Typography>
-          <Typography variant="h5" fontWeight={850}>{value.toLocaleString()}P</Typography>
+          <Typography variant="h5" fontWeight={850}><KkomakIcon /> {value.toLocaleString()}꼬막</Typography>
         </Box>
         <Box sx={{ width: 44, height: 44, borderRadius: 2.5, display: "grid", placeItems: "center", color, bgcolor: background }}>
           <Icon />
@@ -98,7 +100,7 @@ function PointsPage() {
     try {
       setResult(await getUsers(status || undefined, page, 20));
     } catch {
-      setError("포인트 정보를 불러오지 못했습니다.");
+      setError("꼬막 정보를 불러오지 못했습니다.");
     } finally {
       setLoading(false);
     }
@@ -135,7 +137,7 @@ function PointsPage() {
   const submitGrant = async () => {
     const amount = Number(grantDraft.amount);
     if (!grantTarget || !Number.isInteger(amount) || amount < 1 || !grantDraft.reason.trim() || !grantDraft.expirationDate) {
-      setError("지급 포인트, 만료일, 지급 사유를 확인해 주세요.");
+      setError("지급 꼬막, 만료일, 지급 사유를 확인해 주세요.");
       return;
     }
     setWorking(true);
@@ -149,10 +151,10 @@ function PointsPage() {
       });
       const targetName = grantTarget.display_name;
       setGrantTarget(null);
-      setMessage(`${targetName} 사용자에게 ${amount.toLocaleString()}P를 지급했습니다.`);
+      setMessage(`${targetName} 사용자에게 ${amount.toLocaleString()}꼬막을 지급했습니다.`);
       await load(result.page);
     } catch {
-      setError("포인트를 지급하지 못했습니다.");
+      setError("꼬막을 지급하지 못했습니다.");
     } finally {
       setWorking(false);
     }
@@ -162,19 +164,20 @@ function PointsPage() {
     <Box component="main" sx={{ p: { xs: 2, md: 4 }, maxWidth: 1280, mx: "auto" }}>
       <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" gap={2} sx={{ mb: 3 }}>
         <Box>
-          <Typography variant="h4" component="h1" fontWeight={850}>포인트 관리</Typography>
-          <Typography color="text.secondary">사용자별 지급·구매 포인트 잔액을 확인하고 포인트를 지급합니다.</Typography>
+          <Typography variant="h4" component="h1" fontWeight={850}>꼬막 관리</Typography>
+          <Typography color="text.secondary">사용자별 지급·구매 꼬막 잔액을 확인하고 꼬막을 지급합니다.</Typography>
         </Box>
         <Button startIcon={<RefreshRoundedIcon />} onClick={() => load(result.page)}>새로고침</Button>
       </Stack>
 
+      <PaymentSupportPanel />
       {error && <Alert severity="error" onClose={() => setError("")} sx={{ mb: 2 }}>{error}</Alert>}
       {message && <Alert severity="success" onClose={() => setMessage("")} sx={{ mb: 2 }}>{message}</Alert>}
 
       <Stack direction={{ xs: "column", md: "row" }} spacing={2} sx={{ mb: 3 }}>
-        <SummaryCard title="현재 페이지 지급 포인트" value={totals.free} icon={RedeemRoundedIcon} color="#059669" background="#ecfdf5" />
-        <SummaryCard title="현재 페이지 구매 포인트" value={totals.paid} icon={PaymentsRoundedIcon} color="#2563eb" background="#eff6ff" />
-        <SummaryCard title="현재 페이지 전체 포인트" value={totals.total} icon={AccountBalanceWalletRoundedIcon} color="#7c3aed" background="#f5f3ff" />
+        <SummaryCard title="현재 페이지 지급 꼬막" value={totals.free} icon={RedeemRoundedIcon} color="#059669" background="#ecfdf5" />
+        <SummaryCard title="현재 페이지 구매 꼬막" value={totals.paid} icon={PaymentsRoundedIcon} color="#2563eb" background="#eff6ff" />
+        <SummaryCard title="현재 페이지 전체 꼬막" value={totals.total} icon={AccountBalanceWalletRoundedIcon} color="#7c3aed" background="#f5f3ff" />
       </Stack>
 
       <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, mb: 2 }}>
@@ -207,15 +210,15 @@ function PointsPage() {
                   <Typography variant="body2" color="text.secondary">{user.email || "이메일 없음"}</Typography>
                 </Box>
                 <Stack direction={{ xs: "column", sm: "row" }} alignItems={{ sm: "center" }} gap={1.25}>
-                  <Chip label={`지급 ${user.free_points.toLocaleString()}P`} color="success" variant="outlined" />
-                  <Chip label={`구매 ${user.paid_points.toLocaleString()}P`} color="primary" variant="outlined" />
+                  <Chip label={`지급 ${user.free_points.toLocaleString()}꼬막`} color="success" variant="outlined" />
+                  <Chip label={`구매 ${user.paid_points.toLocaleString()}꼬막`} color="primary" variant="outlined" />
                   <Typography sx={{ minWidth: 100, textAlign: { sm: "right" }, fontWeight: 850 }}>
-                    총 {user.total_points.toLocaleString()}P
+                    총 {user.total_points.toLocaleString()}꼬막
                   </Typography>
                   <Button variant="contained" startIcon={<AddCardRoundedIcon />} onClick={() => openGrant(user)}>
-                    포인트 지급
+                    꼬막 지급
                   </Button>
-                  <Button onClick={() => showDetails(user)}>포인트 상세</Button>
+                  <Button onClick={() => showDetails(user)}>꼬막 상세</Button>
                 </Stack>
               </Stack>
             </Paper>
@@ -230,17 +233,17 @@ function PointsPage() {
 
       <Dialog open={Boolean(grantTarget)} onClose={() => !working && setGrantTarget(null)} fullWidth maxWidth="xs">
  
-        <DialogTitle>포인트 지급</DialogTitle>
+        <DialogTitle>꼬막 지급</DialogTitle>
         <DialogContent>
           <DialogContentText sx={{ mb: 2 }}>
-            {grantTarget?.display_name} 사용자에게 지급할 포인트를 입력하세요.
+            {grantTarget?.display_name} 사용자에게 지급할 꼬막을 입력하세요.
           </DialogContentText>
           <Stack spacing={2}>
             {error && <Alert severity="error">{error}</Alert>}
             <TextField
               autoFocus
               required
-              label="지급 포인트"
+              label="지급 꼬막"
               type="number"
               value={grantDraft.amount}
               inputProps={{ min: 1 }}
@@ -274,7 +277,7 @@ function PointsPage() {
         </DialogActions>
       </Dialog>
       <Dialog open={Boolean(detailUser)} onClose={() => setDetailUser(null)} fullWidth maxWidth="lg">
-        <DialogTitle>{detailUser?.display_name} · 포인트 구성</DialogTitle>
+        <DialogTitle>{detailUser?.display_name} · 꼬막 구성</DialogTitle>
         <DialogContent>
           <TextField select size="small" label="조회 범위" sx={{ mt: 1, mb: 2, minWidth: 200 }} value={grantFilter} onChange={event => showDetails(detailUser, 1, event.target.value)}>
             {[['ACTIVE', '사용 가능·예약 중'], ['ALL', '전체 지급 건'], ['EXPIRED', '만료된 지급 건'], ['DEPLETED', '소진된 지급 건']].map(([value, label]) => <MenuItem key={value} value={value}>{label}</MenuItem>)}
@@ -282,9 +285,9 @@ function PointsPage() {
           {detailError ? <Alert severity="error">{detailError}</Alert> : !details ? <CircularProgress /> : (
             <Stack spacing={2}>
               <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(4, 1fr)' }, gap: 1 }}>
-                {[['free_points', '지급 사용 가능'], ['paid_points', '구매 사용 가능'], ['reserved_points', '예약 중'], ['expiring_points', '7일 내 만료 예정']].map(([key, label]) => <Paper key={key} variant="outlined" sx={{ p: 2, borderRadius: 2 }}><Typography variant="body2" color="text.secondary">{label}</Typography><Typography variant="h6" fontWeight={800}>{details.summary[key].toLocaleString()}P</Typography></Paper>)}
+                {[['free_points', '지급 사용 가능'], ['paid_points', '구매 사용 가능'], ['reserved_points', '예약 중'], ['expiring_points', '7일 내 만료 예정']].map(([key, label]) => <Paper key={key} variant="outlined" sx={{ p: 2, borderRadius: 2 }}><Typography variant="body2" color="text.secondary">{label}</Typography><Typography variant="h6" fontWeight={800}>{details.summary[key].toLocaleString()}꼬막</Typography></Paper>)}
               </Box>
-              <Typography variant="caption" color="text.secondary">사용자 전체 잔액 기준 · 예약 중 포인트는 사용 가능 잔액에서 제외됩니다. 지급 포인트는 만료 임박 순, 구매 포인트는 마지막에 표시됩니다.</Typography>
+              <Typography variant="caption" color="text.secondary">사용자 전체 잔액 기준 · 예약 중 꼬막은 사용 가능 잔액에서 제외됩니다. 월 제공분과 구매분 모두 만료일이 가까운 순서로 표시됩니다.</Typography>
               <PointGrantsTable items={details.items} />
               {!details.items.length && <Alert severity="info">지급 내역이 없습니다.</Alert>}
               {details.total_pages > 1 && <Pagination page={details.page} count={details.total_pages} onChange={(_, page) => showDetails(detailUser, page, grantFilter)} />}

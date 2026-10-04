@@ -1,3 +1,5 @@
+import PaymentSection from "./PaymentSection";
+import { getPaymentConfig } from "@/services/payment-service";
 import { useCallback, useEffect, useState } from "react";
 import {
   Alert,
@@ -43,19 +45,19 @@ function changeDescription(plan, target) {
   const kind = changeKind(plan.plan_code, target);
   const targetInfo = PLAN_INFO[target];
   if (kind === "cancel") {
-    return `승인되면 다음 지급일(${formatDate(plan.current_period_end)})부터 무료로 전환되고 월 포인트 지급이 중단됩니다. 이미 받은 포인트는 만료일까지 사용할 수 있습니다.`;
+    return `승인되면 다음 지급일(${formatDate(plan.current_period_end)})부터 무료로 전환되고 월 꼬막 지급이 중단됩니다. 이미 받은 꼬막은 만료일까지 사용할 수 있습니다.`;
   }
   if (kind === "start") {
-    return `승인되는 날부터 ${targetInfo.name}(${targetInfo.price}/월)이 적용되고 매월 ${targetInfo.monthlyPoints}P가 지급됩니다.`;
+    return `승인되는 날부터 ${targetInfo.name}(${targetInfo.price}/월)이 적용되고 매월 ${targetInfo.monthlyPoints}꼬막이 지급됩니다.`;
   }
   if (kind === "upgrade") {
     const diff = targetInfo.monthlyPoints - (PLAN_INFO[plan.plan_code].monthlyPoints || 0);
-    return `승인 즉시 ${targetInfo.name}이 적용되고, 이번 주기 차액 ${diff}P가 바로 지급됩니다. 다음 지급일부터 매월 ${targetInfo.monthlyPoints}P가 지급됩니다.`;
+    return `승인 즉시 ${targetInfo.name}이 적용되고, 이번 주기 차액 ${diff}꼬막이 바로 지급됩니다. 다음 지급일부터 매월 ${targetInfo.monthlyPoints}꼬막이 지급됩니다.`;
   }
-  return `승인되면 다음 지급일(${formatDate(plan.current_period_end)})부터 ${targetInfo.name}(매월 ${targetInfo.monthlyPoints}P)이 적용됩니다.`;
+  return `승인되면 다음 지급일(${formatDate(plan.current_period_end)})부터 ${targetInfo.name}(매월 ${targetInfo.monthlyPoints}꼬막)이 적용됩니다.`;
 }
 
-function PlanSection() {
+function LegacyPlanSection() {
   const [plan, setPlan] = useState(null);
   const [loading, setLoading] = useState(true);
   const [working, setWorking] = useState(false);
@@ -141,7 +143,7 @@ function PlanSection() {
 
         {current !== "FREE" && (
           <Typography variant="body2" color="text.secondary">
-            매월 {plan.monthly_points ?? "-"}P 지급 · 이번 주기 {formatDate(plan.current_period_start)} ~ {formatDate(plan.current_period_end)} · 남은 포인트는 다음 지급일에 만료됩니다.
+            매월 {plan.monthly_points ?? "-"}꼬막 지급 · 이번 주기 {formatDate(plan.current_period_start)} ~ {formatDate(plan.current_period_end)} · 남은 꼬막은 다음 지급일에 만료됩니다.
           </Typography>
         )}
 
@@ -175,7 +177,7 @@ function PlanSection() {
                 sx={{ flex: 1, flexDirection: "column", py: 1.25 }}
               >
                 <Typography fontWeight={800} fontSize={14}>{info.name}</Typography>
-                <Typography fontSize={11}>{info.comingSoon ? "준비 중" : isCurrent ? "사용 중" : `${info.price} · 월 ${info.monthlyPoints}P`}</Typography>
+                <Typography fontSize={11}>{info.comingSoon ? "준비 중" : isCurrent ? "사용 중" : `${info.price} · 월 ${info.monthlyPoints}꼬막`}</Typography>
               </Button>
             );
           })}
@@ -205,4 +207,26 @@ function PlanSection() {
   );
 }
 
+// eslint-disable-next-line react/prop-types
+function PlanSection({ onChanged, onContactSaved }) {
+  const [config, setConfig] = useState(null);
+  const [error, setError] = useState(false);
+  useEffect(() => { getPaymentConfig().then(setConfig).catch(() => setError(true)); }, []);
+  if (error) return <Alert severity="error">결제 설정을 불러오지 못했습니다. 새로고침해 주세요.</Alert>;
+  if (!config) return <CircularProgress size={24} />;
+  if (config.requestedEnabled && !config.enabled) return <Alert severity="error">결제 연동 설정이 완료되지 않았습니다. 관리자에게 문의해 주세요.</Alert>;
+  if (config.enabled && !config.eligible) return (
+    <Paper id="plan" variant="outlined" sx={{ p: { xs: 2, md: 3 }, mb: 3, borderRadius: 3 }}>
+      <Stack spacing={2}>
+        <Typography variant="h6" fontWeight={800}>구독·꼬막 충전</Typography>
+        <Alert severity="info">
+          {config.ineligibleReason === 'GROUP_ACCOUNT'
+            ? '그룹 계정은 그룹 관리에서 꼬막을 관리합니다. 개인 정기결제는 그룹에 속하지 않은 일반 회원 계정에서 이용할 수 있습니다.'
+            : '관리자 계정은 개인 정기결제 대상이 아닙니다. 빌링 테스트는 그룹에 속하지 않은 일반 회원 계정으로 로그인해 진행해 주세요.'}
+        </Alert>
+      </Stack>
+    </Paper>
+  );
+  return config.enabled ? <PaymentSection config={config} onChanged={onChanged} onContactSaved={onContactSaved} /> : <LegacyPlanSection />;
+}
 export default PlanSection;

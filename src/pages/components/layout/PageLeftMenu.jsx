@@ -41,7 +41,8 @@ const PRIMARY_MENU = [
 const ADMIN_MENU = [
   { label: "그룹 관리", path: "/admin/groups", icon: GroupOutlinedIcon },
   { label: "고객 관리", path: "/admin/users", icon: GroupOutlinedIcon },
-  { label: "포인트 관리", path: "/admin/points", icon: AccountBalanceWalletOutlinedIcon },
+  { label: "꼬막 관리", path: "/admin/points", icon: AccountBalanceWalletOutlinedIcon },
+  { label: "예약결제 목록", path: "/admin/payment-reservations", icon: AccountBalanceWalletOutlinedIcon },
   { label: "프롬프트 관리", path: "/admin/prompts", icon: AutoAwesomeOutlinedIcon },
   { label: "보고서 관리", path: "/admin/proposals", icon: DescriptionOutlinedIcon },
   { label: "환불 요청 관리", path: "/admin/refund-requests", icon: AccountBalanceWalletOutlinedIcon },
@@ -65,7 +66,7 @@ const REPORT_MENU = [
 
 const PROFILE_MENU = [
   { label: "정보 수정", path: "/profile", icon: AccountCircleOutlinedIcon },
-  { label: "내 포인트", path: "/my-coins", icon: AccountBalanceWalletOutlinedIcon },
+  { label: "내 꼬막", path: "/my-coins", icon: AccountBalanceWalletOutlinedIcon },
 ];
 
 const ADMIN_BOARD_MENU = [

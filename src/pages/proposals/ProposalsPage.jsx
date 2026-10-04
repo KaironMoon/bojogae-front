@@ -1,3 +1,4 @@
+import KkomakIcon from "@/pages/components/KkomakIcon";
 import { Link, useSearchParams } from "react-router-dom";
 import PreviewImageCarousel from "@/pages/components/PreviewImageCarousel";
 import PromptInputForm from "@/pages/components/PromptInputForm";
@@ -695,7 +696,7 @@ function ProposalsPage() {
         detailCode === "active_job_limit_exceeded"
           ? "동시에 진행할 수 있는 작업 수를 초과했습니다."
           : detailCode === "insufficient_points"
-            ? "포인트가 부족합니다. 잔액을 확인해 주세요."
+            ? "꼬막이 부족합니다. 잔액을 확인해 주세요."
           : detailCode === "prompt_version_changed"
             ? "프롬프트가 변경되었습니다. 페이지를 새로고침한 후 입력해 주세요."
           : ["invalid_input_values", "invalid_input_files", "required_input_missing", "required_input_group_missing", "invalid_input_file_type", "invalid_attached_generation_fields"].includes(detailCode)
@@ -857,7 +858,7 @@ function ProposalsPage() {
         <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" gap={1}>
           <Typography variant="h4" sx={{ fontSize: { xs: 26, sm: 30, md: 34 }, fontWeight: 850, letterSpacing: "-0.04em" }}>보고서 만들기</Typography>
           <Stack direction="row" spacing={1}>
-            <Chip label={`보유 ${pointBalance.total_points.toLocaleString()}P`} color="primary" variant="outlined" />
+            <Chip icon={<KkomakIcon />} label={`보유 ${pointBalance.total_points.toLocaleString()}꼬막`} color="primary" variant="outlined" />
           </Stack>
         </Stack>
         <Typography color="text.secondary" sx={{ mt: 0.5, fontSize: { xs: 13, sm: 14 } }}>
@@ -1157,7 +1158,7 @@ function ProposalsPage() {
                         </Typography>
                       )}
                       <Stack direction="row" alignItems="center" gap={0.6} flexWrap={{ xs: "nowrap", sm: "wrap" }} sx={{ mt: 0.75, overflowX: { xs: "auto", sm: "visible" }, scrollbarWidth: "none", "&::-webkit-scrollbar": { display: "none" }, "& .MuiChip-root": { flexShrink: 0 } }}>
-                          <Chip label={`${option.point_cost.toLocaleString()}P`} size="small" color="warning" variant="outlined" />
+                          <Chip icon={<KkomakIcon size={18} />} label={`${option.point_cost.toLocaleString()}꼬막`} size="small" color="warning" variant="outlined" />
                           {(option.categories || []).map((category) => (
                             <Chip key={category.id} label={`${category.parent_name} · ${category.name}`} size="small" />
                           ))}
@@ -1365,8 +1366,8 @@ function ProposalsPage() {
             {working
               ? "등록 중..."
               : pointBalance.total_points < selectedPointCost
-                ? `포인트 부족 (${selectedPointCost.toLocaleString()}P 필요)`
-                : `보고서 생성 · ${selectedPointCost.toLocaleString()}P`}
+                ? `꼬막 부족 (${selectedPointCost.toLocaleString()}꼬막 필요)`
+                : `보고서 생성 · ${selectedPointCost.toLocaleString()}꼬막`}
           </Button>
         </Stack>
 
@@ -1540,7 +1541,7 @@ function ProposalsPage() {
                   <Stack direction="row" alignItems="center" gap={0.75} flexWrap={{ xs: "nowrap", sm: "wrap" }}>
                     <Typography variant="subtitle2" noWrap sx={{ fontWeight: 800, minWidth: 0, flex: { xs: 1, sm: "initial" } }}>{item.title}</Typography>
                     <Chip size="small" color={statusColor(item.status)} label={STATUS_LABELS[item.status] || item.status} />
-                    {item.point_status === "REFUNDED" && <Chip size="small" color="success" variant="outlined" label="포인트 반환 완료" sx={{ display: { xs: "none", sm: "inline-flex" } }} />}
+                    {item.point_status === "REFUNDED" && <Chip size="small" color="success" variant="outlined" label="꼬막 반환 완료" sx={{ display: { xs: "none", sm: "inline-flex" } }} />}
                     {(statusItem?.id ?? previewItem?.id) === item.id && (
                       <Chip size="small" color="primary" variant="outlined" label="선택됨" sx={{ display: { xs: "none", sm: "inline-flex" }, fontWeight: 750 }} />
                     )}
@@ -1549,7 +1550,7 @@ function ProposalsPage() {
                     {item.prompt_title} v{item.prompt_version_no} · PDF {item.input_file_count}개 ({formatBytes(item.total_input_bytes)}) · {formatDate(item.created_at)}
                   </Typography>
                   <Typography variant="caption" color="text.secondary" noWrap sx={{ display: { xs: "block", sm: "none" }, mt: 0.25 }}>
-                    {item.prompt_title} · {formatDate(item.created_at)}{item.point_status === "REFUNDED" ? " · 포인트 반환" : ""}
+                    {item.prompt_title} · {formatDate(item.created_at)}{item.point_status === "REFUNDED" ? " · 꼬막 반환" : ""}
                   </Typography>
                   {item.error_message && <Typography color="error" variant="caption" noWrap sx={{ display: "block" }}>{item.error_message}</Typography>}
                 </Box>
@@ -1624,7 +1625,7 @@ function ProposalsPage() {
               {ACTIVE.has(selectedReport.status) && <CircularProgress size={20} />}
               <Chip color={statusColor(selectedReport.status)} label={STATUS_LABELS[selectedReport.status] || selectedReport.status || "상태 확인 중"} />
             </Stack>
-            {selectedReport.point_status === "REFUNDED" && <Alert severity="success">포인트 반환 완료 · 이 문서 생성에 사용한 포인트가 반환되었습니다.</Alert>}
+            {selectedReport.point_status === "REFUNDED" && <Alert severity="success">꼬막 반환 완료 · 이 문서 생성에 사용한 꼬막이 반환되었습니다.</Alert>}
             {["COMPLETED", "FAILED"].includes(selectedReport.status) && ["CONSUMED", "REVIEW_REQUIRED"].includes(selectedReport.point_status) && <Button variant="outlined" color="warning" sx={{ alignSelf: "flex-start" }} component={Link} to={`/proposals/${selectedReport.id}/refund`}>환불 요청</Button>}
             {statusItem && <Typography role="status" aria-live="polite" sx={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>
               {statusMessage || STATUS_LABELS[statusItem.status] || "진행 상태를 확인하고 있습니다."}

@@ -23,7 +23,7 @@ function AccessRestrictedPage() {
             <BlockRoundedIcon color="error" sx={{ fontSize: 58 }} />
             <div>
               <Typography variant="h4" sx={{ fontWeight: 800 }}>
-                {rejected ? "가입 승인이 거절되었습니다" : "사용이 일시 정지되었습니다"}
+                {user?.status === "PENDING" ? "계정 상태를 확인해 주세요" : rejected ? "계정 이용이 제한되었습니다" : "사용이 일시 정지되었습니다"}
               </Typography>
               <Typography color="text.secondary" sx={{ mt: 1 }}>
                 계정 상태에 대한 문의는 서비스 관리자에게 연락해 주세요.

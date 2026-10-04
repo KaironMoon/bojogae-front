@@ -1,0 +1,39 @@
+<svg viewBox="0 0 100 100" width="100" height="100" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="topPearlShellGrad" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="45%" stop-color="#FCF9F5"/>
+      <stop offset="80%" stop-color="#F2E6D8"/>
+      <stop offset="100%" stop-color="#DEC9B4"/>
+    </linearGradient>
+    <linearGradient id="topShellShadowGrad" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#BCA28B" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#9E836C" stop-opacity="0.55"/>
+    </linearGradient>
+    <linearGradient id="topCoinStarGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FDE68A"/>
+      <stop offset="50%" stop-color="#F59E0B"/>
+      <stop offset="100%" stop-color="#D97706"/>
+    </linearGradient>
+    <radialGradient id="topBlushGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FB7185" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#FB7185" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <!-- 패각 바닥 그림자 -->
+  <ellipse cx="50" cy="91" rx="26" ry="5.5" fill="#000000" opacity="0.08"/>
+  <!-- 꼬막 패각 본체 -->
+  <path d="M 50 10 C 26 10, 8 28, 8 50 C 8 70, 31 85, 42 88 L 41 91 C 41 93.5, 59 93.5, 59 91 L 58 88 C 69 85, 92 70, 92 50 C 92 28, 74 10, 50 10 Z" fill="url(#topPearlShellGrad)" stroke="#52433A" stroke-width="2.6" stroke-linejoin="round"/>
+  <!-- 패각 하단 입체 받침 음영 -->
+  <path d="M 12 55 C 16 72, 34 85, 50 88 C 66 85, 84 72, 88 55 C 80 75, 62 86, 50 86 C 38 86, 20 75, 12 55 Z" fill="url(#topShellShadowGrad)"/>
+  <!-- 힌지 -->
+  <path d="M 42 88 C 42 93, 58 93, 58 88 Z" fill="#D3BEA9" stroke="#52433A" stroke-width="2"/>
+  <!-- 7대 방사륵(골 주름) 음영 & 하이라이트 -->
+  <path d="M 50 86 L 50 11 M 48 86 Q 37 52 32 15 M 52 86 Q 63 52 68 15 M 46 86 Q 26 58 19 26 M 54 86 Q 74 58 81 26 M 44 86 Q 18 67 12 43 M 56 86 Q 82 67 88 43" stroke="#876F5E" stroke-width="2" stroke-linecap="round"/>
+  <path d="M 49 85 L 49 12 M 47 85 Q 36 52 31 16 M 53 85 Q 64 52 69 16 M 45 85 Q 25 58 18 27 M 55 85 Q 75 58 82 27" stroke="#FFFFFF" stroke-width="1.1" stroke-linecap="round" opacity="0.95"/>
+  <ellipse cx="50" cy="28" rx="20" ry="8" fill="#FFFFFF" opacity="0.6"/>
+  <!-- 중앙 포인트 스타 뱃지 -->
+  <circle cx="50" cy="52" r="13" fill="url(#topCoinStarGrad)" stroke="#B45309" stroke-width="1.8"/>
+  <circle cx="50" cy="52" r="10.8" fill="none" stroke="#FDE68A" stroke-width="0.9" opacity="0.85"/>
+  <path d="M 50 43.5 L 52.6 48.8 L 58.4 49.6 L 54.2 53.7 L 55.2 59.5 L 50 56.7 L 44.8 59.5 L 45.8 53.7 L 41.6 49.6 L 47.4 48.8 Z" fill="#FFFFFF" stroke="#B45309" stroke-width="0.8" stroke-linejoin="round"/>
+</svg>

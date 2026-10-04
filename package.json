@@ -16,6 +16,7 @@
     "@emotion/styled": "^11.13.5",
     "@mui/icons-material": "^6.1.9",
     "@mui/material": "^6.1.9",
+    "@portone/browser-sdk": "^0.1.13",
     "axios": "^1.7.9",
     "dompurify": "^3.4.16",
     "jotai": "^2.10.3",

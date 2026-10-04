@@ -1,3 +1,4 @@
+import { signupDestination } from "@/auth/signup-destination";
 import { Alert, Box, Button, CircularProgress, Container, Paper, Stack, Typography } from "@mui/material";
 import MarkEmailReadOutlinedIcon from "@mui/icons-material/MarkEmailReadOutlined";
 import { useEffect, useRef, useState } from "react";
@@ -6,11 +7,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/auth/AuthContext";
 import { verifySignupLink } from "@/services/auth-service";
 
-function destinationFor(user) {
-  if (user.status === "ACTIVE") return "/home";
-  if (user.status === "PENDING") return "/approval-pending";
-  return "/access-restricted";
-}
+
 
 function EmailVerificationPage() {
   const [searchParams] = useSearchParams();
@@ -31,7 +28,7 @@ function EmailVerificationPage() {
     verifySignupLink(token)
       .then(async (user) => {
         await refreshUser();
-        navigate(destinationFor(user), { replace: true });
+        navigate(signupDestination(user), { replace: true });
       })
       .catch((requestError) => {
         const detail = requestError.response?.data?.detail;
