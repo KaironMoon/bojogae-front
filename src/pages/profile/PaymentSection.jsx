@@ -127,7 +127,7 @@ export default function PaymentSection({ config, onChanged, onContactSaved }) {
     if (!topup) {
       if (!savedMethod) throw new Error('결제수단 관리에서 카드를 등록하고 사용할 카드를 선택해 주세요.');
       startKey.current ||= crypto.randomUUID();
-      const verified = await paymentPost('subscriptions/start', { ...consent, plan_code:plan, idempotency_key:startKey.current });
+      const verified = await paymentPost('subscriptions/start', { ...consent, plan_code:plan, idempotency_key:startKey.current, method_id:savedMethod.id });
       checkResult(verified);
       setMessage(verified.status === 'PAID' ? '첫 구독 결제가 확인되어 꼬막이 지급되었습니다.' : '첫 결제 상태를 확인 중입니다. 결제내역을 확인해 주세요.');
       return;
@@ -214,7 +214,7 @@ export default function PaymentSection({ config, onChanged, onContactSaved }) {
             <Typography>다음 회차 결제: {upgradeQuote.nextAmount.toLocaleString()}원</Typography>
             <Typography variant="caption" color="text.secondary">남은 기간 비례 계산 · 금액 원 미만 버림 · 꼬막 소수점 올림 · 견적은 10분간 유효합니다.</Typography>
           </Stack></Paper>}
-          {dialog === 'subscribe' && <Alert severity={savedMethod ? 'info' : 'warning'}>{savedMethod ? `결제수단: ${savedMethod.name} · ${savedMethod.number}` : '결제수단 관리에서 카드를 등록한 뒤 사용할 카드를 선택해 주세요.'}<Button component={Link} to="/payment-methods">결제수단 관리</Button></Alert>}
+          {dialog === 'subscribe' && <Alert severity={savedMethod ? 'info' : 'warning'}>{savedMethod ? `결제수단: ${savedMethod.name} · ${savedMethod.number}` : '결제수단 관리에서 카드를 등록한 뒤 사용할 카드를 선택해 주세요.'}<Button component={Link} to={`/payment-methods?plan=${encodeURIComponent(plan)}`}>결제수단 관리</Button></Alert>}
           {dialog === 'topup' && [['fullName','결제자 이름'],['phoneNumber','휴대폰 번호'],['email','이메일']].map(([key,label]) =>
             <TextField key={key} label={label} type={key === 'email' ? 'email' : key === 'phoneNumber' ? 'tel' : 'text'} autoComplete={key === 'email' ? 'email' : key === 'phoneNumber' ? 'tel' : 'name'} value={customer[key]} onChange={(e) => setCustomer({ ...customer, [key]:e.target.value })} disabled={busy} fullWidth required />)}
           {dialog === 'topup' && <>

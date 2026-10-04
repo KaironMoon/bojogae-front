@@ -7,6 +7,8 @@ import { getPaymentConfig, openBillingKey, paymentError, paymentPost } from '@/s
 
 const pendingStatuses = ['REVOKING','SCHEDULING','RESTORING','REVIEW'];
 export default function PaymentMethodsPage() {
+  const [returnPlan] = useState(() => { const value = new URLSearchParams(window.location.search).get('plan'); return ['BASIC','STANDARD','PRO'].includes(value) ? value : null; });
+  const returnTo = returnPlan ? `/profile?signupPlan=${encodeURIComponent(returnPlan)}#plan` : '/profile#plan';
   const [config, setConfig] = useState(null);
   const [data, setData] = useState(null);
   const [busy, setBusy] = useState(true);
@@ -30,8 +32,8 @@ export default function PaymentMethodsPage() {
     if (result.status !== 'REGISTERED') throw new Error('카드 등록 결과를 확인해 주세요.');
     setMessage('카드가 목록에 등록되었습니다. 사용할 카드는 결제수단으로 사용 버튼으로 선택해 주세요.');
     pendingKey.current = null;
-    window.history.replaceState(null, '', window.location.pathname);
-  }, []);
+    window.history.replaceState(null, '', `${window.location.pathname}${returnPlan ? `?plan=${encodeURIComponent(returnPlan)}` : ''}`);
+  }, [returnPlan]);
   useEffect(() => {
     if (handled.current) return;
     handled.current = true;
@@ -43,7 +45,7 @@ export default function PaymentMethodsPage() {
         const params = new URLSearchParams(window.location.search);
         if (params.has('cardRegistrationReturn') || params.has('cardChangeReturn')) {
           if (params.get('code')) {
-            window.history.replaceState(null, '', window.location.pathname);
+            window.history.replaceState(null, '', `${window.location.pathname}${returnPlan ? `?plan=${encodeURIComponent(returnPlan)}` : ''}`);
             throw new Error(params.get('message') || '카드 등록이 취소되었습니다.');
           }
           pendingKey.current = params.get('billingKey');
@@ -54,7 +56,7 @@ export default function PaymentMethodsPage() {
       } catch (e) { setError(paymentError(e)); }
       finally { setBusy(false); }
     })();
-  }, [confirm, load]);
+  }, [confirm, load, returnPlan]);
   const perform = async (action) => {
     setBusy(true); setError(''); setMessage('');
     try { await action(); await load(); }
@@ -74,7 +76,7 @@ export default function PaymentMethodsPage() {
     const contact = { fullName:customer.fullName.trim(), phoneNumber:customer.phoneNumber.replace(/-/g,''), email:customer.email.trim() };
     if (!contact.fullName || !/^0\d{8,10}$/.test(contact.phoneNumber) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact.email)) throw new Error('결제자 이름·휴대폰 번호·이메일을 확인해 주세요.');
     const request = await paymentPost('methods/prepare');
-    const result = await openBillingKey(request, contact, '/payment-methods?cardRegistrationReturn=1');
+    const result = await openBillingKey(request, contact, `/payment-methods?cardRegistrationReturn=1${returnPlan ? `&plan=${encodeURIComponent(returnPlan)}` : ''}`);
     if (!result) return;
     if (result.code) throw new Error(result.message || '카드 등록이 취소되었습니다.');
     if (!result.billingKey) throw new Error('카드 등록 결과가 없습니다.');
@@ -84,7 +86,7 @@ export default function PaymentMethodsPage() {
   };
   const pending = pendingStatuses.includes(data?.change_status);
   return <Box sx={{ maxWidth:720, mx:'auto', p:{ xs:2, md:3 } }}><Stack spacing={2}>
-    <Stack direction="row" alignItems="center" justifyContent="space-between"><Typography variant="h5" fontWeight={800}>결제수단 관리</Typography><Button component={Link} to="/profile#plan">내정보로</Button></Stack>
+    <Stack direction="row" alignItems="center" justifyContent="space-between"><Typography variant="h5" fontWeight={800}>결제수단 관리</Typography><Button component={Link} to={returnTo}>내정보로</Button></Stack>
     {busy && <CircularProgress size={24} />}
     {error && <Alert severity="error">{error}</Alert>}
     {message && <Alert severity="info">{message}</Alert>}
@@ -111,7 +113,7 @@ export default function PaymentMethodsPage() {
           {card.selected && <Typography variant="caption" color="text.secondary">다른 카드를 결제수단으로 선택한 뒤 삭제할 수 있습니다.</Typography>}
         </Stack></Paper>)}
         {data?.can_register && <Button variant="contained" disabled={busy || Boolean(pendingKey.current)} onClick={open}>카드 등록</Button>}
-        {data && !data.plan_code && <Button component={Link} to="/profile#plan">구독 시작</Button>}
+        {data && !data.plan_code && <Button component={Link} to={returnTo}>구독 시작</Button>}
         {data?.can_retry && !pending && <Button variant="outlined" disabled={busy || Boolean(pendingKey.current)} onClick={() => { setAccepted(false); setPlan(data.plan_code); retryKey.current = crypto.randomUUID(); setDialog('retry'); }}>첫 결제 재시도</Button>}
         {pendingKey.current && <Button disabled={busy} onClick={() => perform(() => confirm(pendingKey.current))}>카드 등록 결과 다시 확인</Button>}
       </Stack></Paper>
