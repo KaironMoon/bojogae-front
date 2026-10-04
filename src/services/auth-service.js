@@ -12,6 +12,10 @@ async function getAuthOptions() {
   return response.data;
 }
 
+export async function reviewAccountLogin(loginId, password) {
+  return (await apiCaller.post('/api/v1/auth/review-login', { login_id: loginId, password })).data;
+}
+
 async function localEmailLogin(email, planCode = "FREE") {
   const response = await apiCaller.post("/api/v1/auth/local-login", { email, plan_code: planCode });
   return response.data;

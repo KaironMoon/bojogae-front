@@ -7,6 +7,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { getLastLoginMethod, setLastLoginMethod } from "@/auth/login-method-storage";
 import { showLandingFromNowOn } from "@/auth/landing-preference-storage";
 import GroupLoginForm from "./GroupLoginForm";
+import ReviewLoginForm from "./ReviewLoginForm";
 import { useAuth } from "@/auth/AuthContext";
 import {
   clearPendingSocialLoginProvider,
@@ -65,7 +66,7 @@ function LoginPage() {
     ? "personal"
     : searchParams.get("passwordChanged")
       ? "group"
-      : ["group", "personal"].includes(requestedMethod)
+      : ["group", "personal", "review"].includes(requestedMethod)
         ? requestedMethod
         : getLastLoginMethod());
   const [lastProvider] = useState(getLastSocialLoginProvider);
@@ -152,7 +153,7 @@ function LoginPage() {
               <br />보조개에 로그인하세요.
             </Typography>
             <Typography color="text.secondary" align="center" sx={{ maxWidth: 430 }}>
-              {loginMethod === "group" ? "사무실 그룹을 선택하고 사번과 비밀번호로 로그인하세요." : localMode
+              {loginMethod === "review" ? "안내받은 심사용 아이디와 비밀번호로 로그인하세요." : loginMethod === "group" ? "사무실 그룹을 선택하고 사번과 비밀번호로 로그인하세요." : localMode
                 ? "로컬 개발 환경에서는 등록된 이메일로 바로 로그인할 수 있습니다."
                 : "개인회원은 소셜 계정으로, 사무실 구성원은 그룹과 사번으로 로그인합니다."}
             </Typography>
@@ -174,8 +175,14 @@ function LoginPage() {
               <Tabs value={loginMethod} onChange={(_, value) => { setLoginMethod(value); setLastLoginMethod(value); }} variant="fullWidth" aria-label="로그인 방식" sx={{ mb: 1 }}>
                 <Tab value="group" label="단체 회원 로그인" id="login-tab-group" aria-controls="login-panel-group" />
                 <Tab value="personal" label="개인 회원 로그인" id="login-tab-personal" aria-controls="login-panel-personal" />
+                <Tab value="review" label="심사용 계정 로그인" id="login-tab-review" aria-controls="login-panel-review" />
               </Tabs>
-              {loginMethod === "group" ? (
+              {loginMethod === "review" ? (
+                <Box role="tabpanel" id="login-panel-review" aria-labelledby="login-tab-review">
+                  {authOptions === null ? <CircularProgress size={28} />
+                    : <ReviewLoginForm enabled={authOptions.review_login_enabled === true} />}
+                </Box>
+              ) : loginMethod === "group" ? (
                 <Box role="tabpanel" id="login-panel-group" aria-labelledby="login-tab-group"><GroupLoginForm /></Box>
               ) : (
                 <Stack role="tabpanel" id="login-panel-personal" aria-labelledby="login-tab-personal" spacing={1.5}>

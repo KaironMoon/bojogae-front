@@ -65,7 +65,7 @@ const REPORT_MENU = [
 ];
 
 const PROFILE_MENU = [
-  { label: "정보 수정", path: "/profile", icon: AccountCircleOutlinedIcon },
+  { label: "정보수정·결제", path: "/profile", icon: AccountCircleOutlinedIcon },
   { label: "내 꼬막", path: "/my-coins", icon: AccountBalanceWalletOutlinedIcon },
 ];
 
