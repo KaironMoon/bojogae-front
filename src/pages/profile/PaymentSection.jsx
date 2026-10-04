@@ -4,7 +4,7 @@ import { Alert, Box, Button, Checkbox, CircularProgress, Dialog, DialogActions, 
 import { Link } from 'react-router-dom';
 import KkomakIcon from '@/pages/components/KkomakIcon';
 import { getMyProfile, savePaymentContact } from '@/services/profile-service';
-import { getPayments, getTerminationPreview, openBillingKey, openPayment, paymentError, paymentPost } from '@/services/payment-service';
+import { getPayments, getPaymentMethods, getTerminationPreview, openPayment, paymentError, paymentPost } from '@/services/payment-service';
 
 const date = (v) => v ? new Date(v).toLocaleString('ko-KR') : '-';
 const subscriptionStatuses = { ACTIVE:'구독 중', CANCELING:'자동 갱신 해지', CANCELED:'구독 종료', FAILED:'결제 실패', PENDING:'첫 결제 대기', REVIEW:'고객센터 확인 필요' };
@@ -25,6 +25,8 @@ export default function PaymentSection({ config, onChanged, onContactSaved }) {
   const [upgradeQuote, setUpgradeQuote] = useState(null);
   const [quoteBusy, setQuoteBusy] = useState(false);
   const [customer, setCustomer] = useState({ fullName:'', phoneNumber:'', email:'' });
+  const [savedMethod, setSavedMethod] = useState(null);
+  const startKey = useRef(null);
   const [saveContact, setSaveContact] = useState(false);
   const [contactMessage, setContactMessage] = useState('');
   const returnHandled = useRef(false);
@@ -83,11 +85,13 @@ export default function PaymentSection({ config, onChanged, onContactSaved }) {
       return;
     }
     if (mode === 'retry') retryKey.current = crypto.randomUUID();
+    if (mode === 'subscribe') startKey.current = crypto.randomUUID();
     setSaveContact(false); setContactMessage('');
     if (['subscribe','topup'].includes(mode)) {
       setBusy(true);
       try {
-        const profile = await getMyProfile();
+        const [profile, methods] = await Promise.all([getMyProfile(), mode === 'subscribe' ? getPaymentMethods() : Promise.resolve(null)]);
+        setSavedMethod(methods?.cards.find((card) => card.selected && card.status === 'ACTIVE') || null);
         setCustomer({ fullName:profile.name || '', phoneNumber:profile.phone || '', email:profile.pending_email || profile.email || '' });
       } catch {
         setError('내정보를 불러오지 못했습니다. 다시 시도해 주세요.');
@@ -107,7 +111,9 @@ export default function PaymentSection({ config, onChanged, onContactSaved }) {
     window.history.replaceState(null, '', `${window.location.pathname}${params.size ? `?${params}` : ''}#plan`);
     if (active) { setMessage('이미 구독 중입니다. 요금제를 바꾸려면 요금제 변경을 이용해 주세요.'); return; }
     setBusy(true); setError(''); setAccepted(false); setSaveContact(false);
-    getMyProfile().then((profile) => {
+    Promise.all([getMyProfile(), getPaymentMethods()]).then(([profile, methods]) => {
+      setSavedMethod(methods.cards.find((card) => card.selected && card.status === 'ACTIVE') || null);
+      startKey.current = crypto.randomUUID();
       setCustomer({ fullName:profile.name || '', phoneNumber:profile.phone || '', email:profile.pending_email || profile.email || '' });
       if (canRetry) retryKey.current = crypto.randomUUID();
       setDialog(canRetry ? 'retry' : 'subscribe');
@@ -118,6 +124,14 @@ export default function PaymentSection({ config, onChanged, onContactSaved }) {
 
   const purchase = async (topup) => {
     if (!accepted) return;
+    if (!topup) {
+      if (!savedMethod) throw new Error('결제수단 관리에서 카드를 등록하고 사용할 카드를 선택해 주세요.');
+      startKey.current ||= crypto.randomUUID();
+      const verified = await paymentPost('subscriptions/start', { ...consent, plan_code:plan, idempotency_key:startKey.current });
+      checkResult(verified);
+      setMessage(verified.status === 'PAID' ? '첫 구독 결제가 확인되어 꼬막이 지급되었습니다.' : '첫 결제 상태를 확인 중입니다. 결제내역을 확인해 주세요.');
+      return;
+    }
     if (!customer.fullName.trim() || !/^0\d{8,10}$/.test(customer.phoneNumber.replace(/-/g,'')) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customer.email)) {
       throw new Error('결제자 이름·휴대폰 번호·이메일을 확인해 주세요.');
     }
@@ -143,14 +157,6 @@ export default function PaymentSection({ config, onChanged, onContactSaved }) {
       checkResult(verified);
       if (verified.status === 'PAID') topupKey.current = null;
       setMessage(verified.status === 'PAID' ? '150꼬막이 충전되었습니다.' : '결제 확인 대기 중입니다. 다시 결제하지 말고 내역을 확인해 주세요.');
-    } else {
-      const request = await paymentPost('subscriptions/prepare', { ...consent, plan_code:plan });
-      const result = await openBillingKey(request, contact);
-      if (!result) return;
-      if (result.code) throw new Error(result.message || '카드 등록이 취소되었습니다.');
-      const verified = await paymentPost('subscriptions/activate', { billing_key:result.billingKey });
-      checkResult(verified);
-      setMessage(verified.status === 'PAID' ? '첫 구독 결제가 확인되어 꼬막이 지급되었습니다.' : '첫 결제 상태를 확인 중입니다.');
     }
   };
   return <><Paper id="plan" variant="outlined" sx={{ p:{ xs:2, md:3 }, mb:3, borderRadius:3 }}>
@@ -167,7 +173,7 @@ export default function PaymentSection({ config, onChanged, onContactSaved }) {
       </Box>}
       <Stack direction={{ xs:'column', sm:'row' }} spacing={1}>
         {active ? <Button variant="contained" disabled={busy} onClick={() => openDialog('change')}>요금제 변경</Button> : <Button variant="contained" disabled={busy || !data} onClick={() => openDialog(canRetry ? 'retry' : 'subscribe')}>{canRetry ? '요금제 선택·재결제' : '구독 시작'}</Button>}
-        {canRetry && <Button disabled={busy} onClick={() => openDialog('subscribe')}>다른 카드 등록</Button>}
+        <Button component={Link} to="/payment-methods" disabled={busy}>결제수단 관리</Button>
         <Button variant="outlined" startIcon={<KkomakIcon />} disabled={busy || !active} onClick={() => openDialog('topup')}>9,900원 · 150꼬막 충전</Button>
         {active && <Button color="warning" disabled={busy} onClick={() => openDialog('cancel')}>구독 해지</Button>}
       </Stack>
@@ -177,7 +183,7 @@ export default function PaymentSection({ config, onChanged, onContactSaved }) {
     </Stack>
   </Paper>
     <Dialog open={Boolean(dialog)} onClose={() => { if (!busy) setDialog(null); }} fullWidth maxWidth="sm" aria-labelledby="payment-dialog-title">
-      <DialogTitle id="payment-dialog-title">{dialog === 'cancel' ? '구독 해지' : dialog === 'change' ? '요금제 변경' : dialog === 'topup' ? '꼬막 추가 충전' : dialog === 'retry' ? '요금제 선택·첫 결제 재시도' : '구독 시작·카드 등록'}</DialogTitle>
+      <DialogTitle id="payment-dialog-title">{dialog === 'cancel' ? '구독 해지' : dialog === 'change' ? '요금제 변경' : dialog === 'topup' ? '꼬막 추가 충전' : dialog === 'retry' ? '요금제 선택·첫 결제 재시도' : '구독 시작'}</DialogTitle>
       <DialogContent dividers>
         <Stack spacing={2}>
           {error && <Alert severity="error">{error}</Alert>}
@@ -194,7 +200,7 @@ export default function PaymentSection({ config, onChanged, onContactSaved }) {
               <FormControlLabel control={<Checkbox checked={accepted} disabled={busy} onChange={(e) => setAccepted(e.target.checked)} />} label="즉시 이용 종료·월 제공 꼬막 회수 및 자동 환불에 동의합니다." />
             </>}
           </> : <>
-          {dialog === 'change' ? <Alert severity="info">{upgrading ? '남은 이용기간의 요금 차액을 등록된 카드로 결제하면 즉시 업그레이드됩니다. 기존 잔액과 다음 결제일은 유지됩니다.' : '상위 요금제는 남은 기간의 차액 결제 후 즉시 적용되고, 하위 요금제는 다음 결제부터 적용됩니다. 기존 결제일과 등록된 카드는 유지됩니다.'}</Alert> : dialog === 'retry' ? <Alert severity="info">등록된 카드로 선택한 요금제의 첫 결제를 다시 요청합니다. 승인되면 이용기간이 시작되고 이후 매월 자동 결제됩니다.</Alert> : <Typography variant="body2">결제자 정보를 확인한 뒤 KG이니시스 결제창으로 이동합니다.</Typography>}
+          {dialog === 'change' ? <Alert severity="info">{upgrading ? '남은 이용기간의 요금 차액을 등록된 카드로 결제하면 즉시 업그레이드됩니다. 기존 잔액과 다음 결제일은 유지됩니다.' : '상위 요금제는 남은 기간의 차액 결제 후 즉시 적용되고, 하위 요금제는 다음 결제부터 적용됩니다. 기존 결제일과 등록된 카드는 유지됩니다.'}</Alert> : dialog === 'retry' ? <Alert severity="info">등록된 카드로 선택한 요금제의 첫 결제를 다시 요청합니다. 승인되면 이용기간이 시작되고 이후 매월 자동 결제됩니다.</Alert> : <Typography variant="body2">{dialog === 'subscribe' ? '선택한 결제수단으로 첫 구독 결제를 진행합니다.' : '결제자 정보를 확인한 뒤 KG이니시스 결제창으로 이동합니다.'}</Typography>}
           {dialog === 'change' && sub?.cancel_at_period_end && <Alert severity="warning">{upgrading ? '차액 결제가 승인되면 자동 갱신 해지를 철회하고 다음 결제일부터 새 요금제 전액으로 자동 결제를 재개합니다.' : '자동 갱신 해지를 철회하고 선택한 요금제로 다음 회차부터 자동 결제를 재개합니다.'}</Alert>}
           {dialog === 'topup' ? <Typography fontWeight={700}>9,900원 · 150꼬막 · 구매일부터 1년</Typography> :
             <TextField select label="요금제" value={plan} onChange={(e) => { setAccepted(false); setUpgradeQuote(null); setPlan(e.target.value); }} disabled={busy || quoteBusy} fullWidth>
@@ -208,9 +214,10 @@ export default function PaymentSection({ config, onChanged, onContactSaved }) {
             <Typography>다음 회차 결제: {upgradeQuote.nextAmount.toLocaleString()}원</Typography>
             <Typography variant="caption" color="text.secondary">남은 기간 비례 계산 · 금액 원 미만 버림 · 꼬막 소수점 올림 · 견적은 10분간 유효합니다.</Typography>
           </Stack></Paper>}
-          {['subscribe','topup'].includes(dialog) && [['fullName','결제자 이름'],['phoneNumber','휴대폰 번호'],['email','이메일']].map(([key,label]) =>
+          {dialog === 'subscribe' && <Alert severity={savedMethod ? 'info' : 'warning'}>{savedMethod ? `결제수단: ${savedMethod.name} · ${savedMethod.number}` : '결제수단 관리에서 카드를 등록한 뒤 사용할 카드를 선택해 주세요.'}<Button component={Link} to="/payment-methods">결제수단 관리</Button></Alert>}
+          {dialog === 'topup' && [['fullName','결제자 이름'],['phoneNumber','휴대폰 번호'],['email','이메일']].map(([key,label]) =>
             <TextField key={key} label={label} type={key === 'email' ? 'email' : key === 'phoneNumber' ? 'tel' : 'text'} autoComplete={key === 'email' ? 'email' : key === 'phoneNumber' ? 'tel' : 'name'} value={customer[key]} onChange={(e) => setCustomer({ ...customer, [key]:e.target.value })} disabled={busy} fullWidth required />)}
-          {['subscribe','topup'].includes(dialog) && <>
+          {dialog === 'topup' && <>
             <FormControlLabel control={<Checkbox checked={saveContact} disabled={busy} onChange={(e) => setSaveContact(e.target.checked)} />} label="입력한 정보를 내정보에도 저장" />
             <Typography variant="body2" color="text.secondary">내정보에 저장하면 다음 결제부터 자동 입력됩니다. 변경한 이메일은 내정보에서 인증해 주세요.</Typography>
             {contactMessage && <Alert severity="info">{contactMessage}</Alert>}
@@ -221,7 +228,8 @@ export default function PaymentSection({ config, onChanged, onContactSaved }) {
       </DialogContent>
       <DialogActions>
         <Button disabled={busy} onClick={() => setDialog(null)}>닫기</Button>
-        <Button variant="contained" disabled={busy || (dialog === 'cancel' ? cancelMode === 'immediate' && (quoteBusy || !accepted || !terminationQuote) : quoteBusy || !accepted || (upgrading && !upgradeQuote))} onClick={() => perform(async () => {
+        {error && <Button component={Link} to="/payment-history" disabled={busy}>결제 내역 확인</Button>}
+        <Button variant="contained" disabled={busy || (dialog === 'cancel' ? cancelMode === 'immediate' && (quoteBusy || !accepted || !terminationQuote) : quoteBusy || !accepted || (dialog === 'subscribe' && !savedMethod) || (upgrading && !upgradeQuote))} onClick={() => perform(async () => {
           if (dialog === 'cancel') {
             if (cancelMode === 'period_end') { await paymentPost('subscriptions/cancel'); setMessage('자동 갱신을 해지했습니다. 현재 이용기간 종료까지 이용할 수 있습니다.'); }
             else { const result = await paymentPost('subscriptions/terminate', { ...consent, expected_amount:terminationQuote.amount }); setMessage(`구독을 즉시 종료했습니다. ${result.amount.toLocaleString()}원 환불을 접수했습니다. 처리 상태는 결제내역에서 확인해 주세요.`); }
@@ -231,7 +239,7 @@ export default function PaymentSection({ config, onChanged, onContactSaved }) {
           else if (dialog === 'retry') { const verified = await paymentPost('subscriptions/retry', { ...consent, plan_code:plan, idempotency_key:retryKey.current }); checkResult(verified); setMessage(verified.status === 'PAID' ? '첫 구독 결제가 확인되어 꼬막이 지급되었습니다.' : '결제 상태를 확인 중입니다. 내역을 확인해 주세요.'); }
           else await purchase(dialog === 'topup');
           setDialog(null);
-        })}>{busy ? '처리 중…' : dialog === 'cancel' ? cancelMode === 'immediate' ? '즉시 종료·자동 환불' : '이용기간 종료 후 해지' : upgrading ? upgradeQuote ? `${upgradeQuote.amount.toLocaleString()}원 결제·즉시 변경` : '업그레이드 견적 확인' : dialog === 'change' ? '다음 결제부터 변경' : dialog === 'topup' ? '9,900원 결제' : dialog === 'retry' ? `${config.products[plan].amount.toLocaleString()}원 재결제` : '카드 등록·첫 구독 결제'}</Button>
+        })}>{busy ? '처리 중…' : dialog === 'cancel' ? cancelMode === 'immediate' ? '즉시 종료·자동 환불' : '이용기간 종료 후 해지' : upgrading ? upgradeQuote ? `${upgradeQuote.amount.toLocaleString()}원 결제·즉시 변경` : '업그레이드 견적 확인' : dialog === 'change' ? '다음 결제부터 변경' : dialog === 'topup' ? '9,900원 결제' : dialog === 'retry' ? `${config.products[plan].amount.toLocaleString()}원 재결제` : '첫 구독 결제'}</Button>
       </DialogActions>
     </Dialog>
   </>;

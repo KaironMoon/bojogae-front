@@ -37,6 +37,7 @@ import {
 const emptyProfile = { email: "", name: "", nickname: "", phone: "", affiliation: "" };
 
 const errorMessages = {
+  payment_method_pending: "결제수단 변경 결과 확인이 필요합니다. 결제수단 관리에서 확인한 후 다시 시도해 주세요.",
   withdrawal_schema_required: "탈퇴 자료 파기 설정이 준비되지 않았습니다. 고객센터로 문의해 주세요.",
   withdraw_failed: "탈퇴하지 못했습니다. 잠시 후 다시 시도해 주세요.",
   email_unchanged: "현재 사용 중인 이메일입니다.",

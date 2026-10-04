@@ -16,6 +16,7 @@ import UsersPage from "../pages/admin/UsersPage";
 import SignupCompletePage from "../pages/auth/SignupCompletePage";
 import EmailVerificationPage from "../pages/auth/EmailVerificationPage";
 import ProfilePage from "../pages/profile/ProfilePage";
+import PaymentMethodsPage from "../pages/profile/PaymentMethodsPage";
 import PaymentHistoryPage from "../pages/profile/PaymentHistoryPage";
 import EmailChangeVerificationPage from "../pages/profile/EmailChangeVerificationPage";
 import PromptsPage from "../pages/prompts/PromptsPage";
@@ -112,6 +113,7 @@ const router = createBrowserRouter([
             path: "/profile",
             element: <ProfilePage />,
           },
+          { path: "/payment-methods", element: <PaymentMethodsPage /> },
           { path: "/payment-history", element: <PaymentHistoryPage /> },
           {
             path: "/proposals",
