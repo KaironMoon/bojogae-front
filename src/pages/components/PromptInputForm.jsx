@@ -24,6 +24,7 @@ function FileInputField({ field, uploads, onFiles, disabled }) {
       </Typography>
       <Paper
         component="label"
+        data-report-help="upload"
         variant="outlined"
         role="button"
         tabIndex={disabled ? -1 : 0}

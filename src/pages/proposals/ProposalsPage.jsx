@@ -1,5 +1,8 @@
 import KkomakIcon from "@/pages/components/KkomakIcon";
 import { Link, useSearchParams } from "react-router-dom";
+import { useAuth } from "@/auth/AuthContext";
+import ReportHelpTour from "@/pages/components/ReportHelpTour";
+import { hasSeenReportHelp, markReportHelpSeen } from "@/services/report-help-storage";
 import PreviewImageCarousel from "@/pages/components/PreviewImageCarousel";
 import PromptInputForm from "@/pages/components/PromptInputForm";
 import { promptPreviewImageUrl } from "@/services/prompt-service";
@@ -51,6 +54,7 @@ import ZoomInRoundedIcon from "@mui/icons-material/ZoomInRounded";
 import ZoomOutRoundedIcon from "@mui/icons-material/ZoomOutRounded";
 import IosShareRoundedIcon from "@mui/icons-material/IosShareRounded";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
+import HelpOutlineRoundedIcon from "@mui/icons-material/HelpOutlineRounded";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTheme } from "@mui/material/styles";
 import ExpiringPoints from "@/pages/components/ExpiringPoints";
@@ -157,6 +161,10 @@ function isCompletedStatus(status) {
 
 function ProposalsPage() {
   const [searchParams] = useSearchParams();
+  const { user } = useAuth();
+  const helpRootRef = useRef(null);
+  const helpStartedRef = useRef(false);
+  const [helpStep, setHelpStep] = useState(null);
   const theme = useTheme();
   const mobilePreview = useMediaQuery(theme.breakpoints.down("sm"));
   const listPageSize = mobilePreview ? 5 : 10;
@@ -207,6 +215,21 @@ function ProposalsPage() {
   const promptScrollerRef = useRef(null);
   const pendingPromptScrollId = useRef(null);
   const [promptSlide, setPromptSlide] = useState(0);
+
+  const startHelp = () => {
+    helpStartedRef.current = true;
+    markReportHelpSeen(user.id);
+    setHelpStep(0);
+  };
+
+  useEffect(() => {
+    if (loading || error || !user?.id || helpStartedRef.current) return;
+    helpStartedRef.current = true;
+    if (!hasSeenReportHelp(user.id)) {
+      markReportHelpSeen(user.id);
+      setHelpStep(0);
+    }
+  }, [loading, error, user?.id]);
 
   const tabPromptOptions = useMemo(() => promptsForTab(promptOptions, promptTab), [promptOptions, promptTab]);
   const categoryGroups = useMemo(() => groupPromptCategories(promptOptions), [promptOptions]);
@@ -853,7 +876,7 @@ function ProposalsPage() {
   }
 
   return (
-    <Box sx={{ p: { xs: 1.5, sm: 2, md: 3, lg: 4 }, width: "100%", boxSizing: "border-box", overflowX: "hidden" }}>
+    <Box ref={helpRootRef} sx={{ p: { xs: 1.5, sm: 2, md: 3, lg: 4 }, width: "100%", boxSizing: "border-box", overflowX: "hidden" }}>
       <Box sx={{ mb: 2.5 }}>
         <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" gap={1}>
           <Typography variant="h4" sx={{ fontSize: { xs: 26, sm: 30, md: 34 }, fontWeight: 850, letterSpacing: "-0.04em" }}>보고서 만들기</Typography>
@@ -861,9 +884,12 @@ function ProposalsPage() {
             <Chip icon={<KkomakIcon />} label={`보유 ${pointBalance.total_points.toLocaleString()}꼬막`} color="primary" variant="outlined" />
           </Stack>
         </Stack>
-        <Typography color="text.secondary" sx={{ mt: 0.5, fontSize: { xs: 13, sm: 14 } }}>
-          문서 유형을 선택하고 필요한 자료를 입력하면, 선택한 프롬프트로 문서를 생성합니다.
-        </Typography>
+        <Stack direction="row" alignItems="center" flexWrap="wrap" gap={1} sx={{ mt: 0.5 }}>
+          <Typography color="text.secondary" sx={{ fontSize: { xs: 13, sm: 14 } }}>
+            문서 유형을 선택하고 필요한 자료를 입력하면, 선택한 프롬프트로 문서를 생성합니다.
+          </Typography>
+          <Button size="small" startIcon={<HelpOutlineRoundedIcon />} onClick={startHelp} sx={{ flexShrink: 0 }}>도움말 보기</Button>
+        </Stack>
       </Box>
 
       <Box sx={{ display: { xs: "none", md: "grid" }, gridTemplateColumns: "repeat(3, 1fr)", gap: 2, mb: 2 }}>
@@ -924,6 +950,7 @@ function ProposalsPage() {
       >
         <Stack spacing={2} sx={{ minWidth: 0, minHeight: 0, alignSelf: "stretch" }}>
           <Paper
+            data-report-help="categories"
             variant="outlined"
             sx={{ borderRadius: "16px", height: { xs: "auto", md: 600 }, boxSizing: "border-box", flexShrink: 0, minHeight: 0, display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 1px 3px rgba(15, 23, 42, 0.05)" }}
           >
@@ -1039,6 +1066,7 @@ function ProposalsPage() {
 
         <Stack spacing={0} sx={{ minWidth: 0, alignSelf: "start" }}>
           <Paper
+            data-report-help="favorites"
             variant="outlined"
             sx={{ p: { xs: 1.5, sm: 2 }, borderRadius: "16px", height: { xs: "auto", md: 600 }, boxSizing: "border-box", minHeight: 0, mb: 2, display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 1px 3px rgba(15, 23, 42, 0.05)" }}
           >
@@ -1206,7 +1234,7 @@ function ProposalsPage() {
               </Stack>
             )}
           </Paper>
-          <Paper variant="outlined" sx={{ p: 2.25, borderRadius: "16px 16px 0 0", boxShadow: "0 1px 3px rgba(15, 23, 42, 0.05)" }}>
+          <Paper data-report-help="inputs" variant="outlined" sx={{ p: 2.25, borderRadius: "16px 16px 0 0", boxShadow: "0 1px 3px rgba(15, 23, 42, 0.05)" }}>
             {customInputs ? <PromptInputForm fields={inputSchema} values={inputValues} uploads={fieldUploads}
               documents={fieldDocuments} documentOptions={generatedDocumentOptions} disabled={working}
               onValue={(key, value) => {
@@ -1264,6 +1292,7 @@ function ProposalsPage() {
             </Stack>
             <Paper
               component="label"
+              data-report-help="upload"
               variant="outlined"
               role="button"
               tabIndex={working ? -1 : 0}
@@ -1356,6 +1385,7 @@ function ProposalsPage() {
           </Paper>
 
           <Button
+            data-report-help="generate"
             variant="contained"
             size="large"
             onClick={submit}
@@ -1373,7 +1403,7 @@ function ProposalsPage() {
 
       </Box>
 
-      {!canvasOpen && (
+      {!canvasOpen && helpStep === null && (
         <Button
           variant="contained"
           aria-label="문서 캔버스 열기"
@@ -1387,7 +1417,7 @@ function ProposalsPage() {
       )}
       <Drawer
         anchor="right"
-        open={canvasOpen}
+        open={canvasOpen && helpStep === null}
         onClose={() => setCanvasOpen(false)}
         sx={{ zIndex: (theme) => theme.zIndex.drawer + 2 }}
         PaperProps={{
@@ -1649,6 +1679,9 @@ function ProposalsPage() {
         </Stack>
         {totalPages > 1 && <Pagination count={totalPages} page={page} onChange={(_, value) => loadList(value)} sx={{ mt: 3 }} />}
       </Paper>
+
+      {helpStep !== null && <ReportHelpTour step={helpStep} rootRef={helpRootRef}
+        onNext={() => setHelpStep((current) => current + 1)} onClose={() => setHelpStep(null)} />}
 
       <Dialog open={Boolean(promptPreviewOption)} onClose={() => setPromptPreviewOption(null)} fullWidth maxWidth="xl"
         PaperProps={{ sx: { height: "calc(100dvh - 48px)", maxHeight: "calc(100dvh - 48px)", m: 3, overflow: "hidden" } }}>
