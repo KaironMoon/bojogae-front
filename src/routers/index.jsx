@@ -16,6 +16,7 @@ import UsersPage from "../pages/admin/UsersPage";
 import SignupCompletePage from "../pages/auth/SignupCompletePage";
 import EmailVerificationPage from "../pages/auth/EmailVerificationPage";
 import ProfilePage from "../pages/profile/ProfilePage";
+import NotificationTargetPage from '../pages/profile/NotificationTargetPage';
 import PaymentMethodsPage from "../pages/profile/PaymentMethodsPage";
 import PaymentHistoryPage from "../pages/profile/PaymentHistoryPage";
 import EmailChangeVerificationPage from "../pages/profile/EmailChangeVerificationPage";
@@ -38,6 +39,7 @@ import {
 } from "../auth/RouteGuards";
 import LandingPage from "../pages/landing/LandingPage";
 import PolicyPage from "../pages/policy/PolicyPage";
+import InsurersPage from "../pages/insurers/InsurersPage";
 
 const ProductLayout = lazy(() => import("../pages/product/ProductLayout"));
 const ProductList = lazy(() => import("../pages/product"));
@@ -102,6 +104,7 @@ const router = createBrowserRouter([
   {
     element: <ActiveUserRoute />,
     children: [
+      { path: '/notifications/:notificationId', element: <NotificationTargetPage /> },
       {
         element: <PageLayout />,
         children: [
@@ -127,6 +130,7 @@ const router = createBrowserRouter([
           { path: "/group", element: <GroupsPage /> },
           { path: "/group/:groupId", element: <GroupsPage /> },
           { path: "/my-coins", element: <MyCoinsPage /> },
+          { path: "/insurers", element: <InsurersPage /> },
           { path: "/boards/:boardType", element: <BoardListPage /> },
           { path: "/boards/:boardType/:postId", element: <BoardPostPage embedded /> },
           ...ProductRouter,

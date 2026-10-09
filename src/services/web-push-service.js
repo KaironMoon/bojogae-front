@@ -22,12 +22,15 @@ export async function getBrowserPushState() {
   const configuration = (await apiCaller.get("/api/v1/web-push/configuration")).data;
   const registration = await navigator.serviceWorker.getRegistration("/");
   const subscription = registration ? await registration.pushManager.getSubscription() : null;
+  const serverState = subscription
+    ? (await apiCaller.post('/api/v1/web-push/subscriptions/state', { endpoint: subscription.endpoint })).data
+    : { subscribed: false };
   return {
     supported: true,
     configured: configuration.enabled,
     publicKey: configuration.public_key,
     permission: Notification.permission,
-    subscribed: Boolean(subscription),
+    subscribed: Boolean(subscription && serverState.subscribed && Notification.permission === 'granted'),
   };
 }
 
@@ -39,6 +42,7 @@ export async function enableBrowserPush(publicKey) {
   if (permission !== "granted") throw new Error("browser_push_permission_denied");
 
   const registration = await navigator.serviceWorker.register("/push-service-worker.js", { scope: "/" });
+  await navigator.serviceWorker.ready;
   const existing = await registration.pushManager.getSubscription();
   const subscription = existing || await registration.pushManager.subscribe({
     userVisibleOnly: true,
@@ -65,4 +69,23 @@ export async function disableBrowserPush() {
     }
   }
   return getBrowserPushState();
+}
+
+export async function clearLocalBrowserPush() {
+  if (!supportsBrowserPush()) return;
+  const registration = await navigator.serviceWorker.getRegistration('/');
+  const subscription = registration ? await registration.pushManager.getSubscription() : null;
+  if (subscription) await subscription.unsubscribe();
+  const notifications = registration ? await registration.getNotifications() : [];
+  notifications.forEach((notification) => notification.close());
+}
+
+export async function reconcileBrowserPushUser(user) {
+  if (!supportsBrowserPush()) return;
+  if (!user || user.status !== 'ACTIVE') return clearLocalBrowserPush();
+  const registration = await navigator.serviceWorker.getRegistration('/');
+  const subscription = registration ? await registration.pushManager.getSubscription() : null;
+  if (!subscription) return;
+  const { data } = await apiCaller.post('/api/v1/web-push/subscriptions/state', { endpoint: subscription.endpoint });
+  if (!data.subscribed) await subscription.unsubscribe();
 }

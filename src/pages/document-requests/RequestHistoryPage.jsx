@@ -31,6 +31,19 @@ export default function RequestHistoryPage({ kind, admin = false }) { // eslint-
     catch (err) { setError(requestError(err)); }
   }, [kind, page, admin]);
   useEffect(() => { setResult(null); setError(''); load(); }, [load]);
+  useEffect(() => {
+    const id = new URLSearchParams(location.search).get('requestId');
+    if (!/^[1-9]\d*$/.test(id || '')) return;
+    let active = true;
+    setOpening(true);
+    getRequest(kind, id, admin).then((data) => {
+      if (!active) return;
+      setDetail(data); setContent(data.content); setResponse(data.response || '');
+      setState(kind === 'refund' ? 'REFUND' : data.status);
+    }).catch(() => { if (active) setError('대상이 삭제되었거나 접근 권한이 없습니다.'); })
+      .finally(() => { if (active) setOpening(false); });
+    return () => { active = false; };
+  }, [location.search, kind, admin]);
   async function open(item) {
     setEditingRefund(false); setConfirmDelete(false);
     setOpening(true); setError(''); setDetailError(''); setDocument(null);
@@ -88,6 +101,7 @@ export default function RequestHistoryPage({ kind, admin = false }) { // eslint-
           </Box>
           <Stack direction="row" alignItems="center" spacing={1} flexWrap="wrap" useFlexGap>
             <Chip size="small" label={states[item.status] || item.status} />
+            {admin && <Button component={Link} to={`/admin/users?userId=${item.user_id}`}>회원 조회</Button>}
             <Button disabled={opening} onClick={() => open(item)}>상세 보기</Button>
           </Stack>
         </Stack>
@@ -138,6 +152,7 @@ export default function RequestHistoryPage({ kind, admin = false }) { // eslint-
             <Button color="error" disabled={working || opening} onClick={() => setConfirmDelete(true)}>삭제</Button>
           </>}
         </>}
+        {admin && detail && <Button component={Link} to={`/admin/users?userId=${detail.user_id}`}>회원 조회</Button>}
         {admin && canProcess && <Button variant="contained" disabled={working || opening || !response.trim()} onClick={decide}>{working ? '처리 중…' : '처리 저장'}</Button>}
         <Button disabled={working || opening} onClick={() => setDetail(null)}>닫기</Button>
       </DialogActions>

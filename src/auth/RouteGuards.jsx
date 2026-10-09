@@ -1,5 +1,5 @@
 import { Box, CircularProgress } from "@mui/material";
-import { Navigate, Outlet } from "react-router-dom";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
 
 import { useAuth } from "@/auth/AuthContext";
 
@@ -14,9 +14,14 @@ function LoadingScreen() {
 function destinationFor(user) {
   if (!user) return "/";
   if (user.must_change_password) return "/group/change-password";
-  if (user.status === "ACTIVE") return "/home";
+  if (user.status === "ACTIVE") return pendingNotificationTarget() || "/home";
   if (user.status === "PENDING") return "/access-restricted";
   return "/access-restricted";
+}
+
+function pendingNotificationTarget() {
+  const value = sessionStorage.getItem('bojogae.notificationTarget');
+  return /^\/notifications\/[1-9]\d*$/.test(value || '') ? value : null;
 }
 
 function PublicOnlyRoute() {
@@ -27,7 +32,15 @@ function PublicOnlyRoute() {
 
 function ActiveUserRoute() {
   const { user, loading } = useAuth();
+  const location = useLocation();
   if (loading) return <LoadingScreen />;
+  if (!user && /^\/notifications\/[1-9]\d*$/.test(location.pathname)) {
+    sessionStorage.setItem('bojogae.notificationTarget', location.pathname);
+  }
+  const pending = pendingNotificationTarget();
+  if (user?.status === 'ACTIVE' && !user.must_change_password && location.pathname === '/home' && pending) {
+    return <Navigate to={pending} replace />;
+  }
   return user?.status === "ACTIVE" && !user.must_change_password ? <Outlet /> : <Navigate to={destinationFor(user)} replace />;
 }
 

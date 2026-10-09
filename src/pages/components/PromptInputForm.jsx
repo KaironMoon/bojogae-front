@@ -20,7 +20,7 @@ function FileInputField({ field, uploads, onFiles, disabled }) {
     <Box>
       <Typography variant="body2" fontWeight={700}>{field.label}{field.required ? " *" : ""}</Typography>
       <Typography variant="caption" color="text.secondary" display="block">
-        {field.help} · {fileTypeLabel(field)} 최대 {field.max_files}개 · 파일당 10MB (전체 최대 5개)
+        {field.help} · {fileTypeLabel(field)} 최대 {field.max_files}개 · 파일당 20MB (전체 최대 5개)
       </Typography>
       <Paper
         component="label"
@@ -86,7 +86,7 @@ function FileInputField({ field, uploads, onFiles, disabled }) {
           <Typography variant="body2" fontWeight={750}>
             {dragging ? "여기에 파일을 놓으세요" : selected.length ? `${selected.length}개 파일 선택됨` : `${fileTypeLabel(field)} 선택 또는 파일 드래그`}
           </Typography>
-          <Typography variant="caption" color="text.secondary">최대 {field.max_files}개 · 파일당 10MB</Typography>
+          <Typography variant="caption" color="text.secondary">최대 {field.max_files}개 · 파일당 20MB</Typography>
         </Stack>
       </Paper>
       <Stack spacing={0.5} sx={{ mt: 0.75 }}>

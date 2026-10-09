@@ -21,6 +21,7 @@ import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import ManageAccountsRoundedIcon from "@mui/icons-material/ManageAccountsRounded";
 import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
 import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { planName } from "@/constants/plans";
 
 import {
@@ -33,6 +34,8 @@ import {
 const PROTECTED_ADMIN_EMAIL = "bojoge.smith@gmail.com";
 
 function UsersPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const userId = /^\d+$/.test(searchParams.get("userId") || "") && Number(searchParams.get("userId")) > 0 ? searchParams.get("userId") : undefined;
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -48,7 +51,7 @@ function UsersPage() {
     setLoading(true);
     setError("");
     try {
-      const result = await getUsers(undefined, targetPage, 20, query);
+      const result = await getUsers(undefined, targetPage, 20, query, userId);
       setUsers(result.items);
       setPage(result.page);
       setTotalPages(result.total_pages);
@@ -57,7 +60,7 @@ function UsersPage() {
     } finally {
       setLoading(false);
     }
-  }, [query]);
+  }, [query, userId]);
 
   const search = (event) => {
     event.preventDefault();
@@ -159,6 +162,7 @@ function UsersPage() {
         </Stack>
       </Paper>
 
+      {userId && <Alert severity="info" sx={{ mb: 2 }} action={<Button onClick={() => setSearchParams({})}>전체 회원 보기</Button>}>신청 회원 조회 중</Alert>}
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       {loading ? (
         <Box sx={{ py: 8, display: "grid", placeItems: "center" }}><CircularProgress /></Box>

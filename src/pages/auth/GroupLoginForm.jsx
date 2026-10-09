@@ -86,10 +86,11 @@ export default function GroupLoginForm() {
       </Stack>
       {!group && savedId && !loadingGroup && <Button onClick={() => setReload((value) => value + 1)}>다시 확인</Button>}
       <TextField label="사번" value={employee} onChange={(e) => { setEmployee(e.target.value); saveEmployeeNumber(group?.id, e.target.value); }} required inputProps={{ maxLength: 50, autoComplete: 'username' }} />
+      {reset && <Typography variant="body2" color="text.secondary">미리 이메일을 등록한 회원만 재설정할 수 있습니다. 이메일이 없으면 그룹 관리자에게 초기화를 요청해 주세요.</Typography>}
       {reset ? <TextField type="email" label="등록한 이메일" value={email} onChange={(e) => setEmail(e.target.value)} required />
         : <TextField type="password" label="비밀번호" value={password} onChange={(e) => setPassword(e.target.value)} required inputProps={{ maxLength: 128, autoComplete: 'current-password' }} />}
       <Button type="submit" variant="contained" disabled={busy || loadingGroup || !group || !employee.trim()}>{busy ? '처리 중…' : reset ? '재설정 이메일 받기' : '그룹 로그인'}</Button>
-      <Button onClick={() => { setReset(!reset); setError(''); setNotice(''); }}>{reset ? '로그인으로 돌아가기' : '비밀번호를 잊으셨나요?'}</Button>
+      <Button onClick={() => { setReset(!reset); setError(''); setNotice(''); }}>{reset ? '로그인으로 돌아가기' : '등록한 이메일로 비밀번호 재설정'}</Button>
     </Stack>
     <Dialog open={dialogOpen} onClose={() => { if (!searchBusy) setDialogOpen(false); }} fullWidth maxWidth="sm">
       <DialogTitle>사무실 그룹 검색</DialogTitle>

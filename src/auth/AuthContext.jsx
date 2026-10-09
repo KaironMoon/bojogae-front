@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 
 import { getCurrentUser, logout as requestLogout } from "@/services/auth-service";
 import { commitPendingSocialLoginProvider } from "@/auth/social-login-storage";
+import { clearLocalBrowserPush, reconcileBrowserPushUser } from '@/services/web-push-service';
 
 const AuthContext = createContext(null);
 
@@ -30,8 +31,13 @@ function AuthProvider({ children }) { // eslint-disable-line react/prop-types
     refreshUser().catch(() => setLoading(false));
   }, [refreshUser]);
 
+  useEffect(() => {
+    if (!loading) reconcileBrowserPushUser(user).catch(() => {});
+  }, [loading, user?.id, user?.status]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const logout = useCallback(async () => {
     await requestLogout();
+    await clearLocalBrowserPush().catch(() => {});
     setUser(null);
   }, []);
 

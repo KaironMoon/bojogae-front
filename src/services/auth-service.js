@@ -35,12 +35,13 @@ export async function getPointGrants(userId, page = 1, grantFilter = 'ACTIVE') {
   return (await apiCaller.get(`/api/v1/admin/users/${userId}/points/grants`, { page, grant_filter: grantFilter })).data;
 }
 
-async function getUsers(status, page = 1, pageSize = 20, query = "") {
+async function getUsers(status, page = 1, pageSize = 20, query = "", userId) {
   const response = await apiCaller.get("/api/v1/admin/users", {
     status: status || undefined,
     page,
     page_size: pageSize,
     q: query || undefined,
+    user_id: userId || undefined,
   });
   return response.data;
 }

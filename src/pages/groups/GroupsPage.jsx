@@ -1,6 +1,6 @@
 import { Alert, Button, Checkbox, Chip, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography } from '@mui/material';
 import { useCallback, useEffect, useState } from 'react';
-import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/auth/AuthContext';
 import { addMember, bulkPoints, createGroup, decidePurchase, deleteMember, directPurchase, editMember, getGroup, groupErrorMessage, listGroups, renameGroup, requestPurchase, resetMemberPassword, setMonthlyPoints, setMaxMembers, setMemberStatus } from '@/services/group-service';
 
@@ -19,6 +19,8 @@ export default function GroupsPage() {
   const [query, setQuery] = useState('');
   const navigate = useNavigate();
   const { groupId: routeGroupId } = useParams();
+  const [searchParams] = useSearchParams();
+  const highlightedPurchase = searchParams.get('purchaseId');
   const groupId = routeGroupId && /^[1-9]\d*$/.test(routeGroupId) ? Number(routeGroupId) : '';
   const listPath = admin ? '/admin/groups' : '/group';
   const allowedGroup = admin || groupId === user?.group_id;
@@ -52,6 +54,10 @@ export default function GroupsPage() {
       .finally(() => { if (active) setListLoading(false); }), 300);
     return () => { active = false; clearTimeout(timer); };
   }, [admin, query, groupId]);
+  useEffect(() => {
+    if (!detail || !/^[1-9]\d*$/.test(highlightedPurchase || '')) return;
+    document.getElementById(`purchase-${highlightedPurchase}`)?.scrollIntoView({ block: 'center' });
+  }, [detail, highlightedPurchase]);
   if (loading) return <Typography>불러오는 중…</Typography>;
   if (!canManage) return <Navigate to="/home" replace />;
   if (!admin && !routeGroupId && user?.group_id) return <Navigate to={`/group/${user.group_id}`} replace />;
@@ -170,7 +176,7 @@ export default function GroupsPage() {
       </Stack></Paper>
       <Paper sx={{ p: { xs: 2, sm: 3 }, minWidth: 0 }}><Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} gap={1} sx={{ mb: 2 }}><Typography variant="h6">추가 꼬막 구매 내역</Typography>{admin && <Button variant="contained" disabled={busy || !leader || leader.status !== 'ACTIVE'} onClick={() => open('direct')}>추가 꼬막 직접 지급</Button>}</Stack>
         <TableContainer sx={{ maxWidth: '100%' }}><Table size="small" sx={{ minWidth: 680 }}><TableHead><TableRow>{['요청일', '수량', '상태', '결제 확인 번호', '처리'].map((label) => <TableCell key={label} sx={{ whiteSpace: 'nowrap' }}>{label}</TableCell>)}</TableRow></TableHead><TableBody>
-          {detail.purchases.map((item) => <TableRow key={item.id}><TableCell>{time(item.created_at)}</TableCell><TableCell>{item.amount}꼬막</TableCell><TableCell>{purchaseStatus[item.status]}{item.is_direct && <Typography variant="caption" display="block">관리자 직접 지급</Typography>}</TableCell><TableCell>{item.payment_reference || '—'}</TableCell><TableCell>{admin && item.status === 'PENDING' && <Button disabled={busy} onClick={() => open('decision', item)}>결제 확인·처리</Button>}</TableCell></TableRow>)}
+          {detail.purchases.map((item) => <TableRow key={item.id} id={`purchase-${item.id}`} selected={String(item.id) === highlightedPurchase}><TableCell>{time(item.created_at)}</TableCell><TableCell>{item.amount}꼬막</TableCell><TableCell>{purchaseStatus[item.status]}{item.is_direct && <Typography variant="caption" display="block">관리자 직접 지급</Typography>}</TableCell><TableCell>{item.payment_reference || '—'}</TableCell><TableCell>{admin && item.status === 'PENDING' && <Button disabled={busy} onClick={() => open('decision', item)}>결제 확인·처리</Button>}</TableCell></TableRow>)}
           {!detail.purchases.length && <TableRow><TableCell colSpan={5}>구매 요청이 없습니다.</TableCell></TableRow>}
         </TableBody></Table></TableContainer>
       </Paper>

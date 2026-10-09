@@ -68,7 +68,6 @@ export default function PaymentHistoryPage({ admin=false }) {
                   </TableCell>
                   <TableCell>{pendingReservation ? '자동결제 예약 대기' : (order.is_card_verification ? verificationStatuses : statuses)[order.status] || '상태 확인 필요'}{order.refund_status && <Typography variant="caption" display="block">환불 {({ PENDING:'처리 중', COMPLETED:'완료', REVIEW:'관리자 확인 중' })[order.refund_status]}</Typography>}</TableCell>
                   {!admin && <TableCell><Stack spacing={0.5}>
-                    {!pendingReservation && !(order.is_card_verification && ['COMPLETED','FAILED'].includes(order.status)) && <Button size="small" disabled={busy} onClick={() => perform(() => paymentPost(order.is_card_verification ? `methods/verifications/${encodeURIComponent(order.id)}/check` : `orders/${encodeURIComponent(order.id)}/complete`))}>{order.is_card_verification ? '승인·취소 확인' : '결제 내역 확인'}</Button>}
                     {order.product_code === 'TOPUP' && order.status === 'PAID' && order.refunded_amount < order.amount && !['PENDING','REVIEW'].includes(order.refund_status) &&
                       <Button size="small" color="warning" disabled={busy} onClick={() => perform(() => refund(order))}>미사용분 환불</Button>}
                   </Stack></TableCell>}

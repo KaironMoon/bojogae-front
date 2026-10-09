@@ -5,6 +5,7 @@ self.addEventListener("push", (event) => {
   } catch {
     payload = {};
   }
+  if (payload.expires_at && Date.parse(payload.expires_at) <= Date.now()) return;
   event.waitUntil(self.registration.showNotification(payload.title || "BOJOGAE", {
     body: payload.body || "새로운 알림이 도착했습니다.",
     icon: "/bojogae-icon.png",
@@ -17,7 +18,9 @@ self.addEventListener("push", (event) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const requested = new URL(event.notification.data?.url || "/home", self.location.origin);
+  let requested;
+  try { requested = new URL(event.notification.data?.url || "/home", self.location.origin); }
+  catch { requested = new URL('/home', self.location.origin); }
   const target = requested.origin === self.location.origin ? requested.href : `${self.location.origin}/home`;
   event.waitUntil((async () => {
     const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
@@ -29,4 +32,3 @@ self.addEventListener("notificationclick", (event) => {
     return self.clients.openWindow(target);
   })());
 });
-

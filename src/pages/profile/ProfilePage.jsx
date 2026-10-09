@@ -25,9 +25,11 @@ import {
   updateMyProfile,
   verifyEmailChangeCode,
 } from "@/services/profile-service";
+import { requestOwnPasswordReset } from "@/services/group-service";
 import { getPointBalance } from "@/services/proposal-service";
 import ExpiringPoints from "@/pages/components/ExpiringPoints";
 import PlanSection from "@/pages/profile/PlanSection";
+import NotificationPreferences from '@/pages/profile/NotificationPreferences';
 import {
   disableBrowserPush,
   enableBrowserPush,
@@ -40,6 +42,7 @@ const errorMessages = {
   payment_method_pending: "결제수단 변경 결과 확인이 필요합니다. 결제수단 관리에서 확인한 후 다시 시도해 주세요.",
   withdrawal_schema_required: "탈퇴 자료 파기 설정이 준비되지 않았습니다. 고객센터로 문의해 주세요.",
   withdraw_failed: "탈퇴하지 못했습니다. 잠시 후 다시 시도해 주세요.",
+  password_reset_unavailable: "등록한 이메일이 있는 그룹 회원만 비밀번호를 재설정할 수 있습니다.",
   email_unchanged: "현재 사용 중인 이메일입니다.",
   email_already_in_use: "이미 다른 계정에서 사용 중인 이메일입니다.",
   email_resend_too_soon: "인증메일은 60초 후에 다시 요청할 수 있습니다.",
@@ -224,6 +227,18 @@ function ProfilePage() {
     return <Box sx={{ minHeight: 420, display: "grid", placeItems: "center" }}><CircularProgress /></Box>;
   }
 
+  const resetOwnPassword = async () => {
+    setSaving(true); setError(""); setMessage("");
+    try {
+      await requestOwnPasswordReset();
+      setMessage("등록한 이메일로 비밀번호 재설정 링크를 요청했습니다. 이메일을 확인해 주세요. 재요청은 1분 후 가능합니다.");
+    } catch (requestError) {
+      setError(errorMessages[requestErrorCode(requestError)] || "재설정 이메일을 요청하지 못했습니다.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const emailChanged = profile.email.trim().toLowerCase() !== savedEmail.toLowerCase();
 
   return (
@@ -297,6 +312,7 @@ function ProfilePage() {
                 helperText={emailChanged ? (savedEmail ? "인증 전에는 기존 이메일이 유지됩니다." : "인증을 완료하면 이메일이 등록됩니다.") : (savedEmail ? "현재 인증된 이메일" : "등록된 이메일이 없습니다.")}
                 fullWidth
               />
+              {user?.group_id && savedEmail && <Button variant="outlined" onClick={resetOwnPassword} disabled={saving}>등록 이메일로 비밀번호 재설정</Button>}
               {emailChanged && (
                 <Button
                   variant="outlined"
@@ -336,7 +352,7 @@ function ProfilePage() {
             <Box>
               <Typography fontWeight={850}>브라우저 알림</Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mt: 0.4 }}>
-                요청·환불·결제 처리 결과와 새로운 공지를 이 브라우저로 알려드립니다.
+                보고서 처리 결과, 결제 실패, 승인 요청과 답변을 이 브라우저로 알려드립니다.
               </Typography>
             </Box>
           </Stack>
@@ -355,6 +371,7 @@ function ProfilePage() {
         {pushState && !pushState.supported && <Alert severity="info" sx={{ mt: 2 }}>이 브라우저에서는 Web Push를 사용할 수 없습니다. HTTPS로 접속했는지도 확인해주세요.</Alert>}
         {pushState?.supported && !pushState.configured && <Alert severity="warning" sx={{ mt: 2 }}>브라우저 알림 서버 설정이 아직 완료되지 않았습니다.</Alert>}
         {pushState?.permission === "denied" && <Alert severity="warning" sx={{ mt: 2 }}>알림 권한이 차단되어 있습니다. 브라우저 사이트 설정에서 알림을 허용해주세요.</Alert>}
+        <NotificationPreferences key={pushState?.subscribed ? 'subscribed' : 'unsubscribed'} />
       </Paper>
       {user?.role === 'USER' && !user?.group_id && <Paper variant="outlined" sx={{ p:3, mt:3, borderRadius:3 }}>
         <Typography variant="h6">회원 탈퇴</Typography>

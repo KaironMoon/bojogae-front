@@ -1,0 +1,192 @@
+[
+  {
+    "insurer_id": "life-hanwha",
+    "path": "/insurer-assets/life-hanwha.png",
+    "source_url": "https://cdn.imweb.me/thumbnail/20230831/127b7da42bc0f.png",
+    "checked_at": "2026-10-09"
+  },
+  {
+    "insurer_id": "life-abl",
+    "path": "/insurer-assets/life-abl.png",
+    "source_url": "https://cdn.imweb.me/thumbnail/20230831/9ac3396c34762.png",
+    "checked_at": "2026-10-09"
+  },
+  {
+    "insurer_id": "life-samsung",
+    "path": "/insurer-assets/life-samsung.png",
+    "source_url": "https://cdn.imweb.me/thumbnail/20230831/dc63f1cdc3bf4.png",
+    "checked_at": "2026-10-09"
+  },
+  {
+    "insurer_id": "life-heungkuk",
+    "path": "/insurer-assets/life-heungkuk.png",
+    "source_url": "https://cdn.imweb.me/thumbnail/20230831/eeeb05c804df0.png",
+    "checked_at": "2026-10-09"
+  },
+  {
+    "insurer_id": "life-kyobo",
+    "path": "/insurer-assets/life-kyobo.png",
+    "source_url": "https://cdn.imweb.me/thumbnail/20230831/d66bcc7f1cf44.png",
+    "checked_at": "2026-10-09"
+  },
+  {
+    "insurer_id": "life-im",
+    "path": "/insurer-assets/life-im.jpg",
+    "source_url": "https://cdn.imweb.me/thumbnail/20250406/b131ad60ec1e2.jpg",
+    "checked_at": "2026-10-09"
+  },
+  {
+    "insurer_id": "life-miraeasset",
+    "path": "/insurer-assets/life-miraeasset.png",
+    "source_url": "https://cdn.imweb.me/thumbnail/20230831/cb1eb08952daf.png",
+    "checked_at": "2026-10-09"
+  },
+  {
+    "insurer_id": "life-kdb",
+    "path": "/insurer-assets/life-kdb.png",
+    "source_url": "https://cdn.imweb.me/thumbnail/20230831/407a7a1623664.png",
+    "checked_at": "2026-10-09"
+  },
+  {
+    "insurer_id": "life-db",
+    "path": "/insurer-assets/life-db.jpg",
+    "source_url": "https://cdn.imweb.me/thumbnail/20230831/9635606de1013.jpg",
+    "checked_at": "2026-10-09"
+  },
+  {
+    "insurer_id": "life-dongyang",
+    "path": "/insurer-assets/life-dongyang.png",
+    "source_url": "https://cdn.imweb.me/thumbnail/20230831/fbe453f05ccdb.png",
+    "checked_at": "2026-10-09"
+  },
+  {
+    "insurer_id": "life-metlife",
+    "path": "/insurer-assets/life-metlife.png",
+    "source_url": "https://cdn.imweb.me/thumbnail/20230831/c6bdebb6d2198.png",
+    "checked_at": "2026-10-09"
+  },
+  {
+    "insurer_id": "life-kb",
+    "path": "/insurer-assets/life-kb.jpg",
+    "source_url": "https://cdn.imweb.me/thumbnail/20230831/43515992aee67.jpg",
+    "checked_at": "2026-10-09"
+  },
+  {
+    "insurer_id": "life-shinhan",
+    "path": "/insurer-assets/life-shinhan.png",
+    "source_url": "https://cdn.imweb.me/thumbnail/20230831/17eed36240992.png",
+    "checked_at": "2026-10-09"
+  },
+  {
+    "insurer_id": "life-chubb",
+    "path": "/insurer-assets/life-chubb.jpg",
+    "source_url": "https://cdn.imweb.me/thumbnail/20230831/61e7d3eef0fee.jpg",
+    "checked_at": "2026-10-09"
+  },
+  {
+    "insurer_id": "life-hana",
+    "path": "/insurer-assets/life-hana.jpg",
+    "source_url": "https://cdn.imweb.me/thumbnail/20230831/e5b2d978d302a.jpg",
+    "checked_at": "2026-10-09"
+  },
+  {
+    "insurer_id": "life-cardif",
+    "path": "/insurer-assets/life-cardif.png",
+    "source_url": "https://cdn.imweb.me/thumbnail/20230831/36cf14fc3c424.png",
+    "checked_at": "2026-10-09"
+  },
+  {
+    "insurer_id": "life-fubon",
+    "path": "/insurer-assets/life-fubon.jpg",
+    "source_url": "https://cdn.imweb.me/thumbnail/20230831/0e7e64eed3eb7.jpg",
+    "checked_at": "2026-10-09"
+  },
+  {
+    "insurer_id": "life-lina",
+    "path": "/insurer-assets/life-lina.png",
+    "source_url": "https://cdn.imweb.me/thumbnail/20230831/3db772a46c918.png",
+    "checked_at": "2026-10-09"
+  },
+  {
+    "insurer_id": "life-aia",
+    "path": "/insurer-assets/life-aia.jpg",
+    "source_url": "https://cdn.imweb.me/thumbnail/20230831/937f7604279a5.jpg",
+    "checked_at": "2026-10-09"
+  },
+  {
+    "insurer_id": "life-nh",
+    "path": "/insurer-assets/life-nh.png",
+    "source_url": "https://cdn.imweb.me/thumbnail/20230831/17defa7ffd754.png",
+    "checked_at": "2026-10-09"
+  },
+  {
+    "insurer_id": "life-ibk",
+    "path": "/insurer-assets/life-ibk.jpg",
+    "source_url": "https://cdn.imweb.me/thumbnail/20230831/2df322fa14dde.jpg",
+    "checked_at": "2026-10-09"
+  },
+  {
+    "insurer_id": "non-life-samsung",
+    "path": "/insurer-assets/non-life-samsung.jpg",
+    "source_url": "https://cdn.imweb.me/thumbnail/20250406/51d6ab2e63cf9.jpg",
+    "checked_at": "2026-10-09"
+  },
+  {
+    "insurer_id": "non-life-db",
+    "path": "/insurer-assets/non-life-db.png",
+    "source_url": "https://cdn.imweb.me/thumbnail/20250406/ae592ed957eb3.png",
+    "checked_at": "2026-10-09"
+  },
+  {
+    "insurer_id": "non-life-hyundai",
+    "path": "/insurer-assets/non-life-hyundai.png",
+    "source_url": "https://cdn.imweb.me/thumbnail/20250406/8686a18dc6d55.png",
+    "checked_at": "2026-10-09"
+  },
+  {
+    "insurer_id": "non-life-kb",
+    "path": "/insurer-assets/non-life-kb.png",
+    "source_url": "https://cdn.imweb.me/thumbnail/20250406/35b1a73f72aa2.png",
+    "checked_at": "2026-10-09"
+  },
+  {
+    "insurer_id": "non-life-meritz",
+    "path": "/insurer-assets/non-life-meritz.png",
+    "source_url": "https://cdn.imweb.me/thumbnail/20250406/5215bfefda8d1.png",
+    "checked_at": "2026-10-09"
+  },
+  {
+    "insurer_id": "non-life-hanwha",
+    "path": "/insurer-assets/non-life-hanwha.png",
+    "source_url": "https://cdn.imweb.me/thumbnail/20250406/dd3a588f03f4a.png",
+    "checked_at": "2026-10-09"
+  },
+  {
+    "insurer_id": "non-life-heungkuk",
+    "path": "/insurer-assets/non-life-heungkuk.png",
+    "source_url": "https://cdn.imweb.me/thumbnail/20250406/36efe9b5439ac.png",
+    "checked_at": "2026-10-09"
+  },
+  {
+    "insurer_id": "non-life-nh",
+    "path": "/insurer-assets/non-life-nh.png",
+    "source_url": "https://cdn.imweb.me/thumbnail/20250406/79591f0672108.png",
+    "checked_at": "2026-10-09"
+  },
+  {
+    "path": "/insurer-assets/browser-edge.png",
+    "source_url": "https://cdn.imweb.me/upload/S2016083157c63a62163fa/02f3c313822cc.png",
+    "checked_at": "2026-10-09"
+  },
+  {
+    "path": "/insurer-assets/browser-chrome.png",
+    "source_url": "https://cdn.imweb.me/upload/S2016083157c63a62163fa/6e729333f89c1.png",
+    "checked_at": "2026-10-09"
+  },
+  {
+    "insurer_id": "life-lifeplanet",
+    "path": "/insurer-assets/life-lifeplanet.gif",
+    "source_url": "https://www.lifeplanet.co.kr/lpds2/resources/images/common/logo-lp-pc-ver2.gif",
+    "checked_at": "2026-10-09"
+  }
+]

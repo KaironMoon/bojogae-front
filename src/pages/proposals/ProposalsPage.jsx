@@ -79,7 +79,7 @@ import {
 
 
 const MAX_FILES = 5;
-const MAX_FILE_BYTES = 10 * 1024 * 1024;
+const MAX_FILE_BYTES = 20 * 1024 * 1024;
 const ACTIVE = new Set(["QUEUED", "RUNNING", "CANCEL_REQUESTED"]);
 const PREVIEW_WIDTH = 794;
 const PREVIEW_HEIGHT = 1123;
@@ -185,6 +185,11 @@ function ProposalsPage() {
   const [generatedDocumentOptions, setGeneratedDocumentOptions] = useState([]);
   const [items, setItems] = useState([]);
   const [includeFailed, setIncludeFailed] = useState(false);
+  const [listQuery, setListQuery] = useState("");
+  const [draftListQuery, setDraftListQuery] = useState("");
+  const listRequest = useRef(0);
+  const listFilters = useRef({ query: "", includeFailed: false });
+  listFilters.current = { query: listQuery, includeFailed };
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -337,8 +342,11 @@ function ProposalsPage() {
     return () => cancelAnimationFrame(frame);
   }, [displayedPromptOptions, promptId]);
 
-  const loadList = useCallback(async (targetPage = page) => {
-    const result = await getProposals(targetPage, listPageSize, includeFailed);
+  const loadList = useCallback(async (targetPage = page, query = listQuery) => {
+    const request = ++listRequest.current;
+    const result = await getProposals(targetPage, listPageSize, includeFailed, query);
+    if (request !== listRequest.current) return result;
+    setListQuery(query);
     setItems(result.items);
     setGeneratedDocumentOptions((current) => {
       const completed = result.items.filter((item) => item.status === "COMPLETED");
@@ -350,19 +358,29 @@ function ProposalsPage() {
     const active = result.items.find((item) => ACTIVE.has(item.status));
     if (active) setActiveId((current) => current || active.id);
     return result;
-  }, [includeFailed, listPageSize, page]);
+  }, [includeFailed, listPageSize, page, listQuery]);
 
   const toggleFailedItems = async () => {
     const nextValue = !includeFailed;
     setIncludeFailed(nextValue);
+    const request = ++listRequest.current;
     try {
-      const result = await getProposals(1, listPageSize, nextValue);
+      const result = await getProposals(1, listPageSize, nextValue, listQuery);
+      if (request !== listRequest.current) return;
       setItems(result.items);
       setPage(result.page);
       setTotalPages(result.total_pages);
     } catch {
       setIncludeFailed(!nextValue);
       setError("보고서 목록을 불러오지 못했습니다.");
+    }
+  };
+
+  const searchReports = async (query) => {
+    try {
+      await loadList(1, query.trim());
+    } catch {
+      setError("보고서 검색에 실패했습니다.");
     }
   };
 
@@ -384,9 +402,10 @@ function ProposalsPage() {
   }, []);
 
   useEffect(() => {
+    const request = ++listRequest.current;
     Promise.all([
       getPromptOptions(),
-      getProposals(1, listPageSize, false),
+      getProposals(1, listPageSize, listFilters.current.includeFailed, listFilters.current.query),
       getProposals(1, 100, false),
       getPointBalance(),
     ])
@@ -402,8 +421,11 @@ function ProposalsPage() {
         setPromptTab(initialTab);
         setSelectedCategoryIds(requestedPrompt?.categories?.map((category) => category.id) || []);
         setPromptId(requestedPrompt?.id || promptsForTab(options, initialTab)[0]?.id || "");
-        setItems(result.items);
-        setTotalPages(result.total_pages);
+        if (request === listRequest.current) {
+          setItems(result.items);
+          setPage(result.page);
+          setTotalPages(result.total_pages);
+        }
         setPointBalance(balance);
         const active = result.items.find((item) => ACTIVE.has(item.status));
         if (active) setActiveId(active.id);
@@ -595,7 +617,7 @@ function ProposalsPage() {
       (file) => !file.name.toLowerCase().endsWith(".pdf") || file.size > MAX_FILE_BYTES,
     );
     if (invalid) {
-      setError("PDF 파일만 가능하며 파일당 크기는 10MB 이하여야 합니다.");
+      setError("PDF 파일만 가능하며 파일당 크기는 20MB 이하여야 합니다.");
       return;
     }
     setError("");
@@ -786,6 +808,19 @@ function ProposalsPage() {
       setError("선택한 문서 정보를 불러오지 못했습니다.");
     }
   };
+
+  const notificationGenerationId = searchParams.get('generationId');
+  useEffect(() => {
+    if (loading || !/^[1-9]\d*$/.test(notificationGenerationId || '')) return;
+    let active = true;
+    getProposal(notificationGenerationId).then(async (item) => {
+      if (!active) return;
+      setItems((current) => [item, ...current.filter((row) => row.id !== item.id)]);
+      if (isCompletedStatus(item.status)) await loadDocumentIntoWorkspace(item, item);
+      else { setStatusItem(item); setStatusMessage(item.error_message || ''); }
+    }).catch(() => { if (active) setError('대상이 삭제되었거나 접근 권한이 없습니다.'); });
+    return () => { active = false; };
+  }, [loading, notificationGenerationId, loadDocumentIntoWorkspace]);
 
   const changeZoom = (amount) => {
     setPreviewZoom((current) => Math.min(1.25, Math.max(0.3, Number((current + amount).toFixed(2)))));
@@ -1257,7 +1292,7 @@ function ProposalsPage() {
                   return;
                 }
                 if (selected.some((file) => !acceptsFile(field, file) || file.size > MAX_FILE_BYTES)) {
-                  setError(`${fileTypeLabel(field)} 파일만 가능하며 파일당 크기는 10MB 이하여야 합니다.`);
+                  setError(`${fileTypeLabel(field)} 파일만 가능하며 파일당 크기는 20MB 이하여야 합니다.`);
                   return;
                 }
                 setError("");
@@ -1341,13 +1376,13 @@ function ProposalsPage() {
                 <CloudUploadRoundedIcon color="primary" sx={{ fontSize: 22 }} />
                 <Box sx={{ textAlign: "left" }}>
                   <Typography variant="body2" fontWeight={750}>PDF 파일 선택</Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: "block", lineHeight: 1.2 }}>최대 5개 · 파일당 10MB</Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: "block", lineHeight: 1.2 }}>최대 5개 · 파일당 20MB</Typography>
                 </Box>
               </Stack>
               <Box sx={{ display: { xs: "none", sm: "block" } }}>
                 <CloudUploadRoundedIcon color="primary" />
                 <Typography variant="body2" fontWeight={750}>{filesDragging ? "여기에 PDF 파일을 놓으세요" : "PDF 선택 또는 파일 드래그"}</Typography>
-                <Typography variant="caption" color="text.secondary">최대 5개 · 파일당 10MB</Typography>
+                <Typography variant="caption" color="text.secondary">최대 5개 · 파일당 20MB</Typography>
               </Box>
               <input ref={fileInputRef} hidden type="file" accept="application/pdf,.pdf" multiple disabled={working} onChange={chooseFiles} />
             </Paper>
@@ -1536,6 +1571,12 @@ function ProposalsPage() {
             <IconButton aria-label="보고서 목록 새로고침" onClick={() => loadList(page)}><RefreshRoundedIcon /></IconButton>
           </Stack>
         </Stack>
+        <Stack component="form" direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ mb: 2 }} onSubmit={(event) => { event.preventDefault(); searchReports(draftListQuery); }}>
+          <TextField size="small" fullWidth label="보고서 검색" placeholder="제목, 프롬프트명, 보고서 번호" value={draftListQuery} inputProps={{ maxLength: 100 }} onChange={(event) => setDraftListQuery(event.target.value)} />
+          <Button type="submit" variant="outlined">검색</Button>
+          {listQuery && <Button onClick={() => { setDraftListQuery(""); searchReports(""); }}>초기화</Button>}
+        </Stack>
+        {!items.length && <Typography color="text.secondary">{listQuery ? "검색 결과가 없습니다." : "생성한 보고서가 없습니다."}</Typography>}
         <Stack>
           {items.map((item) => (
             <Box

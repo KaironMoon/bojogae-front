@@ -111,6 +111,8 @@ function TimingTimeline({ timing }) {
 }
 /* eslint-enable react/prop-types */
 
+const startedAt = (value) => value ? new Date(value).toLocaleString("ko-KR", { timeZone: "Asia/Seoul", hour12: false }) : "시작 전";
+
 function AdminProposalsPage() {
   const [result, setResult] = useState({ items: [], page: 1, total_pages: 0, total: 0 });
   const [status, setStatus] = useState("");
@@ -236,7 +238,7 @@ function AdminProposalsPage() {
                     #{item.id} · {item.user_display_name} ({item.user_email || `ID ${item.user_id}`}) · {item.prompt_title} v{item.prompt_version_no}
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
-                    입력 {bytes(item.total_input_bytes)} · 출력 {bytes(item.output_bytes)} · 호출 {item.call_count} · 토큰 {item.total_tokens.toLocaleString()}
+                    생성 시작: {startedAt(item.started_at)} · 입력 {bytes(item.total_input_bytes)} · 출력 {bytes(item.output_bytes)} · 호출 {item.call_count} · 토큰 {item.total_tokens.toLocaleString()}
                   </Typography>
                 </Box>
                 <Stack direction="row" alignItems="center" gap={1}>
@@ -257,6 +259,7 @@ function AdminProposalsPage() {
         <DialogContent>
           {detail && (
             <Stack spacing={2} sx={{ mt: 1 }}>
+              <Typography variant="body2">생성 시작: {startedAt(detail.started_at)} (한국 시간)</Typography>
               <Typography variant="body2">LLM 모델 {detail.llm_model} · thinking {detail.thinking_level} · 최대 출력 {detail.max_output_tokens.toLocaleString()}</Typography>
               <Typography variant="body2">입력 합계 {bytes(detail.total_input_bytes)} · 출력 {bytes(detail.output_bytes)}</Typography>
               <Alert severity={detail.point_status === "REVIEW_REQUIRED" ? "warning" : "info"}>

@@ -50,11 +50,12 @@ async function createProposal({
   return response.data;
 }
 
-async function getProposals(page = 1, pageSize = 10, includeFailed = true) {
+async function getProposals(page = 1, pageSize = 10, includeFailed = true, query = "") {
   const response = await apiCaller.get("/api/v1/proposals", {
     page,
     page_size: pageSize,
     include_failed: includeFailed,
+    q: query || undefined,
   });
   return response.data;
 }

@@ -16,6 +16,7 @@ export const decidePurchase = async (id, purchase, data) => (await api.post(`${b
 export const groupLogin = async (data) => (await api.post(`${base}/auth/group-login`, data)).data;
 export const changeGroupPassword = async (data) => api.post(`${base}/auth/group-password`, data);
 export const requestPasswordReset = async (data) => api.post(`${base}/auth/group-password-reset`, data);
+export const requestOwnPasswordReset = async () => api.post(`${base}/auth/group-password-reset/me`);
 export const completePasswordReset = async (data) => api.post(`${base}/auth/group-password-reset/complete`, data);
 const messages = {
   withdrawal_schema_required: '회원 자료 파기 설정이 준비되지 않았습니다. 043 SQL 적용을 확인해 주세요.',
