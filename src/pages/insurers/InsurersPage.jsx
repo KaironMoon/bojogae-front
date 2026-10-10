@@ -107,13 +107,13 @@ export default function InsurersPage() {
   );
 
   return (
-    <Box sx={{ p: { xs: 2, md: 4 }, maxWidth: 1440, mx: "auto" }}>
+    <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 1440, mx: "auto" }}>
       <Typography variant="h5" component="h1" fontWeight={800}>보험사 정보·링크</Typography>
-      <Typography color="text.secondary" sx={{ mt: 1, mb: 3 }}>
+      <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75, mb: 2 }}>
         보험사·공제기관의 업무 링크와 연락처, 청구서류, 카드납 정보를 확인하세요.
       </Typography>
       <Stack direction={{ xs: "column", sm: "row" }} alignItems={{ xs: "stretch", sm: "center" }}
-        justifyContent="space-between" gap={1.5} sx={{ mb: 2.5 }}>
+        justifyContent="space-between" gap={1.5} sx={{ mb: 1.5 }}>
         <TextField label="보험사명 검색" placeholder="예: 삼성, KB" value={query}
           onChange={event => setQuery(event.target.value)} size="small" fullWidth
           slotProps={{ htmlInput: { maxLength: 100 } }} sx={{ maxWidth: 440 }} />
@@ -122,7 +122,7 @@ export default function InsurersPage() {
         </Typography>}
       </Stack>
       <Tabs value={kind} onChange={(_, value) => setKind(value)} aria-label="보험사 분류"
-        variant="scrollable" scrollButtons="auto" sx={{ mb: 2.5, borderBottom: 1, borderColor: "divider" }}>
+        variant="scrollable" scrollButtons="auto" sx={{ mb: 1.5, borderBottom: 1, borderColor: "divider" }}>
         {categories.map(category => <Tab key={category.value} value={category.value}
           id={`insurer-tab-${category.value}`} aria-controls={`insurer-panel-${category.value}`}
           label={`${category.label}${!loading && !error && directory ? ` (${category.value === "all" ? Object.values(directory.counts).reduce((sum, count) => sum + count, 0) : directory.counts[category.value] || 0})` : ""}`} />)}
@@ -142,29 +142,29 @@ export default function InsurersPage() {
             <Typography color="text.secondary">검색 결과가 없습니다. 다른 보험사명을 입력해 주세요.</Typography>
           </Box>
         ) : (
-          <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, minmax(0, 1fr))", lg: "repeat(3, minmax(0, 1fr))", xl: "repeat(4, minmax(0, 1fr))" }, gap: 2 }}>
+          <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, minmax(0, 1fr))", lg: "repeat(3, minmax(0, 1fr))", xl: "repeat(5, minmax(0, 1fr))" }, gap: 1.25 }}>
             {directory.items.map(insurer => (
               <Card key={insurer.id} variant="outlined" sx={{ borderRadius: 2.5, display: "flex", flexDirection: "column", minWidth: 0 }}>
                 <CardActionArea onClick={() => setSelected(insurer)} aria-label={`${insurer.name} 상세 정보`}
-                  sx={{ flexGrow: 1, p: 2.5, pb: 2 }}>
-                  <Stack alignItems="center" spacing={1.25}>
-                    <Chip label={kindLabel(insurer)} size="small" sx={{ height: 21, fontSize: 11, alignSelf: "flex-end", bgcolor: "#f3f5f8", color: "text.secondary" }} />
-                    <Box sx={{ height: 64, display: "flex", alignItems: "center", justifyContent: "center" }}>{logo(insurer)}</Box>
-                    <Typography component="h2" variant="subtitle1" fontWeight={750} textAlign="center"
-                      sx={{ minHeight: 48, display: "flex", alignItems: "center", overflowWrap: "anywhere", lineHeight: 1.4 }}>
+                  sx={{ flexGrow: 1, p: 1.5, pb: 1 }}>
+                  <Stack alignItems="center" spacing={0.75}>
+                    <Chip label={kindLabel(insurer)} size="small" sx={{ height: 19, fontSize: 10, alignSelf: "flex-end", bgcolor: "#f3f5f8", color: "text.secondary" }} />
+                    <Box sx={{ width: "100%", height: 52, display: "flex", alignItems: "center", justifyContent: "center" }}>{logo(insurer, 176, 52)}</Box>
+                    {!insurer.logo && <Typography component="h2" variant="body2" fontWeight={750} textAlign="center"
+                      sx={{ overflowWrap: "anywhere", lineHeight: 1.4 }}>
                       {insurer.name}
-                    </Typography>
-                    <Box sx={{ minHeight: 24 }}>{insurer.kind !== "other" && browserBadges(insurer.browser)}</Box>
+                    </Typography>}
+                    {insurer.kind !== "other" && <Box>{browserBadges(insurer.browser)}</Box>}
                   </Stack>
                 </CardActionArea>
-                <CardActions sx={{ px: 2, pb: 2, pt: 0, gap: 1 }}>
+                <CardActions sx={{ px: 1.5, pb: 1.5, pt: 0, gap: 0.5, "& > :not(style) ~ :not(style)": { ml: 0 } }}>
                   <Button fullWidth size="small" variant="contained" disableElevation
                     href={insurer.systems[0]?.link.url || (insurer.kind === "other" ? insurer.website.url : undefined)} {...(insurer.systems.length || insurer.kind === "other" ? external : {})}
                     disabled={!insurer.systems.length && insurer.kind !== "other"} endIcon={insurer.systems.length ? <OpenInNewOutlinedIcon /> : null}
                     aria-label={insurer.systems.length ? `${insurer.name} 전산 바로가기 (새 창)` : insurer.kind === "other" ? `${insurer.name} 웹사이트 (새 창)` : `${insurer.name} 전산 주소 미확인`}>
                     {insurer.systems.length ? "전산 바로가기" : insurer.kind === "other" ? "웹사이트" : "전산 미확인"}
                   </Button>
-                  <Button size="small" onClick={() => setSelected(insurer)} sx={{ flexShrink: 0, minWidth: 72 }}>상세보기</Button>
+                  <Button size="small" onClick={() => setSelected(insurer)} sx={{ flexShrink: 0, minWidth: 60, px: 0.75 }}>상세보기</Button>
                 </CardActions>
               </Card>
             ))}
