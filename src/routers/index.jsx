@@ -40,6 +40,7 @@ import {
 import LandingPage from "../pages/landing/LandingPage";
 import PolicyPage from "../pages/policy/PolicyPage";
 import InsurersPage from "../pages/insurers/InsurersPage";
+import InsurersAdminPage from "../pages/admin/InsurersAdminPage";
 
 const ProductLayout = lazy(() => import("../pages/product/ProductLayout"));
 const ProductList = lazy(() => import("../pages/product"));
@@ -157,6 +158,7 @@ const router = createBrowserRouter([
           { path: "/admin/usage", element: <UsagePage /> },
           { path: "/admin/proposal-settings", element: <ProposalSettingsPage /> },
           { path: "/admin/dashboard-banners", element: <DashboardBannersPage /> },
+          { path: "/admin/insurers", element: <InsurersAdminPage /> },
           { path: "/admin/group-inquiries", element: <GroupInquiriesPage /> },
           { path: "/admin/boards/:boardType", element: <BoardListPage admin /> },
           { path: "/admin/boards/:boardType/new", element: <BoardEditorPage /> },

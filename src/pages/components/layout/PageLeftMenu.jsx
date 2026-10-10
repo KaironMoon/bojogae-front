@@ -51,6 +51,7 @@ const ADMIN_MENU = [
   { label: "사용량 / 통계", path: "/admin/usage", icon: AnalyticsOutlinedIcon },
   { label: "설정 및 서식", path: "/admin/proposal-settings", icon: TuneOutlinedIcon },
   { label: "메인 배너 관리", path: "/admin/dashboard-banners", icon: ViewCarouselOutlinedIcon },
+  { label: "보험사 정보 관리", path: "/admin/insurers", icon: ContactPhoneOutlinedIcon },
   { label: "단체 문의 관리", path: "/admin/group-inquiries", icon: ContactPhoneOutlinedIcon },
 ];
 
