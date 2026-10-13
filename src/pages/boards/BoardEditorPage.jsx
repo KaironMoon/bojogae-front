@@ -31,7 +31,8 @@ const EDITOR_OPTIONS = {
   imageUrlInput: false,
   imageMultipleFile: true,
   imageAccept: ".png,.jpg,.jpeg,.webp,.gif",
-  imageUploadSizeLimit: 5 * 1024 * 1024,
+  // SunEditor의 합산 용량 제한을 끄고 업로드 전에 파일별로 검사한다.
+  imageUploadSizeLimit: 0,
 };
 
 const ACCEPTED_FILES = ".pdf,.jpg,.jpeg,.png,.webp,.gif,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.hwp,.hwpx,.txt,.csv,.zip";
@@ -75,7 +76,12 @@ export default function BoardEditorPage() {
   }
 
   function uploadImages(images, _info, uploadHandler) {
-    Promise.all(Array.from(images).map(uploadBoardImage))
+    const selected = Array.from(images);
+    if (selected.some(file => file.size > 30 * 1024 * 1024)) {
+      setError("이미지는 파일당 30MB 이하만 올릴 수 있습니다.");
+      return false;
+    }
+    Promise.all(selected.map(uploadBoardImage))
       .then(uploaded => uploadHandler({ result: uploaded.map(item => ({ url: item.url, name: item.name, size: item.size })) }))
       .catch(err => {
         setError(boardError(err));
@@ -131,6 +137,7 @@ export default function BoardEditorPage() {
               onChange={content => setForm(current => ({ ...current, content }))}
               onImageUploadBefore={uploadImages}
             />
+            <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>본문 이미지: 파일당 30MB, 개수 제한 없음</Typography>
           </Box>
           <FormControlLabel control={<Checkbox checked={form.isPinned} disabled={working} onChange={event => setForm({ ...form, isPinned: event.target.checked })} />} label="목록 상단에 고정" />
           {existingFiles.length > 0 && (
@@ -146,7 +153,7 @@ export default function BoardEditorPage() {
               첨부파일 선택
               <input hidden multiple type="file" accept={ACCEPTED_FILES} onChange={selectFiles} />
             </Button>
-            <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>최대 5개, 파일당 10MB</Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>최대 5개, 파일당 100MB</Typography>
             {files.length > 0 && <Typography variant="body2" sx={{ mt: 1 }}>새 파일: {files.map(file => file.name).join(", ")}</Typography>}
           </Box>
           <Stack direction="row" justifyContent="flex-end" spacing={1}>

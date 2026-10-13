@@ -66,9 +66,9 @@ export function boardError(error) {
     invalid_board_attachments: "첨부파일은 기존 파일을 포함해 최대 5개까지 가능합니다.",
     invalid_board_file_type: "허용되지 않는 첨부파일 형식입니다.",
     invalid_board_image_type: "PNG, JPG, WEBP, GIF 이미지만 올릴 수 있습니다.",
-    board_image_too_large: "이미지는 파일당 5MB 이하만 올릴 수 있습니다.",
+    board_image_too_large: "이미지는 파일당 30MB 이하만 올릴 수 있습니다.",
     empty_board_image: "빈 이미지 파일은 올릴 수 없습니다.",
-    board_file_too_large: "첨부파일은 파일당 최대 10MB까지 가능합니다.",
+    board_file_too_large: "첨부파일은 파일당 최대 100MB까지 가능합니다.",
     empty_board_file: "빈 파일은 첨부할 수 없습니다.",
     board_schema_required: "게시판 DB 설정이 필요합니다. 관리자에게 문의해주세요.",
   };
