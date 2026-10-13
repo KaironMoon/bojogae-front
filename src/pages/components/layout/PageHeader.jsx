@@ -2,7 +2,7 @@ import { Avatar, Box, Button, Chip, IconButton, Stack, Toolbar, Typography } fro
 import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
 import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
 import { useTheme } from "@mui/material/styles";
-import { useNavigate } from "react-router-dom";
+import { Link as RouterLink, useNavigate } from "react-router-dom";
 
 import { useAuth } from "@/auth/AuthContext";
 
@@ -36,10 +36,25 @@ function PageHeader({ onMenuClick }) { // eslint-disable-line react/prop-types
         >
           <MenuRoundedIcon />
         </IconButton>
-        <Box component="img" src="/bojogae-icon.png" alt="" sx={{ width: 32, height: 32, borderRadius: "8px", display: "block" }} />
-        <Typography variant="h6" component="div" sx={{ color: theme.palette.text.primary, fontWeight: 900, letterSpacing: "-0.03em" }}>
-          BOJOGAE
-        </Typography>
+        <Stack
+          component={RouterLink}
+          to="/home"
+          aria-label="보조개 홈으로 이동"
+          direction="row"
+          spacing={1.25}
+          alignItems="center"
+          sx={{
+            color: "inherit",
+            textDecoration: "none",
+            borderRadius: 1,
+            "&:focus-visible": { outline: "2px solid", outlineColor: "primary.main", outlineOffset: 4 },
+          }}
+        >
+          <Box component="img" src="/bojogae-icon.png" alt="" sx={{ width: 32, height: 32, borderRadius: "8px", display: "block" }} />
+          <Typography variant="h6" component="span" sx={{ color: theme.palette.text.primary, fontWeight: 900, letterSpacing: "-0.03em" }}>
+            BOJOGAE
+          </Typography>
+        </Stack>
         <Chip label="GA PRO Edition" size="small" sx={{ display: { xs: "none", sm: "inline-flex" }, height: 22, bgcolor: "#dbeafe", color: "#1e40af", fontSize: 10.5, fontWeight: 750 }} />
       </Stack>
       <Stack direction="row" spacing={{ xs: 0.5, sm: 1.5 }} alignItems="center">
