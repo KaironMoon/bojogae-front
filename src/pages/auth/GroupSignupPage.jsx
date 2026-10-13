@@ -9,8 +9,9 @@ export default function GroupSignupPage() {
   const [params, setParams] = useSearchParams();
   const verificationToken = params.get('verify');
   const [token, setToken] = useState(() => params.get('token') || localStorage.getItem(storageKey) || '');
-  const [form, setForm] = useState({ group_name: '', affiliation: '', branch_name: '', name: '', phone: '', email: '', terms_agreed: false });
+  const [form, setForm] = useState({ affiliation: '', branch_name: '', name: '', phone: '', email: '', terms_agreed: false });
   const [application, setApplication] = useState(null);
+  const [groupCheckStatus, setGroupCheckStatus] = useState('idle');
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(Boolean(verificationToken));
   const [error, setError] = useState('');
@@ -59,11 +60,10 @@ export default function GroupSignupPage() {
     {error && <Alert severity="error">{error}</Alert>}
     {notice && <Alert severity="success">{notice}</Alert>}
     {!token && !verificationToken && <Stack component="form" spacing={2} onSubmit={submit}>
-      <TextField label="단체명" required value={form.group_name} disabled={busy} onChange={(event) => setForm({ ...form, group_name: event.target.value })} inputProps={{ maxLength: 150 }} helperText="구성원들이 로그인할 때 검색할 단체 이름입니다." />
-      <SignupProfileFields value={form} onChange={setForm} disabled={busy} nameLabel="담당자 이름" />
+      <SignupProfileFields branchRequired onGroupCheckChange={setGroupCheckStatus} value={form} onChange={setForm} disabled={busy} nameLabel="담당자 이름" />
       <TextField label="담당자 이메일" type="email" required disabled={busy} value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} inputProps={{ autoComplete: 'email' }} />
       <FormControlLabel control={<Checkbox checked={form.terms_agreed} disabled={busy} onChange={(event) => setForm({ ...form, terms_agreed: event.target.checked })} />} label={<Typography variant="body2"><MuiLink component={Link} to="/terms" target="_blank" rel="noopener">서비스이용약관</MuiLink> 및 <MuiLink component={Link} to="/privacy" target="_blank" rel="noopener">개인정보처리방침</MuiLink>에 동의합니다. (필수)</Typography>} />
-      <Button type="submit" variant="contained" disabled={busy || !form.terms_agreed}>이메일 인증하고 신청하기</Button>
+      <Button type="submit" variant="contained" disabled={busy || !form.terms_agreed || ['checking', 'duplicate'].includes(groupCheckStatus)}>이메일 인증하고 신청하기</Button>
     </Stack>}
     {token && application?.status === 'UNVERIFIED' && <Stack spacing={2}>
       <Alert severity="info">인증메일의 버튼을 누르거나 6자리 인증번호를 입력해 주세요.</Alert>

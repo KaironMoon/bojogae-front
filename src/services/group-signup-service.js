@@ -1,6 +1,7 @@
 import api from '@/services/api-caller';
+import { groupDisplayName } from '@/services/group-display-name';
 const base = '/api/v1';
-export const startGroupApplication = async (data) => (await api.post(`${base}/group-signups`, data)).data;
+export const startGroupApplication = async (data) => (await api.post(`${base}/group-signups`, { ...data, group_name: groupDisplayName(data) })).data;
 export const resendGroupApplication = (token) => api.post(`${base}/group-signups/resend`, { token });
 export const verifyGroupApplication = async (token, code) => (await api.post(`${base}/group-signups/verify-code`, { token, code })).data;
 export const verifyGroupApplicationLink = async (token) => (await api.post(`${base}/group-signups/verify-link`, { token })).data;
@@ -10,6 +11,8 @@ export const reviewGroupApplication = async (id, data) => (await api.put(`${base
 export const openGroupApplication = async (id, data) => (await api.post(`${base}/admin/group-signups/${id}/open`, data)).data;
 export const groupApplicationStatuses = { UNVERIFIED: '이메일 인증 대기', REVIEW: '관리자 확인 대기', CONTACTING: '상담 중', PAYMENT_PENDING: '결제 대기', ACTIVE: '개통 완료' };
 const messages = {
+  group_identity_duplicate: '같은 GA 소속·지점명의 단체가 이미 등록되어 있거나 신청 중입니다.',
+  group_branch_required: '단체 지점명 또는 활동 지역이 필요합니다. 신청 정보를 확인해 주세요.',
   signup_schema_required: '단체 가입 신청이 아직 준비되지 않았습니다. 잠시 후 다시 시도해 주세요.',
   application_expired: '신청 확인 정보가 만료되었습니다. 관리자에게 문의해 주세요.',
   application_duplicate: '이 이메일로 접수된 신청이 있습니다. 기존 신청 화면이나 인증메일에서 확인해 주세요.',

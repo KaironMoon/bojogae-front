@@ -1,8 +1,9 @@
 import api from '@/services/api-caller';
+import { groupDisplayName } from '@/services/group-display-name';
 const base = '/api/v1';
 export const searchGroups = async (q) => (await api.get(`${base}/groups/search`, { q })).data;
 export const listGroups = async (q = '') => (await api.get(`${base}/admin/groups`, { q })).data;
-export const createGroup = async (data) => (await api.post(`${base}/admin/groups`, data)).data;
+export const createGroup = async (data) => (await api.post(`${base}/admin/groups`, { ...data, name: groupDisplayName(data) })).data;
 export const getGroup = async (id) => (await api.get(`${base}/groups/${id}`)).data;
 export const renameGroup = async (id, name) => (await api.put(`${base}/groups/${id}/name`, { name })).data;
 export const addMember = async (id, data) => (await api.post(`${base}/groups/${id}/members`, data)).data;
@@ -19,6 +20,7 @@ export const requestPasswordReset = async (data) => api.post(`${base}/auth/group
 export const requestOwnPasswordReset = async () => api.post(`${base}/auth/group-password-reset/me`);
 export const completePasswordReset = async (data) => api.post(`${base}/auth/group-password-reset/complete`, data);
 const messages = {
+  group_identity_duplicate: '같은 GA 소속·지점명의 단체가 이미 등록되어 있거나 신청 중입니다.',
   group_not_open: '결제 확인과 개통 전에는 이용할 수 없습니다. 관리자에게 문의해 주세요.',
   group_already_open: '이미 개통된 단체입니다.',
   withdrawal_schema_required: '회원 자료 파기 설정이 준비되지 않았습니다. 043 SQL 적용을 확인해 주세요.',

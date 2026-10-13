@@ -4,7 +4,7 @@ import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-r
 import { useAuth } from '@/auth/AuthContext';
 import SignupProfileFields from "@/components/signup/SignupProfileFields";
 import GroupApplicationsPanel from "./GroupApplicationsPanel";
-import { openGroup, addMember, bulkPoints, createGroup, decidePurchase, deleteMember, directPurchase, editMember, getGroup, groupErrorMessage, listGroups, renameGroup, requestPurchase, resetMemberPassword, setMonthlyPoints, setMaxMembers, setMemberStatus } from '@/services/group-service';
+import { openGroup, addMember, bulkPoints, createGroup, decidePurchase, deleteMember, directPurchase, editMember, getGroup, groupErrorMessage, listGroups, requestPurchase, resetMemberPassword, setMonthlyPoints, setMaxMembers, setMemberStatus } from '@/services/group-service';
 
 const time = (value) => new Date(value).toLocaleString('ko-KR');
 const purchaseStatus = { PENDING: '결제 확인 대기', APPROVED: '지급 완료', REJECTED: '거절' };
@@ -28,23 +28,23 @@ export default function GroupsPage() {
   const listPath = admin ? '/admin/groups' : '/group';
   const allowedGroup = admin || groupId === user?.group_id;
   const [detail, setDetail] = useState(null);
-  const [name, setName] = useState('');
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
   const [modal, setModal] = useState(null);
+  const [groupCheckStatus, setGroupCheckStatus] = useState('idle');
   const [form, setForm] = useState({});
   const [requestKey, setRequestKey] = useState('');
   const [selectedIds, setSelectedIds] = useState([]);
   const canManage = admin || user?.group_role === 'LEADER';
   const refresh = useCallback(async () => {
     if (!groupId) { setDetail(null); return; }
-    const data = await getGroup(groupId); setDetail(data); setName(data.group.name);
+    const data = await getGroup(groupId); setDetail(data);
   }, [groupId]);
   useEffect(() => {
     let active = true;
     setDetail(null); setSelectedIds([]); setError(''); setNotice(''); setModal(null);
-    if (groupId && canManage && allowedGroup) getGroup(groupId).then((data) => { if (active) { setDetail(data); setName(data.group.name); } }).catch((e) => { if (active) setError(groupErrorMessage(e)); });
+    if (groupId && canManage && allowedGroup) getGroup(groupId).then((data) => { if (active) { setDetail(data); } }).catch((e) => { if (active) setError(groupErrorMessage(e)); });
     return () => { active = false; };
   }, [groupId, canManage, allowedGroup, user?.id]);
   useEffect(() => {
@@ -66,8 +66,8 @@ export default function GroupsPage() {
   if (!admin && !routeGroupId && user?.group_id) return <Navigate to={`/group/${user.group_id}`} replace />;
   if (routeGroupId && (!groupId || !allowedGroup)) return <Navigate to={listPath} replace />;
   const open = (type, item = null) => {
-    setError(''); setNotice(''); setRequestKey(crypto.randomUUID()); setModal({ type, item, member_ids: [...selectedIds] });
-    setForm(type === 'create' ? { ...emptyMember, name: '', affiliation: '', branch_name: '', phone: '', monthly_basic_points: '', max_members: '', activate_immediately: false, payment_reference: '' }
+    setError(''); setNotice(''); setGroupCheckStatus('idle'); setRequestKey(crypto.randomUUID()); setModal({ type, item, member_ids: [...selectedIds] });
+    setForm(type === 'create' ? { ...emptyMember, affiliation: '', branch_name: '', phone: '', monthly_basic_points: '', max_members: '', activate_immediately: false, payment_reference: '' }
       : type === 'open' ? { payment_reference: '', note: '' }
       : type === 'monthly' ? { monthly_basic_points: detail.group.monthly_basic_points }
       : type === 'members-limit' ? { max_members: detail.group.max_members ?? '' }
@@ -148,10 +148,6 @@ export default function GroupsPage() {
       {(detail.group.affiliation || detail.group.contact_name) && <Typography>GA: {detail.group.affiliation || '—'} · 지점: {detail.group.branch_name || '—'} · 담당자: {detail.group.contact_name || '—'} · 전화: {detail.group.contact_phone || '—'}</Typography>}
       {detail.group.opening_payment_reference && <Typography variant="body2">개통 결제 확인 번호: {detail.group.opening_payment_reference}</Typography>}
       <Paper sx={{ p: { xs: 2, sm: 3 }, minWidth: 0 }}><Stack spacing={2}>
-        <Stack component="form" direction={{ xs: 'column', sm: 'row' }} spacing={2} onSubmit={(e) => { e.preventDefault(); run(async () => { await renameGroup(groupId, name.trim()); await refresh(); }, '그룹명을 변경했습니다.'); }}>
-          <TextField label="그룹명" value={name} onChange={(e) => setName(e.target.value)} required inputProps={{ maxLength: 150 }} sx={{ flex: 1 }} />
-          <Button type="submit" disabled={busy || !name.trim() || name.trim() === detail.group.name}>그룹명 변경</Button>
-        </Stack>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'flex-start', sm: 'center' }}><Typography>그룹 기본 지급 꼬막: 1인당 매월 {detail.group.monthly_basic_points ?? 0}꼬막 · 개통일 기준 매월 지급·만료</Typography>{admin && <Button disabled={busy} onClick={() => open('monthly')} sx={{ flexShrink: 0 }}>월 지급량 설정</Button>}</Stack>
         <Typography variant="body2" color="text.secondary">지급 꼬막은 분배·회수 대상에서 제외됩니다. 구매 꼬막만 일괄 분배·회수할 수 있습니다.</Typography>
         <Typography fontWeight={700}>리더 꼬막: 지급 {leader?.balance.free_points ?? 0}꼬막 · 구매 {leader?.balance.paid_points ?? 0}꼬막</Typography>
@@ -198,9 +194,9 @@ export default function GroupsPage() {
       <DialogTitle>{{ open: '결제 확인 후 단체 개통', direct: '추가 꼬막 직접 지급', monthly: '그룹 월 기본 지급 꼬막 설정', 'members-limit': '인원 제한 설정', create: '그룹·리더 등록', add: '구성원 등록', edit: '계정 정보 수정', give: '일괄 지급', reclaim: '일괄 회수', purchase: '추가 꼬막 구매 요청', decision: '구매 요청 처리', reset: '비밀번호 초기화', status: '구성원 상태 변경', delete: '구성원 삭제' }[modal?.type]}</DialogTitle>
       <DialogContent><Stack spacing={2} sx={{ pt: 1 }}>
         {error && <Alert severity="error">{error}</Alert>}
-        {modal?.type === 'create' && <>{field('name', '그룹명', { required: true, inputProps: { maxLength: 150 } })}{field('monthly_basic_points', '그룹 기본 지급 꼬막 (1인당 월 지급량)', { required: true, type: 'number', inputProps: { min: 1, max: 10000000 }, helperText: '리더 포함 활성 구성원에게 매월 지급되는 무료 꼬막입니다. 개통일 기준으로 매월 지급되며 다음 지급일에 만료됩니다.' })}</>}
+        {modal?.type === 'create' && <>{field('monthly_basic_points', '그룹 기본 지급 꼬막 (1인당 월 지급량)', { required: true, type: 'number', inputProps: { min: 1, max: 10000000 }, helperText: '리더 포함 활성 구성원에게 매월 지급되는 무료 꼬막입니다. 개통일 기준으로 매월 지급되며 다음 지급일에 만료됩니다.' })}</>}
         {modal?.type === 'create' && <>
-          <SignupProfileFields value={form} onChange={setForm} disabled={busy} nameKey="display_name" nameLabel="담당자 이름" />
+          <SignupProfileFields branchRequired onGroupCheckChange={setGroupCheckStatus} value={form} onChange={setForm} disabled={busy} nameKey="display_name" nameLabel="담당자 이름" />
           <FormControlLabel control={<Checkbox checked={form.activate_immediately} onChange={(event) => setForm({ ...form, activate_immediately: event.target.checked })} />} label="결제를 확인했으며 생성과 동시에 개통합니다." />
           {form.activate_immediately && field('payment_reference', '결제 확인 번호', { required: true, inputProps: { maxLength: 100 } })}
           {!form.activate_immediately && <Typography variant="body2">개통 대기 상태로 생성합니다. 결제 확인 후 단체 상세에서 개통해 주세요.</Typography>}
@@ -231,7 +227,7 @@ export default function GroupsPage() {
         {modal?.type === 'delete' && <Typography>{modal.item.employee_number} 계정을 삭제합니다. 비활성화되어 로그인할 수 없게 되고, 미사용 구매 꼬막은 리더에게 자동 회수되며 기존 로그인은 종료됩니다. 해당 회원의 보고서·업로드 원본·공유 이미지·관련 첨부파일은 파기되며 복구할 수 없습니다. 결제·환불에 필요한 최소 식별 정보와 거래 기록만 법정 기간 동안 보관합니다. 사번 {modal.item.employee_number}와 등록된 이메일은 이후 다른 구성원 등록에 다시 사용할 수 있습니다.</Typography>}
         {modal?.type === 'status' && <Typography>{modal.item.employee_number} 계정을 {modal.item.status === 'ACTIVE' ? '비활성화합니다. 미사용 구매 꼬막만 리더에게 자동 회수되고 기존 로그인은 종료됩니다.' : '활성화합니다.'}</Typography>}
       </Stack></DialogContent>
-      <DialogActions><Button disabled={busy} onClick={() => setModal(null)}>취소</Button><Button type="submit" variant="contained" disabled={busy}>{busy ? '처리 중…' : '확인'}</Button></DialogActions>
+      <DialogActions><Button disabled={busy} onClick={() => setModal(null)}>취소</Button><Button type="submit" variant="contained" disabled={busy || (modal?.type === 'create' && ['checking', 'duplicate'].includes(groupCheckStatus))}>{busy ? '처리 중…' : '확인'}</Button></DialogActions>
     </Stack></Dialog>
   </Stack>;
 }
