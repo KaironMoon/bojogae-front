@@ -1,6 +1,6 @@
 import { Alert, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, List, ListItemButton, ListItemText, Stack, TextField, Typography } from '@mui/material';
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { clearPendingSocialLoginProvider } from '@/auth/social-login-storage';
 import { setLastLoginMethod } from '@/auth/login-method-storage';
 import { getSavedEmployeeNumber, getSavedGroupId, saveEmployeeNumber, saveGroupId } from '@/auth/group-login-storage';
@@ -90,6 +90,7 @@ export default function GroupLoginForm() {
       {reset ? <TextField type="email" label="등록한 이메일" value={email} onChange={(e) => setEmail(e.target.value)} required />
         : <TextField type="password" label="비밀번호" value={password} onChange={(e) => setPassword(e.target.value)} required inputProps={{ maxLength: 128, autoComplete: 'current-password' }} />}
       <Button type="submit" variant="contained" disabled={busy || loadingGroup || !group || !employee.trim()}>{busy ? '처리 중…' : reset ? '재설정 이메일 받기' : '그룹 로그인'}</Button>
+      <Button component={Link} to="/signup/group">새 단체 가입 신청 / 신청 현황</Button>
       <Button onClick={() => { setReset(!reset); setError(''); setNotice(''); }}>{reset ? '로그인으로 돌아가기' : '등록한 이메일로 비밀번호 재설정'}</Button>
     </Stack>
     <Dialog open={dialogOpen} onClose={() => { if (!searchBusy) setDialogOpen(false); }} fullWidth maxWidth="sm">

@@ -63,6 +63,7 @@ function ProfilePage() {
   const [profile, setProfile] = useState(emptyProfile);
   const [savedEmail, setSavedEmail] = useState("");
   const [pendingEmail, setPendingEmail] = useState("");
+  const [branchName, setBranchName] = useState("");
   const [groupName, setGroupName] = useState("");
   const [requestToken, setRequestToken] = useState("");
   const [code, setCode] = useState("");
@@ -100,6 +101,7 @@ function ProfilePage() {
         setSavedEmail(data.email || "");
         setPendingEmail(data.pending_email || "");
         setGroupName(data.group_name || "");
+        setBranchName(data.branch_name || "");
         setPointBalance(balance);
       })
       .catch(() => setError("profile_load_failed"))
@@ -285,6 +287,7 @@ function ProfilePage() {
             inputProps={{ maxLength: 100 }}
             fullWidth
           />
+          {branchName && <Typography variant="body2" color="text.secondary">지점 / 활동 지역: {branchName}</Typography>}
           <TextField label="이름" value={profile.name} onChange={updateField("name")} inputProps={{ maxLength: 100 }} fullWidth />
           <TextField label="닉네임" value={profile.nickname} onChange={updateField("nickname")} inputProps={{ maxLength: 50 }} fullWidth />
           <TextField

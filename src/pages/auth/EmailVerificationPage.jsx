@@ -33,7 +33,9 @@ function EmailVerificationPage() {
       .catch((requestError) => {
         const detail = requestError.response?.data?.detail;
         setError(
-          detail === "verification_expired"
+          detail === "signup_profile_required"
+            ? "가입 필수 정보가 추가되었습니다. 로그인 화면에서 가입을 다시 진행해 주세요."
+            : detail === "verification_expired"
             ? "인증 링크가 만료되었거나 이미 사용되었습니다."
             : "이메일 인증을 완료하지 못했습니다.",
         );

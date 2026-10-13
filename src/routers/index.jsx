@@ -1,6 +1,7 @@
 import RefundCreatePage from "../pages/document-requests/RefundCreatePage";
 import SuggestionCreatePage from "../pages/document-requests/SuggestionCreatePage";
 import RequestHistoryPage from "../pages/document-requests/RequestHistoryPage";
+import GroupSignupPage from "../pages/auth/GroupSignupPage";
 import GroupsPage from "../pages/groups/GroupsPage";
 import MyCoinsPage from "../pages/groups/MyCoinsPage";
 import GroupPasswordPage from "../pages/auth/GroupPasswordPage";
@@ -67,6 +68,7 @@ const router = createBrowserRouter([
   { path: "/board/posts/:postId", element: <BoardPostPage /> },
   { path: "/terms", element: <PolicyPage key="terms" kind="terms" /> },
   { path: "/privacy", element: <PolicyPage key="privacy" kind="privacy" /> },
+  { path: "/signup/group", element: <GroupSignupPage /> },
   { path: "/group/change-password", element: <GroupPasswordPage /> },
   { path: "/group/password-reset", element: <GroupPasswordPage /> },
   {

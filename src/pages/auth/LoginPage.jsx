@@ -2,7 +2,7 @@ import { Alert, Box, Button, Chip, CircularProgress, Container, Divider, Paper, 
 import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import { useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
 import { getLastLoginMethod, setLastLoginMethod } from "@/auth/login-method-storage";
 import { showLandingFromNowOn } from "@/auth/landing-preference-storage";
@@ -174,7 +174,7 @@ function LoginPage() {
               {searchParams.get("passwordChanged") && <Alert severity="success">비밀번호가 변경되었습니다. 다시 로그인해 주세요.</Alert>}
               <Tabs value={loginMethod} onChange={(_, value) => { setLoginMethod(value); setLastLoginMethod(value); }} variant="fullWidth" aria-label="로그인 방식" sx={{ mb: 1 }}>
                 <Tab value="group" label="단체 회원 로그인" id="login-tab-group" aria-controls="login-panel-group" />
-                <Tab value="personal" label="개인 회원 로그인" id="login-tab-personal" aria-controls="login-panel-personal" />
+                <Tab value="personal" label="개인 가입 / 로그인" id="login-tab-personal" aria-controls="login-panel-personal" />
                 <Tab value="review" label="심사용 계정 로그인" id="login-tab-review" aria-controls="login-panel-review" />
               </Tabs>
               {loginMethod === "review" ? (
@@ -186,6 +186,7 @@ function LoginPage() {
                 <Box role="tabpanel" id="login-panel-group" aria-labelledby="login-tab-group"><GroupLoginForm /></Box>
               ) : (
                 <Stack role="tabpanel" id="login-panel-personal" aria-labelledby="login-tab-personal" spacing={1.5}>
+              <Button component={Link} to="/signup/group" variant="outlined">단체 가입 신청 / 신청 현황</Button>
               {showPlanNotice && (
                 <Alert severity={requestedPlan === "FREE" ? "success" : "info"}>
                   {requestedPlan === "FREE"

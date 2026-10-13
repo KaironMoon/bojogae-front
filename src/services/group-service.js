@@ -19,6 +19,8 @@ export const requestPasswordReset = async (data) => api.post(`${base}/auth/group
 export const requestOwnPasswordReset = async () => api.post(`${base}/auth/group-password-reset/me`);
 export const completePasswordReset = async (data) => api.post(`${base}/auth/group-password-reset/complete`, data);
 const messages = {
+  group_not_open: '결제 확인과 개통 전에는 이용할 수 없습니다. 관리자에게 문의해 주세요.',
+  group_already_open: '이미 개통된 단체입니다.',
   withdrawal_schema_required: '회원 자료 파기 설정이 준비되지 않았습니다. 043 SQL 적용을 확인해 주세요.',
   invalid_transfer_target: '지급 대상은 같은 그룹의 활성 구성원이어야 합니다. 회수 대상을 다시 확인해 주세요.',
   group_schema_required: '그룹 기능의 DB 변경 SQL을 먼저 적용해 주세요.',
@@ -39,7 +41,7 @@ const messages = {
   member_already_deleted: '이미 삭제된 구성원입니다.',
   group_member_limit_reached: '그룹 인원수 제한에 도달했습니다. 인원 제한을 늘리거나 기존 구성원을 정리해 주세요.',
 };
-export const groupErrorMessage = (error) => messages[error.response?.data?.detail] || '요청을 처리하지 못했습니다. 다시 시도해 주세요.';
+export const groupErrorMessage = (error) => Array.isArray(error.response?.data?.detail) ? '필수 입력 항목과 전화번호·이메일 형식을 확인해 주세요.' : messages[error.response?.data?.detail] || '요청을 처리하지 못했습니다. 다시 시도해 주세요.';
 
 export const setMonthlyPoints = async (id, amount) => (await api.put(`${base}/admin/groups/${id}/monthly-points`, { monthly_basic_points: amount })).data;
 export const setMaxMembers = async (id, amount) => (await api.put(`${base}/admin/groups/${id}/max-members`, { max_members: amount })).data;
@@ -49,3 +51,5 @@ export const bulkPoints = async (id, data) => (await api.post(`${base}/groups/${
 export const getGroupIdentity = async (id) => (await api.get(`${base}/groups/${id}/identity`)).data;
 
 export const directPurchase = async (id, data) => (await api.post(`${base}/admin/groups/${id}/purchases/direct`, data)).data;
+
+export const openGroup = async (id, data) => (await api.post(`${base}/admin/groups/${id}/open`, data)).data;

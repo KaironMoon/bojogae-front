@@ -21,6 +21,8 @@ import { useAuth } from "@/auth/AuthContext";
 import { sendSignupEmail, verifySignupCode } from "@/services/auth-service";
 import { PLAN_INFO, isSignupPlan } from "@/constants/plans";
 
+import SignupProfileFields from "@/components/signup/SignupProfileFields";
+
 const PLAN_OPTIONS = ["FREE", "BASIC", "STANDARD", "PRO"];
 
 function PlanOption({ code, selected, disabled, onSelect }) { // eslint-disable-line react/prop-types
@@ -62,13 +64,16 @@ const errorMessages = {
   verification_locked: "인증번호 입력 횟수를 초과했습니다. 인증메일을 다시 받아 주세요.",
   verification_expired: "인증번호가 만료되었습니다. 인증메일을 다시 받아 주세요.",
   terms_agreement_required: "서비스이용약관 및 개인정보처리방침에 동의해 주세요.",
+  invalid_signup_input: "이메일·전화번호 형식과 필수 입력 항목을 확인해 주세요.",
+  signup_profile_required: "GA 소속·이름·전화번호를 입력한 뒤 인증메일을 다시 받아 주세요.",
   invalid_plan: "선택할 수 없는 요금제입니다.",
 };
 
 
 
 function errorCode(error) {
-  return error.response?.data?.detail || "unknown";
+  const detail = error.response?.data?.detail;
+  return Array.isArray(detail) ? "invalid_signup_input" : detail || "unknown";
 }
 
 function SignupCompletePage() {
@@ -77,6 +82,7 @@ function SignupCompletePage() {
   const urlPlan = searchParams.get("plan");
   const navigate = useNavigate();
   const { refreshUser } = useAuth();
+  const [profile, setProfile] = useState({ name: "", phone: "", affiliation: "", branch_name: "" });
   const [email, setEmail] = useState(searchParams.get("email") || "");
   const [termsAgreed, setTermsAgreed] = useState(false);
   const [planCode, setPlanCode] = useState(isSignupPlan(urlPlan) ? urlPlan : "");
@@ -98,7 +104,7 @@ function SignupCompletePage() {
     setLoading(true);
     setError("");
     try {
-      await sendSignupEmail(signupToken, email, termsAgreed, planCode);
+      await sendSignupEmail(signupToken, email, termsAgreed, planCode, profile);
       setSent(true);
       setCooldown(60);
     } catch (requestError) {
@@ -138,7 +144,7 @@ function SignupCompletePage() {
           <Stack spacing={3}>
             <Stack spacing={1} alignItems="center" textAlign="center">
               <EmailOutlinedIcon color="primary" sx={{ fontSize: 42 }} />
-              <Typography variant="h4" component="h1" fontWeight={800}>가입 이메일 인증</Typography>
+              <Typography variant="h4" component="h1" fontWeight={800}>개인 회원 가입</Typography>
               <Typography color="text.secondary">
                 소셜 계정과 연결할 이메일을 입력해 주세요. 같은 이메일로 인증하면 기존 계정에 연결됩니다.
               </Typography>
@@ -162,12 +168,14 @@ function SignupCompletePage() {
 
             {error && <Alert severity="error">{errorMessages[error] || "요청을 처리하지 못했습니다."}</Alert>}
 
+            <SignupProfileFields value={profile} onChange={setProfile} disabled={loading || sent} />
             <TextField
               label="이메일"
               type="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              disabled={loading}
+              disabled={loading || sent}
+              required
               fullWidth
               autoFocus
             />
@@ -193,11 +201,12 @@ function SignupCompletePage() {
               variant="contained"
               size="large"
               onClick={requestEmail}
-              disabled={loading || !email || !planCode || !termsAgreed || (sent && cooldown > 0)}
+              disabled={loading || !email || !planCode || !termsAgreed || !profile.name.trim() || !profile.affiliation.trim() || !/^\+?[\d\s()-]{8,30}$/.test(profile.phone.trim()) || cooldown > 0}
             >
               {sent && cooldown > 0 ? `${cooldown}초 후 재발송` : sent ? "인증메일 다시 보내기" : "인증메일 보내기"}
             </Button>
 
+            {sent && <Button disabled={loading} onClick={() => { setSent(false); setCode(""); }}>가입 정보 수정</Button>}
             {sent && (
               <Stack spacing={2}>
                 <Alert severity="info">
@@ -217,6 +226,7 @@ function SignupCompletePage() {
               </Stack>
             )}
 
+            <Button component={Link} to="/signup/group">단체 가입 신청</Button>
             <Button component={Link} to="/" color="inherit">로그인으로 돌아가기</Button>
           </Stack>
         </Paper>
