@@ -16,6 +16,11 @@ export default function GroupPasswordPage() {
   const [busy, setBusy] = useState(false);
   if (!token && !loading && !user) return <Navigate to="/" replace />;
   if (!token && !loading && user && !user.group_id) return <Navigate to="/home" replace />;
+  const exitSession = async (fallback = '/login') => {
+    const returnTo = await logout();
+    if (returnTo) window.location.assign(returnTo);
+    else navigate(fallback, { replace: true });
+  };
   const submit = async (event) => {
     event.preventDefault(); setError('');
     if (password !== confirm) { setError('새 비밀번호가 일치하지 않습니다.'); return; }
@@ -23,18 +28,21 @@ export default function GroupPasswordPage() {
     try {
       if (token) {
         await completePasswordReset({ token, new_password: password });
-        await logout();
-        navigate('/login?passwordChanged=1', { replace: true });
+        await exitSession('/login?passwordChanged=1');
       } else {
         await changeGroupPassword({ current_password: current, new_password: password });
+        if (user?.is_impersonating) {
+          // 비밀번호 변경은 기존 세션을 종료한다. 원래 관리자 세션으로 복귀한다.
+          await exitSession();
+          return;
+        }
         try {
           await groupLogin({ group_id: user.group_id, employee_number: user.employee_number, password });
           const updatedUser = await refreshUser();
           if (!updatedUser) throw new Error('login_required');
           navigate('/home', { replace: true });
         } catch {
-          await logout();
-          navigate('/login?passwordChanged=1', { replace: true });
+          await exitSession('/login?passwordChanged=1');
         }
       }
     } catch (e) { setError(groupErrorMessage(e)); } finally { setBusy(false); }
@@ -47,6 +55,6 @@ export default function GroupPasswordPage() {
     <TextField label="새 비밀번호" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required helperText="8자 이상 입력하세요." inputProps={{ minLength: 8, maxLength: 128, autoComplete: 'new-password' }} />
     <TextField label="새 비밀번호 확인" type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} required inputProps={{ minLength: 8, maxLength: 128, autoComplete: 'new-password' }} />
     <Button type="submit" variant="contained" disabled={busy || loading}>비밀번호 변경</Button>
-    <Button disabled={busy} onClick={async () => { await logout(); navigate('/login'); }}>로그인 화면으로</Button>
+    <Button disabled={busy} onClick={() => exitSession()}>로그인 화면으로</Button>
   </Stack></Paper></Container>;
 }

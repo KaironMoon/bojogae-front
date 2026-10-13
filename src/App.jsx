@@ -4,6 +4,7 @@ import { ThemeProvider } from "@mui/material/styles";
 
 import router from "@/routers";
 import { AuthProvider } from "@/auth/AuthContext";
+import ImpersonationBanner from "@/auth/ImpersonationBanner";
 import { lightTheme } from "@/styles/theme";
 
 function App() {
@@ -11,6 +12,7 @@ function App() {
     <ThemeProvider theme={lightTheme}>
       <CssBaseline />
       <AuthProvider>
+        <ImpersonationBanner />
         <RouterProvider router={router} />
       </AuthProvider>
     </ThemeProvider>

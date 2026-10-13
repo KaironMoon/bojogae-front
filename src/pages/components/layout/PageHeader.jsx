@@ -12,8 +12,9 @@ function PageHeader({ onMenuClick }) { // eslint-disable-line react/prop-types
   const { user, logout } = useAuth();
 
   const handleLogout = async () => {
-    await logout();
-    navigate("/", { replace: true });
+    const returnTo = await logout();
+    if (returnTo) window.location.assign(returnTo);
+    else navigate("/", { replace: true });
   };
 
   return (

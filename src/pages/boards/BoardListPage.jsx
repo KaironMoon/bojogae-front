@@ -12,9 +12,27 @@ import { boardConfig, categoryLabel } from "@/services/board-config";
 import { boardError, listBoardPosts } from "@/services/board-service";
 
 
+function BoardThumbnail({ src }) { // eslint-disable-line react/prop-types
+  const [failed, setFailed] = useState(false);
+  const showImage = Boolean(src) && !failed;
+  return (
+    <Box sx={{ aspectRatio: "16 / 10", bgcolor: "#f4f2f8", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+      <Box
+        component="img"
+        src={showImage ? `${import.meta.env.VITE_API_BASE_URL || ""}${src}` : "/bojogae-icon.png"}
+        alt=""
+        loading="lazy"
+        onError={showImage ? () => setFailed(true) : undefined}
+        sx={{ width: showImage ? "100%" : "36%", height: showImage ? "100%" : "auto", objectFit: "cover" }}
+      />
+    </Box>
+  );
+}
+
 export default function BoardListPage({ admin = false }) { // eslint-disable-line react/prop-types
   const { boardType } = useParams();
   const config = boardConfig(boardType);
+  const gridView = boardType === "insurance-knowledge";
   const [page, setPage] = useState(1);
   const [category, setCategory] = useState("");
   const [draftQuery, setDraftQuery] = useState("");
@@ -88,7 +106,9 @@ export default function BoardListPage({ admin = false }) { // eslint-disable-lin
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       {!result && !error && <Typography color="text.secondary">게시글을 불러오는 중입니다.</Typography>}
-      <Stack spacing={1.25}>
+      <Box sx={gridView ? {
+        display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, minmax(0, 1fr))", md: "repeat(3, minmax(0, 1fr))" }, gap: 2.5,
+      } : { display: "flex", flexDirection: "column", gap: 1.25 }}>
         {result?.items.map(item => {
           const target = admin ? `/admin/boards/${boardType}/${item.id}` : `/boards/${boardType}/${item.id}`;
           return (
@@ -98,9 +118,18 @@ export default function BoardListPage({ admin = false }) { // eslint-disable-lin
               to={target}
               state={admin ? undefined : { fromBoardList: true }}
               variant="outlined"
-              sx={{ p: 2.25, borderRadius: 2.5, textDecoration: "none", color: "inherit", "&:hover": { borderColor: "primary.light", bgcolor: "#fbfdff" } }}
+              sx={{
+                p: gridView ? 0 : 2.25, borderRadius: 2.5, textDecoration: "none", color: "inherit", overflow: "hidden",
+                display: "flex", flexDirection: "column", minWidth: 0,
+                "&:hover": { borderColor: "primary.light", bgcolor: "#fbfdff" },
+              }}
             >
-              <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" spacing={1.5}>
+              {gridView && <BoardThumbnail key={item.thumbnail_url || "default"} src={item.thumbnail_url} />}
+              <Stack
+                direction={gridView ? "column" : { xs: "column", sm: "row" }}
+                justifyContent="space-between" spacing={1.5}
+                sx={gridView ? { p: 2.25, flex: 1 } : undefined}
+              >
                 <Box sx={{ minWidth: 0 }}>
                   <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.75 }}>
                     {item.is_pinned && <PushPinOutlinedIcon color="primary" sx={{ fontSize: 18 }} />}
@@ -108,15 +137,15 @@ export default function BoardListPage({ admin = false }) { // eslint-disable-lin
                   </Stack>
                   <Typography fontWeight={750} sx={{ overflowWrap: "anywhere" }}>{item.title}</Typography>
                 </Box>
-                <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0, alignSelf: { sm: "center" } }}>
+                <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0, alignSelf: gridView ? "flex-start" : { sm: "center" } }}>
                   {new Date(item.created_at).toLocaleDateString("ko-KR")} · 조회 {item.view_count.toLocaleString("ko-KR")}
                 </Typography>
               </Stack>
             </Paper>
           );
         })}
-        {result && !result.items.length && <Paper variant="outlined" sx={{ p: 5, textAlign: "center" }}><Typography color="text.secondary">등록된 게시글이 없습니다.</Typography></Paper>}
-      </Stack>
+        {result && !result.items.length && <Paper variant="outlined" sx={{ p: 5, textAlign: "center", gridColumn: "1 / -1" }}><Typography color="text.secondary">등록된 게시글이 없습니다.</Typography></Paper>}
+      </Box>
       {result?.total_pages > 1 && <Pagination page={page} count={result.total_pages} onChange={(_, value) => setPage(value)} sx={{ mt: 3, display: "flex", justifyContent: "center" }} />}
     </Box>
   );

@@ -16,6 +16,9 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import { useAuth } from "@/auth/AuthContext";
+import CustomerDetailDialog from "./CustomerDetailDialog";
+import { customerError, signalIdentityChange, startImpersonation } from "@/services/customer-service";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import ManageAccountsRoundedIcon from "@mui/icons-material/ManageAccountsRounded";
@@ -34,6 +37,7 @@ import {
 const PROTECTED_ADMIN_EMAIL = "bojoge.smith@gmail.com";
 
 function UsersPage() {
+  const { clearIdentity } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const userId = /^\d+$/.test(searchParams.get("userId") || "") && Number(searchParams.get("userId")) > 0 ? searchParams.get("userId") : undefined;
   const [users, setUsers] = useState([]);
@@ -42,6 +46,7 @@ function UsersPage() {
   const [workingUserId, setWorkingUserId] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [roleTarget, setRoleTarget] = useState(null);
+  const [detailTarget, setDetailTarget] = useState(null);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [draftQuery, setDraftQuery] = useState("");
@@ -79,6 +84,21 @@ function UsersPage() {
       await loadUsers(page);
     } catch {
       setError("요금제 신청을 처리하지 못했습니다.");
+    } finally {
+      setWorkingUserId(null);
+    }
+  };
+
+  const impersonate = async (user) => {
+    setWorkingUserId(user.id);
+    setError("");
+    try {
+      await startImpersonation(user.id);
+      clearIdentity();
+      signalIdentityChange();
+      window.location.assign("/home");
+    } catch (err) {
+      setError(customerError(err));
     } finally {
       setWorkingUserId(null);
     }
@@ -132,8 +152,8 @@ function UsersPage() {
         sx={{ mb: 3 }}
       >
         <Box sx={{ minWidth: 0 }}>
-          <Typography variant="h4" sx={{ fontWeight: 800 }}>사용자 관리</Typography>
-          <Typography color="text.secondary">회원 정보와 계정 상태를 관리합니다.</Typography>
+          <Typography variant="h4" sx={{ fontWeight: 800 }}>고객 관리</Typography>
+          <Typography color="text.secondary">고객 정보·구독·꼬막·활동 내역을 조회하고 응대합니다.</Typography>
         </Box>
         <Button
           onClick={() => loadUsers(page)}
@@ -149,7 +169,7 @@ function UsersPage() {
           <TextField
             size="small"
             fullWidth
-            placeholder="이메일, 이름, 닉네임, 전화번호, 사번, 단체명 검색"
+            placeholder="고객 번호, 이메일, 이름, 닉네임, 전화번호, 사번, 단체명 검색"
             value={draftQuery}
             inputProps={{ maxLength: 100 }}
             onChange={(event) => setDraftQuery(event.target.value)}
@@ -162,18 +182,19 @@ function UsersPage() {
         </Stack>
       </Paper>
 
-      {userId && <Alert severity="info" sx={{ mb: 2 }} action={<Button onClick={() => setSearchParams({})}>전체 회원 보기</Button>}>신청 회원 조회 중</Alert>}
+      {userId && <Alert severity="info" sx={{ mb: 2 }} action={<Button onClick={() => setSearchParams({})}>전체 회원 보기</Button>}>고객 #{userId} 조회 중</Alert>}
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       {loading ? (
         <Box sx={{ py: 8, display: "grid", placeItems: "center" }}><CircularProgress /></Box>
       ) : (
         <Stack spacing={1.5}>
           {users.map((user) => (
-            <Paper key={user.id} variant="outlined" sx={{ p: 2.5, borderRadius: 3 }}>
+            <Paper key={user.id} variant="outlined" onClick={() => setDetailTarget(user)} sx={{ p: 2.5, borderRadius: 3, cursor: "pointer", "&:hover": { borderColor: "primary.light" } }}>
               <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between" gap={2}>
                 <Stack spacing={0.75}>
                   <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
-                    <Typography variant="h6" sx={{ fontWeight: 750 }}>{user.display_name}</Typography>
+                    <Chip label={`고객 #${user.id}`} size="small" variant="outlined" />
+                    <Typography variant="h6" sx={{ fontWeight: 750 }}>{user.name || user.display_name}</Typography>
                     <Chip label={user.status} size="small" color={user.status === "ACTIVE" ? "success" : user.status === "PENDING" ? "warning" : "default"} />
                     {user.role === "ADMIN" && <Chip label="ADMIN" size="small" color="primary" />}
                     <Chip label={planName(user.plan_code)} size="small" color={user.plan_code && user.plan_code !== "FREE" ? "primary" : "default"} variant="outlined" />
@@ -187,23 +208,36 @@ function UsersPage() {
                     )}
                   </Stack>
                   <Typography variant="body2" color="text.secondary">{user.email || "이메일 없음"}</Typography>
-                  <Typography variant="caption" color="text.secondary">{user.providers.join(" · ")}</Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    전화 {user.phone || "-"} · 닉네임 {user.nickname || user.display_name || "-"}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    소속 {user.group_name || user.affiliation || "-"}{user.employee_number ? ` · 사번 ${user.employee_number}` : ""}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    가입 {new Date(user.created_at).toLocaleDateString("ko-KR")} · 최근 로그인 {user.last_login_at ? new Date(user.last_login_at).toLocaleString("ko-KR") : "기록 없음"} · {user.providers.join(" · ")}
+                  </Typography>
                   <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                    <Chip label={`보유 ${Number(user.total_points || 0).toLocaleString()}꼬막`} size="small" variant="outlined" />
+                    <Chip label={`사용 ${Number(user.used_points || 0).toLocaleString()}꼬막 (환불 제외)`} size="small" variant="outlined" />
                     <Chip label={`지급 ${user.free_points.toLocaleString()}꼬막`} size="small" variant="outlined" color="success" />
                     <Chip label={`구매 ${user.paid_points.toLocaleString()}꼬막`} size="small" variant="outlined" color="primary" />
                   </Stack>
                 </Stack>
                 <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+                  <Button variant="outlined" onClick={event => { event.stopPropagation(); setDetailTarget(user); }}>상세보기</Button>
+                  <Button variant="outlined" disabled={workingUserId !== null || user.role !== "USER" || user.status !== "ACTIVE"}
+                    onClick={event => { event.stopPropagation(); impersonate(user); }}>Impersonate</Button>
                   {user.pending_plan_request_id && user.status !== "PENDING" && (
                     <>
-                      <Button variant="contained" color="primary" disabled={workingUserId === user.id} onClick={() => decidePlan(user, "APPROVE")}>{user.requested_plan_code === "FREE" ? "해지" : planName(user.requested_plan_code)} 승인</Button>
-                      <Button variant="outlined" color="warning" disabled={workingUserId === user.id} onClick={() => decidePlan(user, "REJECT")}>{user.requested_plan_code === "FREE" ? "해지" : planName(user.requested_plan_code)} 거절</Button>
+                      <Button variant="contained" color="primary" disabled={workingUserId === user.id} onClick={event => { event.stopPropagation(); decidePlan(user, "APPROVE"); }}>{user.requested_plan_code === "FREE" ? "해지" : planName(user.requested_plan_code)} 승인</Button>
+                      <Button variant="outlined" color="warning" disabled={workingUserId === user.id} onClick={event => { event.stopPropagation(); decidePlan(user, "REJECT"); }}>{user.requested_plan_code === "FREE" ? "해지" : planName(user.requested_plan_code)} 거절</Button>
                     </>
                   )}
                   {user.role !== "ADMIN" && (
                     <>
                       <Button variant="outlined" color="error" disabled={workingUserId === user.id}
-                        onClick={() => setDeleteTarget(user)} startIcon={<DeleteOutlineRoundedIcon />}>삭제</Button>
+                        onClick={event => { event.stopPropagation(); setDeleteTarget(user); }} startIcon={<DeleteOutlineRoundedIcon />}>삭제</Button>
                     </>
                   )}
                   <Button
@@ -213,7 +247,7 @@ function UsersPage() {
                       workingUserId === user.id
                       || (user.role === "ADMIN" && user.email?.toLowerCase() === PROTECTED_ADMIN_EMAIL)
                     }
-                    onClick={() => setRoleTarget(user)}
+                    onClick={event => { event.stopPropagation(); setRoleTarget(user); }}
                     startIcon={<ManageAccountsRoundedIcon />}
                   >
                     {user.role === "ADMIN" ? "일반 사용자로 변경" : "관리자로 변경"}
@@ -234,6 +268,8 @@ function UsersPage() {
         </Stack>
       )}
 
+      <CustomerDetailDialog customer={detailTarget} onClose={() => setDetailTarget(null)}
+        onImpersonate={impersonate} working={workingUserId !== null} actionError={error} />
       <Dialog open={Boolean(deleteTarget)} onClose={() => setDeleteTarget(null)}>
         <DialogTitle>사용자를 삭제할까요?</DialogTitle>
         <DialogContent>

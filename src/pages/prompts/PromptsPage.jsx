@@ -1,5 +1,7 @@
 import PreviewImageEditor from "./PreviewImageEditor";
 import InputSchemaEditor from "./InputSchemaEditor";
+import CommonPromptSelector from "./CommonPromptSelector";
+import CommonPromptsPanel from "./CommonPromptsPanel";
 import {
   Alert,
   Box,
@@ -38,6 +40,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useBlocker } from "react-router-dom";
 
 import {
+  commonPromptError,
+  getCommonPrompts,
   createPrompt,
   uploadPromptPreviewImage,
   deletePrompt,
@@ -56,7 +60,7 @@ import PromptCategoryList from "./PromptCategoryList";
 import DefaultPromptFavoritesPanel from "./DefaultPromptFavoritesPanel";
 
 
-const EMPTY_PROMPT = { title: "", description: "", body: "", category_ids: [], input_schema: [] };
+const EMPTY_PROMPT = { title: "", description: "", body: "", category_ids: [], input_schema: [], common_prompt_ids: [] };
 
 function categoryIds(prompt) {
   return (prompt?.categories || []).map((category) => category.id).sort((a, b) => a - b);
@@ -89,6 +93,22 @@ function PromptsPage() {
   const [confirmAction, setConfirmAction] = useState(null);
   const [categories, setCategories] = useState([]);
   const [activeTab, setActiveTab] = useState(0);
+  const [commonPrompts, setCommonPrompts] = useState([]);
+  const [commonLoading, setCommonLoading] = useState(true);
+  const [commonError, setCommonError] = useState("");
+  const [commonDirty, setCommonDirty] = useState(false);
+  const loadCommon = useCallback(async () => {
+    setCommonLoading(true);
+    setCommonError("");
+    try {
+      setCommonPrompts(await getCommonPrompts());
+    } catch (err) {
+      setCommonError(commonPromptError(err));
+    } finally {
+      setCommonLoading(false);
+    }
+  }, []);
+  useEffect(() => { loadCommon(); }, [activeTab, loadCommon]);
   const [categoryPickerOpen, setCategoryPickerOpen] = useState(false);
   const [categorySearch, setCategorySearch] = useState("");
   const [categoryGroup, setCategoryGroup] = useState("all");
@@ -117,9 +137,10 @@ function PromptsPage() {
   const isNew = selectedId === "new";
   const isDirty = useMemo(() => {
     if (previewFile?.length || previewRemoved.length) return true;
-    if (isNew) return Boolean(draft.title || draft.description || draft.body || draft.category_ids.length || draft.input_schema.length);
+    if (isNew) return Boolean(draft.title || draft.description || draft.body || draft.category_ids.length || draft.input_schema.length || draft.common_prompt_ids.length);
     if (!selectedPrompt || selectedPrompt.is_deleted) return false;
-    return draft.title !== selectedPrompt.title
+    return JSON.stringify(draft.common_prompt_ids) !== JSON.stringify(selectedPrompt.common_prompt_ids || [])
+      || draft.title !== selectedPrompt.title
       || draft.description !== (selectedPrompt.description || "")
       || draft.body !== selectedPrompt.body
       || JSON.stringify(draft.input_schema) !== JSON.stringify(selectedPrompt.input_schema || [])
@@ -127,11 +148,13 @@ function PromptsPage() {
         !== JSON.stringify(categoryIds(selectedPrompt));
   }, [draft, isNew, selectedPrompt, previewFile, previewRemoved]);
 
+  const hasUnsavedChanges = isDirty || commonDirty;
+
   const blocker = useBlocker(
     useCallback(
       ({ currentLocation, nextLocation }) =>
-        isDirty && currentLocation.pathname !== nextLocation.pathname,
-      [isDirty],
+        hasUnsavedChanges && currentLocation.pathname !== nextLocation.pathname,
+      [hasUnsavedChanges],
     ),
   );
 
@@ -146,12 +169,12 @@ function PromptsPage() {
 
   useEffect(() => {
     const warnBeforeUnload = (event) => {
-      if (!isDirty) return;
+      if (!hasUnsavedChanges) return;
       event.preventDefault();
     };
     window.addEventListener("beforeunload", warnBeforeUnload);
     return () => window.removeEventListener("beforeunload", warnBeforeUnload);
-  }, [isDirty]);
+  }, [hasUnsavedChanges]);
 
   const loadVersions = useCallback(async (promptId, showDeleted) => {
     const rows = await getPromptVersions(promptId, showDeleted);
@@ -171,7 +194,7 @@ function PromptsPage() {
         setSelectedPrompt(prompt);
         setPreviewFile(null);
         setPreviewRemoved([]);
-        setDraft({ title: prompt.title, body: prompt.body, category_ids: categoryIds(prompt), input_schema: prompt.input_schema || [], description: prompt.description || "" });
+        setDraft({ title: prompt.title, body: prompt.body, category_ids: categoryIds(prompt), input_schema: prompt.input_schema || [], description: prompt.description || "", common_prompt_ids: prompt.common_prompt_ids || [] });
         setVersions(versionRows);
       } catch {
         setError("프롬프트를 불러오지 못했습니다.");
@@ -240,7 +263,7 @@ function PromptsPage() {
   }, [includeDeletedVersions, loadVersions, selectedPrompt]);
 
   const canLeaveDraft = () =>
-    !isDirty || window.confirm("저장하지 않은 변경사항을 버릴까요?");
+    !hasUnsavedChanges || window.confirm("저장하지 않은 변경사항을 버릴까요?");
 
   const selectPrompt = (promptId) => {
     if (promptId === selectedId || !canLeaveDraft()) return;
@@ -277,8 +300,8 @@ function PromptsPage() {
     setError("");
     try {
       let saved = isNew
-        ? await createPrompt(title, draft.body, draft.category_ids, draft.input_schema, draft.description)
-        : await updatePrompt(selectedPrompt.id, title, draft.body, draft.category_ids, draft.input_schema, draft.description);
+        ? await createPrompt(title, draft.body, draft.category_ids, draft.input_schema, draft.description, draft.common_prompt_ids)
+        : await updatePrompt(selectedPrompt.id, title, draft.body, draft.category_ids, draft.input_schema, draft.description, draft.common_prompt_ids);
       setSelectedPrompt(saved);
       setSelectedId(saved.id);
       if (previewFile?.length || previewRemoved.length) {
@@ -289,16 +312,18 @@ function PromptsPage() {
       setSelectedPrompt(saved);
       setPreviewFile(null);
       setPreviewRemoved([]);
-      setDraft({ title: saved.title, body: saved.body, category_ids: categoryIds(saved), input_schema: saved.input_schema || [], description: saved.description || "" });
+      setDraft({ title: saved.title, body: saved.body, category_ids: categoryIds(saved), input_schema: saved.input_schema || [], description: saved.description || "", common_prompt_ids: saved.common_prompt_ids || [] });
       await Promise.all([
         loadVersions(saved.id, includeDeletedVersions),
         loadList(saved.id),
       ]);
     } catch (requestError) {
       const detail = requestError.response?.data?.detail;
-      setError(detail === "prompt_preview_schema_required"
+      setError(typeof detail === "string" && (detail.startsWith("common_prompt_") || detail === "invalid_common_prompt_ids")
+        ? commonPromptError(requestError)
+        : detail === "prompt_preview_schema_required"
         ? "프롬프트는 저장됐지만 이미지 저장을 위한 DB 설정이 필요합니다."
-        : detail?.startsWith("preview_image_")
+        : typeof detail === "string" && detail.startsWith("preview_image_")
           ? "프롬프트는 저장됐지만 이미지 저장에 실패했습니다. 파일 형식과 10MB 제한을 확인해 주세요."
           : "프롬프트 또는 미리보기 이미지 저장에 실패했습니다. 변경사항을 확인하고 다시 저장해 주세요.");
     } finally {
@@ -325,7 +350,7 @@ function PromptsPage() {
           action.version.id,
         );
         setSelectedPrompt(restored);
-        setDraft({ title: restored.title, body: restored.body, category_ids: categoryIds(restored), input_schema: restored.input_schema || [], description: restored.description || "" });
+        setDraft({ title: restored.title, body: restored.body, category_ids: categoryIds(restored), input_schema: restored.input_schema || [], description: restored.description || "", common_prompt_ids: restored.common_prompt_ids || [] });
         await Promise.all([
           loadVersions(restored.id, includeDeletedVersions),
           loadList(restored.id),
@@ -349,7 +374,7 @@ function PromptsPage() {
     try {
       const recovered = await recoverPrompt(selectedPrompt.id);
       setSelectedPrompt(recovered);
-      setDraft({ title: recovered.title, body: recovered.body, category_ids: categoryIds(recovered), input_schema: recovered.input_schema || [], description: recovered.description || "" });
+      setDraft({ title: recovered.title, body: recovered.body, category_ids: categoryIds(recovered), input_schema: recovered.input_schema || [], description: recovered.description || "", common_prompt_ids: recovered.common_prompt_ids || [] });
       await loadList(recovered.id);
     } catch {
       setError("프롬프트를 복구하지 못했습니다.");
@@ -414,11 +439,13 @@ function PromptsPage() {
           onChange={(_, value) => {
             if (value !== activeTab && canLeaveDraft()) setActiveTab(value);
           }}
+          variant="scrollable" scrollButtons="auto"
           aria-label="프롬프트 관리 메뉴"
         >
           <Tab label="프롬프트" />
           <Tab label="카테고리 관리" />
           <Tab label="기본 즐겨찾기 관리" />
+          <Tab label="공통 프롬프트 관리" />
         </Tabs>
       </Paper>
 
@@ -626,9 +653,14 @@ function PromptsPage() {
                   },
                 }}
               />
+              {commonError && <Alert severity="warning">{commonError}</Alert>}
+              {commonLoading && <Typography color="text.secondary">공통 프롬프트를 불러오는 중입니다.</Typography>}
+              <CommonPromptSelector items={commonPrompts} value={draft.common_prompt_ids}
+                disabled={selectedPrompt?.is_deleted || working || commonLoading || Boolean(commonError)}
+                onChange={common_prompt_ids => setDraft(current => ({ ...current, common_prompt_ids }))} />
               {!isNew && (
                 <Typography variant="caption" color="text.secondary">
-                  마지막 수정 {formatDate(selectedPrompt.updated_at)} · 제목·본문·입력 UI를 변경하면 새 버전이 생성되며, 카테고리만 바꾸면 현재 프롬프트에 즉시 반영됩니다.
+                  마지막 수정 {formatDate(selectedPrompt.updated_at)} · 제목·본문·입력 UI·공통 프롬프트 선택 및 순서를 변경하면 새 버전이 생성되며, 카테고리만 바꾸면 현재 프롬프트에 즉시 반영됩니다.
                 </Typography>
               )}
             </Stack>
@@ -643,8 +675,14 @@ function PromptsPage() {
       </Box>
       ) : activeTab === 1 ? (
         <PromptCategoriesPanel />
-      ) : (
+      ) : activeTab === 2 ? (
         <DefaultPromptFavoritesPanel />
+      ) : (
+        <Stack spacing={2}>
+          {commonError && <Alert severity="warning">{commonError}</Alert>}
+          <CommonPromptsPanel items={commonPrompts} loading={commonLoading || Boolean(commonError)}
+            onRefresh={loadCommon} onDirtyChange={setCommonDirty} />
+        </Stack>
       )}
 
       <Drawer
@@ -771,6 +809,11 @@ function PromptsPage() {
           >
             {viewVersion?.body}
           </Box>
+          {Boolean(viewVersion?.common_prompt_ids?.length) && (
+            <Typography variant="body2" sx={{ mt: 2 }}>
+              공통 프롬프트 적용 순서: {viewVersion.common_prompt_ids.map(id => commonPrompts.find(item => item.id === id)?.title || "삭제된 공통 프롬프트").join(" → ")}
+            </Typography>
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setViewVersion(null)}>닫기</Button>
