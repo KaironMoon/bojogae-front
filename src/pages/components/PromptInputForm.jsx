@@ -5,7 +5,7 @@ import { Alert, Autocomplete, Box, Button, Chip, MenuItem, Paper, Stack, TextFie
 import { useRef, useState } from "react";
 import { fileAccept, fileTypeLabel } from "@/services/prompt-input-utils";
 
-function FileInputField({ field, uploads, onFiles, disabled }) {
+function FileInputField({ field, uploads, onFiles, disabled, maxInputFiles }) {
   const inputRef = useRef(null);
   const [dragging, setDragging] = useState(false);
   const selected = uploads[field.key] || [];
@@ -20,7 +20,7 @@ function FileInputField({ field, uploads, onFiles, disabled }) {
     <Box>
       <Typography variant="body2" fontWeight={700}>{field.label}{field.required ? " *" : ""}</Typography>
       <Typography variant="caption" color="text.secondary" display="block">
-        {field.help} · {fileTypeLabel(field)} 최대 {field.max_files}개 · 파일당 20MB (전체 최대 5개)
+        {field.help} · {fileTypeLabel(field)} 최대 {field.max_files}개 · 파일당 20MB (전체 최대 {maxInputFiles}개)
       </Typography>
       <Paper
         component="label"
@@ -104,6 +104,7 @@ function FileInputField({ field, uploads, onFiles, disabled }) {
 
 export default function PromptInputForm({
   fields,
+  maxInputFiles = 10,
   values = {},
   uploads = {},
   documents = {},
@@ -119,7 +120,7 @@ export default function PromptInputForm({
         <Alert key={group} severity="info">{fields.filter((field) => field.required_group === group).map((field) => field.label).join(" / ")} 중 하나 이상 입력해 주세요.</Alert>
       ))}
       {fields.map((field) => field.type === "file" ? (
-        <FileInputField key={field.key} field={field} uploads={uploads} onFiles={onFiles} disabled={disabled} />
+        <FileInputField maxInputFiles={maxInputFiles} key={field.key} field={field} uploads={uploads} onFiles={onFiles} disabled={disabled} />
       ) : field.type === "generated_document" ? (
         <Autocomplete
           key={field.key}

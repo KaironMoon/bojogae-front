@@ -78,7 +78,6 @@ import {
 } from "@/services/proposal-service";
 
 
-const MAX_FILES = 5;
 const MAX_FILE_BYTES = 20 * 1024 * 1024;
 const ACTIVE = new Set(["QUEUED", "RUNNING", "CANCEL_REQUESTED"]);
 const PREVIEW_WIDTH = 794;
@@ -281,6 +280,7 @@ function ProposalsPage() {
   const selectedPrompt = promptOptions.find((option) => option.id === promptId);
   const selectedReport = statusItem || openedDocument;
   const displayedPromptOptions = filteredPromptOptions;
+  const maxInputFiles = selectedPrompt?.max_input_files ?? 10;
   const inputSchema = selectedPrompt?.input_schema || [];
   const customInputs = inputSchema.length > 0;
 
@@ -609,8 +609,8 @@ function ProposalsPage() {
   };
 
   const acceptFiles = (selected) => {
-    if (selected.length > MAX_FILES) {
-      setError(`PDF는 최대 ${MAX_FILES}개까지 선택할 수 있습니다.`);
+    if (selected.length > maxInputFiles) {
+      setError(`PDF는 최대 ${maxInputFiles}개까지 선택할 수 있습니다.`);
       return;
     }
     const invalid = selected.find(
@@ -680,8 +680,8 @@ function ProposalsPage() {
         }
       }
     }
-    if (selectedFiles.length + selectedDocuments.length > MAX_FILES) {
-      setError(`전체 입력 자료(파일·기존 생성 문서)는 최대 ${MAX_FILES}개까지 선택할 수 있습니다.`);
+    if (selectedFiles.length + selectedDocuments.length > maxInputFiles) {
+      setError(`전체 입력 자료(파일·기존 생성 문서)는 최대 ${maxInputFiles}개까지 선택할 수 있습니다.`);
       return;
     }
     if (!promptId || !title.trim() || (!customInputs && selectedFiles.length === 0)) {
@@ -1270,7 +1270,7 @@ function ProposalsPage() {
             )}
           </Paper>
           <Paper data-report-help="inputs" variant="outlined" sx={{ p: 2.25, borderRadius: "16px 16px 0 0", boxShadow: "0 1px 3px rgba(15, 23, 42, 0.05)" }}>
-            {customInputs ? <PromptInputForm fields={inputSchema} values={inputValues} uploads={fieldUploads}
+            {customInputs ? <PromptInputForm maxInputFiles={maxInputFiles} fields={inputSchema} values={inputValues} uploads={fieldUploads}
               documents={fieldDocuments} documentOptions={generatedDocumentOptions} disabled={working}
               onValue={(key, value) => {
                 setInputValues((current) => ({ ...current, [key]: value }));
@@ -1287,8 +1287,8 @@ function ProposalsPage() {
                   (sum, [id, items]) => sum + (id === key ? 0 : items.length),
                   selected.length + documentCount,
                 );
-                if (selected.length > field.max_files || total > MAX_FILES) {
-                  setError("항목별 첨부 개수와 전체 파일 최대 5개 제한을 확인해 주세요.");
+                if (selected.length > field.max_files || total > maxInputFiles) {
+                  setError(`항목별 첨부 개수와 전체 입력 자료 최대 ${maxInputFiles}개 제한을 확인해 주세요.`);
                   return;
                 }
                 if (selected.some((file) => !acceptsFile(field, file) || file.size > MAX_FILE_BYTES)) {
@@ -1312,8 +1312,8 @@ function ProposalsPage() {
                   0,
                 );
                 if (selected.length > field.max_files
-                  || otherFileCount + otherDocumentCount + selected.length > MAX_FILES) {
-                  setError("항목별 선택 개수와 전체 입력 자료 최대 5개 제한을 확인해 주세요.");
+                  || otherFileCount + otherDocumentCount + selected.length > maxInputFiles) {
+                  setError(`항목별 선택 개수와 전체 입력 자료 최대 ${maxInputFiles}개 제한을 확인해 주세요.`);
                   return;
                 }
                 setError("");
@@ -1376,13 +1376,13 @@ function ProposalsPage() {
                 <CloudUploadRoundedIcon color="primary" sx={{ fontSize: 22 }} />
                 <Box sx={{ textAlign: "left" }}>
                   <Typography variant="body2" fontWeight={750}>PDF 파일 선택</Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: "block", lineHeight: 1.2 }}>최대 5개 · 파일당 20MB</Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: "block", lineHeight: 1.2 }}>최대 {maxInputFiles}개 · 파일당 20MB</Typography>
                 </Box>
               </Stack>
               <Box sx={{ display: { xs: "none", sm: "block" } }}>
                 <CloudUploadRoundedIcon color="primary" />
                 <Typography variant="body2" fontWeight={750}>{filesDragging ? "여기에 PDF 파일을 놓으세요" : "PDF 선택 또는 파일 드래그"}</Typography>
-                <Typography variant="caption" color="text.secondary">최대 5개 · 파일당 20MB</Typography>
+                <Typography variant="caption" color="text.secondary">최대 {maxInputFiles}개 · 파일당 20MB</Typography>
               </Box>
               <input ref={fileInputRef} hidden type="file" accept="application/pdf,.pdf" multiple disabled={working} onChange={chooseFiles} />
             </Paper>

@@ -11,7 +11,6 @@ import {
 
 const FIELDS = [
   ["max_output_tokens", "최대 출력 토큰", 1, 65536],
-  ["max_pdf_files", "최대 PDF 개수", 1, 5],
   ["max_pdf_bytes", "파일당 최대 바이트", 1, 20971520],
   ["max_active_jobs_per_user", "사용자당 활성 작업", 1, 100],
   ["max_global_running_jobs", "전체 동시 생성", 1, 100],
@@ -91,6 +90,7 @@ function ProposalSettingsPage() {
       </Paper>
       <Paper variant="outlined" sx={{ p: 3, borderRadius: 3 }}>
         <Stack spacing={2}>
+          <Alert severity="info">입력 자료 개수는 프롬프트의 입력 UI 설정에서 변경합니다. 기본값은 10개입니다.</Alert>
           <TextField select label="LLM 모델" value={values.llm_model} onChange={(event) => setValues({ ...values, llm_model: event.target.value })}>
             {values.llm_models.map((model) => (
               <MenuItem key={model.id} value={model.id}>{model.label}</MenuItem>

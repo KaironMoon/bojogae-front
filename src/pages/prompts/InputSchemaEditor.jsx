@@ -11,7 +11,7 @@ const TYPES = {
   select: "선택 목록",
 };
 
-export default function InputSchemaEditor({ value = [], onChange, disabled }) {
+export default function InputSchemaEditor({ value = [], onChange, disabled, maxInputFiles = 10, onMaxInputFilesChange }) {
   const [preview, setPreview] = useState(false);
   const [previewValues, setPreviewValues] = useState({});
   const [previewUploads, setPreviewUploads] = useState({});
@@ -32,7 +32,11 @@ export default function InputSchemaEditor({ value = [], onChange, disabled }) {
           보고서 만들기에서 받을 자료를 순서대로 추가하세요. 설정이 없으면 기본 PDF 업로드를 사용합니다.
           항목 키와 이름은 입력값·PDF 구분과 함께 LLM에 전달됩니다. 본문에서 해당 키를 언급해 활용 방법을 지시할 수 있습니다.
         </Alert>
-        {preview ? <PromptInputForm fields={value} values={previewValues} uploads={previewUploads}
+        <TextField size="small" type="number" label="전체 입력 자료 최대 개수" value={maxInputFiles}
+          disabled={disabled} inputProps={{ min: 1, max: 100, step: 1 }}
+          helperText="첨부파일과 기존 생성 문서를 합산합니다. 기본 10개, 1~100개 설정 가능"
+          onChange={(event) => onMaxInputFilesChange?.(Number(event.target.value))} />
+        {preview ? <PromptInputForm maxInputFiles={maxInputFiles} fields={value} values={previewValues} uploads={previewUploads}
           onValue={(key, next) => setPreviewValues({ ...previewValues, [key]: next })}
           onFiles={(key, next) => setPreviewUploads({ ...previewUploads, [key]: next })} /> : <>
           {value.map((field, index) => (
@@ -56,9 +60,7 @@ export default function InputSchemaEditor({ value = [], onChange, disabled }) {
                 {field.type === "file" && <TextField select size="small" label="허용 파일 형식" value={(field.file_types || ["pdf"]).join(",")} disabled={disabled} onChange={(e) => update(index, { file_types: e.target.value.split(",") })}>
                   <MenuItem value="pdf">PDF</MenuItem><MenuItem value="html">HTML</MenuItem><MenuItem value="pdf,html">PDF / HTML</MenuItem>
                 </TextField>}
-                {["file", "generated_document"].includes(field.type) && <TextField select size="small" label={field.type === "file" ? "최대 파일 개수" : "최대 선택 개수"} value={field.max_files} disabled={disabled} onChange={(e) => update(index, { max_files: Number(e.target.value) })}>
-                  {[1, 2, 3, 4, 5].map((count) => <MenuItem key={count} value={count}>{count}개</MenuItem>)}
-                </TextField>}
+                {["file", "generated_document"].includes(field.type) && <TextField type="number" inputProps={{ min: 1, max: 100, step: 1 }} size="small" label={field.type === "file" ? "최대 파일 개수" : "최대 선택 개수"} value={field.max_files} disabled={disabled} onChange={(e) => update(index, { max_files: Number(e.target.value) })} />}
                 <FormControlLabel control={<Checkbox checked={field.required} disabled={disabled} onChange={(e) => update(index, { required: e.target.checked, required_group: e.target.checked ? "" : field.required_group || "" })} />} label="필수 입력" />
                 {["file", "text"].includes(field.type) && <TextField size="small" label="하나 이상 필수 그룹" value={field.required_group || ""} disabled={disabled || field.required}
                   helperText="대체 가능한 항목 두 개 이상에 같은 영문 키를 입력하세요. 예: proposal_source. 개별 필수는 해제하세요."
@@ -69,7 +71,7 @@ export default function InputSchemaEditor({ value = [], onChange, disabled }) {
           <Button variant="outlined" disabled={disabled || value.length >= 20} onClick={() => {
             let number = value.length + 1;
             while (value.some((field) => field.key === `field_${number}`)) number += 1;
-            onChange([...value, { key: `field_${number}`, label: "", type: "text", required: false, help: "", options: [], max_files: 1 }]);
+            onChange([...value, { key: `field_${number}`, label: "", type: "text", required: false, help: "", options: [], max_files: 10 }]);
           }}>입력 항목 추가 ({value.length}/20)</Button>
         </>}
         <Divider />

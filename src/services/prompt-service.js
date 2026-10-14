@@ -32,24 +32,26 @@ async function getPrompt(promptId) {
   return response.data;
 }
 
-async function createPrompt(title, body, categoryIds = [], inputSchema = [], description = "", commonPromptIds = []) {
+async function createPrompt(title, body, categoryIds = [], inputSchema = [], description = "", commonPromptIds = [], maxInputFiles = 10) {
   const response = await apiCaller.post("/api/v1/admin/prompts", {
     title,
     body,
     category_ids: categoryIds,
     input_schema: inputSchema,
+    max_input_files: maxInputFiles,
     description: description || null,
     common_prompt_ids: commonPromptIds,
   });
   return response.data;
 }
 
-async function updatePrompt(promptId, title, body, categoryIds = [], inputSchema = [], description = "", commonPromptIds = []) {
+async function updatePrompt(promptId, title, body, categoryIds = [], inputSchema = [], description = "", commonPromptIds = [], maxInputFiles = 10) {
   const response = await apiCaller.put(`/api/v1/admin/prompts/${promptId}`, {
     title,
     body,
     category_ids: categoryIds,
     input_schema: inputSchema,
+    max_input_files: maxInputFiles,
     description: description || null,
     common_prompt_ids: commonPromptIds,
   });

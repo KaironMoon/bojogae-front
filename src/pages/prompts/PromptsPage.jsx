@@ -60,7 +60,7 @@ import PromptCategoryList from "./PromptCategoryList";
 import DefaultPromptFavoritesPanel from "./DefaultPromptFavoritesPanel";
 
 
-const EMPTY_PROMPT = { title: "", description: "", body: "", category_ids: [], input_schema: [], common_prompt_ids: [] };
+const EMPTY_PROMPT = { title: "", description: "", body: "", category_ids: [], input_schema: [], max_input_files: 10, common_prompt_ids: [] };
 
 function categoryIds(prompt) {
   return (prompt?.categories || []).map((category) => category.id).sort((a, b) => a - b);
@@ -137,12 +137,13 @@ function PromptsPage() {
   const isNew = selectedId === "new";
   const isDirty = useMemo(() => {
     if (previewFile?.length || previewRemoved.length) return true;
-    if (isNew) return Boolean(draft.title || draft.description || draft.body || draft.category_ids.length || draft.input_schema.length || draft.common_prompt_ids.length);
+    if (isNew) return Boolean(draft.title || draft.description || draft.body || draft.category_ids.length || draft.input_schema.length || draft.common_prompt_ids.length || draft.max_input_files !== 10);
     if (!selectedPrompt || selectedPrompt.is_deleted) return false;
     return JSON.stringify(draft.common_prompt_ids) !== JSON.stringify(selectedPrompt.common_prompt_ids || [])
       || draft.title !== selectedPrompt.title
       || draft.description !== (selectedPrompt.description || "")
       || draft.body !== selectedPrompt.body
+      || draft.max_input_files !== (selectedPrompt.max_input_files ?? 10)
       || JSON.stringify(draft.input_schema) !== JSON.stringify(selectedPrompt.input_schema || [])
       || JSON.stringify([...draft.category_ids].sort((a, b) => a - b))
         !== JSON.stringify(categoryIds(selectedPrompt));
@@ -194,7 +195,7 @@ function PromptsPage() {
         setSelectedPrompt(prompt);
         setPreviewFile(null);
         setPreviewRemoved([]);
-        setDraft({ title: prompt.title, body: prompt.body, category_ids: categoryIds(prompt), input_schema: prompt.input_schema || [], description: prompt.description || "", common_prompt_ids: prompt.common_prompt_ids || [] });
+        setDraft({ title: prompt.title, body: prompt.body, category_ids: categoryIds(prompt), input_schema: prompt.input_schema || [], max_input_files: prompt.max_input_files ?? 10, description: prompt.description || "", common_prompt_ids: prompt.common_prompt_ids || [] });
         setVersions(versionRows);
       } catch {
         setError("프롬프트를 불러오지 못했습니다.");
@@ -287,6 +288,12 @@ function PromptsPage() {
       setError("제목과 본문을 모두 입력해 주세요.");
       return;
     }
+    if (!Number.isInteger(draft.max_input_files) || draft.max_input_files < 1 || draft.max_input_files > 100
+      || draft.input_schema.some((field) => ["file", "generated_document"].includes(field.type)
+        && (!Number.isInteger(field.max_files) || field.max_files < 1 || field.max_files > 100))) {
+      setError("전체·항목별 최대 개수는 1~100의 정수로 입력해 주세요.");
+      return;
+    }
     const keys = draft.input_schema.map((field) => field.key);
     if (new Set(keys).size !== keys.length || draft.input_schema.some((field) =>
       !/^[a-z][a-z0-9_]{0,49}$/.test(field.key) || !field.label.trim()
@@ -300,8 +307,8 @@ function PromptsPage() {
     setError("");
     try {
       let saved = isNew
-        ? await createPrompt(title, draft.body, draft.category_ids, draft.input_schema, draft.description, draft.common_prompt_ids)
-        : await updatePrompt(selectedPrompt.id, title, draft.body, draft.category_ids, draft.input_schema, draft.description, draft.common_prompt_ids);
+        ? await createPrompt(title, draft.body, draft.category_ids, draft.input_schema, draft.description, draft.common_prompt_ids, draft.max_input_files)
+        : await updatePrompt(selectedPrompt.id, title, draft.body, draft.category_ids, draft.input_schema, draft.description, draft.common_prompt_ids, draft.max_input_files);
       setSelectedPrompt(saved);
       setSelectedId(saved.id);
       if (previewFile?.length || previewRemoved.length) {
@@ -312,7 +319,7 @@ function PromptsPage() {
       setSelectedPrompt(saved);
       setPreviewFile(null);
       setPreviewRemoved([]);
-      setDraft({ title: saved.title, body: saved.body, category_ids: categoryIds(saved), input_schema: saved.input_schema || [], description: saved.description || "", common_prompt_ids: saved.common_prompt_ids || [] });
+      setDraft({ title: saved.title, body: saved.body, category_ids: categoryIds(saved), input_schema: saved.input_schema || [], max_input_files: saved.max_input_files ?? 10, description: saved.description || "", common_prompt_ids: saved.common_prompt_ids || [] });
       await Promise.all([
         loadVersions(saved.id, includeDeletedVersions),
         loadList(saved.id),
@@ -350,7 +357,7 @@ function PromptsPage() {
           action.version.id,
         );
         setSelectedPrompt(restored);
-        setDraft({ title: restored.title, body: restored.body, category_ids: categoryIds(restored), input_schema: restored.input_schema || [], description: restored.description || "", common_prompt_ids: restored.common_prompt_ids || [] });
+        setDraft({ title: restored.title, body: restored.body, category_ids: categoryIds(restored), input_schema: restored.input_schema || [], max_input_files: restored.max_input_files ?? 10, description: restored.description || "", common_prompt_ids: restored.common_prompt_ids || [] });
         await Promise.all([
           loadVersions(restored.id, includeDeletedVersions),
           loadList(restored.id),
@@ -374,7 +381,7 @@ function PromptsPage() {
     try {
       const recovered = await recoverPrompt(selectedPrompt.id);
       setSelectedPrompt(recovered);
-      setDraft({ title: recovered.title, body: recovered.body, category_ids: categoryIds(recovered), input_schema: recovered.input_schema || [], description: recovered.description || "", common_prompt_ids: recovered.common_prompt_ids || [] });
+      setDraft({ title: recovered.title, body: recovered.body, category_ids: categoryIds(recovered), input_schema: recovered.input_schema || [], max_input_files: recovered.max_input_files ?? 10, description: recovered.description || "", common_prompt_ids: recovered.common_prompt_ids || [] });
       await loadList(recovered.id);
     } catch {
       setError("프롬프트를 복구하지 못했습니다.");
@@ -634,7 +641,8 @@ function PromptsPage() {
                 disabled={selectedPrompt?.is_deleted || working}
                 onFile={setPreviewFile}
                 onRemove={(id) => setPreviewRemoved((current) => [...current, id])} />
-              <InputSchemaEditor value={draft.input_schema}
+              <InputSchemaEditor value={draft.input_schema} maxInputFiles={draft.max_input_files}
+                onMaxInputFilesChange={(max_input_files) => setDraft((current) => ({ ...current, max_input_files }))}
                 disabled={selectedPrompt?.is_deleted || working}
                 onChange={(input_schema) => setDraft((current) => ({ ...current, input_schema }))} />
               <TextField
