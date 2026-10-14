@@ -161,7 +161,7 @@ export default function PromptInputForm({
           ] : null}
         </TextField>
       ))}
-      {!fields.length && <Alert severity="info">기본 PDF 업로드 화면을 사용합니다.</Alert>}
+      {!fields.length && <Alert severity="info">기본 PDF·이미지·HTML 업로드 화면을 사용합니다.</Alert>}
     </Stack>
   );
 }

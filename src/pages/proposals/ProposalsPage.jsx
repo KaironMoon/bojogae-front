@@ -10,7 +10,7 @@ import { defaultPromptTab, promptsForTab, filterPromptCategories } from "@/servi
 import StarRoundedIcon from "@mui/icons-material/StarRounded";
 import StarBorderRoundedIcon from "@mui/icons-material/StarBorderRounded";
 import { groupPromptCategories } from "@/services/prompt-category-utils";
-import { acceptsFile, fileTypeLabel, missingInputGroup } from "@/services/prompt-input-utils";
+import { acceptsFile, fileAccept, fileTypeLabel, missingInputGroup } from "@/services/prompt-input-utils";
 import {
   Alert,
   Box,
@@ -610,14 +610,14 @@ function ProposalsPage() {
 
   const acceptFiles = (selected) => {
     if (selected.length > maxInputFiles) {
-      setError(`PDF는 최대 ${maxInputFiles}개까지 선택할 수 있습니다.`);
+      setError(`첨부 자료는 최대 ${maxInputFiles}개까지 선택할 수 있습니다.`);
       return;
     }
     const invalid = selected.find(
-      (file) => !file.name.toLowerCase().endsWith(".pdf") || file.size > MAX_FILE_BYTES,
+      (file) => !acceptsFile({}, file) || file.size > MAX_FILE_BYTES,
     );
     if (invalid) {
-      setError("PDF 파일만 가능하며 파일당 크기는 20MB 이하여야 합니다.");
+      setError("PDF·이미지(JPG/JPEG, PNG, WEBP)·HTML 파일만 가능하며 파일당 크기는 20MB 이하여야 합니다.");
       return;
     }
     setError("");
@@ -625,7 +625,7 @@ function ProposalsPage() {
     clearReportSelection();
     setFiles(selected);
     if (selected[0] && (!titleTouched || replacingOpenedDocument)) {
-      setTitle(selected[0].name.replace(/\.pdf$/i, ""));
+      setTitle(selected[0].name.replace(/\.[^.]+$/, ""));
       setTitleTouched(false);
     }
     submissionKey.current = null;
@@ -685,7 +685,7 @@ function ProposalsPage() {
       return;
     }
     if (!promptId || !title.trim() || (!customInputs && selectedFiles.length === 0)) {
-      setError("프롬프트, 문서 제목, PDF 파일을 모두 입력해 주세요.");
+      setError("프롬프트, 문서 제목, 첨부파일을 모두 입력해 주세요.");
       return;
     }
     setWorking(true);
@@ -744,8 +744,10 @@ function ProposalsPage() {
             ? "꼬막이 부족합니다. 잔액을 확인해 주세요."
           : detailCode === "prompt_version_changed"
             ? "프롬프트가 변경되었습니다. 페이지를 새로고침한 후 입력해 주세요."
-          : ["invalid_input_values", "invalid_input_files", "required_input_missing", "required_input_group_missing", "invalid_input_file_type", "invalid_attached_generation_fields"].includes(detailCode)
+          : ["unsupported_input_file_type", "invalid_input_values", "invalid_input_files", "required_input_missing", "required_input_group_missing", "invalid_input_file_type", "invalid_attached_generation_fields"].includes(detailCode)
             ? "입력 항목과 필수 자료, 파일 형식을 확인해 주세요."
+          : detailCode === "invalid_image_file"
+            ? "정상적인 JPG/JPEG, PNG, WEBP 이미지 파일을 첨부해 주세요."
           : ["invalid_html_document", "html_utf8_required", "html_text_too_large"].includes(detailCode)
             ? "본문이 있는 UTF-8 HTML 파일을 첨부해 주세요. HTML의 본문은 20만 자 이하여야 합니다."
           : "보고서 생성 작업을 등록하지 못했습니다.",
@@ -1298,9 +1300,9 @@ function ProposalsPage() {
                 setError("");
                 setFieldUploads((current) => ({ ...current, [key]: selected }));
                 clearReportSelection();
-                const firstPdf = selected.find((file) => /\.pdf$/i.test(file.name));
-                if (firstPdf && !titleTouched) {
-                  setTitle(firstPdf.name.replace(/\.pdf$/i, ""));
+                const firstFile = selected[0];
+                if (firstFile && !titleTouched) {
+                  setTitle(firstFile.name.replace(/\.[^.]+$/, ""));
                 }
                 submissionKey.current = null;
               }}
@@ -1323,7 +1325,7 @@ function ProposalsPage() {
               }} /> : <>
             <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5 }}>
               <CloudUploadRoundedIcon color="primary" fontSize="small" />
-              <Typography variant="subtitle2" fontWeight={800}>PDF 문서 첨부 및 자동 분석</Typography>
+              <Typography variant="subtitle2" fontWeight={800}>PDF·이미지·HTML 첨부 및 자동 분석</Typography>
             </Stack>
             <Paper
               component="label"
@@ -1331,7 +1333,7 @@ function ProposalsPage() {
               variant="outlined"
               role="button"
               tabIndex={working ? -1 : 0}
-              aria-label="PDF 문서 파일 선택 또는 드래그앤드롭"
+              aria-label="PDF·이미지·HTML 파일 선택 또는 드래그앤드롭"
               aria-disabled={working}
               onDragEnter={(event) => {
                 event.preventDefault();
@@ -1375,16 +1377,16 @@ function ProposalsPage() {
               <Stack direction="row" alignItems="center" justifyContent="center" spacing={1} sx={{ display: { xs: "flex", sm: "none" } }}>
                 <CloudUploadRoundedIcon color="primary" sx={{ fontSize: 22 }} />
                 <Box sx={{ textAlign: "left" }}>
-                  <Typography variant="body2" fontWeight={750}>PDF 파일 선택</Typography>
+                  <Typography variant="body2" fontWeight={750}>PDF·이미지·HTML 선택</Typography>
                   <Typography variant="caption" color="text.secondary" sx={{ display: "block", lineHeight: 1.2 }}>최대 {maxInputFiles}개 · 파일당 20MB</Typography>
                 </Box>
               </Stack>
               <Box sx={{ display: { xs: "none", sm: "block" } }}>
                 <CloudUploadRoundedIcon color="primary" />
-                <Typography variant="body2" fontWeight={750}>{filesDragging ? "여기에 PDF 파일을 놓으세요" : "PDF 선택 또는 파일 드래그"}</Typography>
+                <Typography variant="body2" fontWeight={750}>{filesDragging ? "여기에 파일을 놓으세요" : "PDF·이미지·HTML 선택 또는 파일 드래그"}</Typography>
                 <Typography variant="caption" color="text.secondary">최대 {maxInputFiles}개 · 파일당 20MB</Typography>
               </Box>
-              <input ref={fileInputRef} hidden type="file" accept="application/pdf,.pdf" multiple disabled={working} onChange={chooseFiles} />
+              <input ref={fileInputRef} hidden type="file" accept={fileAccept({})} multiple disabled={working} onChange={chooseFiles} />
             </Paper>
             <Stack spacing={0.75} sx={{ mt: 1.25 }}>
               {files.map((file, index) => (
@@ -1396,7 +1398,7 @@ function ProposalsPage() {
                   sx={{ px: 1.25, py: 0.75, borderRadius: 1.5, bgcolor: "action.hover" }}
                 >
                   <Typography variant="caption" noWrap sx={{ minWidth: 0, mr: 1, flex: 1 }}>
-                    <b>PDF</b> {file.name} · {formatBytes(file.size)}
+                    <b>{fileTypeLabel({ file_types: [/[.](jpe?g|png|webp)$/i.test(file.name) ? "image" : /[.]html?$/i.test(file.name) ? "html" : "pdf"] })}</b> {file.name} · {formatBytes(file.size)}
                   </Typography>
                   <Button size="small" color="error" onClick={() => { setFiles((current) => current.filter((_, fileIndex) => fileIndex !== index)); submissionKey.current = null; }}>제거</Button>
                 </Stack>
@@ -1618,7 +1620,7 @@ function ProposalsPage() {
                     )}
                   </Stack>
                   <Typography variant="caption" color="text.secondary" noWrap sx={{ display: { xs: "none", sm: "block" }, mt: 0.5 }}>
-                    {item.prompt_title} v{item.prompt_version_no} · PDF {item.input_file_count}개 ({formatBytes(item.total_input_bytes)}) · {formatDate(item.created_at)}
+                    {item.prompt_title} v{item.prompt_version_no} · 입력 자료 {item.input_file_count}개 ({formatBytes(item.total_input_bytes)}) · {formatDate(item.created_at)}
                   </Typography>
                   <Typography variant="caption" color="text.secondary" noWrap sx={{ display: { xs: "block", sm: "none" }, mt: 0.25 }}>
                     {item.prompt_title} · {formatDate(item.created_at)}{item.point_status === "REFUNDED" ? " · 꼬막 반환" : ""}

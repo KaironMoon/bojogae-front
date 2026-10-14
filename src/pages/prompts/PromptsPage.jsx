@@ -294,6 +294,11 @@ function PromptsPage() {
       setError("전체·항목별 최대 개수는 1~100의 정수로 입력해 주세요.");
       return;
     }
+    if (draft.input_schema.some((field) => field.type === "file" && field.file_types
+      && (!field.file_types.length || field.file_types.some((type) => !["pdf", "image", "html"].includes(type))))) {
+      setError("파일 항목의 허용 형식을 하나 이상 선택해 주세요.");
+      return;
+    }
     const keys = draft.input_schema.map((field) => field.key);
     if (new Set(keys).size !== keys.length || draft.input_schema.some((field) =>
       !/^[a-z][a-z0-9_]{0,49}$/.test(field.key) || !field.label.trim()

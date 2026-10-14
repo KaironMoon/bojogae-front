@@ -1,14 +1,14 @@
 export function fileTypeLabel(field) {
-  return (field.file_types || ["pdf"]).map((type) => type.toUpperCase()).join(" / ");
+  return (field.file_types || ["pdf", "image", "html"]).map((type) => type === "image" ? "이미지" : type.toUpperCase()).join(" / ");
 }
 
 export function fileAccept(field) {
-  return (field.file_types || ["pdf"]).flatMap((type) => type === "html" ? [".html", ".htm"] : [".pdf"]).join(",");
+  return (field.file_types || ["pdf", "image", "html"]).flatMap((type) => type === "html" ? [".html", ".htm"] : type === "image" ? [".jpg", ".jpeg", ".png", ".webp"] : [".pdf"]).join(",");
 }
 
 export function acceptsFile(field, file) {
   const extension = file.name.toLowerCase().split(".").pop();
-  return (field.file_types || ["pdf"]).includes(extension === "htm" ? "html" : extension);
+  return (field.file_types || ["pdf", "image", "html"]).includes(extension === "htm" ? "html" : ["jpg", "jpeg", "png", "webp"].includes(extension) ? "image" : extension);
 }
 
 export function missingInputGroup(fields, values, uploads) {
