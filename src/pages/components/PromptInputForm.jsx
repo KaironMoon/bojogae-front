@@ -13,7 +13,9 @@ function FileInputField({ field, uploads, onFiles, disabled, maxInputFiles }) {
   const selectFiles = (fileList) => {
     if (disabled) return;
     setDragging(false);
-    onFiles(field.key, Array.from(fileList || []));
+    const incoming = Array.from(fileList || []);
+    if (!incoming.length) return;
+    onFiles(field.key, [...selected, ...incoming]);
   };
 
   return (

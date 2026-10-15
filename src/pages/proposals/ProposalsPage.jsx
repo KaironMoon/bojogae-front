@@ -609,7 +609,9 @@ function ProposalsPage() {
   };
 
   const acceptFiles = (selected) => {
-    if (selected.length > maxInputFiles) {
+    if (!selected.length) return;
+    const nextFiles = [...files, ...selected];
+    if (nextFiles.length > maxInputFiles) {
       setError(`첨부 자료는 최대 ${maxInputFiles}개까지 선택할 수 있습니다.`);
       return;
     }
@@ -623,9 +625,9 @@ function ProposalsPage() {
     setError("");
     const replacingOpenedDocument = Boolean(openedDocument);
     clearReportSelection();
-    setFiles(selected);
-    if (selected[0] && (!titleTouched || replacingOpenedDocument)) {
-      setTitle(selected[0].name.replace(/\.[^.]+$/, ""));
+    setFiles(nextFiles);
+    if (nextFiles[0] && (!titleTouched || replacingOpenedDocument)) {
+      setTitle(nextFiles[0].name.replace(/\.[^.]+$/, ""));
       setTitleTouched(false);
     }
     submissionKey.current = null;
@@ -1391,7 +1393,7 @@ function ProposalsPage() {
             <Stack spacing={0.75} sx={{ mt: 1.25 }}>
               {files.map((file, index) => (
                 <Stack
-                  key={`${file.name}-${file.lastModified}`}
+                  key={`${file.name}-${file.lastModified}-${index}`}
                   direction="row"
                   justifyContent="space-between"
                   alignItems="center"
