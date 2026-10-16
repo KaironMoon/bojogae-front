@@ -80,7 +80,7 @@ import {
 } from "@/services/proposal-service";
 
 
-const MAX_FILE_BYTES = 20 * 1024 * 1024;
+const MAX_FILE_BYTES = 100 * 1024 * 1024;
 const ACTIVE = new Set(["QUEUED", "RUNNING", "CANCEL_REQUESTED"]);
 const PREVIEW_WIDTH = 794;
 const PREVIEW_HEIGHT = 1123;
@@ -629,7 +629,7 @@ function ProposalsPage() {
       (file) => !acceptsFile({}, file) || file.size > MAX_FILE_BYTES,
     );
     if (invalid) {
-      setError("PDF·이미지(JPG/JPEG, PNG, WEBP)·HTML 파일만 가능하며 파일당 크기는 20MB 이하여야 합니다.");
+      setError("PDF·이미지(JPG/JPEG, PNG, WEBP)·HTML 파일만 가능하며 파일당 크기는 100MB 이하여야 합니다.");
       return;
     }
     setError("");
@@ -763,7 +763,7 @@ function ProposalsPage() {
         pdf_password_required: "암호가 설정된 PDF입니다. 파일의 암호를 입력해 주세요.",
         pdf_password_invalid: "PDF 암호가 올바르지 않습니다. 다시 입력해 주세요.",
         invalid_pdf_file: "PDF를 읽지 못했습니다. 파일을 확인하고 다시 첨부해 주세요.",
-        file_too_large: "암호 해제 후 PDF 크기가 20MB를 초과합니다.",
+        file_too_large: "암호 해제 후 PDF 크기가 100MB를 초과합니다.",
       }[detailCode];
       if (pdfError && Number.isInteger(detail?.file_index) && selectedFiles[detail.file_index]) {
         const file = selectedFiles[detail.file_index];
@@ -1328,7 +1328,7 @@ function ProposalsPage() {
                   return;
                 }
                 if (selected.some((file) => !acceptsFile(field, file) || file.size > MAX_FILE_BYTES)) {
-                  setError(`${fileTypeLabel(field)} 파일만 가능하며 파일당 크기는 20MB 이하여야 합니다.`);
+                  setError(`${fileTypeLabel(field)} 파일만 가능하며 파일당 크기는 100MB 이하여야 합니다.`);
                   return;
                 }
                 setError("");
@@ -1412,13 +1412,13 @@ function ProposalsPage() {
                 <CloudUploadRoundedIcon color="primary" sx={{ fontSize: 22 }} />
                 <Box sx={{ textAlign: "left" }}>
                   <Typography variant="body2" fontWeight={750}>PDF·이미지·HTML 선택</Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: "block", lineHeight: 1.2 }}>최대 {maxInputFiles}개 · 파일당 20MB</Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: "block", lineHeight: 1.2 }}>최대 {maxInputFiles}개 · 파일당 100MB</Typography>
                 </Box>
               </Stack>
               <Box sx={{ display: { xs: "none", sm: "block" } }}>
                 <CloudUploadRoundedIcon color="primary" />
                 <Typography variant="body2" fontWeight={750}>{filesDragging ? "여기에 파일을 놓으세요" : "PDF·이미지·HTML 선택 또는 파일 드래그"}</Typography>
-                <Typography variant="caption" color="text.secondary">최대 {maxInputFiles}개 · 파일당 20MB</Typography>
+                <Typography variant="caption" color="text.secondary">최대 {maxInputFiles}개 · 파일당 100MB</Typography>
               </Box>
               <input ref={fileInputRef} hidden type="file" accept={fileAccept({})} multiple disabled={working} onChange={chooseFiles} />
             </Paper>

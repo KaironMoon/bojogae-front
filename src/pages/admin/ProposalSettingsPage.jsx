@@ -11,7 +11,7 @@ import {
 
 const FIELDS = [
   ["max_output_tokens", "최대 출력 토큰", 1, 65536],
-  ["max_pdf_bytes", "파일당 최대 바이트", 1, 20971520],
+  ["max_pdf_bytes", "파일당 최대 바이트", 1, 104857600],
   ["max_active_jobs_per_user", "사용자당 활성 작업", 1, 100],
   ["max_global_running_jobs", "전체 동시 생성", 1, 100],
 ];
