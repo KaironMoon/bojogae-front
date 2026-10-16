@@ -5,6 +5,8 @@ import ReportHelpTour from "@/pages/components/ReportHelpTour";
 import { hasSeenReportHelp, markReportHelpSeen } from "@/services/report-help-storage";
 import PreviewImageCarousel from "@/pages/components/PreviewImageCarousel";
 import PromptInputForm from "@/pages/components/PromptInputForm";
+import PdfPasswordInput from "@/pages/components/PdfPasswordInput";
+import usePdfPasswords from "@/pages/components/usePdfPasswords";
 import { promptPreviewImageUrl } from "@/services/prompt-service";
 import { defaultPromptTab, promptsForTab, filterPromptCategories } from "@/services/prompt-list-utils";
 import StarRoundedIcon from "@mui/icons-material/StarRounded";
@@ -281,8 +283,16 @@ function ProposalsPage() {
   const selectedReport = statusItem || openedDocument;
   const displayedPromptOptions = filteredPromptOptions;
   const maxInputFiles = selectedPrompt?.max_input_files ?? 10;
-  const inputSchema = selectedPrompt?.input_schema || [];
+  // Legacy prompts used an ordinary text/number field for this secret.
+  // Passwords now belong to individual files and never to prompt input values.
+  const inputSchema = useMemo(() => (selectedPrompt?.input_schema || []).filter(
+    (field) => field.label !== "진료 기록 파일에 걸린 암호",
+  ), [selectedPrompt?.input_schema]);
   const customInputs = inputSchema.length > 0;
+  const selectedUploads = useMemo(() => customInputs
+    ? inputSchema.flatMap((field) => fieldUploads[field.key] || [])
+    : files, [customInputs, inputSchema, fieldUploads, files]);
+  const pdfPasswords = usePdfPasswords(selectedUploads);
 
   const movePromptSlide = (nextIndex) => {
     const boundedIndex = Math.max(0, Math.min(nextIndex, displayedPromptOptions.length - 1));
@@ -643,7 +653,15 @@ function ProposalsPage() {
     clearReportSelection();
     const groupError = missingInputGroup(inputSchema, inputValues, fieldUploads);
     if (groupError) { setError(groupError); return; }
-    const selectedFiles = customInputs ? inputSchema.flatMap((field) => fieldUploads[field.key] || []) : files;
+    const selectedFiles = selectedUploads;
+    for (const file of selectedFiles) {
+      const state = pdfPasswords.stateFor(file);
+      if (state.checking || state.error || (state.encrypted && !state.password)) {
+        setError(state.checking ? "PDF 암호 여부 확인이 끝난 뒤 다시 시도해 주세요."
+          : state.error || `${file.name}: PDF 암호를 입력해 주세요.`);
+        return;
+      }
+    }
     const fileFields = customInputs ? inputSchema.flatMap((field) => (fieldUploads[field.key] || []).map(() => field.key)) : [];
     const selectedDocuments = inputSchema.flatMap((field) => (
       field.type === "generated_document" ? fieldDocuments[field.key] || [] : []
@@ -700,6 +718,7 @@ function ProposalsPage() {
         files: selectedFiles,
         inputValues: values,
         fileFields,
+        pdfPasswords: selectedFiles.map((file) => pdfPasswords.stateFor(file).password || ""),
         attachedGenerationIds: selectedDocuments.map((doc) => doc.id),
         attachedGenerationFields: documentFields,
         promptVersionId,
@@ -738,7 +757,20 @@ function ProposalsPage() {
       if (fileInputRef.current) fileInputRef.current.value = "";
       await Promise.all([loadList(1), getPointBalance().then(setPointBalance)]);
     } catch (requestError) {
-      const detailCode = requestError.response?.data?.detail;
+      const detail = requestError.response?.data?.detail;
+      const detailCode = typeof detail === "string" ? detail : detail?.code;
+      const pdfError = {
+        pdf_password_required: "암호가 설정된 PDF입니다. 파일의 암호를 입력해 주세요.",
+        pdf_password_invalid: "PDF 암호가 올바르지 않습니다. 다시 입력해 주세요.",
+        invalid_pdf_file: "PDF를 읽지 못했습니다. 파일을 확인하고 다시 첨부해 주세요.",
+        file_too_large: "암호 해제 후 PDF 크기가 20MB를 초과합니다.",
+      }[detailCode];
+      if (pdfError && Number.isInteger(detail?.file_index) && selectedFiles[detail.file_index]) {
+        const file = selectedFiles[detail.file_index];
+        if (detailCode.startsWith("pdf_password_")) pdfPasswords.setFileError(file, pdfError);
+        setError(`${file.name}: ${pdfError}`);
+        return;
+      }
       setError(
         detailCode === "active_job_limit_exceeded"
           ? "동시에 진행할 수 있는 작업 수를 초과했습니다."
@@ -1274,7 +1306,7 @@ function ProposalsPage() {
             )}
           </Paper>
           <Paper data-report-help="inputs" variant="outlined" sx={{ p: 2.25, borderRadius: "16px 16px 0 0", boxShadow: "0 1px 3px rgba(15, 23, 42, 0.05)" }}>
-            {customInputs ? <PromptInputForm maxInputFiles={maxInputFiles} fields={inputSchema} values={inputValues} uploads={fieldUploads}
+            {customInputs ? <PromptInputForm maxInputFiles={maxInputFiles} fields={inputSchema} values={inputValues} uploads={fieldUploads} pdfPasswords={pdfPasswords}
               documents={fieldDocuments} documentOptions={generatedDocumentOptions} disabled={working}
               onValue={(key, value) => {
                 setInputValues((current) => ({ ...current, [key]: value }));
@@ -1392,6 +1424,7 @@ function ProposalsPage() {
             </Paper>
             <Stack spacing={0.75} sx={{ mt: 1.25 }}>
               {files.map((file, index) => (
+                <Stack key={`${file.name}-${file.lastModified}-${index}`} spacing={1}>
                 <Stack
                   key={`${file.name}-${file.lastModified}-${index}`}
                   direction="row"
@@ -1402,7 +1435,9 @@ function ProposalsPage() {
                   <Typography variant="caption" noWrap sx={{ minWidth: 0, mr: 1, flex: 1 }}>
                     <b>{fileTypeLabel({ file_types: [/[.](jpe?g|png|webp)$/i.test(file.name) ? "image" : /[.]html?$/i.test(file.name) ? "html" : "pdf"] })}</b> {file.name} · {formatBytes(file.size)}
                   </Typography>
-                  <Button size="small" color="error" onClick={() => { setFiles((current) => current.filter((_, fileIndex) => fileIndex !== index)); submissionKey.current = null; }}>제거</Button>
+                  <Button size="small" color="error" disabled={working} onClick={() => { setFiles((current) => current.filter((_, fileIndex) => fileIndex !== index)); submissionKey.current = null; }}>제거</Button>
+                </Stack>
+                <PdfPasswordInput file={file} state={pdfPasswords.stateFor(file)} onChange={pdfPasswords.setPassword} disabled={working} />
                 </Stack>
               ))}
             </Stack>

@@ -32,7 +32,7 @@ async function getPointBalance() {
 
 async function createProposal({
   title, promptId, files, idempotencyKey, inputValues = {}, fileFields = [],
-  attachedGenerationIds = [], attachedGenerationFields = [], promptVersionId,
+  attachedGenerationIds = [], attachedGenerationFields = [], promptVersionId, pdfPasswords = [],
 }) {
   const form = new FormData();
   form.append("title", title);
@@ -40,6 +40,7 @@ async function createProposal({
   files.forEach((file) => form.append("files", file));
   form.append("input_values", JSON.stringify(inputValues));
   form.append("file_fields", JSON.stringify(fileFields));
+  form.append("pdf_passwords", JSON.stringify(pdfPasswords));
   form.append("attached_generation_ids", JSON.stringify(attachedGenerationIds));
   form.append("attached_generation_fields", JSON.stringify(attachedGenerationFields));
   if (promptVersionId) form.append("prompt_version_id", String(promptVersionId));

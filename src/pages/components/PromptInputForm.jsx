@@ -4,8 +4,9 @@ import InsertDriveFileOutlinedIcon from "@mui/icons-material/InsertDriveFileOutl
 import { Alert, Autocomplete, Box, Button, Chip, MenuItem, Paper, Stack, TextField, Typography } from "@mui/material";
 import { useRef, useState } from "react";
 import { fileAccept, fileTypeLabel } from "@/services/prompt-input-utils";
+import PdfPasswordInput from "./PdfPasswordInput";
 
-function FileInputField({ field, uploads, onFiles, disabled, maxInputFiles }) {
+function FileInputField({ field, uploads, onFiles, disabled, maxInputFiles, pdfPasswords }) {
   const inputRef = useRef(null);
   const [dragging, setDragging] = useState(false);
   const selected = uploads[field.key] || [];
@@ -93,10 +94,14 @@ function FileInputField({ field, uploads, onFiles, disabled, maxInputFiles }) {
       </Paper>
       <Stack spacing={0.5} sx={{ mt: 0.75 }}>
         {selected.map((file, index) => (
-          <Stack key={`${file.name}-${index}`} direction="row" alignItems="center" justifyContent="space-between" spacing={1}>
+          <Stack key={`${file.name}-${index}`} spacing={1}>
+            <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1}>
             <Typography variant="caption" sx={{ overflowWrap: "anywhere" }}>{file.name}</Typography>
             <Button size="small" color="error" disabled={disabled}
               onClick={() => onFiles(field.key, selected.filter((_, i) => i !== index))}>제거</Button>
+            </Stack>
+            {pdfPasswords && <PdfPasswordInput file={file} state={pdfPasswords.stateFor(file)}
+              onChange={pdfPasswords.setPassword} disabled={disabled} />}
           </Stack>
         ))}
       </Stack>
@@ -115,6 +120,7 @@ export default function PromptInputForm({
   onFiles = () => {},
   onDocuments = () => {},
   disabled = false,
+  pdfPasswords,
 }) {
   return (
     <Stack spacing={2}>
@@ -122,7 +128,7 @@ export default function PromptInputForm({
         <Alert key={group} severity="info">{fields.filter((field) => field.required_group === group).map((field) => field.label).join(" / ")} 중 하나 이상 입력해 주세요.</Alert>
       ))}
       {fields.map((field) => field.type === "file" ? (
-        <FileInputField maxInputFiles={maxInputFiles} key={field.key} field={field} uploads={uploads} onFiles={onFiles} disabled={disabled} />
+        <FileInputField maxInputFiles={maxInputFiles} key={field.key} field={field} uploads={uploads} onFiles={onFiles} disabled={disabled} pdfPasswords={pdfPasswords} />
       ) : field.type === "generated_document" ? (
         <Autocomplete
           key={field.key}
