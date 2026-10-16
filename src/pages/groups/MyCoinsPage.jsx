@@ -45,7 +45,6 @@ export default function MyCoinsPage() {
                 <TableRow>
                   <TableCell sx={{ whiteSpace: 'nowrap', fontWeight: 750 }}>일시 (한국 시간)</TableCell>
                   <TableCell sx={{ fontWeight: 750 }}>내역</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 750 }}>결제금액</TableCell>
                   <TableCell align="right" sx={{ fontWeight: 750 }}>꼬막</TableCell>
                   <TableCell align="right" sx={{ fontWeight: 750 }}>거래 후 잔여 꼬막</TableCell>
                 </TableRow>
@@ -54,11 +53,10 @@ export default function MyCoinsPage() {
                 {detail.items.map((item) => <TableRow key={item.id}>
                   <TableCell sx={{ whiteSpace: 'nowrap' }}>{date(item.occurred_at)}</TableCell>
                   <TableCell sx={{ overflowWrap: 'anywhere', whiteSpace: 'pre-wrap' }}>{item.description}</TableCell>
-                  <TableCell align="right" sx={{ whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{item.payment_amount != null ? `${item.payment_amount.toLocaleString()}원` : '—'}</TableCell>
                   <TableCell align="right" sx={{ whiteSpace: 'nowrap', color: item.credit ? 'success.dark' : 'text.primary', fontVariantNumeric: 'tabular-nums' }}>{item.credit ? `+${item.credit.toLocaleString()}꼬막` : item.debit ? `−${item.debit.toLocaleString()}꼬막` : '—'}</TableCell>
                   <TableCell align="right" sx={{ whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{Number.isFinite(item.balance_after) ? `${item.balance_after.toLocaleString()}꼬막` : '조회 불가'}</TableCell>
                 </TableRow>)}
-                {!detail.items.length && <TableRow><TableCell colSpan={5} align="center" sx={{ py: 4 }}>꼬막 입출금 내역이 없습니다.</TableCell></TableRow>}
+                {!detail.items.length && <TableRow><TableCell colSpan={4} align="center" sx={{ py: 4 }}>꼬막 입출금 내역이 없습니다.</TableCell></TableRow>}
               </TableBody>
             </Table>
           </TableContainer>
