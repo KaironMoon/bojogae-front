@@ -16,6 +16,10 @@ function BusinessInfo() {
         </span>
       </Box>
       <Box>주소: 서울특별시 도봉구 노해로67길 2, B2호(창동, 한국빌딩)</Box>
+      <Box>모든 거래에 대한 책임과 환불, 민원 등은 마음 AI에서 진행합니다.</Box>
+      <Box>
+        민원담당자: 김성춘 · 연락처: <Link href="tel:01097299649" color="inherit" underline="hover">010-9729-9649</Link>
+      </Box>
     </Box>
   );
 }

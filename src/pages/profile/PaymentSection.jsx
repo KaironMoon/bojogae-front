@@ -193,7 +193,9 @@ export default function PaymentSection({ config, onChanged, onContactSaved }) {
         {active && <Button color="warning" disabled={busy} onClick={() => openDialog('cancel')}>구독 해지</Button>}
       </Stack>
       <Typography variant="body2" color="text.secondary">추가 충전은 유료 이용기간 중 가능합니다.</Typography>
+      <Alert severity="info">추가 충전한 꼬막은 결제한 시점부터 1년 이내에 사용할 수 있으며, 유효기간이 지나면 미사용 꼬막은 소멸합니다. 결제 후 7일 이내 청약철회가 가능하며, 환불은 결제한 카드로만 처리됩니다. 사용분 및 미사용분의 환불 기준은 <Link to="/terms">이용약관</Link>에서 확인해 주세요.</Alert>
       <Button component={Link} to="/payment-history" variant="text">결제내역 보기</Button>
+      <Button component={Link} to="/my-coins" variant="text">꼬막 충전·사용 내역 보기</Button>
       <Button disabled={busy} onClick={() => perform(load)}>새로고침</Button>
     </Stack>
   </Paper>
@@ -217,7 +219,10 @@ export default function PaymentSection({ config, onChanged, onContactSaved }) {
           </> : <>
           {dialog === 'change' ? <Alert severity="info">{upgrading ? '남은 이용기간의 요금 차액을 등록된 카드로 결제하면 즉시 업그레이드됩니다. 기존 잔액과 다음 결제일은 유지됩니다.' : '상위 요금제는 남은 기간의 차액 결제 후 즉시 적용되고, 하위 요금제는 다음 결제부터 적용됩니다. 기존 결제일과 등록된 카드는 유지됩니다.'}</Alert> : dialog === 'retry' ? <Alert severity="info">등록된 카드로 선택한 요금제의 첫 결제를 다시 요청합니다. 승인되면 이용기간이 시작되고 이후 매월 자동 결제됩니다.</Alert> : <Typography variant="body2">{dialog === 'subscribe' ? hasRegisteredCards ? '선택한 결제수단으로 첫 구독 결제를 진행합니다.' : '결제자 정보를 확인한 뒤 KG이니시스에서 카드를 등록합니다. 등록 완료 후 선택한 요금제의 첫 결제를 진행합니다.' : '결제자 정보를 확인한 뒤 KG이니시스 결제창으로 이동합니다.'}</Typography>}
           {dialog === 'change' && sub?.cancel_at_period_end && <Alert severity="warning">{upgrading ? '차액 결제가 승인되면 자동 갱신 해지를 철회하고 다음 결제일부터 새 요금제 전액으로 자동 결제를 재개합니다.' : '자동 갱신 해지를 철회하고 선택한 요금제로 다음 회차부터 자동 결제를 재개합니다.'}</Alert>}
-          {dialog === 'topup' ? <Typography fontWeight={700}>9,900원 · 150꼬막 · 구매일부터 1년</Typography> :
+          {dialog === 'topup' ? <Stack spacing={1}>
+            <Typography fontWeight={700}>9,900원 · 150꼬막</Typography>
+            <Alert severity="info">결제한 시점부터 1년 이내에 사용할 수 있으며, 유효기간이 지나면 미사용 꼬막은 소멸합니다. 결제 후 7일 이내 청약철회가 가능하며, 환불은 결제한 카드로만 처리됩니다. 일부 사용한 경우 미사용 잔량에 대해 실제 결제금액에 비례하여 환불합니다.</Alert>
+          </Stack> :
             <TextField select label="요금제" value={plan} onChange={(e) => { setAccepted(false); setUpgradeQuote(null); setPlan(e.target.value); }} disabled={busy || quoteBusy} fullWidth>
               {['BASIC','STANDARD','PRO'].map((code) => <MenuItem key={code} value={code}>{config.products[code].name} · {config.products[code].amount.toLocaleString()}원 / {config.products[code].cockles.toLocaleString()}꼬막</MenuItem>)}
             </TextField>}
@@ -238,7 +243,7 @@ export default function PaymentSection({ config, onChanged, onContactSaved }) {
             <Typography variant="body2" color="text.secondary">내정보에 저장하면 다음 결제부터 자동 입력됩니다. 변경한 이메일은 내정보에서 인증해 주세요.</Typography>
             {contactMessage && <Alert severity="info">{contactMessage}</Alert>}
           </>}
-          <FormControlLabel control={<Checkbox checked={accepted} disabled={busy} onChange={(e) => setAccepted(e.target.checked)} />} label={<Typography variant="body2"><Link to="/terms" target="_blank">이용약관</Link>, 월 자동결제·제공분 소멸 및 구매분 1년 유효기간·미사용분 비례 환불에 동의합니다.</Typography>} />
+          <FormControlLabel control={<Checkbox checked={accepted} disabled={busy} onChange={(e) => setAccepted(e.target.checked)} />} label={<Typography variant="body2"><Link to="/terms" target="_blank">이용약관</Link>{dialog === 'topup' ? ', 결제 시점부터 1년 유효기간·미사용 꼬막 소멸·7일 이내 청약철회 및 결제한 카드로 미사용분 비례 환불에 동의합니다.' : ', 월 자동결제·제공분 소멸 및 구매분 1년 유효기간·미사용분 비례 환불에 동의합니다.'}</Typography>} />
           </>}
         </Stack>
       </DialogContent>
