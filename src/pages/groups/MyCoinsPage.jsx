@@ -1,4 +1,5 @@
 import KkomakIcon from '@/pages/components/KkomakIcon';
+import PointBalanceDetails from '@/pages/components/PointBalanceDetails';
 import {
   Alert, Box, CircularProgress, Pagination, Paper, Stack,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography,
@@ -32,20 +33,20 @@ export default function MyCoinsPage() {
     <Paper sx={{ p: { xs: 2, sm: 3 } }}>
       <Stack spacing={2}>
         <Typography variant="h5" fontWeight={800}>내 꼬막</Typography>
-        <Typography variant="body2" color="text.secondary">충전·지급, 사용·차감 및 거래 후 잔여 꼬막을 확인할 수 있습니다. 구매 꼬막 충전금액은 원으로, 이용 수량은 꼬막으로 표시합니다. 문서 생성 시 표시된 수량을 차감하며, 예약 중인 수량도 사용 가능 잔액에서 제외됩니다.</Typography>
+        <Typography variant="body2" color="text.secondary">꼬막 증가·사용 내역과 합산 잔액을 확인할 수 있습니다. 잔여 꼬막의 구성은 현재 잔액 옆 상세에서 확인해 주세요. 예약 중인 꼬막은 사용 가능 잔액에서 제외됩니다.</Typography>
         <Typography variant="body2"><Link to="/profile#plan">꼬막 충전</Link> · <Link to="/payment-history">결제·환불 내역</Link></Typography>
         {error && <Alert severity="error">{error}</Alert>}
         {loading && <Box role="status" aria-label="꼬막 내역 조회 중" sx={{ textAlign: 'center', py: 3 }}><CircularProgress size={28} /></Box>}
         {detail && <>
+          {detail.items.some((item) => !Number.isFinite(item.balance_after)) && <Alert severity="warning">일부 거래의 잔여 꼬막을 불러오지 못했습니다. 잠시 후 다시 확인해 주세요.</Alert>}
           <TableContainer sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
             <Table size="small" sx={{ minWidth: 600 }} aria-label="꼬막 입출금 내역">
               <TableHead sx={{ bgcolor: '#f8fafc' }}>
                 <TableRow>
                   <TableCell sx={{ whiteSpace: 'nowrap', fontWeight: 750 }}>일시 (한국 시간)</TableCell>
                   <TableCell sx={{ fontWeight: 750 }}>내역</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 750 }}>충전금액</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 750 }}>충전·지급</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 750 }}>사용·차감</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 750 }}>결제금액</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 750 }}>꼬막</TableCell>
                   <TableCell align="right" sx={{ fontWeight: 750 }}>거래 후 잔여 꼬막</TableCell>
                 </TableRow>
               </TableHead>
@@ -54,11 +55,10 @@ export default function MyCoinsPage() {
                   <TableCell sx={{ whiteSpace: 'nowrap' }}>{date(item.occurred_at)}</TableCell>
                   <TableCell sx={{ overflowWrap: 'anywhere', whiteSpace: 'pre-wrap' }}>{item.description}</TableCell>
                   <TableCell align="right" sx={{ whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{item.payment_amount != null ? `${item.payment_amount.toLocaleString()}원` : '—'}</TableCell>
-                  <TableCell align="right" sx={{ whiteSpace: 'nowrap', color: 'success.dark', fontVariantNumeric: 'tabular-nums' }}>{item.credit ? `${item.credit.toLocaleString()}꼬막` : '—'}</TableCell>
-                  <TableCell align="right" sx={{ whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{item.debit ? `${item.debit.toLocaleString()}꼬막` : '—'}</TableCell>
-                  <TableCell align="right" sx={{ whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{item.balance_after.toLocaleString()}꼬막</TableCell>
+                  <TableCell align="right" sx={{ whiteSpace: 'nowrap', color: item.credit ? 'success.dark' : 'text.primary', fontVariantNumeric: 'tabular-nums' }}>{item.credit ? `+${item.credit.toLocaleString()}꼬막` : item.debit ? `−${item.debit.toLocaleString()}꼬막` : '—'}</TableCell>
+                  <TableCell align="right" sx={{ whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{Number.isFinite(item.balance_after) ? `${item.balance_after.toLocaleString()}꼬막` : '조회 불가'}</TableCell>
                 </TableRow>)}
-                {!detail.items.length && <TableRow><TableCell colSpan={6} align="center" sx={{ py: 4 }}>꼬막 입출금 내역이 없습니다.</TableCell></TableRow>}
+                {!detail.items.length && <TableRow><TableCell colSpan={5} align="center" sx={{ py: 4 }}>꼬막 입출금 내역이 없습니다.</TableCell></TableRow>}
               </TableBody>
             </Table>
           </TableContainer>
@@ -67,6 +67,7 @@ export default function MyCoinsPage() {
             <Typography fontWeight={800}>현재 잔액</Typography>
             <KkomakIcon />
             <Typography fontWeight={800} color="primary.main">{detail.balance.toLocaleString()}꼬막</Typography>
+            <PointBalanceDetails />
           </Stack>
         </>}
       </Stack>

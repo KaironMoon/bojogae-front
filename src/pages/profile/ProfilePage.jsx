@@ -28,6 +28,7 @@ import {
 import { requestOwnPasswordReset } from "@/services/group-service";
 import { getPointBalance } from "@/services/proposal-service";
 import ExpiringPoints from "@/pages/components/ExpiringPoints";
+import PointBalanceDetails from "@/pages/components/PointBalanceDetails";
 import PlanSection from "@/pages/profile/PlanSection";
 import NotificationPreferences from '@/pages/profile/NotificationPreferences';
 import {
@@ -263,6 +264,7 @@ function ProfilePage() {
               <Typography variant="h5" fontWeight={850}><KkomakIcon /> {pointBalance.total_points.toLocaleString()}꼬막</Typography>
             </Box>
           </Stack>
+          <PointBalanceDetails balance={pointBalance} />
         </Stack>
       </Paper>
 

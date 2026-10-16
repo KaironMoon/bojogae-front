@@ -4,6 +4,7 @@ import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-r
 import { useAuth } from '@/auth/AuthContext';
 import SignupProfileFields from "@/components/signup/SignupProfileFields";
 import GroupApplicationsPanel from "./GroupApplicationsPanel";
+import PointBalanceDetails from '@/pages/components/PointBalanceDetails';
 import { openGroup, addMember, bulkPoints, createGroup, decidePurchase, deleteMember, directPurchase, editMember, getGroup, groupErrorMessage, listGroups, requestPurchase, resetMemberPassword, setMonthlyPoints, setMaxMembers, setMemberStatus } from '@/services/group-service';
 
 const time = (value) => new Date(value).toLocaleString('ko-KR');
@@ -150,7 +151,7 @@ export default function GroupsPage() {
       <Paper sx={{ p: { xs: 2, sm: 3 }, minWidth: 0 }}><Stack spacing={2}>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'flex-start', sm: 'center' }}><Typography>그룹 기본 지급 꼬막: 1인당 매월 {detail.group.monthly_basic_points ?? 0}꼬막 · 개통일 기준 매월 지급·만료</Typography>{admin && <Button disabled={busy} onClick={() => open('monthly')} sx={{ flexShrink: 0 }}>월 지급량 설정</Button>}</Stack>
         <Typography variant="body2" color="text.secondary">지급 꼬막은 분배·회수 대상에서 제외됩니다. 구매 꼬막만 일괄 분배·회수할 수 있습니다.</Typography>
-        <Typography fontWeight={700}>리더 꼬막: 지급 {leader?.balance.free_points ?? 0}꼬막 · 구매 {leader?.balance.paid_points ?? 0}꼬막</Typography>
+        <Stack direction="row" spacing={1} alignItems="center"><Typography fontWeight={700}>리더 꼬막: {leader?.balance.total_points?.toLocaleString() ?? '조회 불가'}{leader && '꼬막'}</Typography>{leader && <PointBalanceDetails balance={leader.balance} label="리더 잔여 꼬막 상세" />}</Stack>
         {!admin && <Button variant="outlined" disabled={busy} onClick={() => open('purchase')}>추가 꼬막 구매 요청</Button>}
       </Stack></Paper>
       <Paper sx={{ p: { xs: 2, sm: 3 }, minWidth: 0 }}><Stack spacing={2}>
@@ -164,13 +165,13 @@ export default function GroupsPage() {
         </Stack>
         {memberLimitReached && <Alert severity="warning">인원수 제한({detail.group.max_members}명)에 도달했습니다. 새 구성원을 등록하려면 인원 제한을 늘리거나 기존 구성원을 정리해 주세요.</Alert>}
         <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap><Typography>{selectedMembers.length}명 선택</Typography><Button variant="contained" disabled={busy || !selectedMembers.length || selectedMembers.some((item) => item.status !== 'ACTIVE')} onClick={() => open('give')}>일괄 지급</Button><Button variant="outlined" disabled={busy || !selectedMembers.length} onClick={() => open('reclaim')}>일괄 회수</Button></Stack>
-        <TableContainer sx={{ maxWidth: '100%' }}><Table size="small" sx={{ minWidth: 860 }}><TableHead><TableRow><TableCell padding="checkbox"><Checkbox inputProps={{ 'aria-label': '구성원 전체 선택' }} disabled={busy || !selectableMembers.length} checked={allSelected} indeterminate={selectedMembers.length > 0 && !allSelected} onChange={(e) => setSelectedIds(e.target.checked ? selectableMembers.map((item) => item.id) : [])} /></TableCell>{['사번' , '구분명', '이메일', '상태', '지급 / 구매', '관리'].map((label) => <TableCell key={label} sx={{ whiteSpace: 'nowrap' }}>{label}</TableCell>)}</TableRow></TableHead>
+        <TableContainer sx={{ maxWidth: '100%' }}><Table size="small" sx={{ minWidth: 860 }}><TableHead><TableRow><TableCell padding="checkbox"><Checkbox inputProps={{ 'aria-label': '구성원 전체 선택' }} disabled={busy || !selectableMembers.length} checked={allSelected} indeterminate={selectedMembers.length > 0 && !allSelected} onChange={(e) => setSelectedIds(e.target.checked ? selectableMembers.map((item) => item.id) : [])} /></TableCell>{['사번' , '구분명', '이메일', '상태', '잔여 꼬막', '관리'].map((label) => <TableCell key={label} sx={{ whiteSpace: 'nowrap' }}>{label}</TableCell>)}</TableRow></TableHead>
           <TableBody>{detail.members.map((item) => <TableRow key={item.id} selected={selectedIds.includes(item.id)}>
             <TableCell padding="checkbox">{item.group_role === 'MEMBER' && <Checkbox inputProps={{ 'aria-label': `${item.employee_number} 선택` }} disabled={busy} checked={selectedIds.includes(item.id)} onChange={(e) => setSelectedIds((prev) => e.target.checked ? [...prev, item.id] : prev.filter((id) => id !== item.id))} />}</TableCell>
             <TableCell>{item.employee_number}{item.group_role === 'LEADER' && <Chip label="리더" size="small" sx={{ ml: 1 }} />}</TableCell>
             <TableCell>{item.display_name === item.employee_number ? '—' : item.display_name}</TableCell><TableCell>{item.email || '—'}</TableCell>
             <TableCell>{item.status === 'PENDING' ? '개통 대기' : item.status === 'ACTIVE' ? '활성' : '비활성'}{item.must_change_password && <Typography variant="caption" display="block">비밀번호 변경 필요</Typography>}</TableCell>
-            <TableCell sx={{ whiteSpace: 'nowrap' }}>{item.balance.free_points}꼬막 / {item.balance.paid_points}꼬막</TableCell>
+            <TableCell sx={{ whiteSpace: 'nowrap' }}>{item.balance.total_points.toLocaleString()}꼬막 <PointBalanceDetails balance={item.balance} label={`${item.employee_number} 잔여 꼬막 상세`} /></TableCell>
             <TableCell><Stack direction="row" flexWrap="wrap">
               <Button size="small" disabled={busy} onClick={() => open('edit', item)}>수정</Button>
               {(admin || item.group_role !== 'LEADER') && <Button size="small" disabled={busy} onClick={() => open('reset', item)}>비밀번호 초기화</Button>}
