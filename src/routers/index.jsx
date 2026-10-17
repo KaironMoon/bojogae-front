@@ -42,6 +42,7 @@ import LandingPage from "../pages/landing/LandingPage";
 import PolicyPage from "../pages/policy/PolicyPage";
 import InsurersPage from "../pages/insurers/InsurersPage";
 import InsurersAdminPage from "../pages/admin/InsurersAdminPage";
+import ClaimsPage from "../pages/claims/ClaimsPage";
 
 const ProductLayout = lazy(() => import("../pages/product/ProductLayout"));
 const ProductList = lazy(() => import("../pages/product"));
@@ -134,6 +135,7 @@ const router = createBrowserRouter([
           { path: "/group/:groupId", element: <GroupsPage /> },
           { path: "/my-coins", element: <MyCoinsPage /> },
           { path: "/insurers", element: <InsurersPage /> },
+          { path: "/claims", element: <ClaimsPage /> },
           { path: "/boards/:boardType", element: <BoardListPage /> },
           { path: "/boards/:boardType/:postId", element: <BoardPostPage embedded /> },
           ...ProductRouter,

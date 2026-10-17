@@ -11,6 +11,7 @@ import {
   DialogContent,
   DialogContentText,
   DialogTitle,
+  InputAdornment,
   MenuItem,
   Pagination,
   Paper,
@@ -23,6 +24,7 @@ import AccountBalanceWalletRoundedIcon from "@mui/icons-material/AccountBalanceW
 import PaymentsRoundedIcon from "@mui/icons-material/PaymentsRounded";
 import RedeemRoundedIcon from "@mui/icons-material/RedeemRounded";
 import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
+import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { getUsers, grantFreePoints, getPointGrants } from "@/services/auth-service";
@@ -86,7 +88,9 @@ function PointsPage() {
   };
   const [result, setResult] = useState({ items: [], page: 1, total_pages: 0, total: 0 });
   const [status, setStatus] = useState("");
-  const [search, setSearch] = useState("");
+  const [draftQuery, setDraftQuery] = useState("");
+  const [query, setQuery] = useState("");
+  const listRequest = useRef(0);
   const [loading, setLoading] = useState(true);
   const [working, setWorking] = useState(false);
   const [error, setError] = useState("");
@@ -95,28 +99,27 @@ function PointsPage() {
   const [grantDraft, setGrantDraft] = useState({ amount: "", expirationDate: defaultExpirationDate(), reason: "" });
 
   const load = useCallback(async (page = 1) => {
+    const request = ++listRequest.current;
     setLoading(true);
     setError("");
     try {
-      setResult(await getUsers(status || undefined, page, 20));
+      const response = await getUsers(status || undefined, page, 20, query);
+      if (request === listRequest.current) setResult(response);
     } catch {
-      setError("꼬막 정보를 불러오지 못했습니다.");
+      if (request === listRequest.current) setError("꼬막 정보를 불러오지 못했습니다.");
     } finally {
-      setLoading(false);
+      if (request === listRequest.current) setLoading(false);
     }
-  }, [status]);
+  }, [status, query]);
 
   useEffect(() => { load(1); }, [load]);
 
-  const visibleUsers = useMemo(() => {
-    const keyword = search.trim().toLocaleLowerCase("ko-KR");
-    if (!keyword) return result.items;
-    return result.items.filter((user) => (
-      user.display_name.toLocaleLowerCase("ko-KR").includes(keyword)
-      || (user.email || "").toLocaleLowerCase("ko-KR").includes(keyword)
-      || String(user.id) === keyword
-    ));
-  }, [result.items, search]);
+  const search = (event) => {
+    event.preventDefault();
+    const nextQuery = draftQuery.trim();
+    if (nextQuery === query) load(1);
+    else setQuery(nextQuery);
+  };
 
   const totals = useMemo(() => result.items.reduce(
     (sum, user) => ({
@@ -180,17 +183,24 @@ function PointsPage() {
         <SummaryCard title="현재 페이지 전체 꼬막" value={totals.total} icon={AccountBalanceWalletRoundedIcon} color="#7c3aed" background="#f5f3ff" />
       </Stack>
 
-      <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, mb: 2 }}>
-        <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+      <Paper component="form" onSubmit={search} variant="outlined" sx={{ p: 2, borderRadius: 2.5, mb: 2.5 }}>
+        <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
           <TextField
-            label="이름·이메일·사용자 ID 검색"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
+            size="small"
+            placeholder="고객 번호, 이메일, 이름, 닉네임, 전화번호, 사번, 단체명 검색"
+            value={draftQuery}
+            inputProps={{ maxLength: 100 }}
+            onChange={(event) => setDraftQuery(event.target.value)}
+            InputProps={{ startAdornment: <InputAdornment position="start"><SearchRoundedIcon fontSize="small" /></InputAdornment> }}
             fullWidth
           />
-          <TextField select label="계정 상태" value={status} onChange={(event) => setStatus(event.target.value)} sx={{ minWidth: { sm: 180 } }}>
+          <TextField select size="small" label="계정 상태" value={status} onChange={(event) => setStatus(event.target.value)} sx={{ minWidth: { sm: 180 } }}>
             {USER_STATUSES.map((item) => <MenuItem key={item.value || "all"} value={item.value}>{item.label}</MenuItem>)}
           </TextField>
+          <Button type="submit" variant="outlined" sx={{ flexShrink: 0 }}>검색</Button>
+          {query && (
+            <Button sx={{ flexShrink: 0 }} onClick={() => { setDraftQuery(""); setQuery(""); }}>초기화</Button>
+          )}
         </Stack>
       </Paper>
 
@@ -198,17 +208,24 @@ function PointsPage() {
         <Box sx={{ py: 10, display: "grid", placeItems: "center" }}><CircularProgress /></Box>
       ) : (
         <Stack spacing={1.5}>
-          {visibleUsers.map((user) => (
+          {result.items.map((user) => (
             <Paper key={user.id} variant="outlined" sx={{ p: 2.5, borderRadius: 3 }}>
               <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between" alignItems={{ md: "center" }} gap={2}>
-                <Box>
+                <Stack spacing={0.75}>
                   <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
-                    <Typography variant="h6" fontWeight={800}>{user.display_name}</Typography>
-                    <Chip label={user.status} size="small" color={user.status === "ACTIVE" ? "success" : "default"} />
-                    <Typography variant="caption" color="text.secondary">ID {user.id}</Typography>
+                    <Chip label={`고객 #${user.id}`} size="small" variant="outlined" />
+                    <Typography variant="h6" fontWeight={750}>{user.name || user.display_name}</Typography>
+                    <Chip label={user.status} size="small" color={user.status === "ACTIVE" ? "success" : user.status === "PENDING" ? "warning" : "default"} />
+                    {user.role === "ADMIN" && <Chip label="ADMIN" size="small" color="primary" />}
                   </Stack>
                   <Typography variant="body2" color="text.secondary">{user.email || "이메일 없음"}</Typography>
-                </Box>
+                  <Typography variant="body2" color="text.secondary">
+                    전화 {user.phone || "-"} · 닉네임 {user.nickname || user.display_name || "-"}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    소속 {user.group_name || user.affiliation || "-"}{user.employee_number ? ` · 사번 ${user.employee_number}` : ""}
+                  </Typography>
+                </Stack>
                 <Stack direction={{ xs: "column", sm: "row" }} alignItems={{ sm: "center" }} gap={1.25}>
                   <Chip label={`지급 ${user.free_points.toLocaleString()}꼬막`} color="success" variant="outlined" />
                   <Chip label={`구매 ${user.paid_points.toLocaleString()}꼬막`} color="primary" variant="outlined" />
@@ -223,12 +240,11 @@ function PointsPage() {
               </Stack>
             </Paper>
           ))}
-          {!visibleUsers.length && <Alert severity="info">조건에 맞는 사용자가 없습니다.</Alert>}
+          {!result.items.length && <Typography color="text.secondary">{query || status ? "검색 결과가 없습니다." : "등록된 사용자가 없습니다."}</Typography>}
+          {result.total_pages > 1 && (
+            <Pagination count={result.total_pages} page={result.page} onChange={(_, page) => load(page)} sx={{ pt: 2 }} />
+          )}
         </Stack>
-      )}
-
-      {result.total_pages > 1 && (
-        <Pagination count={result.total_pages} page={result.page} onChange={(_, page) => load(page)} sx={{ mt: 3 }} />
       )}
 
       <Dialog open={Boolean(grantTarget)} onClose={() => !working && setGrantTarget(null)} fullWidth maxWidth="xs">
