@@ -30,6 +30,7 @@ import { getPointBalance } from "@/services/proposal-service";
 import ExpiringPoints from "@/pages/components/ExpiringPoints";
 import PointBalanceDetails from "@/pages/components/PointBalanceDetails";
 import PlanSection from "@/pages/profile/PlanSection";
+import SignupProfileFields from "@/components/signup/SignupProfileFields";
 import NotificationPreferences from '@/pages/profile/NotificationPreferences';
 import {
   disableBrowserPush,
@@ -37,9 +38,10 @@ import {
   getBrowserPushState,
 } from "@/services/web-push-service";
 
-const emptyProfile = { email: "", name: "", nickname: "", phone: "", affiliation: "" };
+const emptyProfile = { email: "", name: "", nickname: "", phone: "", affiliation: "", branch_name: "" };
 
 const errorMessages = {
+  invalid_profile_input: "GA 소속·이름·전화번호와 입력 형식을 확인해 주세요.",
   payment_method_pending: "결제수단 변경 결과 확인이 필요합니다. 결제수단 관리에서 확인한 후 다시 시도해 주세요.",
   withdrawal_schema_required: "탈퇴 자료 파기 설정이 준비되지 않았습니다. 고객센터로 문의해 주세요.",
   withdraw_failed: "탈퇴하지 못했습니다. 잠시 후 다시 시도해 주세요.",
@@ -64,8 +66,6 @@ function ProfilePage() {
   const [profile, setProfile] = useState(emptyProfile);
   const [savedEmail, setSavedEmail] = useState("");
   const [pendingEmail, setPendingEmail] = useState("");
-  const [branchName, setBranchName] = useState("");
-  const [groupName, setGroupName] = useState("");
   const [requestToken, setRequestToken] = useState("");
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(true);
@@ -98,11 +98,10 @@ function ProfilePage() {
           nickname: data.nickname || "",
           phone: data.phone || "",
           affiliation: data.affiliation || "",
+          branch_name: data.branch_name || "",
         });
         setSavedEmail(data.email || "");
         setPendingEmail(data.pending_email || "");
-        setGroupName(data.group_name || "");
-        setBranchName(data.branch_name || "");
         setPointBalance(balance);
       })
       .catch(() => setError("profile_load_failed"))
@@ -151,7 +150,8 @@ function ProfilePage() {
         name: profile.name || null,
         nickname: profile.nickname || null,
         phone: profile.phone || null,
-        affiliation: profile.affiliation || null,
+        affiliation: profile.affiliation,
+        branch_name: profile.branch_name || null,
       });
       setProfile((value) => ({
         ...value,
@@ -159,11 +159,12 @@ function ProfilePage() {
         nickname: updated.nickname || "",
         phone: updated.phone || "",
         affiliation: updated.affiliation || "",
+        branch_name: updated.branch_name || "",
       }));
       await refreshUser();
       setMessage("내 정보가 저장되었습니다.");
-    } catch {
-      setError("profile_save_failed");
+    } catch (requestError) {
+      setError(Array.isArray(requestError.response?.data?.detail) ? "invalid_profile_input" : "profile_save_failed");
     } finally {
       setSaving(false);
     }
@@ -280,28 +281,14 @@ function ProfilePage() {
             </Alert>
           )}
 
-          <TextField
-            label="소속"
-            value={profile.affiliation}
-            onChange={updateField("affiliation")}
-            placeholder={groupName || "예: 삼성생명 OO지점"}
-            helperText={groupName ? `비워두면 단체명(${groupName})을 사용합니다. 보고서 담당자 정보에 표시됩니다.` : "보고서 담당자 정보에 표시됩니다."}
-            inputProps={{ maxLength: 100 }}
-            fullWidth
+          <SignupProfileFields
+            value={profile}
+            onChange={(next) => { setProfile(next); setMessage(""); setError(""); }}
+            disabled={saving}
           />
-          {branchName && <Typography variant="body2" color="text.secondary">지점 / 활동 지역: {branchName}</Typography>}
-          <TextField label="이름" value={profile.name} onChange={updateField("name")} inputProps={{ maxLength: 100 }} fullWidth />
-          <TextField label="닉네임" value={profile.nickname} onChange={updateField("nickname")} inputProps={{ maxLength: 50 }} fullWidth />
-          <TextField
-            label="전화번호"
-            value={profile.phone}
-            onChange={updateField("phone")}
-            helperText="선택 항목 · 숫자 8~15자리, 국제번호는 + 사용 가능"
-            inputProps={{ maxLength: 30, inputMode: "tel" }}
-            fullWidth
-          />
+          <TextField label="닉네임 (선택)" value={profile.nickname} onChange={updateField("nickname")} inputProps={{ maxLength: 50 }} fullWidth disabled={saving} />
 
-          <Button variant="contained" size="large" startIcon={<SaveRoundedIcon />} onClick={saveProfile} disabled={saving}>
+          <Button variant="contained" size="large" startIcon={<SaveRoundedIcon />} onClick={saveProfile} disabled={saving || !profile.name.trim() || !profile.affiliation.trim() || !/^\+?[\d\s()-]{8,30}$/.test(profile.phone.trim())}>
             정보 저장
           </Button>
 

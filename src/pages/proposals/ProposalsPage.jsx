@@ -742,8 +742,6 @@ function ProposalsPage() {
       setActiveId(job.id);
       setStatusItem(null);
       setStatusMessage("");
-      setSelectedCategoryIds([]);
-      setPromptId("");
       setFiles([]);
       setFilesDragging(false);
       setInputValues({});
