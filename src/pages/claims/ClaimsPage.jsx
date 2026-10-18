@@ -6,6 +6,7 @@ import DownloadOutlinedIcon from '@mui/icons-material/DownloadOutlined';
 import SignaturePad from './SignaturePad';
 import ClaimPdfPreview from './ClaimPdfPreview';
 import ClaimHistory from './ClaimHistory';
+import ClaimFaxDestinations from './ClaimFaxDestinations';
 import { claimError, claimTemplateUrl, generateClaimPdf, getClaimInsurers, saveClaimRequest } from '@/services/claim-service';
 import { activeClaimPayload, claimInputErrors, claimErrorStep, claimNeedsGuardian, claimHasGuardian,
   formatClaimInputEdit, isFormattedClaimField } from '@/services/claim-validation';
@@ -25,6 +26,7 @@ const STEPS = ['보험사 선택', '인적사항·서명', '사고·계좌·첨�
 export default function ClaimsPage() {
   const [insurers, setInsurers] = useState([]);
   const [selected, setSelected] = useState([]);
+  const [faxNumbers, setFaxNumbers] = useState({});
   const [payload, setPayload] = useState(EMPTY);
   const [files, setFiles] = useState([]);
   const [step, setStep] = useState(0);
@@ -98,7 +100,7 @@ export default function ClaimsPage() {
     setError('');
     if (step === 0 && !selected.length) { setError('보험사를 한 곳 이상 선택해 주세요.'); return; }
     if (step === 1 && !validate(1)) return;
-    if (step > 0 && !form.current.reportValidity()) return;
+    if (!form.current.reportValidity()) return;
     setStep(step + 1);
   }
   function validate(stage) {
@@ -139,7 +141,7 @@ export default function ClaimsPage() {
     setBusy(true); setError('');
     requestKey.current ||= crypto.randomUUID();
     try {
-      const result = await saveClaimRequest(requestKey.current, selected, activeClaimPayload(payload), files);
+      const result = await saveClaimRequest(requestKey.current, selected, activeClaimPayload(payload), files, faxNumbers);
       setSaved(result);
     } catch (e) { setError(await claimError(e)); } finally { setBusy(false); }
   }
@@ -150,6 +152,8 @@ export default function ClaimsPage() {
       insured_guardian_enabled: Boolean(claim.insured_guardian_name),
       beneficiary_guardian_enabled: Boolean(claim.beneficiary_guardian_name) });
     setSelected(detail.deliveries.map(item => item.insurer_id));
+    // A virtual number may belong to a previous claim or have expired.
+    setFaxNumbers({});
     setFiles(attachments); setFieldErrors({}); setStep(0); setView('create');
   }
   const active = results.find(item => item.id === preview);
@@ -168,17 +172,22 @@ export default function ClaimsPage() {
       {loading ? <CircularProgress aria-label="보험사 불러오는 중" /> : <Paper variant="outlined" sx={{ p: { xs: 2, md: 3 }, borderRadius: 3 }}>
         {step === 0 && <Stack spacing={2} role="group" aria-label="청구할 보험사">
           <Typography variant="h6" fontWeight={700}>청구할 보험사를 선택해 주세요</Typography>
-          <Typography variant="body2" color="text.secondary">확인된 24개 양식을 지원합니다. 여러 보험사를 함께 선택할 수 있습니다.</Typography>
+          <Typography variant="body2" color="text.secondary">확인된 {insurers.length}개 양식을 지원합니다. 여러 보험사를 함께 선택할 수 있습니다.</Typography>
           {['DAMAGE', 'LIFE'].map(kind => <Box key={kind}>
             <Typography fontWeight={700} sx={{ mb: 1 }}>{kind === 'DAMAGE' ? '손해보험·공제' : '생명보험'}</Typography>
             <Grid container spacing={1}>{insurers.filter(item => item.kind === kind).map(item => <Grid item xs={12} sm={6} md={4} key={item.id}>
               <Paper variant="outlined" sx={{ px: 1, bgcolor: selected.includes(item.id) ? '#eef4ff' : 'white' }}>
                 <FormControlLabel sx={{ width: '100%', m: 0 }} label={item.name} control={<Checkbox checked={selected.includes(item.id)} disabled={busy}
                   onChange={event => { invalidate(); setSelected(previous => event.target.checked
-                    ? [...previous, item.id] : previous.filter(id => id !== item.id)); }} />} />
+                    ? [...previous, item.id] : previous.filter(id => id !== item.id));
+                    setFaxNumbers(previous => { const next = { ...previous }; delete next[item.id]; return next; }); }} />} />
               </Paper>
             </Grid>)}</Grid>
           </Box>)}
+          {selected.length > 0 && <ClaimFaxDestinations insurers={insurers.filter(item => selected.includes(item.id))}
+            numbers={faxNumbers} disabled={busy} onChange={(id, value) => {
+              invalidate(); setFaxNumbers(previous => ({ ...previous, [id]: value }));
+            }} />}
         </Stack>}
         {step === 1 && <Stack spacing={2.5}>
           <Typography variant="h6" fontWeight={700}>피보험자</Typography>
@@ -240,6 +249,7 @@ export default function ClaimsPage() {
         {step === 3 && <Stack spacing={2}>
           <Typography variant="h6" fontWeight={700}>생성된 PDF {results.length}건</Typography>
           <Typography variant="body2" color="text.secondary">보험사별 내용을 확인한 뒤 팩스 보내기를 눌러 저장하세요. 입력을 수정하면 다시 생성해야 합니다.</Typography>
+          <ClaimFaxDestinations insurers={insurers.filter(item => selected.includes(item.id))} numbers={faxNumbers} readOnly />
           <Stack direction="row" gap={1} flexWrap="wrap">{results.map(item => <Button key={item.id} variant={preview === item.id ? 'contained' : 'outlined'} onClick={() => setPreview(item.id)}>{item.name} · {item.pages}쪽</Button>)}</Stack>
           {active && <>
             <Button variant="outlined" startIcon={<DownloadOutlinedIcon />} href={active.url} download={`${active.name}_청구서.pdf`}>선택한 PDF 다운로드</Button>

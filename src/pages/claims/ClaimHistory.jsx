@@ -91,12 +91,15 @@ export default function ClaimHistory({ onReuse }) {
           <Divider />
           {detail.deliveries.map(d => <Stack key={d.id} direction="row" gap={1} alignItems="center" flexWrap="wrap">
             <Typography>{d.insurer_name} · {d.pages}쪽 · 발송 요청 저장됨</Typography>
+            <Typography variant="body2" color="text.secondary">{d.fax_number
+              ? `${d.fax_type === 'VIRTUAL' ? '개별 가상팩스' : '공용팩스'}: ${d.fax_number}`
+              : '수신 팩스 번호 기록 없음'}</Typography>
             <Button disabled={busy} onClick={() => showPdf(d)}>저장된 PDF 확인</Button>
           </Stack>)}
           {preview && <ClaimPdfPreview blob={preview.blob} name={preview.name} />}
           <Typography fontWeight={700}>첨부서류 {detail.files.length}개</Typography>
           {detail.files.map(file => <Box key={file.id}><Button disabled={busy} onClick={() => download(file)}>{file.filename}</Button></Box>)}
-          <Alert severity="info">같은 내용으로 작성하면 입력 내용·서명·첨부서류를 불러옵니다. 개인정보 동의는 다시 확인해 주세요.</Alert>
+          <Alert severity="info">같은 내용으로 작성하면 입력 내용·서명·첨부서류를 불러옵니다. 가상팩스 번호는 유효기간과 청구 대상이 다를 수 있어 다시 입력하며, 개인정보 동의도 다시 확인해 주세요.</Alert>
           {busy && <CircularProgress size={24} aria-label="청구서 처리 중" />}
         </Stack>}
       </DialogContent>
