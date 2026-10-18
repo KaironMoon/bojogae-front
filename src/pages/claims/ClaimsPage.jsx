@@ -22,6 +22,10 @@ const EMPTY = {
   accident_description: '', bank_name: '', account_number: '', account_holder: '', consent: false,
 };
 const STEPS = ['보험사 선택', '인적사항·서명', '사고·계좌·첨부', 'PDF 확인'];
+const FIELD_GRID = {
+  display: 'grid', gap: 2,
+  gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: 'repeat(3, minmax(0, 1fr))' },
+};
 
 export default function ClaimsPage() {
   const [insurers, setInsurers] = useState([]);
@@ -85,11 +89,11 @@ export default function ClaimsPage() {
       {active && <Stack spacing={2} sx={{ p: 2, bgcolor: 'action.hover', borderRadius: 2 }}>
       <Typography fontWeight={700}>{label} 법정대리인 정보</Typography>
       <Typography variant="body2" color="text.secondary">{automatic ? `${label}가 만 14세 미만이므로 ` : ''}법정대리인 정보를 입력해 주세요. 보험사 원본의 해당 칸과 서명된 별지에 반영합니다.</Typography>
-      <Grid container spacing={2}>
-        <Grid item xs={12} sm={4}>{field(`${party}_guardian_name`, `${label} 법정대리인 성명`, { required: true, inputProps: { maxLength: 40 } })}</Grid>
-        <Grid item xs={12} sm={4}>{field(`${party}_guardian_relationship`, `${label} 법정대리인 관계`, { required: true, placeholder: '예: 부, 모, 후견인', inputProps: { maxLength: 30 } })}</Grid>
-        <Grid item xs={12} sm={4}>{field(`${party}_guardian_phone`, `${label} 법정대리인 연락처`, { required: true, type: 'tel' })}</Grid>
-      </Grid>
+      <Box sx={FIELD_GRID}>
+        {field(`${party}_guardian_name`, `${label} 법정대리인 성명`, { required: true, inputProps: { maxLength: 40 } })}
+        {field(`${party}_guardian_relationship`, `${label} 법정대리인 관계`, { required: true, placeholder: '예: 부, 모, 후견인', inputProps: { maxLength: 30 } })}
+        {field(`${party}_guardian_phone`, `${label} 법정대리인 연락처`, { required: true, type: 'tel' })}
+      </Box>
       <SignaturePad label={`${label} 법정대리인 서명`} value={payload[`${party}_guardian_signature`]} disabled={busy}
         onChange={value => update(`${party}_guardian_signature`, value)} />
       {fieldErrors[`${party}_guardian_signature`] && <Alert severity="error">{fieldErrors[`${party}_guardian_signature`]}</Alert>}
@@ -191,42 +195,44 @@ export default function ClaimsPage() {
         </Stack>}
         {step === 1 && <Stack spacing={2.5}>
           <Typography variant="h6" fontWeight={700}>피보험자</Typography>
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={4}>{field('insured_name', '이름', { required: true, inputProps: { maxLength: 40 } })}</Grid>
-            <Grid item xs={12} sm={4}>{field('insured_id', '주민등록번호', { required: true, placeholder: '앞 6자리-뒤 7자리', inputProps: { pattern: '[0-9]{6}-?[0-9]{7}', maxLength: 14 } })}</Grid>
-            <Grid item xs={12} sm={4}>{field('insured_phone', '휴대전화', { required: true, type: 'tel' })}</Grid>
-          </Grid>
+          <Box sx={FIELD_GRID}>
+            {field('insured_name', '이름', { required: true, inputProps: { maxLength: 40 } })}
+            {field('insured_id', '주민등록번호', { required: true, placeholder: '앞 6자리-뒤 7자리', inputProps: { pattern: '[0-9]{6}-?[0-9]{7}', maxLength: 14 } })}
+            {field('insured_phone', '휴대전화', { required: true, type: 'tel' })}
+          </Box>
           <SignaturePad label="피보험자 서명" value={payload.insured_signature} disabled={busy} onChange={value => update('insured_signature', value)} />
           {claimNeedsGuardian(payload.insured_id) && <Typography variant="caption">만 14세 미만은 법정대리인 서명을 필수로 받습니다. 본인 서명은 가능한 경우에만 추가해 주세요.</Typography>}
           {guardianFields('insured', '피보험자')}
           <Divider />
           <FormControlLabel label="보험금 수익자가 피보험자와 같습니다" control={<Checkbox checked={payload.beneficiary_same} disabled={busy} onChange={e => update('beneficiary_same', e.target.checked)} />} />
           {!payload.beneficiary_same && <>
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={4}>{field('beneficiary_name', '수익자 이름', { required: true })}</Grid>
-              <Grid item xs={12} sm={4}>{field('beneficiary_id', '수익자 주민등록번호', { required: true, inputProps: { pattern: '[0-9]{6}-?[0-9]{7}', maxLength: 14 } })}</Grid>
-              <Grid item xs={12} sm={4}>{field('beneficiary_phone', '수익자 휴대전화', { required: true, type: 'tel' })}</Grid>
-            </Grid>
+            <Box sx={FIELD_GRID}>
+              {field('beneficiary_name', '수익자 이름', { required: true })}
+              {field('beneficiary_id', '수익자 주민등록번호', { required: true, inputProps: { pattern: '[0-9]{6}-?[0-9]{7}', maxLength: 14 } })}
+              {field('beneficiary_phone', '수익자 휴대전화', { required: true, type: 'tel' })}
+            </Box>
             {guardianFields('beneficiary', '수익자')}
             <SignaturePad label="수익자 서명" value={payload.beneficiary_signature} disabled={busy} onChange={value => update('beneficiary_signature', value)} />
             {claimNeedsGuardian(payload.beneficiary_id) && <Typography variant="caption">만 14세 미만은 법정대리인 서명을 필수로 받습니다. 본인 서명은 가능한 경우에만 추가해 주세요.</Typography>}
           </>}
           {field('notice_target', '보상 안내를 받을 사람', { select: true, children: [<MenuItem key="insured" value="insured">피보험자</MenuItem>, <MenuItem key="planner" value="planner">설계사</MenuItem>] })}
-          {payload.notice_target === 'planner' && <Grid container spacing={2}>
-            <Grid item xs={12} sm={6}>{field('planner_name', '설계사 이름', { required: true })}</Grid>
-            <Grid item xs={12} sm={6}>{field('planner_phone', '설계사 연락처', { required: true, type: 'tel' })}</Grid>
-          </Grid>}
+          {payload.notice_target === 'planner' && <Box sx={{ ...FIELD_GRID, gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: 'repeat(2, minmax(0, 1fr))' } }}>
+            {field('planner_name', '설계사 이름', { required: true })}
+            {field('planner_phone', '설계사 연락처', { required: true, type: 'tel' })}
+          </Box>}
         </Stack>}
         {step === 2 && <Stack spacing={2.5}>
           <Typography variant="h6" fontWeight={700}>사고 정보와 지급 계좌</Typography>
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={6}>{field('accident_type', '사고 유형', { select: true, children: ['질병', '상해', '교통사고'].map(v => <MenuItem key={v} value={v}>{v}</MenuItem>) })}</Grid>
-            <Grid item xs={12} sm={6}>{field('accident_date', '사고일 / 최초 진료일', { type: 'date', required: true, InputLabelProps: { shrink: true } })}</Grid>
-            <Grid item xs={12}>{field('accident_description', '사고 경위', { multiline: true, minRows: 3, required: true, inputProps: { maxLength: 500 } })}</Grid>
-            <Grid item xs={12} sm={4}>{field('bank_name', '은행명', { required: true })}</Grid>
-            <Grid item xs={12} sm={4}>{field('account_number', '계좌번호', { required: true, inputProps: { maxLength: 30 } })}</Grid>
-            <Grid item xs={12} sm={4}>{field('account_holder', '예금주', { required: true })}</Grid>
-          </Grid>
+          <Box sx={{ ...FIELD_GRID, gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: 'repeat(2, minmax(0, 1fr))' } }}>
+            {field('accident_type', '사고 유형', { select: true, children: ['질병', '상해', '교통사고'].map(v => <MenuItem key={v} value={v}>{v}</MenuItem>) })}
+            {field('accident_date', '사고일 / 최초 진료일', { type: 'date', required: true, InputLabelProps: { shrink: true } })}
+            {field('accident_description', '사고 경위', { multiline: true, minRows: 3, required: true, inputProps: { maxLength: 500 }, sx: { gridColumn: '1 / -1' } })}
+          </Box>
+          <Box sx={FIELD_GRID}>
+            {field('bank_name', '은행명', { required: true })}
+            {field('account_number', '계좌번호', { required: true, inputProps: { maxLength: 30 } })}
+            {field('account_holder', '예금주', { required: true })}
+          </Box>
           <Divider />
           <Box><Typography fontWeight={700} sx={{ mb: 1 }}>청구 서류 첨부</Typography>
             <Button variant="outlined" component="label" disabled={busy}>PDF·사진 추가<input type="file" hidden multiple accept="application/pdf,image/png,image/jpeg,image/webp"
