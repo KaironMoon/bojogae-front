@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { Alert, Box, Button, Checkbox, Chip, CircularProgress, Divider, FormControlLabel, Grid,
-  MenuItem, Paper, Radio, Stack, Step, StepLabel, Stepper, TextField, Typography } from '@mui/material';
+  MenuItem, Paper, Stack, Step, StepLabel, Stepper, TextField, Typography } from '@mui/material';
 import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
 import DownloadOutlinedIcon from '@mui/icons-material/DownloadOutlined';
 import SignaturePad from './SignaturePad';
 import ClaimPdfPreview from './ClaimPdfPreview';
-import { claimError, claimTemplateUrl, generateClaimPdf, getClaimInsurers, simulateClaimSend } from '@/services/claim-service';
+import ClaimHistory from './ClaimHistory';
+import { claimError, claimTemplateUrl, generateClaimPdf, getClaimInsurers, saveClaimRequest } from '@/services/claim-service';
 import { activeClaimPayload, claimInputErrors, claimErrorStep, claimNeedsGuardian, claimHasGuardian,
   formatClaimInputEdit, isFormattedClaimField } from '@/services/claim-validation';
 
@@ -34,7 +35,9 @@ export default function ClaimsPage() {
   const [results, setResults] = useState([]);
   const [preview, setPreview] = useState('');
   const [progress, setProgress] = useState('');
-  const [simulation, setSimulation] = useState('');
+  const [saved, setSaved] = useState(null);
+  const [view, setView] = useState('create');
+  const requestKey = useRef(null);
   const urls = useRef([]);
   const pending = useRef(null);
   const form = useRef(null);
@@ -47,7 +50,7 @@ export default function ClaimsPage() {
   }, []);
   function invalidate() {
     urls.current.forEach(URL.revokeObjectURL); urls.current = [];
-    setResults([]); setPreview(''); setSimulation(''); setError('');
+    setResults([]); setPreview(''); setSaved(null); setError(''); requestKey.current = null;
   }
   function update(key, value) {
     invalidate(); setPayload(previous => ({ ...previous, [key]: value }));
@@ -93,7 +96,7 @@ export default function ClaimsPage() {
   }
   function next() {
     setError('');
-    if (step === 0 && selected.length !== 1) { setError('보험사를 한 곳 선택해 주세요.'); return; }
+    if (step === 0 && !selected.length) { setError('보험사를 한 곳 이상 선택해 주세요.'); return; }
     if (step === 1 && !validate(1)) return;
     if (step > 0 && !form.current.reportValidity()) return;
     setStep(step + 1);
@@ -107,7 +110,7 @@ export default function ClaimsPage() {
     return false;
   }
   async function generate() {
-    if (selected.length !== 1) { setError('보험사를 한 곳 선택해 주세요.'); setStep(0); return; }
+    if (!selected.length) { setError('보험사를 한 곳 이상 선택해 주세요.'); setStep(0); return; }
     if (!validate(2)) return;
     if (!form.current.reportValidity()) return;
     invalidate(); setBusy(true);
@@ -129,32 +132,50 @@ export default function ClaimsPage() {
     setResults(generated); setPreview(generated[0]?.id || ''); setStep(3); setBusy(false); setProgress('');
     if (failures.length) setError(failures.join('\n'));
   }
-  async function simulate() {
+  async function save() {
+    if (results.length !== selected.length) {
+      setError('선택한 보험사의 PDF를 모두 생성한 후 다시 시도해 주세요.'); return;
+    }
     setBusy(true); setError('');
+    requestKey.current ||= crypto.randomUUID();
     try {
-      const result = await simulateClaimSend(results.map(item => item.receipt));
-      setSimulation(result.message);
+      const result = await saveClaimRequest(requestKey.current, selected, activeClaimPayload(payload), files);
+      setSaved(result);
     } catch (e) { setError(await claimError(e)); } finally { setBusy(false); }
+  }
+  function reuse(detail, attachments) {
+    invalidate();
+    const claim = detail.claim;
+    setPayload({ ...EMPTY, ...claim, consent: false,
+      insured_guardian_enabled: Boolean(claim.insured_guardian_name),
+      beneficiary_guardian_enabled: Boolean(claim.beneficiary_guardian_name) });
+    setSelected(detail.deliveries.map(item => item.insurer_id));
+    setFiles(attachments); setFieldErrors({}); setStep(0); setView('create');
   }
   const active = results.find(item => item.id === preview);
   return <Box sx={{ maxWidth: 1100, mx: 'auto', p: { xs: 2, md: 3 } }}>
-    <Stack spacing={3} component="form" ref={form} onSubmit={e => e.preventDefault()}>
+    <Stack direction="row" spacing={1} sx={{ mb: 3 }}>
+      <Button variant={view === 'create' ? 'contained' : 'outlined'} disabled={busy} onClick={() => setView('create')}>청구서 작성</Button>
+      <Button variant={view === 'history' ? 'contained' : 'outlined'} disabled={busy} onClick={() => setView('history')}>청구 요청 내역</Button>
+    </Stack>
+    {view === 'history' ? <ClaimHistory onReuse={reuse} /> : <Stack spacing={3} component="form" ref={form} onSubmit={e => e.preventDefault()}>
       <Box><Typography variant="h4" fontWeight={800}>보험금 청구서 만들기</Typography>
         <Typography color="text.secondary" sx={{ mt: 1 }}>공통 정보를 입력하면 보험사별 청구서를 만들 수 있습니다.</Typography></Box>
-      <Alert severity="info">현재는 PDF 확인용입니다. 전송 버튼을 눌러도 실제 팩스 발송이나 비용 차감은 없습니다.</Alert>
+      <Alert severity="info">팩스 보내기를 누르면 청구 내용·서명·첨부·보험사별 PDF가 서버에 저장됩니다. 실제 팩스 발송과 비용 차감은 아직 연결되지 않았습니다.</Alert>
       <Stepper activeStep={step} alternativeLabel>{STEPS.map(title => <Step key={title}><StepLabel>{title}</StepLabel></Step>)}</Stepper>
       {error && <Alert severity="error" sx={{ whiteSpace: 'pre-line' }}>{error}</Alert>}
-      {simulation && <Alert severity="success" role="status">{simulation}</Alert>}
+      {saved && <Alert severity="success" role="status">청구 요청 {saved.id}번이 저장되었습니다. 실제 팩스는 발송되지 않았습니다. ‘청구 요청 내역’에서 확인할 수 있습니다.</Alert>}
       {loading ? <CircularProgress aria-label="보험사 불러오는 중" /> : <Paper variant="outlined" sx={{ p: { xs: 2, md: 3 }, borderRadius: 3 }}>
-        {step === 0 && <Stack spacing={2} role="radiogroup" aria-label="청구할 보험사">
+        {step === 0 && <Stack spacing={2} role="group" aria-label="청구할 보험사">
           <Typography variant="h6" fontWeight={700}>청구할 보험사를 선택해 주세요</Typography>
-          <Typography variant="body2" color="text.secondary">확인된 24개 양식을 지원합니다. 한 번에 한 보험사만 선택할 수 있습니다.</Typography>
+          <Typography variant="body2" color="text.secondary">확인된 24개 양식을 지원합니다. 여러 보험사를 함께 선택할 수 있습니다.</Typography>
           {['DAMAGE', 'LIFE'].map(kind => <Box key={kind}>
             <Typography fontWeight={700} sx={{ mb: 1 }}>{kind === 'DAMAGE' ? '손해보험·공제' : '생명보험'}</Typography>
             <Grid container spacing={1}>{insurers.filter(item => item.kind === kind).map(item => <Grid item xs={12} sm={6} md={4} key={item.id}>
               <Paper variant="outlined" sx={{ px: 1, bgcolor: selected.includes(item.id) ? '#eef4ff' : 'white' }}>
-                <FormControlLabel sx={{ width: '100%', m: 0 }} label={item.name} control={<Radio name="claim-insurer" value={item.id} checked={selected[0] === item.id}
-                  onChange={() => { invalidate(); setSelected([item.id]); }} />} />
+                <FormControlLabel sx={{ width: '100%', m: 0 }} label={item.name} control={<Checkbox checked={selected.includes(item.id)} disabled={busy}
+                  onChange={event => { invalidate(); setSelected(previous => event.target.checked
+                    ? [...previous, item.id] : previous.filter(id => id !== item.id)); }} />} />
               </Paper>
             </Grid>)}</Grid>
           </Box>)}
@@ -218,7 +239,7 @@ export default function ClaimsPage() {
         </Stack>}
         {step === 3 && <Stack spacing={2}>
           <Typography variant="h6" fontWeight={700}>생성된 PDF {results.length}건</Typography>
-          <Typography variant="body2" color="text.secondary">내용을 확인한 뒤 다운로드하세요. 입력을 수정하면 다시 생성해야 합니다.</Typography>
+          <Typography variant="body2" color="text.secondary">보험사별 내용을 확인한 뒤 팩스 보내기를 눌러 저장하세요. 입력을 수정하면 다시 생성해야 합니다.</Typography>
           <Stack direction="row" gap={1} flexWrap="wrap">{results.map(item => <Button key={item.id} variant={preview === item.id ? 'contained' : 'outlined'} onClick={() => setPreview(item.id)}>{item.name} · {item.pages}쪽</Button>)}</Stack>
           {active && <>
             <Button variant="outlined" startIcon={<DownloadOutlinedIcon />} href={active.url} download={`${active.name}_청구서.pdf`}>선택한 PDF 다운로드</Button>
@@ -227,13 +248,13 @@ export default function ClaimsPage() {
           {!results.length && <Alert severity="warning">생성된 PDF가 없습니다. 이전 단계에서 내용을 확인해 주세요.</Alert>}
         </Stack>}
       </Paper>}
-      {busy && <Stack direction="row" spacing={1} alignItems="center" role="status"><CircularProgress size={20} /><Typography>{progress || '가상 전송 확인 중'}</Typography></Stack>}
+      {busy && <Stack direction="row" spacing={1} alignItems="center" role="status"><CircularProgress size={20} /><Typography>{progress || '청구 요청 저장 중'}</Typography></Stack>}
       <Stack direction="row" justifyContent="space-between" spacing={2}>
         <Button disabled={step === 0 || busy} onClick={() => setStep(s => s-1)}>이전</Button>
         {step < 2 ? <Button variant="contained" disabled={busy || loading} onClick={next}>다음</Button>
           : step === 2 ? <Button variant="contained" disabled={busy} startIcon={<DescriptionOutlinedIcon />} onClick={generate}>PDF 생성</Button>
-            : <Button variant="contained" disabled={busy || !results.length || Boolean(simulation)} onClick={simulate}>전송 (가상)</Button>}
+            : <Button variant="contained" disabled={busy || !results.length || results.length !== selected.length || Boolean(saved)} onClick={save}>{saved ? '저장 완료' : '팩스 보내기'}</Button>}
       </Stack>
-    </Stack>
+    </Stack>}
   </Box>;
 }

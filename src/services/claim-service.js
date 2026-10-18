@@ -30,3 +30,23 @@ export async function claimError(error) {
   }
   return typeof data?.detail === 'string' ? data.detail : error?.message || '청구서를 처리하지 못했습니다.';
 }
+
+export async function saveClaimRequest(requestKey, insurerIds, claim, files) {
+  const form = new FormData();
+  form.append('payload', JSON.stringify({ request_key: requestKey, insurer_ids: insurerIds, claim }));
+  files.forEach(file => form.append('files', file));
+  return (await apiCaller.post('/api/v1/claims/requests', form, { timeout: 300000 })).data;
+}
+
+export async function getClaimRequests(page = 1, signal) {
+  return (await apiCaller.get('/api/v1/claims/requests', { page }, { signal })).data;
+}
+
+export async function getClaimRequest(id, signal) {
+  return (await apiCaller.get(`/api/v1/claims/requests/${id}`, {}, { signal })).data;
+}
+
+export async function getClaimFile(requestId, fileId, pdf = false, signal) {
+  return (await apiCaller.get(`/api/v1/claims/requests/${requestId}/files/${fileId}`, { pdf },
+    { responseType: 'blob', signal })).data;
+}

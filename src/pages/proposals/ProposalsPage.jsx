@@ -1137,9 +1137,9 @@ function ProposalsPage() {
           <Paper
             data-report-help="favorites"
             variant="outlined"
-            sx={{ p: { xs: 1.5, sm: 2 }, borderRadius: "16px", height: { xs: "auto", md: 600 }, boxSizing: "border-box", minHeight: 0, mb: 2, display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 1px 3px rgba(15, 23, 42, 0.05)" }}
+            sx={{ p: { xs: 1.5, sm: 2 }, borderRadius: "16px", maxHeight: { md: 600 }, boxSizing: "border-box", minHeight: 0, mb: 2, display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 1px 3px rgba(15, 23, 42, 0.05)" }}
           >
-            <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ xs: "stretch", sm: "center" }} gap={1} sx={{ pb: 1.25, borderBottom: 1, borderColor: "divider" }}>
+            <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ xs: "stretch", sm: "center" }} gap={1} sx={{ pb: 1.25, borderBottom: 1, borderColor: "divider", flexShrink: 0 }}>
               <Box sx={{ minWidth: 0 }}>
                 <Stack direction="row" spacing={0.75} alignItems="center">
                   <Tabs value={promptTab} onChange={changePromptTab} aria-label="프롬프트 목록" variant="scrollable" scrollButtons={false} sx={{ minHeight: 36, maxWidth: "100%" }}>
@@ -1154,7 +1154,7 @@ function ProposalsPage() {
               <Chip label={`${displayedPromptOptions.length}개`} size="small" color="primary" variant="outlined" sx={{ alignSelf: { xs: "flex-start", sm: "center" } }} />
             </Stack>
 
-            <Box sx={{ position: "relative", minWidth: 0, minHeight: { xs: "auto", md: 0 }, flex: 1 }}>
+            <Box sx={{ position: "relative", minWidth: 0, minHeight: { xs: "auto", md: 0 }, display: "flex", flexDirection: "column", flex: "0 1 auto" }}>
             <Box
               ref={promptScrollerRef}
               onScroll={updatePromptSlide}
@@ -1167,7 +1167,7 @@ function ProposalsPage() {
                 px: { xs: "4%", md: 0 },
                 pr: { md: 0.5 },
                 minHeight: 0,
-                height: { xs: "auto", md: "100%" },
+                flex: "0 1 auto",
                 overflowX: { xs: "auto", md: "hidden" },
                 overflowY: { xs: "hidden", md: "auto" },
                 scrollSnapType: { xs: "x mandatory", md: "none" },
