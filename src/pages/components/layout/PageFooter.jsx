@@ -32,8 +32,8 @@ function PageFooter() {
           <Link component={RouterLink} to="/terms" color="inherit" underline="hover" sx={{ whiteSpace: "nowrap" }}>
             서비스이용약관
           </Link>
-          <Link href="#" color="inherit" underline="hover" sx={{ whiteSpace: "nowrap" }}>
-            Contact Us
+          <Link component={RouterLink} to="/help/faq" color="inherit" underline="hover" sx={{ whiteSpace: "nowrap" }}>
+            도움말 센터
           </Link>
         </Box>
       </Box>

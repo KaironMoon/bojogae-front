@@ -26,6 +26,7 @@ import NewspaperOutlinedIcon from "@mui/icons-material/NewspaperOutlined";
 import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
 import ViewCarouselOutlinedIcon from "@mui/icons-material/ViewCarouselOutlined";
 import ContactPhoneOutlinedIcon from "@mui/icons-material/ContactPhoneOutlined";
+import HelpOutlineOutlinedIcon from "@mui/icons-material/HelpOutlineOutlined";
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { planName } from "@/constants/plans";
@@ -67,6 +68,11 @@ const REPORT_MENU = [
   { label: "문서 개선 건의", path: "/document-suggestions", icon: DescriptionOutlinedIcon },
 ];
 
+const HELP_MENU = [
+  { label: "FAQ", path: "/help/faq", icon: HelpOutlineOutlinedIcon },
+  { label: "1:1 문의", path: "/help/contact", icon: ContactPhoneOutlinedIcon },
+];
+
 const PROFILE_MENU = [
   { label: "정보수정·결제", path: "/profile", icon: AccountCircleOutlinedIcon },
   { label: "내 꼬막", path: "/my-coins", icon: AccountBalanceWalletOutlinedIcon },
@@ -91,6 +97,7 @@ function PageLeftMenu({ onNavigate }) { // eslint-disable-line react/prop-types
     location.pathname === "/profile" || location.pathname.startsWith("/my-coins"),
   );
   const [boardsOpen, setBoardsOpen] = useState(location.pathname.startsWith("/boards/"));
+  const [helpOpen, setHelpOpen] = useState(location.pathname.startsWith("/help/"));
   const [adminBoardsOpen, setAdminBoardsOpen] = useState(location.pathname.startsWith("/admin/boards/"));
 
   useEffect(() => {
@@ -99,6 +106,7 @@ function PageLeftMenu({ onNavigate }) { // eslint-disable-line react/prop-types
         || location.pathname.startsWith("/document-suggestions")) setReportOpen(true);
     if (location.pathname === "/profile" || location.pathname.startsWith("/my-coins")) setProfileOpen(true);
     if (location.pathname.startsWith("/boards/")) setBoardsOpen(true);
+    if (location.pathname.startsWith("/help/")) setHelpOpen(true);
     if (location.pathname.startsWith("/admin/boards/")) setAdminBoardsOpen(true);
   }, [location.pathname]);
 
@@ -221,6 +229,7 @@ function PageLeftMenu({ onNavigate }) { // eslint-disable-line react/prop-types
         {renderMenuGroup({ label: "요청하기", icon: DescriptionOutlinedIcon, items: REPORT_MENU, open: reportOpen, setOpen: setReportOpen, prefix: "/report-menu/" })}
         {renderMenuGroup({ label: "내 정보", icon: AccountCircleOutlinedIcon, items: PROFILE_MENU, open: profileOpen, setOpen: setProfileOpen, prefix: "/account/" })}
         {renderMenuGroup({ label: "게시판", icon: ArticleOutlinedIcon, items: BOARD_MENU, open: boardsOpen, setOpen: setBoardsOpen, prefix: "/boards/" })}
+        {renderMenuGroup({ label: "도움말 센터", icon: HelpOutlineOutlinedIcon, items: HELP_MENU, open: helpOpen, setOpen: setHelpOpen, prefix: "/help/" })}
         {user?.group_role === "LEADER" && renderMenuItem({ label: "그룹 관리", path: "/group", icon: GroupOutlinedIcon })}
         {user?.group_id && renderMenuItem({ label: "비밀번호 변경", path: "/group/change-password", icon: AccountCircleOutlinedIcon })}
       </List>
@@ -238,6 +247,7 @@ function PageLeftMenu({ onNavigate }) { // eslint-disable-line react/prop-types
             {ADMIN_MENU.map(renderMenuItem)}
             {renderMenuGroup({ label: "게시판 관리", icon: ArticleOutlinedIcon, items: ADMIN_BOARD_MENU, open: adminBoardsOpen, setOpen: setAdminBoardsOpen, prefix: "/admin/boards/" })}
             {renderMenuItem({ label: "Info", path: "/admin/info", icon: InfoOutlinedIcon })}
+            {renderMenuItem({ label: "FAQ 관리", path: "/admin/faqs", icon: HelpOutlineOutlinedIcon })}
           </List>
         </>
       )}

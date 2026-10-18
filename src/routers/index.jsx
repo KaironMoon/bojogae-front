@@ -43,6 +43,10 @@ import PolicyPage from "../pages/policy/PolicyPage";
 import InsurersPage from "../pages/insurers/InsurersPage";
 import InsurersAdminPage from "../pages/admin/InsurersAdminPage";
 import ClaimsPage from "../pages/claims/ClaimsPage";
+import QnaPage from "../pages/help/QnaPage";
+import HelpContactPage from "../pages/help/HelpContactPage";
+import FaqPage from "../pages/help/FaqPage";
+import FaqsPage from "../pages/admin/FaqsPage";
 
 const ProductLayout = lazy(() => import("../pages/product/ProductLayout"));
 const ProductList = lazy(() => import("../pages/product"));
@@ -136,6 +140,10 @@ const router = createBrowserRouter([
           { path: "/my-coins", element: <MyCoinsPage /> },
           { path: "/insurers", element: <InsurersPage /> },
           { path: "/claims", element: <ClaimsPage /> },
+          { path: "/help", element: <Navigate to="/help/faq" replace /> },
+          { path: "/help/faq", element: <FaqPage /> },
+          { path: "/help/qna", element: <QnaPage key="user-qna" /> },
+          { path: "/help/contact", element: <HelpContactPage /> },
           { path: "/boards/:boardType", element: <BoardListPage /> },
           { path: "/boards/:boardType/:postId", element: <BoardPostPage embedded /> },
           ...ProductRouter,
@@ -164,6 +172,8 @@ const router = createBrowserRouter([
           { path: "/admin/dashboard-banners", element: <DashboardBannersPage /> },
           { path: "/admin/insurers", element: <InsurersAdminPage /> },
           { path: "/admin/group-inquiries", element: <GroupInquiriesPage /> },
+          { path: "/admin/help-inquiries", element: <QnaPage key="admin-qna" admin /> },
+          { path: "/admin/faqs", element: <FaqsPage /> },
           { path: "/admin/boards/:boardType", element: <BoardListPage admin /> },
           { path: "/admin/boards/:boardType/new", element: <BoardEditorPage /> },
           { path: "/admin/boards/:boardType/:postId", element: <BoardPostPage admin /> },
