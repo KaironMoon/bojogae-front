@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Alert, Box, Button, Checkbox, Chip, CircularProgress, Divider, FormControlLabel, Grid,
   MenuItem, Paper, Stack, Step, StepLabel, Stepper, TextField, Typography } from '@mui/material';
 import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
@@ -28,6 +29,8 @@ const FIELD_GRID = {
 };
 
 export default function ClaimsPage() {
+  const navigate = useNavigate();
+  const view = useLocation().pathname === '/claims/history' ? 'history' : 'create';
   const [insurers, setInsurers] = useState([]);
   const [selected, setSelected] = useState([]);
   const [faxNumbers, setFaxNumbers] = useState({});
@@ -42,7 +45,6 @@ export default function ClaimsPage() {
   const [preview, setPreview] = useState('');
   const [progress, setProgress] = useState('');
   const [saved, setSaved] = useState(null);
-  const [view, setView] = useState('create');
   const requestKey = useRef(null);
   const urls = useRef([]);
   const pending = useRef(null);
@@ -158,21 +160,19 @@ export default function ClaimsPage() {
     setSelected(detail.deliveries.map(item => item.insurer_id));
     // A virtual number may belong to a previous claim or have expired.
     setFaxNumbers({});
-    setFiles(attachments); setFieldErrors({}); setStep(0); setView('create');
+    setFiles(attachments); setFieldErrors({}); setStep(0); navigate('/claims/new');
   }
   const active = results.find(item => item.id === preview);
   return <Box sx={{ maxWidth: 1100, mx: 'auto', p: { xs: 2, md: 3 } }}>
-    <Stack direction="row" spacing={1} sx={{ mb: 3 }}>
-      <Button variant={view === 'create' ? 'contained' : 'outlined'} disabled={busy} onClick={() => setView('create')}>청구서 작성</Button>
-      <Button variant={view === 'history' ? 'contained' : 'outlined'} disabled={busy} onClick={() => setView('history')}>청구 요청 내역</Button>
-    </Stack>
     {view === 'history' ? <ClaimHistory onReuse={reuse} /> : <Stack spacing={3} component="form" ref={form} onSubmit={e => e.preventDefault()}>
       <Box><Typography variant="h4" fontWeight={800}>보험금 청구서 만들기</Typography>
         <Typography color="text.secondary" sx={{ mt: 1 }}>공통 정보를 입력하면 보험사별 청구서를 만들 수 있습니다.</Typography></Box>
       <Alert severity="info">팩스 보내기를 누르면 청구 내용·서명·첨부·보험사별 PDF가 서버에 저장됩니다. 실제 팩스 발송과 비용 차감은 아직 연결되지 않았습니다.</Alert>
       <Stepper activeStep={step} alternativeLabel>{STEPS.map(title => <Step key={title}><StepLabel>{title}</StepLabel></Step>)}</Stepper>
       {error && <Alert severity="error" sx={{ whiteSpace: 'pre-line' }}>{error}</Alert>}
-      {saved && <Alert severity="success" role="status">청구 요청 {saved.id}번이 저장되었습니다. 실제 팩스는 발송되지 않았습니다. ‘청구 요청 내역’에서 확인할 수 있습니다.</Alert>}
+      {saved && <Alert severity="success" role="status" action={<Button component={Link} to="/claims/history" color="inherit" size="small">청구내역 보기</Button>}>
+        청구 요청 {saved.id}번이 저장되었습니다. 실제 팩스는 발송되지 않았습니다.
+      </Alert>}
       {loading ? <CircularProgress aria-label="보험사 불러오는 중" /> : <Paper variant="outlined" sx={{ p: { xs: 2, md: 3 }, borderRadius: 3 }}>
         {step === 0 && <Stack spacing={2} role="group" aria-label="청구할 보험사">
           <Typography variant="h6" fontWeight={700}>청구할 보험사를 선택해 주세요</Typography>

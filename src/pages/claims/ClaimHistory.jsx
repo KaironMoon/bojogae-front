@@ -3,6 +3,7 @@ import { Alert, Box, Button, CircularProgress, Dialog, DialogActions, DialogCont
   Divider, Paper, Stack, Typography } from '@mui/material';
 import { claimError, getClaimFile, getClaimRequest, getClaimRequests } from '@/services/claim-service';
 import ClaimPdfPreview from './ClaimPdfPreview';
+import ClaimDeliveryStatus from './ClaimDeliveryStatus';
 
 const timestamp = value => new Date(value).toLocaleString('ko-KR');
 
@@ -57,7 +58,7 @@ export default function ClaimHistory({ onReuse }) {
   }
   return <Stack spacing={2}>
     <Stack direction="row" justifyContent="space-between" alignItems="center">
-      <Typography variant="h6" fontWeight={700}>청구 요청 내역</Typography>
+      <Typography variant="h4" fontWeight={800}>청구내역</Typography>
       <Button disabled={loading || busy} onClick={() => setRefresh(v => v + 1)}>새로고침</Button>
     </Stack>
     <Alert severity="info">팩스 보내기를 눌러 저장한 내역입니다. 실제 팩스 발송과 비용 차감은 진행되지 않았습니다.</Alert>
@@ -68,8 +69,12 @@ export default function ClaimHistory({ onReuse }) {
       <Stack spacing={1}>
         <Typography fontWeight={700}>{item.insured_name} · {timestamp(item.created_at)}</Typography>
         <Typography variant="body2">사고일 {item.accident_date}</Typography>
-        <Typography variant="body2">{item.deliveries.map(d => d.insurer_name).join(', ')}</Typography>
-        <Typography variant="body2" color="text.secondary">발송 요청 저장됨 · 실제 발송 전</Typography>
+        <Stack spacing={1} aria-label="보험사별 팩스 전송 상태">
+          {item.deliveries.map(delivery => <Stack key={delivery.id} direction="row" gap={1} alignItems="center" flexWrap="wrap">
+            <Typography variant="body2">{delivery.insurer_name}</Typography>
+            <ClaimDeliveryStatus status={delivery.status} />
+          </Stack>)}
+        </Stack>
         <Box><Button disabled={busy} onClick={() => open(item.id)}>상세 보기 · 같은 내용으로 작성</Button></Box>
       </Stack>
     </Paper>)}
@@ -79,7 +84,7 @@ export default function ClaimHistory({ onReuse }) {
       <Button disabled={page >= history.total_pages || loading || busy} onClick={() => setPage(p => p + 1)}>다음</Button>
     </Stack>}
     <Dialog open={Boolean(detail)} onClose={() => { if (!busy) { setDetail(null); setPreview(null); } }} fullWidth maxWidth="md">
-      <DialogTitle>청구 요청 상세</DialogTitle>
+      <DialogTitle>청구 상세</DialogTitle>
       <DialogContent dividers>
         {detail && <Stack spacing={2}>
           {error && <Alert severity="error">{error}</Alert>}
@@ -90,7 +95,8 @@ export default function ClaimHistory({ onReuse }) {
           <Typography variant="body2" color="text.secondary">인적사항·계좌번호·서명 등 전체 내용은 보험사별 PDF 또는 ‘같은 내용으로 작성’에서 확인할 수 있습니다.</Typography>
           <Divider />
           {detail.deliveries.map(d => <Stack key={d.id} direction="row" gap={1} alignItems="center" flexWrap="wrap">
-            <Typography>{d.insurer_name} · {d.pages}쪽 · 발송 요청 저장됨</Typography>
+            <Typography>{d.insurer_name} · {d.pages}쪽</Typography>
+            <ClaimDeliveryStatus status={d.status} />
             <Typography variant="body2" color="text.secondary">{d.fax_number
               ? `${d.fax_type === 'VIRTUAL' ? '개별 가상팩스' : '공용팩스'}: ${d.fax_number}`
               : '수신 팩스 번호 기록 없음'}</Typography>

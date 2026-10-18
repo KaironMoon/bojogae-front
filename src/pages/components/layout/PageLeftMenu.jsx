@@ -38,7 +38,11 @@ const PRIMARY_MENU = [
   { label: "Home", path: "/home", icon: HomeOutlinedIcon },
   { label: "보고서 만들기", path: "/proposals", icon: DescriptionOutlinedIcon },
   { label: "보험사 정보·링크", path: "/insurers", icon: ContactPhoneOutlinedIcon },
-  { label: "보험금 청구서", path: "/claims", icon: DescriptionOutlinedIcon },
+];
+
+const CLAIM_MENU = [
+  { label: "청구", path: "/claims/new" },
+  { label: "청구내역", path: "/claims/history" },
 ];
 
 const ADMIN_MENU = [
@@ -98,6 +102,7 @@ function PageLeftMenu({ onNavigate }) { // eslint-disable-line react/prop-types
   );
   const [boardsOpen, setBoardsOpen] = useState(location.pathname.startsWith("/boards/"));
   const [helpOpen, setHelpOpen] = useState(location.pathname.startsWith("/help/"));
+  const [claimsOpen, setClaimsOpen] = useState(location.pathname.startsWith("/claims"));
   const [adminBoardsOpen, setAdminBoardsOpen] = useState(location.pathname.startsWith("/admin/boards/"));
 
   useEffect(() => {
@@ -107,6 +112,7 @@ function PageLeftMenu({ onNavigate }) { // eslint-disable-line react/prop-types
     if (location.pathname === "/profile" || location.pathname.startsWith("/my-coins")) setProfileOpen(true);
     if (location.pathname.startsWith("/boards/")) setBoardsOpen(true);
     if (location.pathname.startsWith("/help/")) setHelpOpen(true);
+    if (location.pathname.startsWith("/claims")) setClaimsOpen(true);
     if (location.pathname.startsWith("/admin/boards/")) setAdminBoardsOpen(true);
   }, [location.pathname]);
 
@@ -226,6 +232,7 @@ function PageLeftMenu({ onNavigate }) { // eslint-disable-line react/prop-types
     >
       <List sx={{ pt: 2, pb: 1 }}>
         {PRIMARY_MENU.map(renderMenuItem)}
+        {renderMenuGroup({ label: "보험금 청구", icon: DescriptionOutlinedIcon, items: CLAIM_MENU, open: claimsOpen, setOpen: setClaimsOpen, prefix: "/claims/" })}
         {renderMenuGroup({ label: "요청하기", icon: DescriptionOutlinedIcon, items: REPORT_MENU, open: reportOpen, setOpen: setReportOpen, prefix: "/report-menu/" })}
         {renderMenuGroup({ label: "내 정보", icon: AccountCircleOutlinedIcon, items: PROFILE_MENU, open: profileOpen, setOpen: setProfileOpen, prefix: "/account/" })}
         {renderMenuGroup({ label: "게시판", icon: ArticleOutlinedIcon, items: BOARD_MENU, open: boardsOpen, setOpen: setBoardsOpen, prefix: "/boards/" })}
