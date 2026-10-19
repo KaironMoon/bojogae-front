@@ -191,7 +191,7 @@ function LoginPage() {
                 <Alert severity={requestedPlan === "FREE" ? "success" : "info"}>
                   {requestedPlan === "FREE"
                     ? "무료체험으로 진행합니다. 가입 완료 시 200꼬막이 한 번 지급되며 30일간 사용할 수 있습니다."
-                    : `${PLAN_INFO[requestedPlan].name}(${PLAN_INFO[requestedPlan].price}/월, 매월 ${PLAN_INFO[requestedPlan].monthlyPoints}꼬막) 가입 신청으로 진행합니다. 가입 화면에서 요금제를 바꿀 수 있습니다.`}
+                    : `${PLAN_INFO[requestedPlan].name} 월간 구독 이용권(${PLAN_INFO[requestedPlan].price}/월, 구독 혜택 ${PLAN_INFO[requestedPlan].monthlyPoints.toLocaleString()}꼬막) 가입 신청으로 진행합니다. 가입 화면에서 요금제를 바꿀 수 있습니다.`}
                 </Alert>
               )}
               {error && <Alert severity="error">{errorMessages[error] || "로그인 중 오류가 발생했습니다."}</Alert>}

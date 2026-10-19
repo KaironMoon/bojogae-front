@@ -131,7 +131,7 @@ function ProfilePage() {
   };
 
   const withdraw = async () => {
-    if (!window.confirm('계정을 즉시 탈퇴하고 로그인과 자동 갱신을 중단합니다. 업로드 원본·보고서·공유 이미지 등 자료는 파기되며 복구할 수 없습니다. 결제·환불에 필요한 최소 식별 정보와 거래 기록은 법정 기간 동안 보관합니다. 구독료는 남은 월 제공 꼬막 비율로 계산해 원 미만을 올림하고, 유효기간 내 구매 꼬막의 미사용 잔액은 비례 계산해 자동 환불합니다. 탈퇴하시겠습니까?')) return;
+    if (!window.confirm('계정을 즉시 탈퇴하고 로그인과 자동 갱신을 중단합니다. 업로드 원본·보고서·공유 이미지 등 자료는 파기되며 복구할 수 없습니다. 결제·환불에 필요한 최소 식별 정보와 거래 기록은 법정 기간 동안 보관합니다. 결제 후 7일 이내에 해당 결제로 제공된 꼬막을 전혀 사용하지 않은 경우 전액 환불하며, 그 외에는 관계 법령에 따라 관리자 검토 후 결정됩니다. 탈퇴하시겠습니까?')) return;
     setSaving(true); setError("");
     try {
       await api.delete('/api/v1/users/me/account');
@@ -367,7 +367,7 @@ function ProfilePage() {
       </Paper>
       {user?.role === 'USER' && !user?.group_id && <Paper variant="outlined" sx={{ p:3, mt:3, borderRadius:3 }}>
         <Typography variant="h6">회원 탈퇴</Typography>
-        <Typography variant="body2" sx={{ my:1 }}>즉시 계정을 닫고 자동 갱신을 중단합니다. 환불 권리와 정산에 필요한 거래 기록은 유지됩니다. 남은 구독료와 유효기간 내 구매 꼬막 잔액은 자동 환불합니다. 구독만 해지하려면 위의 구독 해지를 이용해 주세요.</Typography>
+        <Typography variant="body2" sx={{ my:1 }}>즉시 계정을 닫고 자동 갱신을 중단합니다. 환불 권리와 정산에 필요한 거래 기록은 유지됩니다. 결제 후 7일 이내 꼬막 미사용 시 전액 환불되며, 그 외에는 관계 법령에 따라 검토합니다. 구독만 해지하려면 위의 구독 해지를 이용해 주세요.</Typography>
         <Button color="error" variant="outlined" disabled={saving} onClick={withdraw}>회원 탈퇴</Button>
       </Paper>}
     </Box>

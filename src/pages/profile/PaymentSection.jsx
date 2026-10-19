@@ -2,12 +2,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Box, Button, Checkbox, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, Radio, RadioGroup, MenuItem, Paper, Stack, TextField, Typography } from '@mui/material';
 import { Link } from 'react-router-dom';
+import { REFUND_NOTICE } from '@/constants/refund-policy';
 import KkomakIcon from '@/pages/components/KkomakIcon';
 import { getMyProfile, savePaymentContact } from '@/services/profile-service';
 import { getPayments, getPaymentMethods, getTerminationPreview, openBillingKey, openPayment, paymentError, paymentPost } from '@/services/payment-service';
 
 const date = (v) => v ? new Date(v).toLocaleString('ko-KR', { timeZone:'Asia/Seoul' }) : '-';
-const monthlyValidity = '월 구독 꼬막은 해당 구독 이용기간 종료일까지 사용할 수 있으며, 미사용분은 종료 시 소멸하고 다음 이용기간으로 이월되지 않습니다. 다음 정기결제 승인 시 새로운 월 제공분이 지급됩니다.';
+const monthlyValidity = '월간 구독 이용권의 혜택으로 제공된 꼬막은 해당 구독 이용기간 종료일까지 사용할 수 있으며, 미사용분은 종료 시 소멸하고 다음 이용기간으로 이월되지 않습니다. 다음 정기결제 승인 시 새로운 월 제공분이 지급됩니다.';
 const upgradeValidity = '업그레이드로 추가 지급된 꼬막도 현재 구독 이용기간 종료일까지 사용할 수 있으며, 미사용분은 같은 시점에 소멸합니다.';
 const topupValidity = '별도로 충전한 구매 꼬막은 결제한 시점부터 1년 이내에 사용할 수 있으며, 유효기간이 지나면 미사용분은 소멸합니다. 구독이 종료되어도 원래 만료일까지 사용할 수 있습니다.';
 const subscriptionStatuses = { ACTIVE:'구독 중', CANCELING:'자동 갱신 해지', CANCELED:'구독 종료', FAILED:'결제 실패', PENDING:'첫 결제 대기', REVIEW:'고객센터 확인 필요' };
@@ -179,7 +180,8 @@ export default function PaymentSection({ config, onChanged, onContactSaved }) {
   };
   return <><Paper id="plan" variant="outlined" sx={{ p:{ xs:2, md:3 }, mb:3, borderRadius:3 }}>
     <Stack spacing={2}>
-      <Stack direction="row" spacing={1} alignItems="center"><KkomakIcon size={42} /><Typography variant="h6" fontWeight={800}>구독·꼬막 충전</Typography></Stack>
+      <Stack direction="row" spacing={1} alignItems="center"><KkomakIcon size={42} /><Typography variant="h6" fontWeight={800}>월간 구독 이용권·꼬막 추가 구매</Typography></Stack>
+      <Typography variant="body2" color="text.secondary">보조개의 보험 제안서 분석·보고서 생성 기능을 이용하는 월간 구독 상품입니다. 구독 혜택으로 매월 요금제별 꼬막이 제공되며, 꼬막은 서비스 내 기능 이용 시 차감됩니다.</Typography>
       <Alert severity="info"><Stack spacing={1}>
         {(config.testMode || config.paymentTestMode || config.billingTestMode) && <Typography variant="body2">{config.testMode ? 'KG이니시스 테스트 결제입니다.' : `KG이니시스 ${config.paymentTestMode ? '추가 충전' : '정기'} 결제는 테스트 채널입니다.`}</Typography>}
         <Typography variant="body2">{monthlyValidity}</Typography>
@@ -201,7 +203,7 @@ export default function PaymentSection({ config, onChanged, onContactSaved }) {
         {active && <Button color="warning" disabled={busy} onClick={() => openDialog('cancel')}>구독 해지</Button>}
       </Stack>
       <Typography variant="body2" color="text.secondary">추가 충전은 유료 이용기간 중 가능합니다.</Typography>
-      <Alert severity="info">결제 후 7일 이내 청약철회가 가능하며, 환불은 결제한 카드로만 처리됩니다. 사용분 및 미사용분의 환불 기준은 <Link to="/terms">이용약관</Link>에서 확인해 주세요.</Alert>
+      <Alert severity="info">{REFUND_NOTICE} 환불은 결제한 카드로 처리됩니다. 자세한 기준은 <Link to="/terms">이용약관</Link>에서 확인해 주세요.</Alert>
       <Button component={Link} to="/payment-history" variant="text">결제내역 보기</Button>
       <Button component={Link} to="/my-coins" variant="text">꼬막 충전·사용 내역 보기</Button>
       <Button disabled={busy} onClick={() => perform(load)}>새로고침</Button>
@@ -215,24 +217,24 @@ export default function PaymentSection({ config, onChanged, onContactSaved }) {
           {dialog === 'cancel' ? <>
             <RadioGroup value={cancelMode} onChange={(e) => setCancelMode(e.target.value)}>
               <FormControlLabel value="period_end" disabled={busy} control={<Radio />} label="이용기간 종료 후 해지" />
-              <FormControlLabel value="immediate" disabled={busy} control={<Radio />} label="즉시 구독 종료·자동 환불" />
+              <FormControlLabel value="immediate" disabled={busy} control={<Radio />} label="즉시 구독 종료·환불 확인" />
             </RadioGroup>
             {cancelMode === 'period_end' ? <Alert severity="info">{date(sub?.period_end)}까지 이용하고 다음 자동 결제부터 중단합니다. 이미 결제한 구독료는 환불하지 않습니다.</Alert> : <>
               <Alert severity="warning">구독을 즉시 종료하고 월 제공 꼬막을 회수합니다. 추가 구매 꼬막은 원래 유효기간까지 유지됩니다.</Alert>
               {quoteBusy ? <CircularProgress size={24} /> : terminationQuote && <Typography fontWeight={700}>예상 구독료 환불액: {terminationQuote.amount.toLocaleString()}원</Typography>}
-              <Typography variant="body2" color="text.secondary">해당 결제로 지급한 꼬막 중 남은 수량의 비율로 계산하며 원 미만은 올림합니다. 확정 금액은 해지 시점의 잔액 기준이며 환불은 결제한 카드로 처리됩니다.</Typography>
-              {terminationQuote?.requires_review && <Alert severity="warning">기존 환불 확인이 필요한 결제가 있습니다. 해당 건은 관리자 확인 후 처리됩니다.</Alert>}
-              <FormControlLabel control={<Checkbox checked={accepted} disabled={busy} onChange={(e) => setAccepted(e.target.checked)} />} label="즉시 이용 종료·월 제공 꼬막 회수 및 자동 환불에 동의합니다." />
+              <Typography variant="body2" color="text.secondary">{REFUND_NOTICE} 표시 금액은 자동 처리 가능한 환불액이며 최종 사용 내역은 서버에서 다시 확인합니다.</Typography>
+              {terminationQuote?.requires_review && <Alert severity="warning">자동 환불 대상이 아닌 결제 또는 확인 중인 결제가 있습니다. 즉시 종료하면 이용은 중단되고, 해당 환불은 관리자 검토 후 결정됩니다. 위 금액에는 검토 대상 금액이 포함되지 않습니다.</Alert>}
+              <FormControlLabel control={<Checkbox checked={accepted} disabled={busy} onChange={(e) => setAccepted(e.target.checked)} />} label="즉시 이용 종료·월 제공 꼬막 회수 및 안내된 환불 처리 방식에 동의합니다." />
             </>}
           </> : <>
           {dialog === 'change' ? <Alert severity="info">{upgrading ? '남은 이용기간의 요금 차액을 등록된 카드로 결제하면 즉시 업그레이드됩니다. 기존 잔액과 다음 결제일은 유지됩니다.' : '상위 요금제는 남은 기간의 차액 결제 후 즉시 적용되고, 하위 요금제는 다음 결제부터 적용됩니다. 기존 결제일과 등록된 카드는 유지됩니다.'}</Alert> : dialog === 'retry' ? <Alert severity="info">등록된 카드로 선택한 요금제의 첫 결제를 다시 요청합니다. 승인되면 이용기간이 시작되고 이후 매월 자동 결제됩니다.</Alert> : <Typography variant="body2">{dialog === 'subscribe' ? hasRegisteredCards ? '선택한 결제수단으로 첫 구독 결제를 진행합니다.' : '결제자 정보를 확인한 뒤 KG이니시스에서 카드를 등록합니다. 등록 완료 후 선택한 요금제의 첫 결제를 진행합니다.' : '결제자 정보를 확인한 뒤 KG이니시스 결제창으로 이동합니다.'}</Typography>}
           {dialog === 'change' && sub?.cancel_at_period_end && <Alert severity="warning">{upgrading ? '차액 결제가 승인되면 자동 갱신 해지를 철회하고 다음 결제일부터 새 요금제 전액으로 자동 결제를 재개합니다.' : '자동 갱신 해지를 철회하고 선택한 요금제로 다음 회차부터 자동 결제를 재개합니다.'}</Alert>}
           {dialog === 'topup' ? <Stack spacing={1}>
             <Typography fontWeight={700}>9,900원 · 150꼬막</Typography>
-            <Alert severity="info">{topupValidity} 결제 후 7일 이내 청약철회가 가능하며, 환불은 결제한 카드로만 처리됩니다. 일부 사용한 경우 미사용 잔량에 대해 실제 결제금액에 비례하여 환불합니다.</Alert>
+            <Alert severity="info">{topupValidity} {REFUND_NOTICE} 환불은 결제한 카드로 처리됩니다.</Alert>
           </Stack> :
-            <TextField select label="요금제" value={plan} onChange={(e) => { setAccepted(false); setUpgradeQuote(null); setPlan(e.target.value); }} disabled={busy || quoteBusy} fullWidth>
-              {['BASIC','STANDARD','PRO'].map((code) => <MenuItem key={code} value={code}>{config.products[code].name} · {config.products[code].amount.toLocaleString()}원 / {config.products[code].cockles.toLocaleString()}꼬막</MenuItem>)}
+            <TextField select label="월간 구독 이용권" value={plan} onChange={(e) => { setAccepted(false); setUpgradeQuote(null); setPlan(e.target.value); }} disabled={busy || quoteBusy} fullWidth sx={{ '& .MuiSelect-select': { whiteSpace:'normal' } }}>
+              {['BASIC','STANDARD','PRO'].map((code) => <MenuItem key={code} value={code} sx={{ whiteSpace:'normal' }}>{config.products[code].name} · {config.products[code].amount.toLocaleString()}원/월 · 혜택 {config.products[code].cockles.toLocaleString()}꼬막</MenuItem>)}
             </TextField>}
           <Alert severity="info"><Stack spacing={1}>
             <Typography variant="body2">{monthlyValidity}</Typography>
@@ -256,7 +258,7 @@ export default function PaymentSection({ config, onChanged, onContactSaved }) {
             <Typography variant="body2" color="text.secondary">내정보에 저장하면 다음 결제부터 자동 입력됩니다. 변경한 이메일은 내정보에서 인증해 주세요.</Typography>
             {contactMessage && <Alert severity="info">{contactMessage}</Alert>}
           </>}
-          <FormControlLabel control={<Checkbox checked={accepted} disabled={busy} onChange={(e) => setAccepted(e.target.checked)} />} label={<Typography variant="body2"><Link to="/terms" target="_blank">이용약관</Link>{dialog === 'topup' ? ', 결제 시점부터 1년 유효기간·미사용 꼬막 소멸·7일 이내 청약철회 및 결제한 카드로 미사용분 비례 환불에 동의합니다.' : ', 월 자동결제·월 구독 및 업그레이드 지급 꼬막의 해당 구독 이용기간 종료 시 소멸·이월 불가 및 미사용분 비례 환불에 동의합니다.'}</Typography>} />
+          <FormControlLabel control={<Checkbox checked={accepted} disabled={busy} onChange={(e) => setAccepted(e.target.checked)} />} label={<Typography variant="body2"><Link to="/terms" target="_blank">이용약관</Link>{dialog === 'topup' ? ', 결제 시점부터 1년 유효기간·미사용 꼬막 소멸 및 환불 기준을 확인하고 동의합니다.' : ', 월 자동결제·월 구독 및 업그레이드 지급 꼬막의 해당 구독 이용기간 종료 시 소멸·이월 불가 및 환불 기준을 확인하고 동의합니다.'} {REFUND_NOTICE}</Typography>} />
           </>}
         </Stack>
       </DialogContent>
@@ -266,14 +268,14 @@ export default function PaymentSection({ config, onChanged, onContactSaved }) {
         <Button variant="contained" disabled={busy || (dialog === 'cancel' ? cancelMode === 'immediate' && (quoteBusy || !accepted || !terminationQuote) : quoteBusy || !accepted || (dialog === 'subscribe' && (hasRegisteredCards ? !savedMethod : !cardAlias.trim())) || (upgrading && !upgradeQuote))} onClick={() => perform(async () => {
           if (dialog === 'cancel') {
             if (cancelMode === 'period_end') { await paymentPost('subscriptions/cancel'); setMessage('자동 갱신을 해지했습니다. 현재 이용기간 종료까지 이용할 수 있습니다.'); }
-            else { const result = await paymentPost('subscriptions/terminate', { ...consent, expected_amount:terminationQuote.amount }); setMessage(`구독을 즉시 종료했습니다. ${result.amount.toLocaleString()}원 환불을 접수했습니다. 처리 상태는 결제내역에서 확인해 주세요.`); }
+            else { const result = await paymentPost('subscriptions/terminate', { ...consent, expected_amount:terminationQuote.amount }); setMessage(`구독을 즉시 종료했습니다. 자동 처리 환불액은 ${result.amount.toLocaleString()}원입니다.${result.requires_review ? ' 별도 검토가 필요한 결제는 관리자 확인 후 안내합니다.' : ''} 처리 상태는 결제내역에서 확인해 주세요.`); }
           }
           else if (upgrading) { const verified = await paymentPost('subscriptions/upgrade', { ...consent, payment_id:upgradeQuote.paymentId }); checkResult(verified); setMessage(verified.status === 'PAID' ? '업그레이드가 완료되고 추가 꼬막이 지급되었습니다.' : '차액 결제 상태를 확인 중입니다. 다시 결제하지 말고 결제내역을 확인해 주세요.'); }
           else if (dialog === 'change') { await paymentPost('subscriptions/change', { ...consent, plan_code:plan }); setMessage('다음 결제부터 요금제가 변경됩니다.'); }
           else if (dialog === 'retry') { const verified = await paymentPost('subscriptions/retry', { ...consent, plan_code:plan, idempotency_key:retryKey.current }); checkResult(verified); setMessage(verified.status === 'PAID' ? '첫 구독 결제가 확인되어 꼬막이 지급되었습니다.' : '결제 상태를 확인 중입니다. 내역을 확인해 주세요.'); }
           else await purchase(dialog === 'topup');
           setDialog(null);
-        })}>{busy ? '처리 중…' : dialog === 'cancel' ? cancelMode === 'immediate' ? '즉시 종료·자동 환불' : '이용기간 종료 후 해지' : upgrading ? upgradeQuote ? `${upgradeQuote.amount.toLocaleString()}원 결제·즉시 변경` : '업그레이드 견적 확인' : dialog === 'change' ? '다음 결제부터 변경' : dialog === 'topup' ? '9,900원 결제' : dialog === 'retry' ? `${config.products[plan].amount.toLocaleString()}원 재결제` : '첫 구독 결제'}</Button>
+        })}>{busy ? '처리 중…' : dialog === 'cancel' ? cancelMode === 'immediate' ? '즉시 종료·환불 확인' : '이용기간 종료 후 해지' : upgrading ? upgradeQuote ? `${upgradeQuote.amount.toLocaleString()}원 결제·즉시 변경` : '업그레이드 견적 확인' : dialog === 'change' ? '다음 결제부터 변경' : dialog === 'topup' ? '9,900원 결제' : dialog === 'retry' ? `${config.products[plan].amount.toLocaleString()}원 재결제` : '첫 구독 결제'}</Button>
       </DialogActions>
     </Dialog>
   </>;

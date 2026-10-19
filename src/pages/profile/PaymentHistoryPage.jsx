@@ -31,6 +31,7 @@ export default function PaymentHistoryPage({ admin=false }) {
   };
   const refund = async (order) => {
     const { data:preview } = await api.get(`/api/v1/payments/orders/${encodeURIComponent(order.id)}/refund-preview`);
+    if (preview.requires_review) throw new Error('7일이 지났거나 사용 내역 등 확인이 필요한 결제입니다. 고객센터로 요청하시면 관계 법령에 따라 환불 여부와 금액을 안내합니다.');
     if (!preview.amount) throw new Error('환불 가능한 미사용 꼬막이 없습니다.');
     if (window.confirm(`${preview.cockles}꼬막을 반환하고 ${preview.amount.toLocaleString()}원을 환불합니다. 진행하시겠습니까?`)) {
       await paymentPost(`orders/${encodeURIComponent(order.id)}/refund`, { reason:'미사용 구매 꼬막 환불 요청', expected_amount:preview.amount });
@@ -43,9 +44,10 @@ export default function PaymentHistoryPage({ admin=false }) {
         {!admin && <Button component={Link} to="/profile#plan">구독·충전으로</Button>}
       </Stack>
       {terminationJobs.filter((job) => job.status !== 'COMPLETED').map((job) => <Alert key={job.id} severity={job.status === 'REVIEW' ? 'warning' : 'info'}>
-        {job.scope === 'WITHDRAWAL' ? '탈퇴' : '즉시 구독 종료'} 환불 {job.amount.toLocaleString()}원 · {job.status === 'REVIEW' ? '관리자 확인 중' : '자동 환불 처리 중'}. 이용 종료는 완료됐으며 다시 요청하지 않아도 됩니다.
+        {job.scope === 'WITHDRAWAL' ? '탈퇴' : '즉시 구독 종료'} 자동 처리 환불액 {job.amount.toLocaleString()}원 · {job.status === 'REVIEW' ? '추가 환불 여부·처리 상태 관리자 검토 중' : '환불 처리 중'}. 이용 종료는 완료됐으며 다시 요청하지 않아도 됩니다.
       </Alert>)}
       {error && <Alert severity="error">{error}</Alert>}
+      {!admin && <Button component={Link} to="/help/qna">환불 검토 문의</Button>}
       {orders === null && !error && <CircularProgress size={24} />}
       {orders !== null && <Paper variant="outlined" sx={{ minWidth:0, borderRadius:3, overflow:'hidden' }}>
         <TableContainer>
@@ -69,7 +71,7 @@ export default function PaymentHistoryPage({ admin=false }) {
                   <TableCell>{pendingReservation ? '자동결제 예약 대기' : (order.is_card_verification ? verificationStatuses : statuses)[order.status] || '상태 확인 필요'}{order.refund_status && <Typography variant="caption" display="block">환불 {({ PENDING:'처리 중', COMPLETED:'완료', REVIEW:'관리자 확인 중' })[order.refund_status]}</Typography>}</TableCell>
                   {!admin && <TableCell><Stack spacing={0.5}>
                     {order.product_code === 'TOPUP' && order.status === 'PAID' && order.refunded_amount < order.amount && !['PENDING','REVIEW'].includes(order.refund_status) &&
-                      <Button size="small" color="warning" disabled={busy} onClick={() => perform(() => refund(order))}>미사용분 환불</Button>}
+                      <Button size="small" color="warning" disabled={busy} onClick={() => perform(() => refund(order))}>환불 가능 여부 확인</Button>}
                   </Stack></TableCell>}
                 </TableRow>;
               })}

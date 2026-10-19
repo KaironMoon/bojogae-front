@@ -161,7 +161,7 @@ function SignupCompletePage() {
                 <Alert severity={planCode === "FREE" ? "success" : "info"}>
                   {planCode === "FREE"
                     ? "무료체험 가입입니다. 가입 완료 시 30일간 사용할 수 있는 200꼬막이 한 번 지급됩니다."
-                    : `${PLAN_INFO[planCode].name} 가입 신청입니다. 월 제공량은 ${PLAN_INFO[planCode].monthlyPoints}꼬막이며, 가입 완료 후 내정보에서 결제를 진행하면 유료 요금제가 적용됩니다.`}
+                    : `${PLAN_INFO[planCode].name} 월간 구독 이용권 가입 신청입니다. 구독 혜택으로 매월 ${PLAN_INFO[planCode].monthlyPoints.toLocaleString()}꼬막이 제공되며, 가입 완료 후 내정보에서 결제를 진행하면 구독이 시작됩니다.`}
                 </Alert>
               )}
             </Stack>
