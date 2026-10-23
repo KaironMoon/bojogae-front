@@ -40,9 +40,9 @@ const providers = [
     id: "naver",
     name: "네이버",
     mark: "N",
-    background: "#03c75a",
+    background: "#03A94D",
     color: "#ffffff",
-    border: "#03c75a",
+    border: "#03A94D",
     markColor: "#ffffff",
   },
 ];
@@ -235,6 +235,35 @@ function LoginPage() {
                   </Button>
                 </Stack>
               ) : providers.map((provider) => (
+                provider.id === "naver" ? (
+                  <Stack key={provider.id} spacing={0.5} alignItems="center">
+                    <Button
+                      component="a"
+                      href={getOAuthLoginUrl(provider.id, requestedPlan)}
+                      onClick={() => setPendingSocialLoginProvider(provider.id)}
+                      fullWidth
+                      aria-label="네이버 로그인"
+                      sx={{
+                        p: 0,
+                        minHeight: 56,
+                        overflow: "hidden",
+                        borderRadius: 1.5,
+                        backgroundColor: provider.background,
+                        "&:hover": { backgroundColor: provider.background },
+                      }}
+                    >
+                      <Box
+                        component="img"
+                        src="/images/naver-login-green.png"
+                        alt=""
+                        sx={{ display: "block", width: 368, height: 56, flexShrink: 0 }}
+                      />
+                    </Button>
+                    {lastProvider === provider.id && (
+                      <Typography variant="caption" color="text.secondary">최근 로그인</Typography>
+                    )}
+                  </Stack>
+                ) : (
                 <Button
                   key={provider.id}
                   component="a"
@@ -285,6 +314,7 @@ function LoginPage() {
                     )}
                   </Stack>
                 </Button>
+                )
               ))}
 
               <Stack direction="row" spacing={1} alignItems="center" justifyContent="center" sx={{ pt: 1 }}>

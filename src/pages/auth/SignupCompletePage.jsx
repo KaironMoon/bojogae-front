@@ -18,7 +18,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
 import { useAuth } from "@/auth/AuthContext";
-import { sendSignupEmail, verifySignupCode } from "@/services/auth-service";
+import { getSignupProfile, sendSignupEmail, verifySignupCode } from "@/services/auth-service";
 import { PLAN_INFO, isSignupPlan } from "@/constants/plans";
 
 import SignupProfileFields from "@/components/signup/SignupProfileFields";
@@ -83,7 +83,7 @@ function SignupCompletePage() {
   const urlPlan = searchParams.get("plan");
   const navigate = useNavigate();
   const { refreshUser } = useAuth();
-  const [profile, setProfile] = useState({ name: "", phone: "", affiliation: "", branch_name: "" });
+  const [profile, setProfile] = useState({ name: "", nickname: "", phone: "", affiliation: "", branch_name: "" });
   const [email, setEmail] = useState(searchParams.get("email") || "");
   const [referrer, setReferrer] = useState('');
   const [termsAgreed, setTermsAgreed] = useState(false);
@@ -93,6 +93,25 @@ function SignupCompletePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [cooldown, setCooldown] = useState(0);
+  const [profileLoading, setProfileLoading] = useState(Boolean(signupToken));
+  const [profileLoadFailed, setProfileLoadFailed] = useState(false);
+
+  useEffect(() => {
+    if (!signupToken) return undefined;
+    let active = true;
+    setProfileLoading(true);
+    setProfileLoadFailed(false);
+    getSignupProfile(signupToken).then((defaults) => {
+      if (!active) return;
+      setProfile((current) => ({ ...current, name: defaults.name || "", nickname: defaults.nickname || "" }));
+      setEmail((current) => defaults.email || current);
+    }).catch((requestError) => {
+      if (!active) return;
+      setProfileLoadFailed(true);
+      setError(errorCode(requestError));
+    }).finally(() => { if (active) setProfileLoading(false); });
+    return () => { active = false; };
+  }, [signupToken]);
 
   useEffect(() => {
     if (cooldown <= 0) return undefined;
@@ -170,7 +189,13 @@ function SignupCompletePage() {
 
             {error && <Alert severity="error">{referralErrors[error] || errorMessages[error] || "요청을 처리하지 못했습니다."}</Alert>}
 
-            <SignupProfileFields value={profile} onChange={setProfile} disabled={loading || sent} />
+            {profileLoading && <Typography role="status">소셜 계정 정보를 불러오는 중입니다.</Typography>}
+            <Typography variant="body2" color="text.secondary">소셜 계정에서 제공된 이름·닉네임·이메일을 기본으로 입력합니다. 수정할 수 있으며, 이메일 인증 후 가입이 완료됩니다.</Typography>
+
+            <SignupProfileFields value={profile} onChange={setProfile} disabled={profileLoading || loading || sent} />
+            <TextField label="닉네임 (선택)" value={profile.nickname}
+              onChange={(event) => setProfile((current) => ({ ...current, nickname: event.target.value }))}
+              disabled={profileLoading || loading || sent} inputProps={{ maxLength: 50 }} fullWidth />
             <TextField label="추천인 이메일 또는 추천용 닉네임 (선택)" value={referrer}
               onChange={event => setReferrer(event.target.value)} disabled={loading || sent} inputProps={{ maxLength: 254 }}
               helperText="가입 완료 시 내 계정에 50꼬막이 추가 지급되며 30일간 사용할 수 있습니다. 가입 후 내정보에서도 한 번 등록할 수 있습니다. 등록 후에는 추천인을 변경할 수 없습니다." />
@@ -179,7 +204,7 @@ function SignupCompletePage() {
               type="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              disabled={loading || sent}
+              disabled={profileLoading || loading || sent}
               required
               fullWidth
               autoFocus
@@ -206,7 +231,7 @@ function SignupCompletePage() {
               variant="contained"
               size="large"
               onClick={requestEmail}
-              disabled={loading || !email || !planCode || !termsAgreed || !profile.name.trim() || !profile.affiliation.trim() || !/^\+?[\d\s()-]{8,30}$/.test(profile.phone.trim()) || cooldown > 0}
+              disabled={profileLoading || profileLoadFailed || loading || !email || !planCode || !termsAgreed || !profile.name.trim() || !profile.affiliation.trim() || !/^\+?[\d\s()-]{8,30}$/.test(profile.phone.trim()) || cooldown > 0}
             >
               {sent && cooldown > 0 ? `${cooldown}초 후 재발송` : sent ? "인증메일 다시 보내기" : "인증메일 보내기"}
             </Button>

@@ -98,6 +98,10 @@ async function sendSignupEmail(signupToken, email, termsAgreed, planCode, profil
   });
 }
 
+export async function getSignupProfile(signupToken) {
+  return (await apiCaller.post("/api/v1/auth/signup/profile", { signup_token: signupToken })).data;
+}
+
 async function verifySignupCode(signupToken, code) {
   const response = await apiCaller.post("/api/v1/auth/signup/verify-code", {
     signup_token: signupToken,
