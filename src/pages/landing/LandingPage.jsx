@@ -100,18 +100,18 @@ const reviews = [
 ];
 
 const plans = [
-  { name: "1달 무료 체험", code: "FREE", price: "0원", unit: "30일", tag: "200꼬막 무료", features: ["200꼬막 제공 · 생성 비용은 보고서별 안내", "카드 등록 없이 시작", "월별 리셋·재지급 없음"] },
-  { name: "베이직", code: "BASIC", price: "19,000원", unit: "월", tag: "가볍게 시작", features: ["월간 구독 혜택 300꼬막", "쉬운 설명 자동 변환", "생성 보고서 아카이빙"] },
-  { name: "스탠다드", code: "STANDARD", price: "29,000원", unit: "월", tag: "가장 선호", featured: true, features: ["월간 구독 혜택 500꼬막", "쉬운 설명 자동 변환", "생성 보고서 아카이빙"] },
-  { name: "프로", price: "49,000원", unit: "월", code: "PRO", tag: "많이 사용하는 분께", features: ["월간 구독 혜택 1,000꼬막", "쉬운 설명 자동 변환", "생성 보고서 아카이빙"] },
+  { name: "1달 무료 체험", code: "FREE", price: "0원", unit: "30일", tag: "30일 무료체험", features: ["보험 제안서 분석·보고서 생성 체험", "카드 등록 없이 시작", "유료 전환은 직접 선택"] },
+  { name: "베이직", code: "BASIC", price: "19,000원", unit: "월", tag: "가볍게 시작", features: ["보험 제안서 분석·보고서 생성", "쉬운 설명 자동 변환", "생성 보고서 아카이빙"] },
+  { name: "스탠다드", code: "STANDARD", price: "29,000원", unit: "월", tag: "가장 선호", featured: true, features: ["보험 제안서 분석·보고서 생성", "쉬운 설명 자동 변환", "생성 보고서 아카이빙"] },
+  { name: "프로", price: "49,000원", unit: "월", code: "PRO", tag: "많이 사용하는 분께", features: ["보험 제안서 분석·보고서 생성", "쉬운 설명 자동 변환", "생성 보고서 아카이빙"] },
   { name: "사무실 그룹", price: "별도 문의", unit: "단체 할인", tag: "지점 · 본부 · GA", dark: true, features: ["사번 기반 그룹 로그인", "지점장 관리자 대시보드", "단체 맞춤형 운영 지원"] },
 ];
 
 const faqs = [
   ["어떤 보험사의 제안서든 요약이 가능한가요?", "국내 손해보험 및 생명보험사의 표준 상품설명서와 제안서 PDF를 지원합니다."],
   ["고객 개인정보나 민감한 정보는 안전한가요?", "암호화 통신을 통해 분석하며, 제안서의 민감한 개인 식별 정보는 AI 학습용으로 영구 저장하지 않습니다."],
-  ["무료체험이 끝나면 자동으로 결제되나요?", "아닙니다. 카드 등록 없이 30일간 200꼬막을 사용할 수 있고, 기간 종료 후 자동 결제나 월별 리셋·재지급은 없습니다. 유료 전환은 직접 선택합니다."],
-  ["월간 구독 이용권과 꼬막은 무엇인가요?", "월간 구독 이용권은 보조개의 보험 제안서 분석·보고서 생성 기능을 이용하는 상품입니다. 구독 혜택으로 매월 요금제별 꼬막이 제공되며, 꼬막은 서비스 내 기능 이용 시 차감됩니다. 구독 혜택으로 제공된 꼬막은 해당 구독 이용기간 종료 시 소멸하고 다음 기간으로 이월되지 않습니다."],
+  ["무료체험이 끝나면 자동으로 결제되나요?", "아닙니다. 카드 등록 없이 30일간 서비스를 체험할 수 있으며, 체험 종료 후 자동 결제되지 않습니다. 유료 전환은 직접 선택합니다."],
+  ["월간 구독권은 무엇인가요?", "월간 구독권은 보조개의 보험 제안서 분석·보고서 생성 기능을 이용하는 상품입니다. 요금제별 이용 한도가 적용되며, 구독은 매월 자동 갱신됩니다. 이용기간과 다음 결제일은 내정보에서, 이용 한도와 사용 내역은 별도 이용 내역 화면에서 확인할 수 있습니다."],
   ["사무실 그룹(GA 지점 등) 단위로 도입하려면 어떻게 하나요?", "단체 문의를 남겨주시면 사번 기반 그룹 로그인과 단체 운영 방식에 맞춰 안내해 드립니다."],
 ];
 
@@ -432,7 +432,7 @@ export default function LandingPage() {
         </section>
 
         <section id="pricing" className="pricing-section">
-          <div className="section-heading" data-reveal><span>PRICING PLAN</span><h2>부담 없는 요금으로<br />나만의 AI 영업 비서를 두세요</h2><p>보조개 월간 구독 이용권으로 보험 제안서 분석·보고서 생성 기능을 이용하세요.<br />구독 혜택으로 매월 요금제별 꼬막을 제공합니다. 30일 무료체험 후 유료 전환은 직접 선택합니다.</p></div>
+          <div className="section-heading" data-reveal><span>PRICING PLAN</span><h2>부담 없는 요금으로<br />나만의 AI 영업 비서를 두세요</h2><p>보조개 월간 구독권으로 보험 제안서 분석·보고서 생성 기능을 이용하세요.<br />요금제별 이용 한도가 적용됩니다. 30일 무료체험 후 유료 전환은 직접 선택합니다.</p></div>
           <div className="pricing-grid">{plans.map(plan => <article key={plan.name} className={`${plan.featured ? "featured" : ""} ${plan.dark ? "dark" : ""} ${plan.comingSoon ? "coming-soon" : ""}`} data-reveal><span className="plan-tag">{plan.tag}</span><h3>{plan.name}</h3><div className="plan-price"><strong>{plan.price}</strong><small>/ {plan.unit}</small></div><ul>{plan.features.map(feature => <li key={feature}><CheckRoundedIcon />{feature}</li>)}</ul><button disabled={plan.comingSoon} onClick={() => plan.dark ? setInquiryOpen(true) : goLogin("personal", plan.code)}>{plan.comingSoon ? "출시 준비 중" : plan.dark ? "단체 도입 문의" : plan.code === "FREE" ? "무료로 시작" : `${plan.name} 가입 신청`}{!plan.comingSoon && <ArrowForwardRoundedIcon />}</button></article>)}</div>
         </section>
 

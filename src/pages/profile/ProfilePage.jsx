@@ -1,6 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import api from "@/services/api-caller";
-import KkomakIcon from "@/pages/components/KkomakIcon";
 import {
   Alert,
   Box,
@@ -13,7 +12,6 @@ import {
 } from "@mui/material";
 import SaveRoundedIcon from "@mui/icons-material/SaveRounded";
 import MarkEmailReadOutlinedIcon from "@mui/icons-material/MarkEmailReadOutlined";
-import AccountBalanceWalletRoundedIcon from "@mui/icons-material/AccountBalanceWalletRounded";
 import NotificationsActiveRoundedIcon from "@mui/icons-material/NotificationsActiveRounded";
 import NotificationsOffRoundedIcon from "@mui/icons-material/NotificationsOffRounded";
 import { useCallback, useEffect, useState } from "react";
@@ -26,9 +24,6 @@ import {
   verifyEmailChangeCode,
 } from "@/services/profile-service";
 import { requestOwnPasswordReset } from "@/services/group-service";
-import { getPointBalance } from "@/services/proposal-service";
-import ExpiringPoints from "@/pages/components/ExpiringPoints";
-import PointBalanceDetails from "@/pages/components/PointBalanceDetails";
 import PlanSection from "@/pages/profile/PlanSection";
 import SignupProfileFields from "@/components/signup/SignupProfileFields";
 import NotificationPreferences from '@/pages/profile/NotificationPreferences';
@@ -72,11 +67,7 @@ function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
-  const [pointBalance, setPointBalance] = useState({ free_points: 0, paid_points: 0, total_points: 0 });
-  const refreshBilling = useCallback(async () => {
-    const [balance] = await Promise.all([getPointBalance(), refreshUser()]);
-    setPointBalance(balance);
-  }, [refreshUser]);
+  const refreshBilling = useCallback(async () => { await refreshUser(); }, [refreshUser]);
   const contactSaved = useCallback((updated) => {
     setProfile((value) => ({ ...value, name:updated.name || '', phone:updated.phone || '', email:updated.pending_email || updated.email || '' }));
     setSavedEmail(updated.email || '');
@@ -90,8 +81,8 @@ function ProfilePage() {
   const [pushError, setPushError] = useState("");
 
   useEffect(() => {
-    Promise.all([getMyProfile(), getPointBalance()])
-      .then(([data, balance]) => {
+    getMyProfile()
+      .then((data) => {
         setProfile({
           email: data.pending_email || data.email || "",
           name: data.name || "",
@@ -102,7 +93,6 @@ function ProfilePage() {
         });
         setSavedEmail(data.email || "");
         setPendingEmail(data.pending_email || "");
-        setPointBalance(balance);
       })
       .catch(() => setError("profile_load_failed"))
       .finally(() => setLoading(false));
@@ -131,7 +121,7 @@ function ProfilePage() {
   };
 
   const withdraw = async () => {
-    if (!window.confirm('계정을 즉시 탈퇴하고 로그인과 자동 갱신을 중단합니다. 업로드 원본·보고서·공유 이미지 등 자료는 파기되며 복구할 수 없습니다. 결제·환불에 필요한 최소 식별 정보와 거래 기록은 법정 기간 동안 보관합니다. 결제 후 7일 이내에 해당 결제로 제공된 꼬막을 전혀 사용하지 않은 경우 전액 환불하며, 그 외에는 관계 법령에 따라 관리자 검토 후 결정됩니다. 탈퇴하시겠습니까?')) return;
+    if (!window.confirm('계정을 즉시 탈퇴하고 로그인과 자동 갱신을 중단합니다. 업로드 원본·보고서·공유 이미지 등 자료는 파기되며 복구할 수 없습니다. 결제·환불에 필요한 최소 식별 정보와 거래 기록은 법정 기간 동안 보관합니다. 결제 후 7일 이내에 해당 결제로 제공된 이용량을 전혀 사용하지 않은 경우 전액 환불하며, 그 외에는 관계 법령에 따라 관리자 검토 후 결정됩니다. 탈퇴하시겠습니까?')) return;
     setSaving(true); setError("");
     try {
       await api.delete('/api/v1/users/me/account');
@@ -254,25 +244,9 @@ function ProfilePage() {
         </Typography>
       </Stack>
 
-      <Paper elevation={0} sx={{ p: { xs: 2.5, md: 3 }, mb: 3, border: "1px solid", borderColor: "divider", borderRadius: 3 }}>
-        <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ sm: "center" }} gap={2}>
-          <Stack direction="row" spacing={1.5} alignItems="center">
-            <Box sx={{ width: 44, height: 44, display: "grid", placeItems: "center", borderRadius: 2.5, color: "primary.main", bgcolor: "#eff6ff" }}>
-              <AccountBalanceWalletRoundedIcon />
-            </Box>
-            <Box>
-              <Typography variant="body2" color="text.secondary">사용 가능 꼬막</Typography>
-              <Typography variant="h5" fontWeight={850}><KkomakIcon /> {pointBalance.total_points.toLocaleString()}꼬막</Typography>
-            </Box>
-          </Stack>
-          <PointBalanceDetails balance={pointBalance} />
-        </Stack>
-      </Paper>
-
       <PlanSection onChanged={refreshBilling} onContactSaved={contactSaved} />
 
       <Paper elevation={0} sx={{ p: { xs: 2.5, md: 4 }, border: "1px solid", borderColor: "divider", borderRadius: 3 }}>
-        <ExpiringPoints balance={pointBalance} />
         <Stack spacing={2.5}>
           {message && <Alert severity="success">{message}</Alert>}
           {error && (
@@ -367,7 +341,7 @@ function ProfilePage() {
       </Paper>
       {user?.role === 'USER' && !user?.group_id && <Paper variant="outlined" sx={{ p:3, mt:3, borderRadius:3 }}>
         <Typography variant="h6">회원 탈퇴</Typography>
-        <Typography variant="body2" sx={{ my:1 }}>즉시 계정을 닫고 자동 갱신을 중단합니다. 환불 권리와 정산에 필요한 거래 기록은 유지됩니다. 결제 후 7일 이내 꼬막 미사용 시 전액 환불되며, 그 외에는 관계 법령에 따라 검토합니다. 구독만 해지하려면 위의 구독 해지를 이용해 주세요.</Typography>
+        <Typography variant="body2" sx={{ my:1 }}>즉시 계정을 닫고 자동 갱신을 중단합니다. 환불 권리와 정산에 필요한 거래 기록은 유지됩니다. 결제 후 7일 이내 해당 결제 이용량 미사용 시 전액 환불되며, 그 외에는 관계 법령에 따라 검토합니다. 구독만 해지하려면 위의 구독 해지를 이용해 주세요.</Typography>
         <Button color="error" variant="outlined" disabled={saving} onClick={withdraw}>회원 탈퇴</Button>
       </Paper>}
     </Box>

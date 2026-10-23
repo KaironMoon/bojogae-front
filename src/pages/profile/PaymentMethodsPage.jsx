@@ -135,7 +135,7 @@ export default function PaymentMethodsPage() {
       {error && <Alert severity="error">{error}</Alert>}
       {dialog === 'alias' ? <TextField label="카드 별칭" required value={alias} disabled={busy} onChange={(e) => setAlias(e.target.value)} slotProps={{ htmlInput:{ maxLength:50 } }} helperText="예: 생활비 카드, 회사 카드 · 카드번호는 입력하지 마세요." /> : ['select','delete'].includes(dialog) ? <>
         <Typography fontWeight={700}>{target?.alias || target?.name}{target?.number ? ` · ${target.number}` : ''}</Typography>
-        <Alert severity={dialog === 'delete' ? 'warning' : 'info'}>{dialog === 'delete' ? '이 카드를 목록과 PG에서 삭제합니다. 다시 사용하려면 새로 등록해야 합니다.' : '이 카드를 이후 구독 결제에 사용합니다. 지금 결제되지 않으며 요금제·이용기간·꼬막 잔액과 자동 갱신 해지 상태는 유지됩니다.'}</Alert>
+        <Alert severity={dialog === 'delete' ? 'warning' : 'info'}>{dialog === 'delete' ? '이 카드를 목록과 PG에서 삭제합니다. 다시 사용하려면 새로 등록해야 합니다.' : '이 카드를 이후 구독 결제에 사용합니다. 지금 결제되지 않으며 요금제·이용기간과 자동 갱신 해지 상태는 유지됩니다.'}</Alert>
       </> : dialog === 'retry' ? <>
         <Alert severity="info">현재 등록된 카드로 첫 구독 결제를 요청합니다. 승인 후 유료 이용이 시작됩니다.</Alert>
         <TextField select label="요금제" value={plan} disabled={busy} onChange={(e) => { setPlan(e.target.value); setAccepted(false); retryKey.current = crypto.randomUUID(); }}>
@@ -146,7 +146,7 @@ export default function PaymentMethodsPage() {
         <TextField label="카드 별칭" required value={alias} disabled={busy} onChange={(e) => setAlias(e.target.value)} slotProps={{ htmlInput:{ maxLength:50 } }} helperText="예: 생활비 카드, 회사 카드 · 카드번호는 입력하지 마세요." />
         {[['fullName','결제자 이름'],['phoneNumber','휴대폰 번호'],['email','이메일']].map(([key,label]) => <TextField key={key} label={label} required value={customer[key]} disabled={busy} type={key === 'email' ? 'email' : key === 'phoneNumber' ? 'tel' : 'text'} onChange={(e) => setCustomer({ ...customer, [key]:e.target.value })} />)}
       </>}
-      {!['select','delete','alias'].includes(dialog) && <FormControlLabel control={<Checkbox checked={accepted} disabled={busy} onChange={(e) => setAccepted(e.target.checked)} />} label={dialog === 'retry' ? <Typography variant="body2"><Link to="/terms" target="_blank">이용약관</Link>, 월 자동결제·제공분 소멸 및 환불 기준에 동의합니다. 결제 후 7일 이내 꼬막 미사용 시 전액 환불되며, 그 외에는 관계 법령에 따라 결정됩니다.</Typography> : '카드 등록을 위한 1,000원 승인·전액 취소와 결제수단 저장에 동의합니다.'} />}
+      {!['select','delete','alias'].includes(dialog) && <FormControlLabel control={<Checkbox checked={accepted} disabled={busy} onChange={(e) => setAccepted(e.target.checked)} />} label={dialog === 'retry' ? <Typography variant="body2"><Link to="/terms" target="_blank">이용약관</Link>, 월 자동결제·제공분 소멸 및 환불 기준에 동의합니다. 결제 후 7일 이내 해당 결제 이용량 미사용 시 전액 환불되며, 그 외에는 관계 법령에 따라 결정됩니다.</Typography> : '카드 등록을 위한 1,000원 승인·전액 취소와 결제수단 저장에 동의합니다.'} />}
     </Stack></DialogContent>
     <DialogActions><Button disabled={busy} onClick={() => setDialog(null)}>닫기</Button><Button variant="contained" disabled={busy || (!['select','delete','alias'].includes(dialog) && !accepted) || (['card','alias'].includes(dialog) && !alias.trim())} onClick={() => perform(async () => {
       if (dialog === 'alias') {

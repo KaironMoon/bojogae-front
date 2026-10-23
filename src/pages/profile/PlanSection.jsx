@@ -45,16 +45,15 @@ function changeDescription(plan, target) {
   const kind = changeKind(plan.plan_code, target);
   const targetInfo = PLAN_INFO[target];
   if (kind === "cancel") {
-    return `승인되면 다음 지급일(${formatDate(plan.current_period_end)})부터 무료로 전환되고 월 꼬막 지급이 중단됩니다. 이미 받은 꼬막은 만료일까지 사용할 수 있습니다.`;
+    return `승인되면 현재 이용기간 종료일(${formatDate(plan.current_period_end)})부터 무료로 전환됩니다. 현재 구독은 이용기간 종료일까지 사용할 수 있습니다.`;
   }
   if (kind === "start") {
-    return `승인되는 날부터 ${targetInfo.name}(${targetInfo.price}/월)이 적용되고 매월 ${targetInfo.monthlyPoints}꼬막이 지급됩니다.`;
+    return `승인되는 날부터 ${targetInfo.name} 월간 구독권(${targetInfo.price}/월)이 적용됩니다.`;
   }
   if (kind === "upgrade") {
-    const diff = targetInfo.monthlyPoints - (PLAN_INFO[plan.plan_code].monthlyPoints || 0);
-    return `승인 즉시 ${targetInfo.name}이 적용되고, 이번 주기 차액 ${diff}꼬막이 바로 지급됩니다. 다음 지급일부터 매월 ${targetInfo.monthlyPoints}꼬막이 지급됩니다.`;
+    return `승인 즉시 ${targetInfo.name} 월간 구독권이 적용됩니다. 현재 이용기간 종료일은 유지됩니다.`;
   }
-  return `승인되면 다음 지급일(${formatDate(plan.current_period_end)})부터 ${targetInfo.name}(매월 ${targetInfo.monthlyPoints}꼬막)이 적용됩니다.`;
+  return `승인되면 다음 이용기간 시작일(${formatDate(plan.current_period_end)})부터 ${targetInfo.name} 월간 구독권(${targetInfo.price}/월)이 적용됩니다.`;
 }
 
 function LegacyPlanSection() {
@@ -143,7 +142,7 @@ function LegacyPlanSection() {
 
         {current !== "FREE" && (
           <Typography variant="body2" color="text.secondary">
-            매월 {plan.monthly_points ?? "-"}꼬막 지급 · 이번 주기 {formatDate(plan.current_period_start)} ~ {formatDate(plan.current_period_end)} · 남은 꼬막은 다음 지급일에 만료됩니다.
+            현재 이용기간: {formatDate(plan.current_period_start)} ~ {formatDate(plan.current_period_end)}
           </Typography>
         )}
 
@@ -177,7 +176,7 @@ function LegacyPlanSection() {
                 sx={{ flex: 1, flexDirection: "column", py: 1.25 }}
               >
                 <Typography fontWeight={800} fontSize={14}>{info.name}</Typography>
-                <Typography fontSize={11}>{info.comingSoon ? "준비 중" : isCurrent ? "사용 중" : `${info.price} · 월 ${info.monthlyPoints}꼬막`}</Typography>
+                <Typography fontSize={11}>{info.comingSoon ? "준비 중" : isCurrent ? "사용 중" : `${info.price}/월`}</Typography>
               </Button>
             );
           })}
@@ -218,10 +217,10 @@ function PlanSection({ onChanged, onContactSaved }) {
   if (config.enabled && !config.eligible) return (
     <Paper id="plan" variant="outlined" sx={{ p: { xs: 2, md: 3 }, mb: 3, borderRadius: 3 }}>
       <Stack spacing={2}>
-        <Typography variant="h6" fontWeight={800}>구독·꼬막 충전</Typography>
+        <Typography variant="h6" fontWeight={800}>월간 구독권</Typography>
         <Alert severity="info">
           {config.ineligibleReason === 'GROUP_ACCOUNT'
-            ? '그룹 계정은 그룹 관리에서 꼬막을 관리합니다. 개인 정기결제는 그룹에 속하지 않은 일반 회원 계정에서 이용할 수 있습니다.'
+            ? '그룹 계정은 그룹 관리에서 이용 내역을 확인합니다. 개인 정기결제는 그룹에 속하지 않은 일반 회원 계정에서 이용할 수 있습니다.'
             : '관리자 계정은 개인 정기결제 대상이 아닙니다. 빌링 테스트는 그룹에 속하지 않은 일반 회원 계정으로 로그인해 진행해 주세요.'}
         </Alert>
       </Stack>

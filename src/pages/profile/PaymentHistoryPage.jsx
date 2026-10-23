@@ -41,7 +41,7 @@ export default function PaymentHistoryPage({ admin=false }) {
     <Stack spacing={2}>
       <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1}>
         <Typography variant="h5" fontWeight={800}>{admin ? '예약결제 목록' : '결제내역'}</Typography>
-        {!admin && <Button component={Link} to="/profile#plan">구독·충전으로</Button>}
+        {!admin && <Button component={Link} to="/profile#plan">구독 관리로</Button>}
       </Stack>
       {terminationJobs.filter((job) => job.status !== 'COMPLETED').map((job) => <Alert key={job.id} severity={job.status === 'REVIEW' ? 'warning' : 'info'}>
         {job.scope === 'WITHDRAWAL' ? '탈퇴' : '즉시 구독 종료'} 자동 처리 환불액 {job.amount.toLocaleString()}원 · {job.status === 'REVIEW' ? '추가 환불 여부·처리 상태 관리자 검토 중' : '환불 처리 중'}. 이용 종료는 완료됐으며 다시 요청하지 않아도 됩니다.

@@ -160,8 +160,8 @@ function SignupCompletePage() {
               {planCode && (
                 <Alert severity={planCode === "FREE" ? "success" : "info"}>
                   {planCode === "FREE"
-                    ? "무료체험 가입입니다. 가입 완료 시 30일간 사용할 수 있는 200꼬막이 한 번 지급됩니다."
-                    : `${PLAN_INFO[planCode].name} 월간 구독 이용권 가입 신청입니다. 구독 혜택으로 매월 ${PLAN_INFO[planCode].monthlyPoints.toLocaleString()}꼬막이 제공되며, 가입 완료 후 내정보에서 결제를 진행하면 구독이 시작됩니다.`}
+                    ? "무료체험 가입입니다. 카드 등록 없이 30일간 서비스를 체험할 수 있습니다."
+                    : `${PLAN_INFO[planCode].name} 월간 구독권 가입 신청입니다. 가입 완료 후 내정보에서 결제를 진행하면 구독이 시작됩니다.`}
                 </Alert>
               )}
             </Stack>
