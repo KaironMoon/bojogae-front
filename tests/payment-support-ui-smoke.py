@@ -2,6 +2,7 @@
 import json
 import os
 from pathlib import Path
+from urllib.parse import urlparse, parse_qs
 from playwright.sync_api import sync_playwright
 
 BASE = 'http://127.0.0.1:3307'
@@ -14,6 +15,7 @@ ORDERS = [
 ]
 posts, loads, errors = [], [], []
 fail_first_refund = True
+JOBS = [{'id': 'review-job', 'user_id': 7, 'customer_name': '문승욱', 'customer_email': 'owner@example.com', 'scope': 'SUBSCRIPTION', 'status': 'REVIEW', 'amount': 0, 'created_at': '2026-10-23T07:00:00Z', 'terminated_at': '2026-10-23T07:00:00Z'}, {'id': 'withdrawal-job', 'user_id': 8, 'customer_name': '탈퇴고객', 'customer_email': None, 'scope': 'WITHDRAWAL', 'status': 'COMPLETED', 'amount': 19000, 'created_at': '2026-10-22T07:00:00Z', 'terminated_at': '2026-10-22T07:00:00Z'}]
 
 def handle(route):
     global fail_first_refund
@@ -28,6 +30,11 @@ def handle(route):
     if path == 'auth/me': body = USER
     elif path == 'admin/users': body = {'items': [], 'page': 1, 'total_pages': 0, 'total': 0}
     elif path == 'web-push/configuration': body = {'enabled': False}
+    elif path == 'payments/admin/termination-jobs':
+        params = parse_qs(urlparse(req.url).query)
+        q = params.get('q', [''])[0].lower(); state = params.get('status', [''])[0]
+        items = [job for job in JOBS if (not state or job['status'] == state) and (not q or q in (job['customer_name'] + ' ' + (job['customer_email'] or '')).lower())]
+        body = {'items': items, 'total': len(items), 'total_pages': 1 if items else 0, 'page': 1, 'page_size': 20}
     elif path.startswith('payments/admin/users/') and req.method == 'GET':
         loads.append(path)
         body = {'enabled': True, 'orders': ORDERS if path.endswith('/7') else [], 'card_verifications': [{'id': 'card-check', 'order_name': '카드 등록', 'amount': 1000, 'refunded_amount': 1000, 'status': 'COMPLETED'}],
@@ -56,6 +63,37 @@ with sync_playwright() as p:
     page.get_by_role('heading', name='꼬막 지급·내역', exact=True).wait_for()
     assert page.locator('#payment-support').count() == 0
     menu.get_by_role('button', name='결제·환불 처리', exact=True).click()
+    queue = page.get_by_role('table', name='전체 구독 종료·탈퇴 검토 목록', exact=True)
+    queue.get_by_text('문승욱 · #7', exact=True).wait_for()
+    assert queue.get_by_text('탈퇴고객 · #8', exact=True).is_visible()
+    assert not loads and not posts
+    out = Path('/tmp/bojogae-payment-support-ui'); out.mkdir(exist_ok=True)
+    page.screenshot(path=str(out / 'global-list.png'), full_page=True)
+    page.set_viewport_size({'width': 390, 'height': 844})
+    assert page.get_by_role('button', name='검토하기', exact=True).is_visible()
+    assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth')
+    page.screenshot(path=str(out / 'global-mobile.png'), full_page=True)
+    page.set_viewport_size({'width': 1280, 'height': 1000})
+    search = page.get_by_label('이름·이메일·고객번호 검색', exact=True)
+    search.fill('owner@example.com')
+    page.get_by_role('button', name='검색', exact=True).click()
+    queue.get_by_text('문승욱 · #7', exact=True).wait_for()
+    assert queue.get_by_text('탈퇴고객 · #8', exact=True).count() == 0
+    queue.get_by_role('button', name='검토하기', exact=True).click()
+    review = page.get_by_role('dialog', name='문승욱 · 구독 종료 검토', exact=True)
+    review.get_by_role('table', name='고객지원 결제 목록', exact=True).wait_for()
+    assert loads == ['payments/admin/users/7'] and not posts
+    page.screenshot(path=str(out / 'customer-review.png'), full_page=True)
+    assert review.get_by_label('사용자 ID (탈퇴 회원 포함)', exact=True).count() == 0
+    review.get_by_role('button', name='목록으로', exact=True).click()
+    review.wait_for(state='hidden')
+    search.fill('not-a-customer')
+    page.get_by_role('button', name='검색', exact=True).click()
+    page.get_by_text('조건에 맞는 검토 건이 없습니다.', exact=True).wait_for()
+    search.fill('')
+    page.get_by_role('button', name='검색', exact=True).click()
+    queue.get_by_text('문승욱 · #7', exact=True).wait_for()
+    page.get_by_role('button', name='다른 고객의 결제 내역 직접 조회', exact=True).click()
     panel = page.locator('#payment-support')
     panel.get_by_label('사용자 ID (탈퇴 회원 포함)', exact=True).fill('7')
     panel.get_by_role('button', name='결제 내역 조회', exact=True).click()
@@ -89,13 +127,13 @@ with sync_playwright() as p:
     assert len(loads) >= 2
     assert paid.get_by_role('button', name='환불 처리', exact=True).is_disabled()
     panel.get_by_role('button', name='검토 완료 처리', exact=True).click()
-    assert panel.get_by_label('검토 완료할 구독 종료·탈퇴 작업 ID', exact=True).input_value() == 'review-job'
+    assert panel.get_by_role('alert').filter(has_text='선택한 구독 종료 검토').is_visible()
     assert len(posts) == 2  # Selecting a review job is not completion.
     out = Path('/tmp/bojogae-payment-support-ui'); out.mkdir(exist_ok=True)
     page.screenshot(path=str(out / 'desktop.png'), full_page=True)
     panel.get_by_label('사용자 ID (탈퇴 회원 포함)', exact=True).fill('8')
     assert panel.get_by_role('table', name='고객지원 결제 목록', exact=True).count() == 0
-    assert panel.get_by_label('검토 완료할 구독 종료·탈퇴 작업 ID', exact=True).input_value() == ''
+    assert panel.get_by_role('alert').filter(has_text='선택한 구독 종료 검토').count() == 0
     panel.get_by_role('button', name='결제 내역 조회', exact=True).click()
     panel.get_by_text('사용자 #8 결제 목록', exact=True).wait_for()
     assert table.get_by_role('row').filter(has_text='paid-order').count() == 0
@@ -109,4 +147,4 @@ with sync_playwright() as p:
     user_page.wait_for_url(BASE + '/home')
     assert user_page.locator('#payment-support').count() == 0
     browser.close()
-print('꼬막 관리 하위 메뉴 분리·결제 선택·비대상 차단·취소 시 미요청·환불 재시도 키 유지·목록 갱신·사용자 전환 초기화·모바일·관리자 접근 제한 확인 통과 (모의 API)')
+print('전체 고객 자동 목록·검색·ID 입력 없는 검토 진입·꼬막 관리 하위 메뉴 분리·결제 선택·비대상 차단·취소 시 미요청·환불 재시도 키 유지·목록 갱신·사용자 전환 초기화·모바일·관리자 접근 제한 확인 통과 (모의 API)')
