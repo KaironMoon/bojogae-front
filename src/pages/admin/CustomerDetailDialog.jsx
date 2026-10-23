@@ -15,6 +15,7 @@ const TABS = [
   ["payments", "결제·환불"], ["requests", "문의·신청"], ["logins", "로그인"], ["audit", "대리 접속 감사"],
 ];
 const TABLE_NAMES = { user_sessions: "로그인 세션", users: "고객 정보", office_groups: "단체 정보", point_grants: "꼬막 지급",
+  referral_aliases: "추천용 닉네임", user_referrals: "추천인 등록",
   point_usages: "꼬막 사용", point_usage_allocations: "꼬막 차감·반환", billing_subscriptions: "구독",
   payment_orders: "결제", payment_refunds: "결제 환불", payment_methods: "결제 수단",
   personal_plan_requests: "요금제 신청", proposal_generations: "보고서", proposal_input_files: "보고서 첨부",
@@ -23,6 +24,7 @@ const TABLE_NAMES = { user_sessions: "로그인 세션", users: "고객 정보",
   notification_preferences: "알림 설정", web_push_subscriptions: "알림 수신", user_email_change_requests: "이메일 변경",
 };
 const FIELD_NAMES = { id: "번호", user_id: "고객 번호", email: "이메일", name: "이름", nickname: "닉네임",
+  referred_user_id: "추천받은 회원 번호", referrer_user_id: "추천인 회원 번호", bonus_amount: "추천 보너스", bonus_expires_at: "보너스 만료일", grant_id: "지급 내역 번호",
   phone: "전화번호", affiliation: "소속", display_name: "표시 이름", status: "상태", role: "권한", plan_code: "요금제",
   amount: "금액·수량", remaining_amount: "남은 꼬막", point_type: "꼬막 종류", point_cost: "사용 꼬막", point_status: "꼬막 처리",
   title: "제목", group_id: "단체 번호", group_role: "단체 역할", employee_number: "사번", password_hash: "비밀번호",
@@ -40,6 +42,8 @@ function auditAction(item) {
   if (item.title.startsWith("START ")) return "대리 접속 시작";
   if (item.title.startsWith("END ")) return "관리자 복귀";
   const read = item.title.startsWith("GET ") || item.title.startsWith("HEAD ");
+  if (item.title.includes('/users/me/referral/alias')) return '추천용 닉네임 변경';
+  if (item.title.includes('/users/me/referral')) return read ? '추천인 정보 조회' : '추천인 등록';
   if (item.title.includes("/users/me/profile")) return read ? "고객 정보 조회" : "고객 정보 수정";
   if (item.title.includes("/users/me/account")) return "회원 탈퇴";
   if (item.title.includes("/group-password")) return "비밀번호 관련 작업";

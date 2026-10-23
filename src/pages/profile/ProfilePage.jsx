@@ -25,6 +25,7 @@ import {
 } from "@/services/profile-service";
 import { requestOwnPasswordReset } from "@/services/group-service";
 import PlanSection from "@/pages/profile/PlanSection";
+import ReferralSection from "@/pages/profile/ReferralSection";
 import SignupProfileFields from "@/components/signup/SignupProfileFields";
 import NotificationPreferences from '@/pages/profile/NotificationPreferences';
 import {
@@ -245,6 +246,7 @@ function ProfilePage() {
       </Stack>
 
       <PlanSection onChanged={refreshBilling} onContactSaved={contactSaved} />
+      <ReferralSection key={savedEmail} />
 
       <Paper elevation={0} sx={{ p: { xs: 2.5, md: 4 }, border: "1px solid", borderColor: "divider", borderRadius: 3 }}>
         <Stack spacing={2.5}>

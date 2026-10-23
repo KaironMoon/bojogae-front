@@ -27,6 +27,7 @@ import AdminProposalsPage from "../pages/admin/ProposalsPage";
 import UsagePage from "../pages/admin/UsagePage";
 import ProposalSettingsPage from "../pages/admin/ProposalSettingsPage";
 import PointsPage from "../pages/admin/PointsPage";
+import PaymentSupportPage from "../pages/admin/PaymentSupportPage";
 import DashboardBannersPage from "../pages/admin/DashboardBannersPage";
 import GroupInquiriesPage from "../pages/admin/GroupInquiriesPage";
 import BoardListPage from "../pages/boards/BoardListPage";
@@ -166,6 +167,7 @@ const router = createBrowserRouter([
           { path: "/admin/document-suggestions", element: <RequestHistoryPage key="suggestion-admin" kind="suggestion" admin /> },
           { path: "/admin/users", element: <UsersPage /> },
           { path: "/admin/points", element: <PointsPage /> },
+          { path: "/admin/payment-support", element: <PaymentSupportPage /> },
           { path: "/admin/payment-reservations", element: <PaymentHistoryPage key="admin-reservations" admin /> },
           { path: "/admin/prompts", element: <PromptsPage /> },
           { path: "/admin/proposals", element: <AdminProposalsPage /> },

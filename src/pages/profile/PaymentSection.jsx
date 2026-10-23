@@ -98,8 +98,8 @@ export default function PaymentSection({ config, onChanged, onContactSaved }) {
         setSavedMethod(methods?.cards.find((card) => card.selected && card.status === 'ACTIVE') || null);
         setHasRegisteredCards(Boolean(methods?.cards.length));
         setCustomer({ fullName:profile.name || '', phoneNumber:profile.phone || '', email:profile.pending_email || profile.email || '' });
-      } catch {
-        setError('내정보를 불러오지 못했습니다. 다시 시도해 주세요.');
+      } catch (e) {
+        setError(paymentError(e));
         return;
       } finally { setBusy(false); }
     }
@@ -124,7 +124,7 @@ export default function PaymentSection({ config, onChanged, onContactSaved }) {
       if (canRetry) retryKey.current = crypto.randomUUID();
       setDialog(canRetry ? 'retry' : 'subscribe');
       setMessage('가입이 완료되었습니다. 선택한 요금제의 결제를 완료하면 유료 이용이 시작됩니다.');
-    }).catch(() => setError('가입은 완료됐지만 결제자 정보를 불러오지 못했습니다. 구독 시작 버튼으로 다시 진행해 주세요.'))
+    }).catch((e) => setError(paymentError(e)))
       .finally(() => setBusy(false));
   }, [data, active, canRetry]);
 

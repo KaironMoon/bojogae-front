@@ -4,7 +4,7 @@ import { Box, Chip, Collapse, IconButton, Table, TableBody, TableCell, TableCont
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 
-const sources = { GROUP_MONTHLY: '그룹 월 기본 지급', GROUP_TRANSFER: '그룹 분배·회수', ADMIN: '관리자 지급', REFUND: '사용 꼬막 반환', PURCHASE: '구매', SUBSCRIPTION: '정액제', MIGRATION: '이관' };
+const sources = { GROUP_MONTHLY: '그룹 월 기본 지급', GROUP_TRANSFER: '그룹 분배·회수', ADMIN: '관리자 지급', REFUND: '사용 꼬막 반환', PURCHASE: '구매', SUBSCRIPTION: '정액제', MIGRATION: '이관', REFERRAL: '추천인 등록 보너스' };
 const statuses = { AVAILABLE: '사용 가능', EXPIRING: '만료 임박', EXPIRED: '만료', DEPLETED: '소진' };
 const cockleReason = (value) => value?.replace(/([0-9][0-9,]*)P\b/g, (_, number) => `${(Number(number.replace(/,/g, '')) * 10).toLocaleString('ko-KR')}꼬막`).replace(/포인트/g, '꼬막');
 const date = (value) => value ? new Date(value).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }) : '만료 없음';

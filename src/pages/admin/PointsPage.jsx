@@ -1,4 +1,3 @@
-import PaymentSupportPanel from "./PaymentSupportPanel";
 import KkomakIcon from "@/pages/components/KkomakIcon";
 import {
   Alert,
@@ -167,13 +166,12 @@ function PointsPage() {
     <Box component="main" sx={{ p: { xs: 2, md: 4 }, maxWidth: 1280, mx: "auto" }}>
       <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" gap={2} sx={{ mb: 3 }}>
         <Box>
-          <Typography variant="h4" component="h1" fontWeight={850}>꼬막 관리</Typography>
+          <Typography variant="h4" component="h1" fontWeight={850}>꼬막 지급·내역</Typography>
           <Typography color="text.secondary">사용자별 지급·구매 꼬막 잔액을 확인하고 꼬막을 지급합니다.</Typography>
         </Box>
         <Button startIcon={<RefreshRoundedIcon />} onClick={() => load(result.page)}>새로고침</Button>
       </Stack>
 
-      <PaymentSupportPanel />
       {error && <Alert severity="error" onClose={() => setError("")} sx={{ mb: 2 }}>{error}</Alert>}
       {message && <Alert severity="success" onClose={() => setMessage("")} sx={{ mb: 2 }}>{message}</Alert>}
 

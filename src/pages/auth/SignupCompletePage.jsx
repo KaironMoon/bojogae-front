@@ -22,6 +22,7 @@ import { sendSignupEmail, verifySignupCode } from "@/services/auth-service";
 import { PLAN_INFO, isSignupPlan } from "@/constants/plans";
 
 import SignupProfileFields from "@/components/signup/SignupProfileFields";
+import { referralErrors } from '@/services/referral-service';
 
 const PLAN_OPTIONS = ["FREE", "BASIC", "STANDARD", "PRO"];
 
@@ -84,6 +85,7 @@ function SignupCompletePage() {
   const { refreshUser } = useAuth();
   const [profile, setProfile] = useState({ name: "", phone: "", affiliation: "", branch_name: "" });
   const [email, setEmail] = useState(searchParams.get("email") || "");
+  const [referrer, setReferrer] = useState('');
   const [termsAgreed, setTermsAgreed] = useState(false);
   const [planCode, setPlanCode] = useState(isSignupPlan(urlPlan) ? urlPlan : "");
   const [code, setCode] = useState("");
@@ -104,7 +106,7 @@ function SignupCompletePage() {
     setLoading(true);
     setError("");
     try {
-      await sendSignupEmail(signupToken, email, termsAgreed, planCode, profile);
+      await sendSignupEmail(signupToken, email, termsAgreed, planCode, profile, referrer);
       setSent(true);
       setCooldown(60);
     } catch (requestError) {
@@ -166,9 +168,12 @@ function SignupCompletePage() {
               )}
             </Stack>
 
-            {error && <Alert severity="error">{errorMessages[error] || "요청을 처리하지 못했습니다."}</Alert>}
+            {error && <Alert severity="error">{referralErrors[error] || errorMessages[error] || "요청을 처리하지 못했습니다."}</Alert>}
 
             <SignupProfileFields value={profile} onChange={setProfile} disabled={loading || sent} />
+            <TextField label="추천인 이메일 또는 추천용 닉네임 (선택)" value={referrer}
+              onChange={event => setReferrer(event.target.value)} disabled={loading || sent} inputProps={{ maxLength: 254 }}
+              helperText="가입 완료 시 내 계정에 50꼬막이 추가 지급되며 30일간 사용할 수 있습니다. 가입 후 내정보에서도 한 번 등록할 수 있습니다. 등록 후에는 추천인을 변경할 수 없습니다." />
             <TextField
               label="이메일"
               type="email"

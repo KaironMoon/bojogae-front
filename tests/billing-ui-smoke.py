@@ -16,6 +16,7 @@ SUB = {'id': 'synthetic-sub', 'plan_code': 'STANDARD', 'current_plan_code': 'STA
 BALANCE = {'free_points': 500, 'paid_points': 0, 'total_points': 500, 'expiring_points': 100, 'next_expiration': '2099-11-02T03:00:00Z'}
 posts, errors = [], []
 config_overrides = {}
+request_errors = {}
 
 def handle(route):
     request = route.request
@@ -24,6 +25,9 @@ def handle(route):
     body = {}
     if request.method == 'OPTIONS':
         route.fulfill(status=204, headers=headers)
+        return
+    if path in request_errors:
+        route.fulfill(status=400, content_type='application/json', body=json.dumps({'detail': request_errors[path]}), headers=headers)
         return
     if request.method == 'POST':
         posts.append((path, request.post_data_json))
@@ -34,6 +38,7 @@ def handle(route):
     elif path == 'web-push/configuration': body = {'enabled': False, 'vapid_public_key': ''}
     elif path == 'payments/config': body = {'enabled': True, 'eligible': True, 'products': PRODUCTS, 'policyVersion': '2026-10-03', 'billingTestMode': True, **config_overrides}
     elif path == 'payments/me': body = {'enabled': True, 'subscription': SUB, 'orders': []}
+    elif path == 'payments/methods': body = {'cards': []}
     elif path == 'payments/subscriptions/upgrade-quote': body = {'paymentId': 'synthetic-upgrade', 'amount': 5000, 'cockles': 100, 'expiresAt': SUB['period_end'], 'nextAmount': 49000}
     elif path == 'payments/subscriptions/termination-preview': body = {'amount': 29000, 'requires_review': False}
     elif path == 'payments/subscriptions/upgrade': body = {'status': 'PAID'}
@@ -92,6 +97,24 @@ with sync_playwright() as p:
     dialog.get_by_role('button', name='닫기', exact=True).click()
     assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth')
     page.screenshot(path=str(out / 'mobile-coins.png'), full_page=True)
+    SUB.update(is_active=False, status='CANCELED', current_plan_code='FREE')
+    request_errors['payments/methods'] = 'termination_refund_pending'
+    refund_notice = '이전 구독 종료·환불을 처리 중입니다. 완료 후 다시 구독할 수 있습니다.'
+    page.goto(BASE + '/profile')
+    page.locator('#plan').get_by_role('button', name='구독 시작', exact=True).click()
+    page.locator('#plan').get_by_text(refund_notice, exact=True).wait_for()
+    assert page.get_by_text('내정보를 불러오지 못했습니다. 다시 시도해 주세요.', exact=True).count() == 0
+    assert page.get_by_role('dialog').count() == 0
+    page.goto(BASE + '/profile?signupPlan=STANDARD#plan')
+    page.locator('#plan').get_by_text(refund_notice, exact=True).wait_for()
+    assert page.get_by_role('dialog').count() == 0
+    assert not any(path in ('payments/subscriptions/start', 'payments/subscriptions/prepare', 'payments/subscriptions/activate') for path, _ in posts)
+    page.screenshot(path=str(out / 'refund-review-notice.png'), full_page=True)
+    request_errors.clear()
+    page.reload()
+    page.locator('#plan').get_by_role('button', name='구독 시작', exact=True).click()
+    page.get_by_role('dialog').get_by_label('카드 별칭', exact=False).wait_for()
+    page.get_by_role('dialog').get_by_role('button', name='닫기', exact=True).click()
     for role, group_id, reason in [('ADMIN', None, 'ADMIN_ACCOUNT'), ('USER', 3, 'GROUP_ACCOUNT')]:
         USER.update(role=role, group_id=group_id)
         config_overrides.update(eligible=False, ineligibleReason=reason)
@@ -105,4 +128,4 @@ with sync_playwright() as p:
     assert not any(path == 'payments/orders' for path, _ in posts)
     assert not errors, errors
     browser.close()
-print('구독 변경·업그레이드·해지 안내, 추가 충전 제거, 내꼬막 잔액·만료·상세, 모바일 확인 통과 (모의 API)')
+print('구독 변경·업그레이드·해지 안내, 추가 충전 제거, 내꼬막, 구독 시작·가입 후 자동 진입의 환불 검토 사유 표시 및 정상 복구 확인 통과 (모의 API)')

@@ -45,10 +45,15 @@ const CLAIM_MENU = [
   { label: "청구내역", path: "/claims/history" },
 ];
 
+const ADMIN_POINT_MENU = [
+  { label: '꼬막 지급·내역', path: '/admin/points' },
+  { label: '결제·환불 처리', path: '/admin/payment-support' },
+];
+
 const ADMIN_MENU = [
   { label: "그룹 관리", path: "/admin/groups", icon: GroupOutlinedIcon },
   { label: "고객 관리", path: "/admin/users", icon: GroupOutlinedIcon },
-  { label: "꼬막 관리", path: "/admin/points", icon: AccountBalanceWalletOutlinedIcon },
+  { label: "꼬막 관리", items: ADMIN_POINT_MENU, icon: AccountBalanceWalletOutlinedIcon },
   { label: "예약결제 목록", path: "/admin/payment-reservations", icon: AccountBalanceWalletOutlinedIcon },
   { label: "프롬프트 관리", path: "/admin/prompts", icon: AutoAwesomeOutlinedIcon },
   { label: "보고서 관리", path: "/admin/proposals", icon: DescriptionOutlinedIcon },
@@ -104,6 +109,7 @@ function PageLeftMenu({ onNavigate }) { // eslint-disable-line react/prop-types
   const [helpOpen, setHelpOpen] = useState(location.pathname.startsWith("/help/"));
   const [claimsOpen, setClaimsOpen] = useState(location.pathname.startsWith("/claims"));
   const [adminBoardsOpen, setAdminBoardsOpen] = useState(location.pathname.startsWith("/admin/boards/"));
+  const [adminPointsOpen, setAdminPointsOpen] = useState(ADMIN_POINT_MENU.some(item => location.pathname === item.path));
 
   useEffect(() => {
     if (location.pathname.startsWith("/proposals")
@@ -114,6 +120,7 @@ function PageLeftMenu({ onNavigate }) { // eslint-disable-line react/prop-types
     if (location.pathname.startsWith("/help/")) setHelpOpen(true);
     if (location.pathname.startsWith("/claims")) setClaimsOpen(true);
     if (location.pathname.startsWith("/admin/boards/")) setAdminBoardsOpen(true);
+    if (ADMIN_POINT_MENU.some(item => location.pathname === item.path)) setAdminPointsOpen(true);
   }, [location.pathname]);
 
   const isActive = (path) => (
@@ -251,7 +258,9 @@ function PageLeftMenu({ onNavigate }) { // eslint-disable-line react/prop-types
             MANAGEMENT
           </Typography>
           <List sx={{ py: 0 }}>
-            {ADMIN_MENU.map(renderMenuItem)}
+            {ADMIN_MENU.map(item => item.items
+              ? renderMenuGroup({ ...item, open: adminPointsOpen, setOpen: setAdminPointsOpen, prefix: '/admin/point-menu/' })
+              : renderMenuItem(item))}
             {renderMenuGroup({ label: "게시판 관리", icon: ArticleOutlinedIcon, items: ADMIN_BOARD_MENU, open: adminBoardsOpen, setOpen: setAdminBoardsOpen, prefix: "/admin/boards/" })}
             {renderMenuItem({ label: "Info", path: "/admin/info", icon: InfoOutlinedIcon })}
             {renderMenuItem({ label: "FAQ 관리", path: "/admin/faqs", icon: HelpOutlineOutlinedIcon })}
