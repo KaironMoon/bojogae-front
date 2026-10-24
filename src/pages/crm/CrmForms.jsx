@@ -239,6 +239,13 @@ export function CustomerForm({ value, onSave, onClose }) {
         onChange={(v) => set("location", v)}
       />
       <Field
+        label="상세주소"
+        value={data.address_detail}
+        onChange={(v) => set("address_detail", v)}
+        placeholder="동·호수 등 상세주소"
+        inputProps={{ maxLength: 500 }}
+      />
+      <Field
         label="방문 참고사항"
         value={data.visit_note}
         onChange={(v) => set("visit_note", v)}
