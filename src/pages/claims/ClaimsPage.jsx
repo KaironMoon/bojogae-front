@@ -8,7 +8,7 @@ import SignaturePad from './SignaturePad';
 import ClaimPdfPreview from './ClaimPdfPreview';
 import ClaimHistory from './ClaimHistory';
 import ClaimFaxDestinations from './ClaimFaxDestinations';
-import { claimError, claimTemplateUrl, generateClaimPdf, getClaimInsurers, saveClaimRequest } from '@/services/claim-service';
+import { claimError, claimTemplateUrl, generateClaimPdf, getClaimInsurers, saveClaimRequest, downloadClaimDocument } from '@/services/claim-service';
 import { activeClaimPayload, claimInputErrors, claimErrorStep, claimNeedsGuardian, claimHasGuardian,
   formatClaimInputEdit, isFormattedClaimField } from '@/services/claim-validation';
 
@@ -140,15 +140,21 @@ export default function ClaimsPage() {
     setResults(generated); setPreview(generated[0]?.id || ''); setStep(3); setBusy(false); setProgress('');
     if (failures.length) setError(failures.join('\n'));
   }
-  async function save() {
+  async function save(mode) {
+    if (busy) return;
     if (results.length !== selected.length) {
       setError('선택한 보험사의 PDF를 모두 생성한 후 다시 시도해 주세요.'); return;
     }
     setBusy(true); setError('');
-    requestKey.current ||= crypto.randomUUID();
+    requestKey.current ||= { mode, key: crypto.randomUUID() };
+    if (requestKey.current.mode !== mode) requestKey.current = { mode, key: crypto.randomUUID() };
     try {
-      const result = await saveClaimRequest(requestKey.current, selected, activeClaimPayload(payload), files, faxNumbers);
+      const result = await saveClaimRequest(requestKey.current.key, selected, activeClaimPayload(payload), files, faxNumbers, mode);
       setSaved(result);
+      if (mode === 'FILE') {
+        try { await downloadClaimDocument(result.id); }
+        catch (e) { setError(`청구서는 저장되었습니다. 다운로드를 다시 시도해 주세요. ${await claimError(e)}`); }
+      }
     } catch (e) { setError(await claimError(e)); } finally { setBusy(false); }
   }
   function reuse(detail, attachments) {
@@ -167,11 +173,11 @@ export default function ClaimsPage() {
     {view === 'history' ? <ClaimHistory onReuse={reuse} /> : <Stack spacing={3} component="form" ref={form} onSubmit={e => e.preventDefault()}>
       <Box><Typography variant="h4" fontWeight={800}>보험금 청구서 만들기</Typography>
         <Typography color="text.secondary" sx={{ mt: 1 }}>공통 정보를 입력하면 보험사별 청구서를 만들 수 있습니다.</Typography></Box>
-      <Alert severity="info">팩스 보내기를 누르면 청구 내용·서명·첨부·보험사별 PDF가 서버에 저장됩니다. 실제 팩스 발송과 비용 차감은 아직 연결되지 않았습니다.</Alert>
+      <Alert severity="info">파일만 저장하면 청구내역에 보관하고 바로 다운로드합니다. 팩스 발송은 현재 서비스 미연결로 실패 이력만 남으며 비용은 차감되지 않습니다.</Alert>
       <Stepper activeStep={step} alternativeLabel>{STEPS.map(title => <Step key={title}><StepLabel>{title}</StepLabel></Step>)}</Stepper>
       {error && <Alert severity="error" sx={{ whiteSpace: 'pre-line' }}>{error}</Alert>}
-      {saved && <Alert severity="success" role="status" action={<Button component={Link} to="/claims/history" color="inherit" size="small">청구내역 보기</Button>}>
-        청구 요청 {saved.id}번이 저장되었습니다. 실제 팩스는 발송되지 않았습니다.
+      {saved && <Alert severity={saved.fax_history?.some(item => item.status === 'FAILED') ? 'warning' : 'success'} role="status" action={<Button component={Link} to="/claims/history" color="inherit" size="small">청구내역 보기</Button>}>
+        청구 요청 {saved.id}번이 저장되었습니다. {saved.save_mode === 'FILE' ? '파일 다운로드를 요청했습니다.' : '팩스 발송 결과는 청구내역의 발송 이력에서 확인해 주세요.'}
       </Alert>}
       {loading ? <CircularProgress aria-label="보험사 불러오는 중" /> : <Paper variant="outlined" sx={{ p: { xs: 2, md: 3 }, borderRadius: 3 }}>
         {step === 0 && <Stack spacing={2} role="group" aria-label="청구할 보험사">
@@ -188,10 +194,6 @@ export default function ClaimsPage() {
               </Paper>
             </Grid>)}</Grid>
           </Box>)}
-          {selected.length > 0 && <ClaimFaxDestinations insurers={insurers.filter(item => selected.includes(item.id))}
-            numbers={faxNumbers} disabled={busy} onChange={(id, value) => {
-              invalidate(); setFaxNumbers(previous => ({ ...previous, [id]: value }));
-            }} />}
         </Stack>}
         {step === 1 && <Stack spacing={2.5}>
           <Typography variant="h6" fontWeight={700}>피보험자</Typography>
@@ -254,11 +256,14 @@ export default function ClaimsPage() {
         </Stack>}
         {step === 3 && <Stack spacing={2}>
           <Typography variant="h6" fontWeight={700}>생성된 PDF {results.length}건</Typography>
-          <Typography variant="body2" color="text.secondary">보험사별 내용을 확인한 뒤 팩스 보내기를 눌러 저장하세요. 입력을 수정하면 다시 생성해야 합니다.</Typography>
-          <ClaimFaxDestinations insurers={insurers.filter(item => selected.includes(item.id))} numbers={faxNumbers} readOnly />
+          <Typography variant="body2" color="text.secondary">보험사별 내용을 확인한 뒤 파일만 저장 또는 팩스 발송을 선택하세요. 여러 보험사는 ZIP으로 다운로드합니다. 입력을 수정하면 다시 생성해야 합니다.</Typography>
+          <Typography variant="body2" color="text.secondary">파일만 저장할 때는 수신 팩스 번호를 입력하지 않아도 됩니다.</Typography>
+          <ClaimFaxDestinations insurers={insurers.filter(item => selected.includes(item.id))} numbers={faxNumbers}
+            disabled={busy || Boolean(saved)} onChange={(id, value) => {
+              requestKey.current = null; setFaxNumbers(previous => ({ ...previous, [id]: value }));
+            }} />
           <Stack direction="row" gap={1} flexWrap="wrap">{results.map(item => <Button key={item.id} variant={preview === item.id ? 'contained' : 'outlined'} onClick={() => setPreview(item.id)}>{item.name} · {item.pages}쪽</Button>)}</Stack>
           {active && <>
-            <Button variant="outlined" startIcon={<DownloadOutlinedIcon />} href={active.url} download={`${active.name}_청구서.pdf`}>선택한 PDF 다운로드</Button>
             <ClaimPdfPreview key={active.id} blob={active.blob} name={active.name} />
           </>}
           {!results.length && <Alert severity="warning">생성된 PDF가 없습니다. 이전 단계에서 내용을 확인해 주세요.</Alert>}
@@ -269,7 +274,18 @@ export default function ClaimsPage() {
         <Button disabled={step === 0 || busy} onClick={() => setStep(s => s-1)}>이전</Button>
         {step < 2 ? <Button variant="contained" disabled={busy || loading} onClick={next}>다음</Button>
           : step === 2 ? <Button variant="contained" disabled={busy} startIcon={<DescriptionOutlinedIcon />} onClick={generate}>PDF 생성</Button>
-            : <Button variant="contained" disabled={busy || !results.length || results.length !== selected.length || Boolean(saved)} onClick={save}>{saved ? '저장 완료' : '팩스 보내기'}</Button>}
+            : <Stack direction="row" gap={1} flexWrap="wrap">
+              {saved ? <Button variant="outlined" disabled={busy} onClick={async () => {
+                setBusy(true); setError('');
+                try { await downloadClaimDocument(saved.id); } catch (e) { setError(await claimError(e)); }
+                finally { setBusy(false); }
+              }}>저장된 파일 다운로드</Button> : <>
+                <Button variant="outlined" startIcon={<DownloadOutlinedIcon />}
+                  disabled={busy || !results.length || results.length !== selected.length} onClick={() => save('FILE')}>파일만 저장</Button>
+                <Button variant="contained" disabled={busy || !results.length || results.length !== selected.length}
+                  onClick={() => save('FAX')}>팩스 발송</Button>
+              </>}
+            </Stack>}
       </Stack>
     </Stack>}
   </Box>;

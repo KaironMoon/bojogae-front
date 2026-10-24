@@ -31,9 +31,10 @@ export async function claimError(error) {
   return typeof data?.detail === 'string' ? data.detail : error?.message || '청구서를 처리하지 못했습니다.';
 }
 
-export async function saveClaimRequest(requestKey, insurerIds, claim, files, faxNumbers = {}) {
+export async function saveClaimRequest(requestKey, insurerIds, claim, files, faxNumbers = {}, saveMode = 'FILE') {
   const form = new FormData();
-  form.append('payload', JSON.stringify({ request_key: requestKey, insurer_ids: insurerIds, claim, fax_numbers: faxNumbers }));
+  form.append('payload', JSON.stringify({ request_key: requestKey, insurer_ids: insurerIds, claim,
+    fax_numbers: saveMode === 'FAX' ? faxNumbers : {}, save_mode: saveMode }));
   files.forEach(file => form.append('files', file));
   return (await apiCaller.post('/api/v1/claims/requests', form, { timeout: 300000 })).data;
 }
@@ -49,4 +50,25 @@ export async function getClaimRequest(id, signal) {
 export async function getClaimFile(requestId, fileId, pdf = false, signal) {
   return (await apiCaller.get(`/api/v1/claims/requests/${requestId}/files/${fileId}`, { pdf },
     { responseType: 'blob', signal })).data;
+}
+
+export async function sendClaimFax(requestId, requestKey, faxNumbers) {
+  return (await apiCaller.post(`/api/v1/claims/requests/${requestId}/fax`, {
+    request_key: requestKey, fax_numbers: faxNumbers,
+  }, { timeout: 120000 })).data;
+}
+
+export function downloadClaimBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url; link.download = filename;
+  document.body.appendChild(link); link.click(); link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+export async function downloadClaimDocument(requestId) {
+  const response = await apiCaller.get(`/api/v1/claims/requests/${requestId}/download`, {}, { responseType: 'blob', timeout: 120000 });
+  const encoded = response.headers['content-disposition']?.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
+  const filename = encoded ? decodeURIComponent(encoded) : `청구서_${requestId}.${response.data.type === 'application/pdf' ? 'pdf' : 'zip'}`;
+  downloadClaimBlob(response.data, filename);
 }

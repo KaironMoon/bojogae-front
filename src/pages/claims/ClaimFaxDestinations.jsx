@@ -17,7 +17,7 @@ export default function ClaimFaxDestinations({ insurers, numbers, onChange, disa
           </Stack>
           {insurer.use_virtual_fax && !readOnly && <>
             <TextField fullWidth size="small" type="tel" label={`${insurer.name} 가상팩스 번호`}
-              value={custom} disabled={disabled} required={!common} autoComplete="off"
+              value={custom} disabled={disabled} autoComplete="off"
               inputProps={{ maxLength: 30, pattern: '0(( |-)?[0-9]){8,11}', inputMode: 'tel' }}
               onChange={event => onChange(insurer.id, event.target.value)}
               helperText={common ? `입력하지 않으면 공용 번호 ${common}을 사용합니다.` : '보험사에서 발급받은 수신 번호를 입력해 주세요.'} />
