@@ -54,9 +54,9 @@ export default function SignupProfileFields({ value, onChange, disabled = false,
       inputProps={{ maxLength: 150 }}
       helperText={branchFocused ? '지점명을 모르시면 활동 지역을 입력해 주세요. 예: 서울 강남, 부산' : '예: 강대한 지점, 브릿지 사업단'} />
     {branchRequired && groupStatus !== 'idle' && <Typography variant="caption" role="status" aria-live="polite" color={groupStatus === 'duplicate' ? 'error' : 'text.secondary'}>
-      {{ checking: '같은 GA 소속·지점명의 단체가 있는지 확인 중입니다.',
+      {{ checking: '같은 GA 소속·지점명의 조직이 있는지 확인 중입니다.',
         available: '등록 가능한 GA 소속·지점명입니다.',
-        duplicate: '같은 GA 소속·지점명의 단체가 이미 등록되어 있거나 신청 중입니다.',
+        duplicate: '같은 GA 소속·지점명의 조직이 이미 등록되어 있거나 신청 중입니다.',
         failed: '중복 여부를 확인하지 못했습니다. 제출할 때 다시 확인합니다.' }[groupStatus]}
     </Typography>}
     <TextField label={nameLabel} required value={value[nameKey] || ''} disabled={disabled}

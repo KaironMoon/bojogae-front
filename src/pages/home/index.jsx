@@ -1,3 +1,4 @@
+import { CrmHomeSummary } from "@/pages/crm/CrmHomeSummary";
 import KkomakIcon from "@/pages/components/KkomakIcon";
 /* eslint-disable react/prop-types */
 import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
@@ -52,7 +53,7 @@ function PromptCard({ prompt, rank, showThumbnail = true }) {
   const showPreview = preview && !failedPreviewIds[preview.id];
   const failPreview = (id) => setFailedPreviewIds((current) => ({ ...current, [id]: true }));
   return (
-    <Paper variant="outlined" sx={{ flex: showThumbnail ? "0 0 auto" : "initial", width: showThumbnail ? { xs: "min(78vw, 240px)", sm: 215 } : "100%", borderRadius: 3, overflow: "hidden", borderColor: "#e7ebf2", transition: "transform .18s, box-shadow .18s", scrollSnapAlign: showThumbnail ? { xs: "center", sm: "start" } : "none", "&:hover": { transform: "translateY(-3px)", boxShadow: "0 12px 30px rgba(29,47,78,.10)" } }}>
+    <Paper variant="outlined" sx={{ flex: showThumbnail ? "0 0 auto" : "initial", width: showThumbnail ? { xs: "min(78vw, 240px)", sm: "auto" } : "100%", minWidth: 0, maxWidth: "100%", boxSizing: "border-box", borderRadius: 3, overflow: "hidden", borderColor: "#e7ebf2", transition: "transform .18s, box-shadow .18s", scrollSnapAlign: showThumbnail ? { xs: "center", sm: "start" } : "none", "&:hover": { transform: "translateY(-3px)", boxShadow: "0 12px 30px rgba(29,47,78,.10)" } }}>
       {showThumbnail && <Box sx={{ height: 146, position: "relative", overflow: "hidden", bgcolor: "#eef3ff" }}>
         {showPreview ? (
           previewCount > 1 ? (
@@ -114,7 +115,7 @@ function PromptCard({ prompt, rank, showThumbnail = true }) {
         {rank && <Box sx={{ position: "absolute", zIndex: 10, top: 10, left: 10, width: 30, height: 30, borderRadius: 2, bgcolor: rank <= 3 ? "#111827" : "rgba(17,24,39,.78)", color: "white", display: "grid", placeItems: "center", fontWeight: 900, boxShadow: "0 2px 8px rgba(15,23,42,.24)" }}>{rank}</Box>}
       </Box>}
       {showThumbnail ? (
-        <Stack spacing={1.2} sx={{ p: 2 }}>
+        <Stack spacing={1} sx={{ p: { xs: 1.5, sm: 1.25 }, minWidth: 0 }}>
           {RELEASE_BADGES[prompt.release_badge] && (
             <Chip
               size="small"
@@ -125,13 +126,13 @@ function PromptCard({ prompt, rank, showThumbnail = true }) {
           <Typography
             fontWeight={800}
             title={prompt.title}
-            sx={{ minWidth: 0, minHeight: 48, overflowWrap: "anywhere", lineHeight: 1.45 }}
+            sx={{ minWidth: 0, minHeight: 44, fontSize: 14, overflowWrap: "anywhere", lineHeight: 1.5 }}
           >
             {prompt.title}
           </Typography>
           <Stack direction="row" justifyContent="space-between" alignItems="center">
-            <Typography variant="caption" color="text.secondary">{prompt.usage_count ? `${prompt.usage_count.toLocaleString("ko-KR")}회 사용` : `필요 꼬막 ${prompt.point_cost}`}</Typography>
-            <Button component={Link} to={`/proposals?promptId=${prompt.id}`} size="small" endIcon={<ArrowForwardRoundedIcon />}>만들기</Button>
+            <Typography variant="caption" color="text.secondary" sx={{ minWidth: 0, fontSize: 11 }}>{prompt.usage_count ? `${prompt.usage_count.toLocaleString("ko-KR")}회 사용` : `${prompt.point_cost}꼬막`}</Typography>
+            <Button component={Link} to={`/proposals?promptId=${prompt.id}`} size="small" sx={{ minWidth: 0, px: 0.5, flexShrink: 0, fontSize: 12 }}>만들기</Button>
           </Stack>
         </Stack>
       ) : (
@@ -215,8 +216,9 @@ function PromptSection({ title, subtitle, prompts, ranked = false, showThumbnail
           ref={scrollerRef}
           onScroll={updateScrollState}
           sx={{
-            display: showThumbnails ? "flex" : "grid", gridTemplateColumns: "minmax(0, 1fr)",
-            width: "100%", maxWidth: "100%", boxSizing: "border-box", gap: showThumbnails ? 1.7 : 1,
+            display: showThumbnails ? { xs: "flex", sm: "grid" } : "grid",
+            gridTemplateColumns: showThumbnails ? { sm: "repeat(3, minmax(0, 1fr))" } : "minmax(0, 1fr)",
+            width: "100%", maxWidth: "100%", boxSizing: "border-box", gap: 1,
             px: showThumbnails ? { xs: "calc((100% - min(78vw, 240px)) / 2)", sm: 0 } : 0,
             overflowX: showThumbnails ? "auto" : "visible", pb: showThumbnails ? { xs: 0.5, sm: 1.2 } : 0,
             scrollSnapType: showThumbnails ? "x mandatory" : "none",
@@ -276,6 +278,7 @@ export default function Home() {
   return (
     <Box sx={{ p: { xs: 2, md: 4 }, maxWidth: 1440, width: "100%", minWidth: 0, boxSizing: "border-box", overflowX: "hidden", mx: "auto" }}>
       {error && <Alert severity="error">{error}</Alert>}
+      <CrmHomeSummary />
       {data && <Stack spacing={{ xs: 3.5, md: 4.5 }}>
         <Paper sx={{ p: { xs: 2.5, md: 4 }, borderRadius: 4, color: "white", overflow: "hidden", position: "relative", background: "linear-gradient(120deg,#172554 0%,#1d4ed8 57%,#6366f1 100%)", boxShadow: "0 18px 50px rgba(30,64,175,.22)" }}>
           <Box sx={{ position: "absolute", width: 260, height: 260, borderRadius: "50%", bgcolor: "rgba(255,255,255,.09)", right: -70, top: -120 }} />
@@ -294,7 +297,10 @@ export default function Home() {
           <StatCard icon={<CampaignRoundedIcon />} label="새로운 소식" value={data.latest_posts.length} accent="#ea580c" />
         </Box>
 
-        <PromptSection title="새로 나온 보고서" subtitle="최근 등록되거나 업데이트된 보고서입니다." prompts={data.latest_prompts} />
+        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "minmax(0, 1fr)", md: "repeat(2, minmax(0, 1fr))" }, gap: { xs: 3.5, md: 3 } }}>
+          <PromptSection title="새로 나온 보고서" subtitle="최근 새롭게 등록된 보고서입니다." prompts={data.latest_prompts} />
+          <PromptSection title="최근 업데이트된 보고서" subtitle="최근 내용이 업데이트된 보고서입니다." prompts={data.updated_prompts} />
+        </Box>
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "minmax(0, 1fr)", md: "repeat(2, minmax(0, 1fr))" }, gap: { xs: 3.5, md: 3 } }}>
           <PromptSection title="요즘 많이 사용하는 보고서" subtitle="최근 30일 동안 완성된 보고서를 기준으로 집계했습니다." prompts={data.popular_prompts} ranked showThumbnails={false} />
           <PromptSection title="내가 자주 만드는 보고서" subtitle="내 완료 기록을 기준으로 빠르게 다시 시작할 수 있습니다." prompts={data.personal_prompts} ranked showThumbnails={false} />

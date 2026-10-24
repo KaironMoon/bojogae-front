@@ -61,7 +61,7 @@ function UsersPage() {
       setPage(result.page);
       setTotalPages(result.total_pages);
     } catch {
-      setError("사용자 목록을 불러오지 못했습니다.");
+      setError("설계사 목록을 불러오지 못했습니다.");
     } finally {
       setLoading(false);
     }
@@ -114,7 +114,7 @@ function UsersPage() {
       setDeleteTarget(null);
       await loadUsers(page);
     } catch {
-      setError("사용자를 삭제하지 못했습니다.");
+      setError("설계사 계정을 삭제하지 못했습니다.");
     } finally {
       setWorkingUserId(null);
     }
@@ -133,8 +133,8 @@ function UsersPage() {
     } catch (requestError) {
       setError(
         requestError.response?.data?.detail === "protected_admin_role"
-          ? "보호된 최고 관리자 계정은 일반 사용자로 변경할 수 없습니다."
-          : "사용자 권한을 변경하지 못했습니다.",
+          ? "보호된 최고 관리자 계정은 일반 설계사로 변경할 수 없습니다."
+          : "계정 권한을 변경하지 못했습니다.",
       );
     } finally {
       setWorkingUserId(null);
@@ -152,8 +152,8 @@ function UsersPage() {
         sx={{ mb: 3 }}
       >
         <Box sx={{ minWidth: 0 }}>
-          <Typography variant="h4" sx={{ fontWeight: 800 }}>고객 관리</Typography>
-          <Typography color="text.secondary">고객 정보·구독·꼬막·활동 내역을 조회하고 응대합니다.</Typography>
+          <Typography variant="h4" sx={{ fontWeight: 800 }}>설계사 관리</Typography>
+          <Typography color="text.secondary">설계사 정보·구독·꼬막·활동 내역을 조회하고 응대합니다.</Typography>
         </Box>
         <Button
           onClick={() => loadUsers(page)}
@@ -169,7 +169,7 @@ function UsersPage() {
           <TextField
             size="small"
             fullWidth
-            placeholder="고객 번호, 이메일, 이름, 닉네임, 전화번호, 사번, 단체명 검색"
+            placeholder="설계사 번호, 이메일, 이름, 닉네임, 전화번호, 사번, 조직명 검색"
             value={draftQuery}
             inputProps={{ maxLength: 100 }}
             onChange={(event) => setDraftQuery(event.target.value)}
@@ -182,7 +182,7 @@ function UsersPage() {
         </Stack>
       </Paper>
 
-      {userId && <Alert severity="info" sx={{ mb: 2 }} action={<Button onClick={() => setSearchParams({})}>전체 회원 보기</Button>}>고객 #{userId} 조회 중</Alert>}
+      {userId && <Alert severity="info" sx={{ mb: 2 }} action={<Button onClick={() => setSearchParams({})}>전체 설계사 보기</Button>}>설계사 #{userId} 조회 중</Alert>}
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       {loading ? (
         <Box sx={{ py: 8, display: "grid", placeItems: "center" }}><CircularProgress /></Box>
@@ -193,7 +193,7 @@ function UsersPage() {
               <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between" gap={2}>
                 <Stack spacing={0.75}>
                   <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
-                    <Chip label={`고객 #${user.id}`} size="small" variant="outlined" />
+                    <Chip label={`설계사 #${user.id}`} size="small" variant="outlined" />
                     <Typography variant="h6" sx={{ fontWeight: 750 }}>{user.name || user.display_name}</Typography>
                     <Chip label={user.status} size="small" color={user.status === "ACTIVE" ? "success" : user.status === "PENDING" ? "warning" : "default"} />
                     {user.role === "ADMIN" && <Chip label="ADMIN" size="small" color="primary" />}
@@ -250,13 +250,13 @@ function UsersPage() {
                     onClick={event => { event.stopPropagation(); setRoleTarget(user); }}
                     startIcon={<ManageAccountsRoundedIcon />}
                   >
-                    {user.role === "ADMIN" ? "일반 사용자로 변경" : "관리자로 변경"}
+                    {user.role === "ADMIN" ? "일반 설계사로 변경" : "관리자로 변경"}
                   </Button>
                 </Stack>
               </Stack>
             </Paper>
           ))}
-          {users.length === 0 && <Typography color="text.secondary">{query ? "검색 결과가 없습니다." : "등록된 사용자가 없습니다."}</Typography>}
+          {users.length === 0 && <Typography color="text.secondary">{query ? "검색 결과가 없습니다." : "등록된 설계사가 없습니다."}</Typography>}
           {totalPages > 1 && (
             <Pagination
               count={totalPages}
@@ -271,10 +271,10 @@ function UsersPage() {
       <CustomerDetailDialog customer={detailTarget} onClose={() => setDetailTarget(null)}
         onImpersonate={impersonate} working={workingUserId !== null} actionError={error} />
       <Dialog open={Boolean(deleteTarget)} onClose={() => setDeleteTarget(null)}>
-        <DialogTitle>사용자를 삭제할까요?</DialogTitle>
+        <DialogTitle>설계사 계정을 삭제할까요?</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            {deleteTarget?.display_name} 사용자의 소셜 계정과 로그인 세션이 함께 삭제됩니다. 이 작업은 되돌릴 수 없습니다.
+            {deleteTarget?.display_name} 설계사의 소셜 계정과 로그인 세션이 함께 삭제됩니다. 이 작업은 되돌릴 수 없습니다.
           </DialogContentText>
         </DialogContent>
         <DialogActions>
@@ -286,10 +286,10 @@ function UsersPage() {
       </Dialog>
 
       <Dialog open={Boolean(roleTarget)} onClose={() => setRoleTarget(null)}>
-        <DialogTitle>사용자 권한을 변경할까요?</DialogTitle>
+        <DialogTitle>계정 권한을 변경할까요?</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            {roleTarget?.display_name} 사용자를 {roleTarget?.role === "ADMIN" ? "일반 사용자" : "관리자"}로 변경합니다.
+            {roleTarget?.display_name} 계정을 {roleTarget?.role === "ADMIN" ? "일반 설계사" : "관리자"}로 변경합니다.
           </DialogContentText>
         </DialogContent>
         <DialogActions>

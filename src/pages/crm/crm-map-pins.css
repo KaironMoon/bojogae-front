@@ -1,0 +1,43 @@
+.crm-map-pin {
+  position: relative;
+  display: block;
+  width: 30px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  overflow: visible;
+}
+.crm-map-pin__dot {
+  position: absolute;
+  top: 2px;
+  left: 3px;
+  width: 24px;
+  height: 24px;
+  border: 2px solid white;
+  border-radius: 50% 50% 50% 0;
+  background: #e11d48;
+  box-shadow: 0 1px 4px #0005;
+  transform: rotate(-45deg);
+}
+.crm-map-pin--customer .crm-map-pin__dot { background: #2563eb; }
+.crm-map-pin__label {
+  display: none;
+  position: absolute;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 5px 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: white;
+  color: #0f172a;
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 2px 6px #0002;
+}
+.crm-map-pin:hover .crm-map-pin__label,
+.crm-map-pin:focus-visible .crm-map-pin__label { display: block; }

@@ -36,7 +36,7 @@ export default function MyCoinsPage() {
   return <Box component="main" sx={{ p: { xs: 2, md: 4 }, maxWidth: 1280, mx: 'auto' }}>
     <Paper sx={{ p: { xs: 2, sm: 3 } }}>
       <Stack spacing={2}>
-        <Typography variant="h5" fontWeight={800}>내 꼬막</Typography>
+        <Typography variant="h5" fontWeight={800}>내꼬막</Typography>
         <Typography variant="body2" color="text.secondary">꼬막 증가·사용 내역과 합산 잔액을 확인할 수 있습니다. 잔여 꼬막의 구성은 사용 가능 꼬막 옆 상세에서 확인해 주세요. 예약 중인 꼬막은 사용 가능 잔액에서 제외됩니다.</Typography>
         <Typography variant="body2"><Link to="/profile#plan">구독 관리</Link> · <Link to="/payment-history">결제·환불 내역</Link></Typography>
         {error && <Alert severity="error">{error}</Alert>}

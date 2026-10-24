@@ -14,20 +14,20 @@ const TABS = [
   ["overview", "기본 정보"], ["points", "꼬막 내역"], ["reports", "보고서"],
   ["payments", "결제·환불"], ["requests", "문의·신청"], ["logins", "로그인"], ["audit", "대리 접속 감사"],
 ];
-const TABLE_NAMES = { user_sessions: "로그인 세션", users: "고객 정보", office_groups: "단체 정보", point_grants: "꼬막 지급",
+const TABLE_NAMES = { user_sessions: "로그인 세션", users: "설계사 정보", office_groups: "조직 정보", point_grants: "꼬막 지급",
   referral_aliases: "추천용 닉네임", user_referrals: "추천인 등록",
   point_usages: "꼬막 사용", point_usage_allocations: "꼬막 차감·반환", billing_subscriptions: "구독",
   payment_orders: "결제", payment_refunds: "결제 환불", payment_methods: "결제 수단",
   personal_plan_requests: "요금제 신청", proposal_generations: "보고서", proposal_input_files: "보고서 첨부",
   proposal_generation_calls: "보고서 생성", document_suggestions: "문서 건의", document_refund_requests: "문서 환불",
-  group_point_transfers: "단체 꼬막 이동", group_purchase_requests: "단체 구매 신청", prompt_favorites: "즐겨찾기",
+  group_point_transfers: "조직 꼬막 이동", group_purchase_requests: "조직 구매 신청", prompt_favorites: "즐겨찾기",
   notification_preferences: "알림 설정", web_push_subscriptions: "알림 수신", user_email_change_requests: "이메일 변경",
 };
-const FIELD_NAMES = { id: "번호", user_id: "고객 번호", email: "이메일", name: "이름", nickname: "닉네임",
-  referred_user_id: "추천받은 회원 번호", referrer_user_id: "추천인 회원 번호", bonus_amount: "추천 보너스", bonus_expires_at: "보너스 만료일", grant_id: "지급 내역 번호",
+const FIELD_NAMES = { id: "번호", user_id: "설계사 번호", email: "이메일", name: "이름", nickname: "닉네임",
+  referred_user_id: "추천받은 설계사 번호", referrer_user_id: "추천인 설계사 번호", bonus_amount: "추천 보너스", bonus_expires_at: "보너스 만료일", grant_id: "지급 내역 번호",
   phone: "전화번호", affiliation: "소속", display_name: "표시 이름", status: "상태", role: "권한", plan_code: "요금제",
   amount: "금액·수량", remaining_amount: "남은 꼬막", point_type: "꼬막 종류", point_cost: "사용 꼬막", point_status: "꼬막 처리",
-  title: "제목", group_id: "단체 번호", group_role: "단체 역할", employee_number: "사번", password_hash: "비밀번호",
+  title: "제목", group_id: "조직 번호", group_role: "조직 역할", employee_number: "사번", password_hash: "비밀번호",
   pending_email: "인증 대기 이메일", must_change_password: "비밀번호 변경 필요", expires_at: "만료일",
   refunded_amount: "환불 수량·금액", next_plan_code: "예정 요금제", period_start: "구독 시작", period_end: "구독 종료",
   cancel_at_period_end: "구독 종료 예정", is_deleted: "삭제 여부", is_selected: "선택 여부", alias: "별칭",
@@ -44,17 +44,17 @@ function auditAction(item) {
   const read = item.title.startsWith("GET ") || item.title.startsWith("HEAD ");
   if (item.title.includes('/users/me/referral/alias')) return '추천용 닉네임 변경';
   if (item.title.includes('/users/me/referral')) return read ? '추천인 정보 조회' : '추천인 등록';
-  if (item.title.includes("/users/me/profile")) return read ? "고객 정보 조회" : "고객 정보 수정";
-  if (item.title.includes("/users/me/account")) return "회원 탈퇴";
+  if (item.title.includes("/users/me/profile")) return read ? "설계사 정보 조회" : "설계사 정보 수정";
+  if (item.title.includes("/users/me/account")) return "계정 탈퇴";
   if (item.title.includes("/group-password")) return "비밀번호 관련 작업";
   if (item.title.includes("/proposals")) return read ? "보고서 조회" : "보고서 생성·관리";
   if (item.title.includes("/payments")) return read ? "결제·구독 조회" : "결제·구독 변경";
   if (item.title.includes("/plan-requests")) return "요금제 신청·취소";
   if (item.title.includes("/document-suggestions")) return read ? "건의 조회" : "건의 작성·변경";
   if (item.title.includes("/refund-requests")) return read ? "환불 요청 조회" : "환불 요청 작성·변경";
-  if (item.title.includes("/groups")) return read ? "단체 조회" : "단체 관리";
+  if (item.title.includes("/groups")) return read ? "조직 조회" : "조직 관리";
   if (item.title.includes("/notifications")) return read ? "알림 조회" : "알림 설정·관리";
-  return read ? "고객 기능 조회" : "고객 기능 작업";
+  return read ? "설계사 기능 조회" : "설계사 기능 작업";
 }
 function date(value) { return value ? new Date(value).toLocaleString("ko-KR") : "-"; }
 function number(value) { return Number(value || 0).toLocaleString("ko-KR"); }
@@ -113,7 +113,7 @@ export default function CustomerDetailDialog({ customer, onClose, onImpersonate,
   return (
     <Dialog open={Boolean(customer)} onClose={working ? undefined : onClose} fullWidth maxWidth="lg" fullScreen={mobile} scroll="paper">
       <DialogTitle><Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" gap={1}>
-        <Typography component="span" variant="h6" fontWeight={800}>고객 #{user?.id} · {user?.name || user?.display_name}</Typography>
+        <Typography component="span" variant="h6" fontWeight={800}>설계사 #{user?.id} · {user?.name || user?.display_name}</Typography>
         <Chip size="small" label={planName(user?.plan_code)} color="primary" variant="outlined" />
       </Stack></DialogTitle>
       <DialogContent dividers>
@@ -124,14 +124,14 @@ export default function CustomerDetailDialog({ customer, onClose, onImpersonate,
           <Stat label="예약 중" value={`${number(user?.reserved_points)}개`} />
           {summary && <Stat label="이번 달 사용" value={`${number(summary.month_used_points)}개`} />}
         </Stack>
-        <Tabs value={kind} onChange={(_, value) => { setKind(value); setPage(1); }} variant="scrollable" scrollButtons="auto" aria-label="고객 상세 정보" sx={{ mb: 2 }}>
+        <Tabs value={kind} onChange={(_, value) => { setKind(value); setPage(1); }} variant="scrollable" scrollButtons="auto" aria-label="설계사 상세 정보" sx={{ mb: 2 }}>
           {TABS.map(([key, label]) => <Tab key={key} value={key} label={label} />)}
         </Tabs>
         {kind === "overview" ? detail ? (
           <Stack spacing={2.5}>
             <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
-              {[["고객 번호", user.id], ["이름", user.name], ["닉네임", user.nickname], ["이메일", user.email], ["전화번호", user.phone],
-                ["소속", user.affiliation], ["단체", user.group_name], ["사번", user.employee_number], ["단체 역할", user.group_role === "LEADER" ? "단체장" : user.group_role === "MEMBER" ? "구성원" : "-"],
+              {[["설계사 번호", user.id], ["이름", user.name], ["닉네임", user.nickname], ["이메일", user.email], ["전화번호", user.phone],
+                ["소속", user.affiliation], ["조직", user.group_name], ["사번", user.employee_number], ["조직 역할", user.group_role === "LEADER" ? "조직 관리자" : user.group_role === "MEMBER" ? "구성원" : "-"],
                 ["계정 상태", STATUS_NAMES[user.status] || user.status], ["가입일", date(user.created_at)], ["최근 로그인", date(user.last_login_at)],
                 ["로그인 방식", user.providers?.join(" · ")], ["지급 꼬막", number(user.free_points)], ["구매 꼬막", number(user.paid_points)],
                 ["현재 구독", planName(user.plan_code)], ["구독 상태", STATUS_NAMES[user.subscription_status] || user.subscription_status],
@@ -173,7 +173,7 @@ export default function CustomerDetailDialog({ customer, onClose, onImpersonate,
         )}
       </DialogContent>
       <DialogActions sx={{ p: 2 }}>
-        <Button disabled={working || user?.role !== "USER" || user?.status !== "ACTIVE"} variant="contained" onClick={() => onImpersonate(user)}>고객으로 접속 (Impersonate)</Button>
+        <Button disabled={working || user?.role !== "USER" || user?.status !== "ACTIVE"} variant="contained" onClick={() => onImpersonate(user)}>설계사로 접속 (Impersonate)</Button>
         <Button disabled={working} onClick={onClose}>닫기</Button>
       </DialogActions>
     </Dialog>

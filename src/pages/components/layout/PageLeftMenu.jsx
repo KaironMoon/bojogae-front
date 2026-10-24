@@ -36,6 +36,9 @@ import { useAuth } from "@/auth/AuthContext";
 
 const PRIMARY_MENU = [
   { label: "Home", path: "/home", icon: HomeOutlinedIcon },
+  { label: "내고객", path: "/crm/customers", icon: ContactPhoneOutlinedIcon },
+  { label: "내계약", path: "/crm/contracts", icon: DescriptionOutlinedIcon },
+  { label: "할 일·방문 일정", path: "/crm/tasks", icon: HomeOutlinedIcon },
   { label: "보고서 만들기", path: "/proposals", icon: DescriptionOutlinedIcon },
   { label: "보험사 정보·링크", path: "/insurers", icon: ContactPhoneOutlinedIcon },
 ];
@@ -51,8 +54,8 @@ const ADMIN_POINT_MENU = [
 ];
 
 const ADMIN_MENU = [
-  { label: "그룹 관리", path: "/admin/groups", icon: GroupOutlinedIcon },
-  { label: "고객 관리", path: "/admin/users", icon: GroupOutlinedIcon },
+  { label: "조직 관리", path: "/admin/groups", icon: GroupOutlinedIcon },
+  { label: "설계사 관리", path: "/admin/users", icon: GroupOutlinedIcon },
   { label: "꼬막 관리", items: ADMIN_POINT_MENU, icon: AccountBalanceWalletOutlinedIcon },
   { label: "예약결제 목록", path: "/admin/payment-reservations", icon: AccountBalanceWalletOutlinedIcon },
   { label: "프롬프트 관리", path: "/admin/prompts", icon: AutoAwesomeOutlinedIcon },
@@ -84,7 +87,7 @@ const HELP_MENU = [
 
 const PROFILE_MENU = [
   { label: "정보수정·결제", path: "/profile", icon: AccountCircleOutlinedIcon },
-  { label: "내 꼬막", path: "/my-coins", icon: AccountBalanceWalletOutlinedIcon },
+  { label: "내꼬막", path: "/my-coins", icon: AccountBalanceWalletOutlinedIcon },
 ];
 
 const ADMIN_BOARD_MENU = [
@@ -244,7 +247,7 @@ function PageLeftMenu({ onNavigate }) { // eslint-disable-line react/prop-types
         {renderMenuGroup({ label: "내 정보", icon: AccountCircleOutlinedIcon, items: PROFILE_MENU, open: profileOpen, setOpen: setProfileOpen, prefix: "/account/" })}
         {renderMenuGroup({ label: "게시판", icon: ArticleOutlinedIcon, items: BOARD_MENU, open: boardsOpen, setOpen: setBoardsOpen, prefix: "/boards/" })}
         {renderMenuGroup({ label: "도움말 센터", icon: HelpOutlineOutlinedIcon, items: HELP_MENU, open: helpOpen, setOpen: setHelpOpen, prefix: "/help/" })}
-        {user?.group_role === "LEADER" && renderMenuItem({ label: "그룹 관리", path: "/group", icon: GroupOutlinedIcon })}
+        {user?.group_role === "LEADER" && renderMenuItem({ label: "조직 관리", path: "/group", icon: GroupOutlinedIcon })}
         {user?.group_id && renderMenuItem({ label: "비밀번호 변경", path: "/group/change-password", icon: AccountCircleOutlinedIcon })}
       </List>
 

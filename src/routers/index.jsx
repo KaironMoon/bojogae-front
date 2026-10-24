@@ -5,7 +5,7 @@ import GroupSignupPage from "../pages/auth/GroupSignupPage";
 import GroupsPage from "../pages/groups/GroupsPage";
 import MyCoinsPage from "../pages/groups/MyCoinsPage";
 import GroupPasswordPage from "../pages/auth/GroupPasswordPage";
-import { lazy } from "react";
+import { lazy, Suspense } from "react";
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import Home from "../pages/home";
 import Info from "../pages/info";
@@ -48,6 +48,12 @@ import QnaPage from "../pages/help/QnaPage";
 import HelpContactPage from "../pages/help/HelpContactPage";
 import FaqPage from "../pages/help/FaqPage";
 import FaqsPage from "../pages/admin/FaqsPage";
+
+const CustomersPage = lazy(() => import('../pages/crm/CrmPages').then((m) => ({ default: m.CustomersPage })));
+const CustomerDetailPage = lazy(() => import('../pages/crm/CrmPages').then((m) => ({ default: m.CustomerDetailPage })));
+const ContractsPage = lazy(() => import('../pages/crm/CrmPages').then((m) => ({ default: m.ContractsPage })));
+const ContractDetailPage = lazy(() => import('../pages/crm/CrmPages').then((m) => ({ default: m.ContractDetailPage })));
+const TasksPage = lazy(() => import('../pages/crm/CrmPages').then((m) => ({ default: m.TasksPage })));
 
 const ProductLayout = lazy(() => import("../pages/product/ProductLayout"));
 const ProductList = lazy(() => import("../pages/product"));
@@ -139,6 +145,11 @@ const router = createBrowserRouter([
           { path: "/group", element: <GroupsPage /> },
           { path: "/group/:groupId", element: <GroupsPage /> },
           { path: "/my-coins", element: <MyCoinsPage /> },
+          { path: '/crm/customers', element: <Suspense fallback={<div role="status">불러오는 중…</div>}><CustomersPage /></Suspense> },
+          { path: '/crm/customers/:customerId', element: <Suspense fallback={<div role="status">불러오는 중…</div>}><CustomerDetailPage /></Suspense> },
+          { path: '/crm/contracts', element: <Suspense fallback={<div role="status">불러오는 중…</div>}><ContractsPage /></Suspense> },
+          { path: '/crm/contracts/:contractId', element: <Suspense fallback={<div role="status">불러오는 중…</div>}><ContractDetailPage /></Suspense> },
+          { path: '/crm/tasks', element: <Suspense fallback={<div role="status">불러오는 중…</div>}><TasksPage /></Suspense> },
           { path: "/insurers", element: <InsurersPage /> },
           { path: "/claims", element: <Navigate to="/claims/new" replace /> },
           { path: "/claims/new", element: <ClaimsPage /> },

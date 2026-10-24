@@ -29,8 +29,8 @@ export default function ImpersonationBanner() {
   return <>
     <Alert severity="warning" sx={{ borderRadius: 0 }}
       action={<Button color="inherit" disabled={returning} onClick={returnToAdmin} sx={{ whiteSpace: "nowrap" }}>관리자로 복귀</Button>}>
-      <strong>대리 접속 중 · 고객 #{user.id} {user.display_name}</strong><br />
-      관리자 {user.impersonation_actor_name} · 고객 기능과 꼬막을 그대로 사용합니다. 모든 변경은 감사 기록에 남습니다.
+      <strong>대리 접속 중 · 설계사 #{user.id} {user.display_name}</strong><br />
+      관리자 {user.impersonation_actor_name} · 설계사 기능과 꼬막을 그대로 사용합니다. 모든 변경은 감사 기록에 남습니다.
     </Alert>
     {error && <Alert severity="error">{error}</Alert>}
   </>;

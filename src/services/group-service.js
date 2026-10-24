@@ -20,18 +20,18 @@ export const requestPasswordReset = async (data) => api.post(`${base}/auth/group
 export const requestOwnPasswordReset = async () => api.post(`${base}/auth/group-password-reset/me`);
 export const completePasswordReset = async (data) => api.post(`${base}/auth/group-password-reset/complete`, data);
 const messages = {
-  group_identity_duplicate: '같은 GA 소속·지점명의 단체가 이미 등록되어 있거나 신청 중입니다.',
+  group_identity_duplicate: '같은 GA 소속·지점명의 조직이 이미 등록되어 있거나 신청 중입니다.',
   group_not_open: '결제 확인과 개통 전에는 이용할 수 없습니다. 관리자에게 문의해 주세요.',
-  group_already_open: '이미 개통된 단체입니다.',
+  group_already_open: '이미 개통된 조직입니다.',
   withdrawal_schema_required: '회원 자료 파기 설정이 준비되지 않았습니다. 043 SQL 적용을 확인해 주세요.',
-  invalid_transfer_target: '지급 대상은 같은 그룹의 활성 구성원이어야 합니다. 회수 대상을 다시 확인해 주세요.',
-  group_schema_required: '그룹 기능의 DB 변경 SQL을 먼저 적용해 주세요.',
-  group_or_account_duplicate: '그룹명·사번·이메일이 이미 등록되어 있습니다.',
-  group_name_duplicate: '이미 사용 중인 그룹명입니다.',
+  invalid_transfer_target: '지급 대상은 같은 조직의 활성 구성원이어야 합니다. 회수 대상을 다시 확인해 주세요.',
+  group_schema_required: '조직 기능의 DB 변경 SQL을 먼저 적용해 주세요.',
+  group_or_account_duplicate: '조직명·사번·이메일이 이미 등록되어 있습니다.',
+  group_name_duplicate: '이미 사용 중인 조직명입니다.',
   account_duplicate: '이미 등록된 사번 또는 이메일입니다.',
   email_duplicate: '이미 등록된 이메일입니다.',
   insufficient_points: '지급할 구매 꼬막이 부족합니다.',
-  invalid_group_credentials: '그룹·사번·비밀번호를 확인해 주세요.',
+  invalid_group_credentials: '조직·사번·비밀번호를 확인해 주세요.',
   password_must_differ: '기존 비밀번호와 다른 비밀번호를 입력해 주세요.',
   invalid_current_password: '현재 비밀번호를 확인해 주세요.',
   reset_expired: '재설정 링크가 만료되었습니다. 다시 요청해 주세요.',
@@ -39,9 +39,9 @@ const messages = {
   idempotency_conflict: '이전 요청과 입력 내용이 다릅니다. 새 지급 창에서 다시 확인해 주세요.',
   payment_reference_duplicate: '이미 처리된 결제 확인 번호입니다.',
   invalid_expiration_date: '기본 꼬막의 만료일을 확인해 주세요.',
-  group_account_use_group_management: '그룹 계정은 그룹 관리에서 변경해 주세요.',
+  group_account_use_group_management: '조직 계정은 조직 관리에서 변경해 주세요.',
   member_already_deleted: '이미 삭제된 구성원입니다.',
-  group_member_limit_reached: '그룹 인원수 제한에 도달했습니다. 인원 제한을 늘리거나 기존 구성원을 정리해 주세요.',
+  group_member_limit_reached: '조직 인원수 제한에 도달했습니다. 인원 제한을 늘리거나 기존 구성원을 정리해 주세요.',
 };
 export const groupErrorMessage = (error) => Array.isArray(error.response?.data?.detail) ? '필수 입력 항목과 전화번호·이메일 형식을 확인해 주세요.' : messages[error.response?.data?.detail] || '요청을 처리하지 못했습니다. 다시 시도해 주세요.';
 

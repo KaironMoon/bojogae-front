@@ -140,6 +140,11 @@ export default function ClaimHistory({ onReuse }) {
               {detail.fax_history?.length ? '팩스 재발송' : '팩스 발송'}
             </Button>
           </Stack>
+          <ClaimFaxDestinations readOnly
+            insurers={insurers.filter(i => detail.deliveries.some(d => d.insurer_id === i.id))}
+            numbers={Object.fromEntries(detail.deliveries
+              .filter(d => d.fax_type === 'VIRTUAL' && d.fax_number)
+              .map(d => [d.insurer_id, d.fax_number]))} />
           {faxOpen && <Paper variant="outlined" sx={{ p: 2 }}>
             <Stack spacing={2}>
               <ClaimFaxDestinations insurers={insurers.filter(i => detail.deliveries.some(d => d.insurer_id === i.id))}
