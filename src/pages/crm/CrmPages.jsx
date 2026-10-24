@@ -48,6 +48,7 @@ import {
   ACCURACY,
   money,
   dateTime,
+  formatPhone,
 } from "./crm-utils";
 import CrmMap from "./CrmMap";
 import CrmImport from "./CrmImport";
@@ -144,7 +145,7 @@ export function CustomersPage() {
             >
               <Stack direction={{ xs: "column", md: "row" }} gap={1}>
                 <Field
-                  label="이름·연락처·주소·메모 검색"
+                  label="이름·별칭·연락처·주소·메모 검색"
                   value={q}
                   onChange={setQ}
                 />
@@ -207,7 +208,7 @@ export function CustomersPage() {
               >
                 <Box>
                   <Stack direction="row" gap={1} alignItems="center">
-                    <CustomerLink id={c.id} name={c.name} />
+                    <CustomerLink id={c.id} name={c.alias ? `${c.name} (${c.alias})` : c.name} />
                     <Chip size="small" label={STAGES[c.stage]} />
                     {c.do_not_contact && (
                       <Chip size="small" color="warning" label="연락 중단" />
@@ -431,7 +432,7 @@ export function CustomerDetailPage() {
                 disabled={c.archived}
                 onClick={() => setEditor("consultation")}
               >
-                상담 기록
+                상담 기록 등록
               </Button>
               <Button
                 disabled={c.archived}
@@ -484,6 +485,9 @@ export function CustomerDetailPage() {
                   ["통화 가능 시간", c.call_preference],
                   ["방문 가능 시간", c.visit_preference],
                   ["방문 참고", c.visit_note],
+                  ["고객 별칭", c.alias],
+                  ["직업", c.occupation],
+                  ["주민번호 앞 6자리·뒤 첫 1자리", c.resident_number],
                   ["유입", c.source],
                   ["접수일", c.received_display || c.received_date || c.received_raw],
                   ["생년월일", c.birth_display || c.birth_date || c.birth_raw],
@@ -661,7 +665,7 @@ export function ContractsPage() {
           gap={1}
         >
           <Field
-            label="보험사·상품명·증권번호 검색"
+            label="보험회사·상품명·증권/설계번호 검색"
             value={q}
             onChange={setQ}
           />
@@ -791,6 +795,8 @@ export function ContractDetailPage() {
               <Stack key={i} direction="row" alignItems="center" gap={1}>
                 <Typography>
                   {p.role === "HOLDER" ? "계약자" : "피보험자"} · {p.name}
+                  {p.resident_number && ` · ${p.resident_number}`}
+                  {p.phone && ` · ${formatPhone(p.phone)}`}
                 </Typography>
                 {p.customer_id && (
                   <>
@@ -811,10 +817,13 @@ export function ContractDetailPage() {
           <Panel>
             <Typography fontWeight={700}>계약정보</Typography>
             {[
-              ["보험사", c.insurer],
-              ["보험 종류", c.category],
-              ["증권번호", c.policy_number],
+              ["보험회사", c.insurer],
               ["청약일", c.application_date],
+              ["상품명", c.product],
+              ["월 보험료", c.premium_monthly == null ? "미확인" : `${money(c.premium_monthly)}원`],
+              ["납입기간", c.payment_period],
+              ["증권/설계번호", c.policy_number],
+              ["보험 종류", c.category],
               ["성립일", c.establishment_date],
               [
                 "보장 기간",

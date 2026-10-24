@@ -2,8 +2,8 @@ import api from "@/services/api-caller";
 const base = "/api/v1/crm";
 export const crmGet = async (path, params, config) =>
   (await api.get(base + path, params, config)).data;
-export const crmPost = async (path, data) =>
-  (await api.post(base + path, data)).data;
+export const crmPost = async (path, data, config) =>
+  (await api.post(base + path, data, config)).data;
 export const crmPut = async (path, data) =>
   (await api.put(base + path, data)).data;
 export const crmDelete = async (path) => (await api.delete(base + path)).data;
@@ -54,7 +54,7 @@ const errors = {
   crm_import_formula_unsupported: "엑셀 수식은 가져올 수 없습니다. 수식 결과를 값으로 붙여넣은 뒤 올려 주세요.",
   crm_import_html_unsupported:
     "지원하는 고객 데이터 형식이 없습니다. 표를 탭 구분 텍스트로 붙여넣어 주세요.",
-  crm_import_row_limit: "한 번에 1~1,000행을 가져올 수 있습니다.",
+  crm_import_row_limit: "한 번에 1~5,000행을 가져올 수 있습니다.",
 };
 export function crmError(error) {
   const detail = error.response?.data?.detail;

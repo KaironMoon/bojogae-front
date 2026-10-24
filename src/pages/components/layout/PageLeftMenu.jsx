@@ -36,11 +36,13 @@ import { useAuth } from "@/auth/AuthContext";
 
 const PRIMARY_MENU = [
   { label: "Home", path: "/home", icon: HomeOutlinedIcon },
-  { label: "내고객", path: "/crm/customers", icon: ContactPhoneOutlinedIcon },
-  { label: "내계약", path: "/crm/contracts", icon: DescriptionOutlinedIcon },
-  { label: "할 일·방문 일정", path: "/crm/tasks", icon: HomeOutlinedIcon },
-  { label: "보고서 만들기", path: "/proposals", icon: DescriptionOutlinedIcon },
   { label: "보험사 정보·링크", path: "/insurers", icon: ContactPhoneOutlinedIcon },
+  { label: "보고서 만들기", path: "/proposals", icon: DescriptionOutlinedIcon },
+];
+
+const CUSTOMER_MENU = [
+  { label: "내 고객", path: "/crm/customers" },
+  { label: "내 계약", path: "/crm/contracts" },
 ];
 
 const CLAIM_MENU = [
@@ -110,6 +112,7 @@ function PageLeftMenu({ onNavigate }) { // eslint-disable-line react/prop-types
   );
   const [boardsOpen, setBoardsOpen] = useState(location.pathname.startsWith("/boards/"));
   const [helpOpen, setHelpOpen] = useState(location.pathname.startsWith("/help/"));
+  const [customersOpen, setCustomersOpen] = useState(CUSTOMER_MENU.some(item => location.pathname.startsWith(item.path)));
   const [claimsOpen, setClaimsOpen] = useState(location.pathname.startsWith("/claims"));
   const [adminBoardsOpen, setAdminBoardsOpen] = useState(location.pathname.startsWith("/admin/boards/"));
   const [adminPointsOpen, setAdminPointsOpen] = useState(ADMIN_POINT_MENU.some(item => location.pathname === item.path));
@@ -122,6 +125,7 @@ function PageLeftMenu({ onNavigate }) { // eslint-disable-line react/prop-types
     if (location.pathname.startsWith("/boards/")) setBoardsOpen(true);
     if (location.pathname.startsWith("/help/")) setHelpOpen(true);
     if (location.pathname.startsWith("/claims")) setClaimsOpen(true);
+    if (CUSTOMER_MENU.some(item => location.pathname.startsWith(item.path))) setCustomersOpen(true);
     if (location.pathname.startsWith("/admin/boards/")) setAdminBoardsOpen(true);
     if (ADMIN_POINT_MENU.some(item => location.pathname === item.path)) setAdminPointsOpen(true);
   }, [location.pathname]);
@@ -243,6 +247,8 @@ function PageLeftMenu({ onNavigate }) { // eslint-disable-line react/prop-types
       <List sx={{ pt: 2, pb: 1 }}>
         {PRIMARY_MENU.map(renderMenuItem)}
         {renderMenuGroup({ label: "보험금 청구", icon: DescriptionOutlinedIcon, items: CLAIM_MENU, open: claimsOpen, setOpen: setClaimsOpen, prefix: "/claims/" })}
+        {renderMenuGroup({ label: "고객관리", icon: ContactPhoneOutlinedIcon, items: CUSTOMER_MENU, open: customersOpen, setOpen: setCustomersOpen, prefix: "/crm/customer-menu/" })}
+        {renderMenuItem({ label: "할 일·방문 일정", path: "/crm/tasks", icon: HomeOutlinedIcon })}
         {renderMenuGroup({ label: "요청하기", icon: DescriptionOutlinedIcon, items: REPORT_MENU, open: reportOpen, setOpen: setReportOpen, prefix: "/report-menu/" })}
         {renderMenuGroup({ label: "내 정보", icon: AccountCircleOutlinedIcon, items: PROFILE_MENU, open: profileOpen, setOpen: setProfileOpen, prefix: "/account/" })}
         {renderMenuGroup({ label: "게시판", icon: ArticleOutlinedIcon, items: BOARD_MENU, open: boardsOpen, setOpen: setBoardsOpen, prefix: "/boards/" })}

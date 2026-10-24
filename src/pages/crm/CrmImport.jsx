@@ -9,6 +9,7 @@ import {
   DialogContent,
   DialogTitle,
   FormControlLabel,
+  Pagination,
   Stack,
   Typography,
 } from "@mui/material";
@@ -17,6 +18,8 @@ import { Field, Panel } from "./CrmShared";
 import { CustomerForm } from "./CrmForms";
 const MAPPABLE = {
   name: "고객명",
+  alias: "고객 별칭",
+  occupation: "직업",
   phone: "연락처",
   address: "주소",
   gender: "성별",
@@ -35,6 +38,7 @@ export default function CrmImport({ onClose, onDone }) {
   const [format, setFormat] = useState("TSV");
   const [text, setText] = useState("");
   const [mapping, setMapping] = useState({});
+  const [previewPage, setPreviewPage] = useState(1);
   const [job, setJob] = useState(null);
   const [selected, setSelected] = useState([]);
   const [reviewed, setReviewed] = useState(false);
@@ -72,8 +76,9 @@ export default function CrmImport({ onClose, onDone }) {
     setError("");
     setBusy(true);
     try {
-      const data = await crmPost("/imports", { format, text, mapping });
+      const data = await crmPost("/imports", { format, text, mapping }, { timeout: 300000 });
       setJob(data);
+      setPreviewPage(1);
       setSelected([]);
       setReviewed(false);
       setOverrides({});
@@ -91,7 +96,7 @@ export default function CrmImport({ onClose, onDone }) {
         indices: selected,
         overrides,
         reviewed,
-      });
+      }, { timeout: 300000 });
       setResult(data);
       onDone();
     } catch (e) {
@@ -121,7 +126,7 @@ export default function CrmImport({ onClose, onDone }) {
                 <Button component="a" variant="outlined" href={`${import.meta.env.BASE_URL}templates/bojogae-customer-import.csv`} download="보조개_고객등록양식.csv">CSV 양식 다운로드</Button>
               </Stack>
               <Typography variant="body2" color="text.secondary">
-                양식의 첫 줄을 유지하고 한 행에 고객 한 명씩 입력해 주세요. 고객명은 필수이며 최대 1,000명·2MB까지 가져올 수 있습니다. 엑셀은 첫 번째 시트를 읽습니다.
+                양식의 첫 줄을 유지하고 한 행에 고객 한 명씩 입력해 주세요. 고객명은 필수이며 최대 5,000명·2MB까지 가져올 수 있습니다. 엑셀은 첫 번째 시트를 읽습니다.
               </Typography>
               <Field
                 label="자료 형식"
@@ -207,7 +212,7 @@ export default function CrmImport({ onClose, onDone }) {
                 }
                 label="등록 가능한 행 모두 선택"
               />
-              {job.rows.map((r) => {
+              {job.rows.slice((previewPage - 1) * 50, previewPage * 50).map((r) => {
                 const c = overrides[r.index] || r.customer;
                 return (
                   <Panel key={r.index}>
@@ -228,7 +233,7 @@ export default function CrmImport({ onClose, onDone }) {
                             }
                           />
                         }
-                        label={`${r.index + 1}. ${c.name || "이름 미확인"} · ${c.phone || "연락처 없음"}`}
+                        label={`${r.index + 1}. ${c.name || "이름 미확인"}${c.alias ? ` (${c.alias})` : ""} · ${c.phone || "연락처 없음"}`}
                       />
                       <Typography variant="body2">
                         {c.location?.address} · 접수{" "}
@@ -274,6 +279,7 @@ export default function CrmImport({ onClose, onDone }) {
                   </Panel>
                 );
               })}
+              {job.rows.length > 50 && <Pagination count={Math.ceil(job.rows.length / 50)} page={previewPage} onChange={(_, page) => setPreviewPage(page)} disabled={busy} />}
               <FormControlLabel
                 control={
                   <Checkbox
@@ -288,7 +294,7 @@ export default function CrmImport({ onClose, onDone }) {
                 variant="contained"
                 onClick={commit}
               >
-                선택 고객 등록
+                {busy ? "서버에서 순차 등록 중…" : "선택 고객 등록"}
               </Button>
               <Button disabled={busy} onClick={() => setJob(null)}>
                 매핑 다시 하기

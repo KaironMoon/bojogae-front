@@ -309,7 +309,7 @@ export function CustomerPicker({
           ...Object.fromEntries(
             items.map((r) => [
               r.id,
-              `${r.name} · ${r.phone || r.location.address}`,
+              `${r.name}${r.alias ? ` (${r.alias})` : ""} · ${r.phone || r.location.address}`,
             ]),
           ),
         }}

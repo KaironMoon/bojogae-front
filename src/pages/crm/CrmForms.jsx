@@ -1,5 +1,5 @@
 /* eslint-disable react/prop-types */
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Alert,
   Box,
@@ -10,6 +10,7 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
+import ContractParty from "./CrmContractParty";
 import { crmError, crmPost } from "@/services/crm-service";
 import {
   Field,
@@ -18,7 +19,6 @@ import {
   LocationFields,
   emptyLocation,
   CustomerPicker,
-  ContractPicker,
 } from "./CrmShared";
 import {
   STAGES,
@@ -40,6 +40,10 @@ const pick = (value, defaults) =>
   );
 const customerDefaults = {
   name: "",
+  alias: "",
+  occupation: "",
+  resident_number: "",
+  resident_number_manual: false,
   phone: "",
   gender: "UNKNOWN",
   birth_raw: "",
@@ -90,16 +94,15 @@ export function CustomerForm({ value, onSave, onClose }) {
     }, 350);
     return () => { active = false; clearTimeout(timer); };
   }, [received_raw, received_date]);
-  const { birth_raw, birth_date, birth_calendar, birth_is_leap_month, birth_century } = data;
+  const { birth_raw, birth_date, birth_calendar, birth_is_leap_month, birth_century, gender } = data;
   useEffect(() => {
     let active = true;
     setBirthPreview(null);
     setBirthError("");
-    if (!birth_raw && !birth_date) return;
     const timer = setTimeout(async () => {
       try {
-        const result = await crmPost("/birth-date/normalize", {
-          birth_raw, birth_date, birth_calendar, birth_is_leap_month, birth_century,
+        const result = await crmPost("/customer-identity/normalize", {
+          birth_raw, birth_date, birth_calendar, birth_is_leap_month, birth_century, gender,
         });
         if (active) setBirthPreview(result);
       } catch (error) {
@@ -107,7 +110,7 @@ export function CustomerForm({ value, onSave, onClose }) {
       }
     }, 400);
     return () => { active = false; clearTimeout(timer); };
-  }, [birth_raw, birth_date, birth_calendar, birth_is_leap_month, birth_century]);
+  }, [birth_raw, birth_date, birth_calendar, birth_is_leap_month, birth_century, gender]);
   const set = (key, v) => {
     setData((old) => ({
       ...old, [key]: v,
@@ -158,6 +161,15 @@ export function CustomerForm({ value, onSave, onClose }) {
           onChange={(v) => set("phone", formatPhone(v))}
         />
       </Stack>
+      <Field
+        label="고객 별칭"
+        value={data.alias}
+        onChange={(v) => set("alias", v)}
+        inputProps={{ maxLength: 200 }}
+        helperText="고객을 구분하기 위해 연락처·메신저에 저장한 이름"
+        placeholder="김성춘 보험고객 흥국화재 76 도봉"
+      />
+      <Field label="직업" value={data.occupation} onChange={(v) => set("occupation", v)} inputProps={{ maxLength: 200 }} />
       {duplicates?.length > 0 && (
         <Alert severity="warning">
           같은 연락처 고객: {duplicates.map((v) => v.name).join(", ")}
@@ -209,6 +221,19 @@ export function CustomerForm({ value, onSave, onClose }) {
         {data.birth_calendar === "LUNAR" && birthPreview.birth_date && ` · 양력 ${birthPreview.birth_date.replace(/([0-9]{4})-([0-9]{2})-([0-9]{2})/, "$1년 $2월 $3일")}`}
         {birthPreview.birth_reminder_eligible ? " · 생일 알림에 활용 가능" : " · 생일 알림용 월·일 미확인"}
       </Typography>}
+      <Field
+        label="주민번호 앞 6자리·뒤 첫 1자리"
+        value={data.resident_number_manual ? data.resident_number : birthPreview?.resident_number || ""}
+        onChange={(v) => setData((old) => ({ ...old, resident_number: v, resident_number_manual: true }))}
+        placeholder="850307-1"
+        inputProps={{ maxLength: 8 }}
+        helperText={data.resident_number_manual
+          ? "직접 수정한 값은 생년월일·성별이 바뀌어도 유지됩니다."
+          : "생년월일·성별로 자동 입력합니다. 음력 생일은 양력으로 변환하며 직접 수정할 수 있습니다."}
+      />
+      {data.resident_number_manual && <Button onClick={() => setData((old) => ({ ...old, resident_number_manual: false, resident_number: "" }))}>
+        생년월일·성별로 다시 자동 입력
+      </Button>}
       <LocationFields
         value={data.location}
         onChange={(v) => set("location", v)}
@@ -301,12 +326,13 @@ const contractDefaults = {
   policy_number: "",
   parties: [],
   premium: null,
-  payment_cycle: "UNKNOWN",
+  payment_cycle: "MONTHLY",
   application_date: null,
   establishment_date: null,
   coverage_start: null,
   coverage_end: null,
   payment_end: null,
+  payment_period: "",
   period_note: "",
   coverage_note: "",
   progress: null,
@@ -320,6 +346,7 @@ export function ContractForm({ value, customerId, onSave, onClose }) {
     ...pick(value, contractDefaults),
     parties: value?.parties || [
       { role: "HOLDER", customer_id: customerId || null, name: "" },
+      { role: "INSURED", customer_id: null, name: "", same_as_holder: false },
     ],
   }));
   const state = useSave(onSave, onClose);
@@ -333,11 +360,13 @@ export function ContractForm({ value, customerId, onSave, onClose }) {
       setDuplicates(null);
     }
   };
-  const party = (index, key, v) =>
-    set(
-      "parties",
-      data.parties.map((p, i) => (i === index ? { ...p, [key]: v } : p)),
-    );
+  const updateParty = useCallback((index, patch, expectedCustomerId) => {
+    setData((old) => ({ ...old, parties: old.parties.map((party, i) =>
+      i === index && (expectedCustomerId === undefined || party.customer_id === expectedCustomerId)
+        ? { ...party, ...patch } : party,
+    ) }));
+  }, []);
+  const holder = data.parties.find((party) => party.role === "HOLDER");
   async function loadInsurers() {
     const { default: api } = await import("@/services/api-caller");
     try {
@@ -385,7 +414,7 @@ export function ContractForm({ value, customerId, onSave, onClose }) {
       />
       <Stack direction="row" gap={1}>
         <Field
-          label="보험사"
+          label="보험회사"
           value={data.insurer}
           onChange={(v) => set("insurer", v)}
           required
@@ -416,7 +445,7 @@ export function ContractForm({ value, customerId, onSave, onClose }) {
         />
       </Stack>
       <Field
-        label="증권번호 (미확인 시 비워두기)"
+        label="증권/설계번호 (미확인 시 비워두기)"
         value={data.policy_number}
         onChange={(v) => set("policy_number", v)}
       />
@@ -436,39 +465,8 @@ export function ContractForm({ value, customerId, onSave, onClose }) {
       )}
       <Typography fontWeight={700}>계약 관계자</Typography>
       {data.parties.map((p, i) => (
-        <Box key={i} sx={{ p: 2, border: "1px solid #ddd", borderRadius: 2 }}>
-          <Stack gap={1}>
-            <Field
-              label="역할"
-              value={p.role}
-              options={{ HOLDER: "계약자", INSURED: "피보험자" }}
-              onChange={(v) => party(i, "role", v)}
-            />
-            <CustomerPicker
-              value={p.customer_id}
-              allowEmpty
-              onChange={(v) => party(i, "customer_id", v)}
-            />
-            <Field
-              label="미등록 관계자 이름"
-              disabled={!!p.customer_id}
-              value={p.name}
-              onChange={(v) => party(i, "name", v)}
-            />
-            {data.parties.length > 1 && (
-              <Button
-                onClick={() =>
-                  set(
-                    "parties",
-                    data.parties.filter((_, j) => i !== j),
-                  )
-                }
-              >
-                관계자 제거
-              </Button>
-            )}
-          </Stack>
-        </Box>
+        <ContractParty key={i} value={p} holder={holder} index={i} onChange={updateParty}
+          onRemove={data.parties.length > 1 ? () => set("parties", data.parties.filter((_, j) => i !== j)) : undefined} />
       ))}
       <Button
         onClick={() =>
@@ -482,7 +480,7 @@ export function ContractForm({ value, customerId, onSave, onClose }) {
       </Button>
       <Stack direction={{ xs: "column", sm: "row" }} gap={2}>
         <Field
-          label="납입금액 (원)"
+          label={data.payment_cycle === "MONTHLY" ? "월 보험료 (원)" : "납입금액 (원)"}
           type="number"
           inputProps={{ min: 0, step: ".01" }}
           value={data.premium}
@@ -540,6 +538,13 @@ export function ContractForm({ value, customerId, onSave, onClose }) {
         ))}
       </Box>
       <Field
+        label="납입기간"
+        value={data.payment_period}
+        onChange={(v) => set("payment_period", v)}
+        placeholder="20년 / 60세납 / 일시납"
+        inputProps={{ maxLength: 100 }}
+      />
+      <Field
         label="납입·보장 기간 설명"
         value={data.period_note}
         onChange={(v) => set("period_note", v)}
@@ -568,7 +573,7 @@ export function ContractForm({ value, customerId, onSave, onClose }) {
     </Editor>
   );
 }
-export function ConsultationForm({ customerId, onSave, onClose }) {
+export function ConsultationForm({ onSave, onClose }) {
   const [data, setData] = useState({
     occurred_at: localDateTime(),
     method: "PHONE",
@@ -606,11 +611,6 @@ export function ConsultationForm({ customerId, onSave, onClose }) {
         value={data.result}
         options={RESULTS}
         onChange={(v) => set("result", v)}
-      />
-      <ContractPicker
-        customerId={customerId}
-        value={data.contract_id}
-        onChange={(v) => set("contract_id", v)}
       />
       <Field
         label="상담 내용"
@@ -668,11 +668,6 @@ export function TaskForm({
         onChange={(v) =>
           setData({ ...data, customer_id: v, contract_id: null })
         }
-      />
-      <ContractPicker
-        customerId={data.customer_id}
-        value={data.contract_id}
-        onChange={(v) => set("contract_id", v)}
       />
       <Field
         label="업무 종류"
