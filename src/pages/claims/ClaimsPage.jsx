@@ -8,9 +8,10 @@ import SignaturePad from './SignaturePad';
 import ClaimPdfPreview from './ClaimPdfPreview';
 import ClaimHistory from './ClaimHistory';
 import ClaimFaxDestinations from './ClaimFaxDestinations';
-import { claimError, claimTemplateUrl, generateClaimPdf, getClaimInsurers, saveClaimRequest, downloadClaimDocument } from '@/services/claim-service';
+import ClaimCustomerDialog from './ClaimCustomerDialog';
+import { claimError, claimTemplateUrl, generateClaimPdf, getClaimInsurers, saveClaimRequest, downloadOriginalClaim } from '@/services/claim-service';
 import { activeClaimPayload, claimInputErrors, claimErrorStep, claimNeedsGuardian, claimHasGuardian,
-  formatClaimInputEdit, isFormattedClaimField } from '@/services/claim-validation';
+  formatClaimInput, formatClaimInputEdit, isFormattedClaimField } from '@/services/claim-validation';
 
 const EMPTY = {
   insured_name: '', insured_id: '', insured_phone: '', insured_signature: '', beneficiary_same: true,
@@ -45,6 +46,9 @@ export default function ClaimsPage() {
   const [preview, setPreview] = useState('');
   const [progress, setProgress] = useState('');
   const [saved, setSaved] = useState(null);
+  const [customerTarget, setCustomerTarget] = useState(null);
+  const [customerNotice, setCustomerNotice] = useState('');
+  const [partyRevision, setPartyRevision] = useState({ insured: 0, beneficiary: 0 });
   const requestKey = useRef(null);
   const urls = useRef([]);
   const pending = useRef(null);
@@ -63,6 +67,24 @@ export default function ClaimsPage() {
   function update(key, value) {
     invalidate(); setPayload(previous => ({ ...previous, [key]: value }));
     setFieldErrors(previous => ({ ...previous, [key]: undefined }));
+  }
+  function loadCustomer(customer) {
+    const party = customerTarget;
+    const values = {
+      [`${party}_name`]: customer.name,
+      [`${party}_id`]: formatClaimInput(`${party}_id`, customer.resident_number),
+      [`${party}_phone`]: formatClaimInput(`${party}_phone`, customer.phone),
+      [`${party}_signature`]: '', [`${party}_guardian_enabled`]: false,
+      ...Object.fromEntries(['name', 'relationship', 'phone', 'signature'].map(key => [`${party}_guardian_${key}`, ''])),
+      consent: false,
+    };
+    invalidate();
+    setPayload(previous => ({ ...previous, ...values }));
+    setFieldErrors(previous => Object.fromEntries(Object.entries(previous).filter(([key]) => !(key in values))));
+    // Remount pads to cancel pending image uploads belonging to the previous customer.
+    setPartyRevision(previous => ({ ...previous, [party]: previous[party] + 1 }));
+    setCustomerNotice(`${party === 'insured' ? '피보험자' : '수익자'} 고객 정보를 불러왔습니다. 주민등록번호 나머지 자리와 서명을 입력해 주세요. 기존 법정대리인 정보·서명과 동의 확인은 초기화했습니다.`);
+    setCustomerTarget(null);
   }
   function field(key, label, options = {}) {
     const formatted = isFormattedClaimField(key);
@@ -96,7 +118,7 @@ export default function ClaimsPage() {
         {field(`${party}_guardian_relationship`, `${label} 법정대리인 관계`, { required: true, placeholder: '예: 부, 모, 후견인', inputProps: { maxLength: 30 } })}
         {field(`${party}_guardian_phone`, `${label} 법정대리인 연락처`, { required: true, type: 'tel' })}
       </Box>
-      <SignaturePad label={`${label} 법정대리인 서명`} value={payload[`${party}_guardian_signature`]} disabled={busy}
+      <SignaturePad key={`${party}-${partyRevision[party]}`} label={`${label} 법정대리인 서명`} value={payload[`${party}_guardian_signature`]} disabled={busy}
         onChange={value => update(`${party}_guardian_signature`, value)} />
       {fieldErrors[`${party}_guardian_signature`] && <Alert severity="error">{fieldErrors[`${party}_guardian_signature`]}</Alert>}
       </Stack>}
@@ -152,28 +174,32 @@ export default function ClaimsPage() {
       const result = await saveClaimRequest(requestKey.current.key, selected, activeClaimPayload(payload), files, faxNumbers, mode);
       setSaved(result);
       if (mode === 'FILE') {
-        try { await downloadClaimDocument(result.id); }
+        try { await downloadOriginalClaim(requestKey.current.key, selected, activeClaimPayload(payload), files); }
         catch (e) { setError(`청구서는 저장되었습니다. 다운로드를 다시 시도해 주세요. ${await claimError(e)}`); }
       }
     } catch (e) { setError(await claimError(e)); } finally { setBusy(false); }
   }
   function reuse(detail, attachments) {
     invalidate();
-    const claim = detail.claim;
+    const claim = { ...detail.claim };
+    for (const key of Object.keys(EMPTY)) if (key.endsWith('_signature')) claim[key] = '';
+    for (const party of ['insured', 'beneficiary']) {
+      claim[`${party}_id`] = formatClaimInput(`${party}_id`, String(claim[`${party}_id`] || '').replace(/\D/g, '').slice(0, 7));
+    }
     setPayload({ ...EMPTY, ...claim, consent: false,
       insured_guardian_enabled: Boolean(claim.insured_guardian_name),
       beneficiary_guardian_enabled: Boolean(claim.beneficiary_guardian_name) });
     setSelected(detail.deliveries.map(item => item.insurer_id));
     // A virtual number may belong to a previous claim or have expired.
     setFaxNumbers({});
-    setFiles(attachments); setFieldErrors({}); setStep(0); navigate('/claims/new');
+    setFiles(attachments); setFieldErrors({}); setCustomerNotice(''); setStep(0); navigate('/claims/new');
   }
   const active = results.find(item => item.id === preview);
   return <Box sx={{ maxWidth: 1100, mx: 'auto', p: { xs: 2, md: 3 } }}>
     {view === 'history' ? <ClaimHistory onReuse={reuse} /> : <Stack spacing={3} component="form" ref={form} onSubmit={e => e.preventDefault()}>
       <Box><Typography variant="h4" fontWeight={800}>보험금 청구서 만들기</Typography>
         <Typography color="text.secondary" sx={{ mt: 1 }}>공통 정보를 입력하면 보험사별 청구서를 만들 수 있습니다.</Typography></Box>
-      <Alert severity="info">파일만 저장하면 청구내역에 보관하고 바로 다운로드합니다. 팩스 발송은 현재 서비스 미연결로 실패 이력만 남으며 비용은 차감되지 않습니다.</Alert>
+      <Alert severity="info">파일만 저장하면 서명·첨부가 포함된 발송용 원본을 다운로드합니다. 청구내역에는 본문 주민번호를 마스킹하고 직접 입력한 서명을 제외한 보관본과 첨부 원본을 저장합니다. 팩스 발송은 현재 서비스 미연결로 실패 이력만 남으며 비용은 차감되지 않습니다.</Alert>
       <Stepper activeStep={step} alternativeLabel>{STEPS.map(title => <Step key={title}><StepLabel>{title}</StepLabel></Step>)}</Stepper>
       {error && <Alert severity="error" sx={{ whiteSpace: 'pre-line' }}>{error}</Alert>}
       {saved && <Alert severity={saved.fax_history?.some(item => item.status === 'FAILED') ? 'warning' : 'success'} role="status" action={<Button component={Link} to="/claims/history" color="inherit" size="small">청구내역 보기</Button>}>
@@ -196,25 +222,30 @@ export default function ClaimsPage() {
           </Box>)}
         </Stack>}
         {step === 1 && <Stack spacing={2.5}>
-          <Typography variant="h6" fontWeight={700}>피보험자</Typography>
+          {customerNotice && <Alert severity="info" onClose={() => setCustomerNotice('')}>{customerNotice}</Alert>}
+          <Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={1}>
+            <Typography variant="h6" fontWeight={700}>피보험자</Typography>
+            <Button variant="outlined" disabled={busy} onClick={() => setCustomerTarget('insured')}>피보험자 · 내 고객 불러오기</Button>
+          </Stack>
           <Box sx={FIELD_GRID}>
             {field('insured_name', '이름', { required: true, inputProps: { maxLength: 40 } })}
             {field('insured_id', '주민등록번호', { required: true, placeholder: '앞 6자리-뒤 7자리', inputProps: { pattern: '[0-9]{6}-?[0-9]{7}', maxLength: 14 } })}
             {field('insured_phone', '휴대전화', { required: true, type: 'tel' })}
           </Box>
-          <SignaturePad label="피보험자 서명" value={payload.insured_signature} disabled={busy} onChange={value => update('insured_signature', value)} />
+          <SignaturePad key={`insured-${partyRevision.insured}`} label="피보험자 서명" value={payload.insured_signature} disabled={busy} onChange={value => update('insured_signature', value)} />
           {claimNeedsGuardian(payload.insured_id) && <Typography variant="caption">만 14세 미만은 법정대리인 서명을 필수로 받습니다. 본인 서명은 가능한 경우에만 추가해 주세요.</Typography>}
           {guardianFields('insured', '피보험자')}
           <Divider />
           <FormControlLabel label="보험금 수익자가 피보험자와 같습니다" control={<Checkbox checked={payload.beneficiary_same} disabled={busy} onChange={e => update('beneficiary_same', e.target.checked)} />} />
           {!payload.beneficiary_same && <>
+            <Button variant="outlined" sx={{ alignSelf: 'flex-start' }} disabled={busy} onClick={() => setCustomerTarget('beneficiary')}>수익자 · 내 고객 불러오기</Button>
             <Box sx={FIELD_GRID}>
               {field('beneficiary_name', '수익자 이름', { required: true })}
               {field('beneficiary_id', '수익자 주민등록번호', { required: true, inputProps: { pattern: '[0-9]{6}-?[0-9]{7}', maxLength: 14 } })}
               {field('beneficiary_phone', '수익자 휴대전화', { required: true, type: 'tel' })}
             </Box>
             {guardianFields('beneficiary', '수익자')}
-            <SignaturePad label="수익자 서명" value={payload.beneficiary_signature} disabled={busy} onChange={value => update('beneficiary_signature', value)} />
+            <SignaturePad key={`beneficiary-${partyRevision.beneficiary}`} label="수익자 서명" value={payload.beneficiary_signature} disabled={busy} onChange={value => update('beneficiary_signature', value)} />
             {claimNeedsGuardian(payload.beneficiary_id) && <Typography variant="caption">만 14세 미만은 법정대리인 서명을 필수로 받습니다. 본인 서명은 가능한 경우에만 추가해 주세요.</Typography>}
           </>}
           {field('notice_target', '보상 안내를 받을 사람', { select: true, children: [<MenuItem key="insured" value="insured">피보험자</MenuItem>, <MenuItem key="planner" value="planner">설계사</MenuItem>] })}
@@ -258,6 +289,7 @@ export default function ClaimsPage() {
           <Typography variant="h6" fontWeight={700}>생성된 PDF {results.length}건</Typography>
           <Typography variant="body2" color="text.secondary">보험사별 내용을 확인한 뒤 파일만 저장 또는 팩스 발송을 선택하세요. 여러 보험사는 ZIP으로 다운로드합니다. 입력을 수정하면 다시 생성해야 합니다.</Typography>
           <Typography variant="body2" color="text.secondary">파일만 저장할 때는 수신 팩스 번호를 입력하지 않아도 됩니다.</Typography>
+          <Alert severity="warning">발송용 원본에는 주민등록번호 전체와 서명이 포함됩니다. 원본은 이 작성 화면에서 다운로드해 주세요. 청구내역에서는 본문 주민번호가 마스킹되고 직접 입력한 서명이 제외된 보관본을 제공합니다. 첨부파일은 원본으로 보관합니다.</Alert>
           <ClaimFaxDestinations insurers={insurers.filter(item => selected.includes(item.id))} numbers={faxNumbers}
             disabled={busy || Boolean(saved)} onChange={(id, value) => {
               requestKey.current = null; setFaxNumbers(previous => ({ ...previous, [id]: value }));
@@ -277,9 +309,9 @@ export default function ClaimsPage() {
             : <Stack direction="row" gap={1} flexWrap="wrap">
               {saved ? <Button variant="outlined" disabled={busy} onClick={async () => {
                 setBusy(true); setError('');
-                try { await downloadClaimDocument(saved.id); } catch (e) { setError(await claimError(e)); }
+                try { await downloadOriginalClaim(requestKey.current.key, selected, activeClaimPayload(payload), files); } catch (e) { setError(await claimError(e)); }
                 finally { setBusy(false); }
-              }}>저장된 파일 다운로드</Button> : <>
+              }}>발송용 원본 다운로드</Button> : <>
                 <Button variant="outlined" startIcon={<DownloadOutlinedIcon />}
                   disabled={busy || !results.length || results.length !== selected.length} onClick={() => save('FILE')}>파일만 저장</Button>
                 <Button variant="contained" disabled={busy || !results.length || results.length !== selected.length}
@@ -288,5 +320,8 @@ export default function ClaimsPage() {
             </Stack>}
       </Stack>
     </Stack>}
+    {view === 'create' && customerTarget && <ClaimCustomerDialog
+      label={customerTarget === 'insured' ? '피보험자' : '수익자'}
+      onClose={() => setCustomerTarget(null)} onSelect={loadCustomer} />}
   </Box>;
 }
