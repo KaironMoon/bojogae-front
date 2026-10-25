@@ -49,6 +49,7 @@ export default function ClaimsPage() {
   const [customerTarget, setCustomerTarget] = useState(null);
   const [customerNotice, setCustomerNotice] = useState('');
   const [partyRevision, setPartyRevision] = useState({ insured: 0, beneficiary: 0 });
+  const downloadOnlyInsurers = insurers.filter(item => selected.includes(item.id) && item.fax_enabled === false);
   const requestKey = useRef(null);
   const urls = useRef([]);
   const pending = useRef(null);
@@ -164,6 +165,10 @@ export default function ClaimsPage() {
   }
   async function save(mode) {
     if (busy) return;
+    if (mode === 'FAX' && downloadOnlyInsurers.length) {
+      setError(`${downloadOnlyInsurers.map(item => item.name).join(', ')}은 다운로드만 지원합니다. 팩스 발송 대상에서 제외해 주세요.`);
+      return;
+    }
     if (results.length !== selected.length) {
       setError('선택한 보험사의 PDF를 모두 생성한 후 다시 시도해 주세요.'); return;
     }
@@ -209,11 +214,12 @@ export default function ClaimsPage() {
         {step === 0 && <Stack spacing={2} role="group" aria-label="청구할 보험사">
           <Typography variant="h6" fontWeight={700}>청구할 보험사를 선택해 주세요</Typography>
           <Typography variant="body2" color="text.secondary">확인된 {insurers.length}개 양식을 지원합니다. 여러 보험사를 함께 선택할 수 있습니다.</Typography>
+          {downloadOnlyInsurers.length > 0 && <Alert severity="info">{downloadOnlyInsurers.map(item => item.name).join(', ')}은 다운로드만 지원합니다. 팩스를 발송하려면 해당 보험사를 선택 해제해 주세요.</Alert>}
           {['DAMAGE', 'LIFE'].map(kind => <Box key={kind}>
             <Typography fontWeight={700} sx={{ mb: 1 }}>{kind === 'DAMAGE' ? '손해보험·공제' : '생명보험'}</Typography>
             <Grid container spacing={1}>{insurers.filter(item => item.kind === kind).map(item => <Grid item xs={12} sm={6} md={4} key={item.id}>
               <Paper variant="outlined" sx={{ px: 1, bgcolor: selected.includes(item.id) ? '#eef4ff' : 'white' }}>
-                <FormControlLabel sx={{ width: '100%', m: 0 }} label={item.name} control={<Checkbox checked={selected.includes(item.id)} disabled={busy}
+                <FormControlLabel sx={{ width: '100%', m: 0 }} label={`${item.name}${item.fax_enabled === false ? ' · 다운로드 전용' : ''}`} control={<Checkbox checked={selected.includes(item.id)} disabled={busy}
                   onChange={event => { invalidate(); setSelected(previous => event.target.checked
                     ? [...previous, item.id] : previous.filter(id => id !== item.id));
                     setFaxNumbers(previous => { const next = { ...previous }; delete next[item.id]; return next; }); }} />} />
@@ -222,6 +228,7 @@ export default function ClaimsPage() {
           </Box>)}
         </Stack>}
         {step === 1 && <Stack spacing={2.5}>
+          {downloadOnlyInsurers.some(item => item.id === '13') && <Alert severity="info">동양생명은 공식 양식에 따라 주민번호 뒤 5자리를 가려 표시합니다. 미성년자 청구 시 친권자 전원의 서명이 필요할 수 있으므로, 추가 친권자·수익자 서명과 신분확인 정보는 원본 양식을 확인하고 별도로 보완해 주세요.</Alert>}
           {customerNotice && <Alert severity="info" onClose={() => setCustomerNotice('')}>{customerNotice}</Alert>}
           <Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={1}>
             <Typography variant="h6" fontWeight={700}>피보험자</Typography>
@@ -289,7 +296,8 @@ export default function ClaimsPage() {
           <Typography variant="h6" fontWeight={700}>생성된 PDF {results.length}건</Typography>
           <Typography variant="body2" color="text.secondary">보험사별 내용을 확인한 뒤 파일만 저장 또는 팩스 발송을 선택하세요. 여러 보험사는 ZIP으로 다운로드합니다. 입력을 수정하면 다시 생성해야 합니다.</Typography>
           <Typography variant="body2" color="text.secondary">파일만 저장할 때는 수신 팩스 번호를 입력하지 않아도 됩니다.</Typography>
-          <Alert severity="warning">발송용 원본에는 주민등록번호 전체와 서명이 포함됩니다. 원본은 이 작성 화면에서 다운로드해 주세요. 청구내역에서는 본문 주민번호를 마스킹하고 당시 서명·동의 표시를 유지한 보관본을 제공합니다. 재작성 시에는 서명과 동의를 다시 받아야 합니다. 첨부파일은 원본으로 보관합니다.</Alert>
+          {downloadOnlyInsurers.length > 0 && <Alert severity="info">{downloadOnlyInsurers.map(item => item.name).join(', ')}이 선택되어 팩스 발송을 사용할 수 없습니다. 파일만 저장으로 다운로드해 주세요.</Alert>}
+          <Alert severity="warning">발송용 원본에는 주민등록번호 등 개인정보와 서명이 포함됩니다. 원본은 이 작성 화면에서 다운로드해 주세요. 청구내역에서는 본문 주민번호를 마스킹하고 당시 서명·동의 표시를 유지한 보관본을 제공합니다. 재작성 시에는 서명과 동의를 다시 받아야 합니다. 첨부파일은 원본으로 보관합니다.</Alert>
           <ClaimFaxDestinations insurers={insurers.filter(item => selected.includes(item.id))} numbers={faxNumbers}
             disabled={busy || Boolean(saved)} onChange={(id, value) => {
               requestKey.current = null; setFaxNumbers(previous => ({ ...previous, [id]: value }));
@@ -314,7 +322,7 @@ export default function ClaimsPage() {
               }}>발송용 원본 다운로드</Button> : <>
                 <Button variant="outlined" startIcon={<DownloadOutlinedIcon />}
                   disabled={busy || !results.length || results.length !== selected.length} onClick={() => save('FILE')}>파일만 저장</Button>
-                <Button variant="contained" disabled={busy || !results.length || results.length !== selected.length}
+                <Button variant="contained" disabled={busy || !results.length || results.length !== selected.length || downloadOnlyInsurers.length > 0}
                   onClick={() => save('FAX')}>팩스 발송</Button>
               </>}
             </Stack>}

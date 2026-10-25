@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Alert, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle,
   Divider, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from '@mui/material';
-import { claimError, getClaimFile, getClaimRequest, getClaimRequests, downloadClaimDocument } from '@/services/claim-service';
+import { claimError, getClaimFile, getClaimRequest, getClaimRequests, downloadClaimDocument, deleteClaimRequest } from '@/services/claim-service';
 import ClaimPdfPreview from './ClaimPdfPreview';
 import ClaimDeliveryStatus from './ClaimDeliveryStatus';
 
@@ -12,6 +12,10 @@ export default function ClaimHistory({ onReuse }) {
   const [page, setPage] = useState(1);
   const [refresh, setRefresh] = useState(0);
   const [pendingDownload, setPendingDownload] = useState(null);
+  const [pendingDelete, setPendingDelete] = useState(null);
+  const [deleteError, setDeleteError] = useState('');
+  const [success, setSuccess] = useState('');
+  const deleting = useRef(false);
   const [history, setHistory] = useState(null);
   const [detail, setDetail] = useState(null);
   const [preview, setPreview] = useState(null);
@@ -71,12 +75,30 @@ export default function ClaimHistory({ onReuse }) {
     if (pending.file) await download(pending.file);
     else await downloadDocument(pending.id);
   }
+  function askDelete(id, name) {
+    setDeleteError(''); setPendingDelete({ id, name });
+  }
+  async function confirmDelete() {
+    if (deleting.current || !pendingDelete) return;
+    deleting.current = true; setBusy(true); setDeleteError('');
+    try {
+      await deleteClaimRequest(pendingDelete.id);
+      if (detail?.id === pendingDelete.id) { setDetail(null); setPreview(null); }
+      setPendingDownload(null); setPendingDelete(null); setError('');
+      setSuccess('청구내역을 삭제했습니다.');
+      setHistory(previous => previous ? { ...previous, items: previous.items.filter(item => item.id !== pendingDelete.id) } : previous);
+      if (page > 1 && history?.items.length === 1) setPage(previous => previous - 1);
+      else setRefresh(previous => previous + 1);
+    } catch (e) { setDeleteError(await claimError(e)); }
+    finally { deleting.current = false; setBusy(false); }
+  }
   return <Stack spacing={2}>
     <Stack direction="row" justifyContent="space-between" alignItems="center">
       <Typography variant="h4" fontWeight={800}>청구내역</Typography>
       <Button disabled={loading || busy} onClick={() => setRefresh(v => v + 1)}>새로고침</Button>
     </Stack>
     <Alert severity="info">청구내역의 PDF는 주민등록번호가 마스킹된 보관용입니다. 이 파일을 그대로 발송하시면 안 됩니다.</Alert>
+    {success && <Alert severity="success" role="status" onClose={() => setSuccess('')}>{success}</Alert>}
     {error && !detail && <Alert severity="error">{error}</Alert>}
     {(loading || (busy && !detail)) && <CircularProgress size={24} aria-label="청구 내역 불러오는 중" />}
     {!loading && history?.items.length === 0 && <Typography color="text.secondary">저장된 청구 요청이 없습니다.</Typography>}
@@ -93,6 +115,7 @@ export default function ClaimHistory({ onReuse }) {
         <Stack direction="row" gap={1} flexWrap="wrap">
           <Button disabled={busy} onClick={() => open(item.id)}>상세 보기 · 같은 내용으로 작성</Button>
           <Button disabled={busy} onClick={() => setPendingDownload({ id: item.id })}>파일 다운로드</Button>
+          <Button color="error" disabled={busy} onClick={() => askDelete(item.id, item.insured_name)}>삭제</Button>
         </Stack>
       </Stack>
     </Paper>)}
@@ -146,6 +169,8 @@ export default function ClaimHistory({ onReuse }) {
         </Stack>}
       </DialogContent>
       <DialogActions>
+        <Button color="error" sx={{ mr: 'auto' }} disabled={busy}
+          onClick={() => askDelete(detail.id, detail.claim.insured_name)}>삭제</Button>
         <Button disabled={busy} onClick={() => { setDetail(null); setPreview(null); }}>닫기</Button>
         <Button variant="contained" disabled={busy} onClick={reuse}>같은 내용으로 작성</Button>
       </DialogActions>
@@ -162,6 +187,19 @@ export default function ClaimHistory({ onReuse }) {
       <DialogActions>
         <Button onClick={() => setPendingDownload(null)}>취소</Button>
         <Button variant="contained" onClick={confirmDownload}>확인 후 다운로드</Button>
+      </DialogActions>
+    </Dialog>
+    <Dialog open={Boolean(pendingDelete)} onClose={() => { if (!busy) setPendingDelete(null); }} fullWidth maxWidth="sm"
+      aria-labelledby="claim-delete-title" aria-describedby="claim-delete-description">
+      <DialogTitle id="claim-delete-title">청구내역 삭제</DialogTitle>
+      <DialogContent>
+        <Typography id="claim-delete-description">{pendingDelete?.name}님의 청구내역을 삭제하시겠습니까?</Typography>
+        <Alert severity="warning" sx={{ mt: 2 }}>청구 정보·보관 PDF·첨부 원본·팩스 발송 이력이 함께 삭제되며 복구할 수 없습니다. 이미 다운로드한 파일이나 보험사에 전송된 자료는 삭제되지 않습니다.</Alert>
+        {deleteError && <Alert severity="error" sx={{ mt: 2 }}>{deleteError}</Alert>}
+      </DialogContent>
+      <DialogActions>
+        <Button disabled={busy} onClick={() => setPendingDelete(null)}>취소</Button>
+        <Button color="error" variant="contained" disabled={busy} onClick={confirmDelete}>{busy ? '삭제 중…' : '삭제'}</Button>
       </DialogActions>
     </Dialog>
   </Stack>;

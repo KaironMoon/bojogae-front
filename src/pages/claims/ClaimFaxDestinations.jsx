@@ -1,14 +1,21 @@
+/* eslint-disable react/prop-types */
 import { Alert, Button, Chip, Paper, Stack, TextField, Typography } from '@mui/material';
 
-// eslint-disable-next-line react/prop-types
 export default function ClaimFaxDestinations({ insurers, numbers, onChange, disabled, readOnly = false }) {
   return <Stack spacing={2}>
-    <Typography variant="h6" fontWeight={700}>보험사별 수신 팩스 번호</Typography>
-    <Typography variant="body2" color="text.secondary">{readOnly
+    <Typography variant="h6" fontWeight={700}>보험사별 발송 안내</Typography>
+    {insurers.some(insurer => insurer.fax_enabled !== false) && <Typography variant="body2" color="text.secondary">{readOnly
       ? 'PDF를 다운로드해 직접 팩스로 보낼 때 아래 수신 정보를 확인해 주세요. 가상팩스 번호는 이번 청구에 유효한지 보험사에 확인해 주세요.'
-      : '가상팩스를 사용하는 보험사는 보험사에서 발급받은 번호를 입력해 주세요.'}</Typography>
-    {/* eslint-disable-next-line react/prop-types */}
+      : '가상팩스를 사용하는 보험사는 보험사에서 발급받은 번호를 입력해 주세요.'}</Typography>}
     {insurers.map(insurer => {
+      if (insurer.fax_enabled === false) return <Paper key={insurer.id} variant="outlined" sx={{ p: 2 }}>
+        <Stack spacing={1.5}>
+          <Stack direction="row" gap={1} alignItems="center" flexWrap="wrap">
+            <Typography fontWeight={700}>{insurer.name}</Typography><Chip size="small" label="다운로드 전용" />
+          </Stack>
+          <Typography variant="body2">{insurer.fax_disabled_reason || '팩스 발송을 지원하지 않습니다. 파일을 다운로드해 주세요.'}</Typography>
+        </Stack>
+      </Paper>;
       const common = insurer.fax_numbers?.[0] || '';
       const custom = numbers[insurer.id] || '';
       return <Paper key={insurer.id} variant="outlined" sx={{ p: 2 }}>

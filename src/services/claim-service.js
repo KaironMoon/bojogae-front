@@ -47,6 +47,10 @@ export async function getClaimRequest(id, signal) {
   return (await apiCaller.get(`/api/v1/claims/requests/${id}`, {}, { signal })).data;
 }
 
+export async function deleteClaimRequest(id) {
+  await apiCaller.delete(`/api/v1/claims/requests/${id}`);
+}
+
 export async function getClaimFile(requestId, fileId, pdf = false, signal) {
   return (await apiCaller.get(`/api/v1/claims/requests/${requestId}/files/${fileId}`, { pdf },
     { responseType: 'blob', signal })).data;
