@@ -199,7 +199,7 @@ export default function ClaimsPage() {
     {view === 'history' ? <ClaimHistory onReuse={reuse} /> : <Stack spacing={3} component="form" ref={form} onSubmit={e => e.preventDefault()}>
       <Box><Typography variant="h4" fontWeight={800}>보험금 청구서 만들기</Typography>
         <Typography color="text.secondary" sx={{ mt: 1 }}>공통 정보를 입력하면 보험사별 청구서를 만들 수 있습니다.</Typography></Box>
-      <Alert severity="info">파일만 저장하면 서명·첨부가 포함된 발송용 원본을 다운로드합니다. 청구내역에는 본문 주민번호를 마스킹하고 직접 입력한 서명을 제외한 보관본과 첨부 원본을 저장합니다. 팩스 발송은 현재 서비스 미연결로 실패 이력만 남으며 비용은 차감되지 않습니다.</Alert>
+      <Alert severity="info">파일만 저장하면 서명·첨부가 포함된 발송용 원본을 다운로드합니다. 청구내역에는 본문 주민번호를 마스킹하고 당시 서명·동의 표시를 유지한 보관본과 첨부 원본을 저장합니다. 팩스 발송은 현재 서비스 미연결로 실패 이력만 남으며 비용은 차감되지 않습니다.</Alert>
       <Stepper activeStep={step} alternativeLabel>{STEPS.map(title => <Step key={title}><StepLabel>{title}</StepLabel></Step>)}</Stepper>
       {error && <Alert severity="error" sx={{ whiteSpace: 'pre-line' }}>{error}</Alert>}
       {saved && <Alert severity={saved.fax_history?.some(item => item.status === 'FAILED') ? 'warning' : 'success'} role="status" action={<Button component={Link} to="/claims/history" color="inherit" size="small">청구내역 보기</Button>}>
@@ -289,7 +289,7 @@ export default function ClaimsPage() {
           <Typography variant="h6" fontWeight={700}>생성된 PDF {results.length}건</Typography>
           <Typography variant="body2" color="text.secondary">보험사별 내용을 확인한 뒤 파일만 저장 또는 팩스 발송을 선택하세요. 여러 보험사는 ZIP으로 다운로드합니다. 입력을 수정하면 다시 생성해야 합니다.</Typography>
           <Typography variant="body2" color="text.secondary">파일만 저장할 때는 수신 팩스 번호를 입력하지 않아도 됩니다.</Typography>
-          <Alert severity="warning">발송용 원본에는 주민등록번호 전체와 서명이 포함됩니다. 원본은 이 작성 화면에서 다운로드해 주세요. 청구내역에서는 본문 주민번호가 마스킹되고 직접 입력한 서명이 제외된 보관본을 제공합니다. 첨부파일은 원본으로 보관합니다.</Alert>
+          <Alert severity="warning">발송용 원본에는 주민등록번호 전체와 서명이 포함됩니다. 원본은 이 작성 화면에서 다운로드해 주세요. 청구내역에서는 본문 주민번호를 마스킹하고 당시 서명·동의 표시를 유지한 보관본을 제공합니다. 재작성 시에는 서명과 동의를 다시 받아야 합니다. 첨부파일은 원본으로 보관합니다.</Alert>
           <ClaimFaxDestinations insurers={insurers.filter(item => selected.includes(item.id))} numbers={faxNumbers}
             disabled={busy || Boolean(saved)} onChange={(id, value) => {
               requestKey.current = null; setFaxNumbers(previous => ({ ...previous, [id]: value }));
