@@ -18,7 +18,11 @@ def route_api(route):
     headers={'Access-Control-Allow-Origin':BASE,'Access-Control-Allow-Credentials':'true','Access-Control-Allow-Headers':'content-type','Access-Control-Allow-Methods':'GET,POST,OPTIONS'}
     if req.method=='OPTIONS': route.fulfill(status=204,headers=headers);return
     if req.method!='GET': writes.append(path)
-    if path.endswith('/auth/me'): body={'id':9,'role':'USER','status':'ACTIVE','email':'test@example.com','display_name':'테스트','group_id':None}
+    if path.endswith('/crm/address-jobs/backfill'):
+        if writes.count(path) == 1:
+            route.fulfill(status=503,headers=headers,content_type='application/json',body=json.dumps({'detail':'crm_unavailable'}));return
+        body={'queued':2}
+    elif path.endswith('/auth/me'): body={'id':9,'role':'USER','status':'ACTIVE','email':'test@example.com','display_name':'테스트','group_id':None}
     elif path.endswith('/crm/configuration'): body={'address_worker_enabled':True,'maps':{'enabled':False,'key_id':'','geocoding_enabled':False}}
     elif path.endswith('/crm/customers'):
         queries.append(parse_qs(urlparse(req.url).query))
@@ -47,6 +51,12 @@ with sync_playwright() as p:
     page.wait_for_timeout(250)
     assert any(q.get('unconfirmed_address')==['true'] for q in queries)
     page.get_by_role('tab',name='주변 고객 지도').click()
+    # Registration starts on entry, before origin selection or nearby search.
+    expect(page.get_by_text('주소 확인 작업 등록 실패:',exact=False)).to_be_visible()
+    page.get_by_role('button',name='다시 시도',exact=True).click()
+    expect(page.get_by_text('기존 고객 2명의 주소 확인 작업을 등록했습니다.',exact=False)).to_be_visible()
+    assert writes == ['/api/v1/crm/address-jobs/backfill'] * 2
+    assert page.evaluate('window.liveSources.length') == 0
     page.get_by_role('button',name='내 위치',exact=True).click()
     expect(page.get_by_text('기준 위치: 현재 위치',exact=False)).to_be_visible()
     page.get_by_role('button',name='주변 고객 찾기',exact=True).click()
@@ -70,6 +80,6 @@ with sync_playwright() as p:
     assert page.evaluate('document.documentElement.scrollWidth<=window.innerWidth')
     page.screenshot(path='/tmp/bojogae-address-live-ui.png',full_page=True)
     assert not errors,errors
-    assert not writes,writes
+    assert writes == ['/api/v1/crm/address-jobs/backfill'] * 2,writes
     context.close();browser.close()
 print('Live update, stale subscription, unconfirmed filter, mobile: passed; DB/provider calls: 0')
