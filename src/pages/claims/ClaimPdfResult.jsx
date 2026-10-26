@@ -3,7 +3,6 @@ import { useMemo, useState } from 'react';
 import { Alert, Button, Stack, Typography, useMediaQuery } from '@mui/material';
 import ShareOutlinedIcon from '@mui/icons-material/ShareOutlined';
 import DownloadOutlinedIcon from '@mui/icons-material/DownloadOutlined';
-import ClaimPdfPreview from './ClaimPdfPreview';
 import { downloadClaimBlob } from '@/services/claim-service';
 
 export default function ClaimPdfResult({ result, disabled }) {
@@ -26,8 +25,6 @@ export default function ClaimPdfResult({ result, disabled }) {
   }
 
   return <Stack spacing={1.5}>
-    <Typography fontWeight={700}>{result.name} PDF · {result.pages}쪽</Typography>
-    <ClaimPdfPreview blob={result.blob} name={result.name} />
     {shareFailed && <Alert severity="warning">공유창을 열지 못했습니다. PDF를 다운로드한 뒤 모바일 팩스 앱에 첨부해 주세요.</Alert>}
     <Button variant="outlined" sx={{ alignSelf: 'flex-start' }} disabled={disabled || sharing}
       aria-label={`${result.name} ${canShare ? '공유하기' : 'PDF 다운로드'}`}

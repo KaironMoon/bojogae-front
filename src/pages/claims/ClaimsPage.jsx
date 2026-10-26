@@ -6,6 +6,7 @@ import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
 import DownloadOutlinedIcon from '@mui/icons-material/DownloadOutlined';
 import SignaturePad from './SignaturePad';
 import ClaimPdfResult from './ClaimPdfResult';
+import ClaimPdfPreview from './ClaimPdfPreview';
 import ClaimHistory from './ClaimHistory';
 import ClaimFaxDestinations from './ClaimFaxDestinations';
 import ClaimCustomerDialog from './ClaimCustomerDialog';
@@ -323,10 +324,14 @@ export default function ClaimsPage() {
           <Typography variant="body2" color="text.secondary">파일만 저장할 때는 수신 팩스 번호를 입력하지 않아도 됩니다.</Typography>
           {downloadOnlyInsurers.length > 0 && <Alert severity="info">{downloadOnlyInsurers.map(item => item.name).join(', ')}이 선택되어 팩스 발송을 사용할 수 없습니다. 파일만 저장으로 다운로드해 주세요.</Alert>}
           <Alert severity="warning">발송용 원본에는 주민등록번호 등 개인정보와 서명이 포함됩니다. 원본은 이 작성 화면에서 다운로드해 주세요. 청구내역에서는 본문 주민번호를 마스킹하고 당시 서명·동의 표시를 유지한 보관본을 제공합니다. 재작성 시에는 서명과 동의를 다시 받아야 합니다. 첨부파일은 원본으로 보관합니다.</Alert>
+          {results.map(result => <Stack key={result.id} spacing={1.5}>
+            <Typography fontWeight={700}>{result.name} PDF · {result.pages}쪽</Typography>
+            <ClaimPdfPreview blob={result.blob} name={result.name} />
+          </Stack>)}
           <ClaimFaxDestinations insurers={insurers.filter(item => selected.includes(item.id))} numbers={faxNumbers}
             disabled={busy || Boolean(saved)} onChange={(id, value) => {
               requestKey.current = null; setFaxNumbers(previous => ({ ...previous, [id]: value }));
-            }} renderPdf={insurer => {
+            }} renderAction={insurer => {
               const result = results.find(item => item.id === insurer.id);
               return result ? <ClaimPdfResult result={result} disabled={busy} />
                 : <Alert severity="warning">PDF를 생성하지 못했습니다. 이전 단계에서 다시 생성해 주세요.</Alert>;

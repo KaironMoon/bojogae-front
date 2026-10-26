@@ -186,6 +186,21 @@ export default function CrmMap() {
   const [visit, setVisit] = useState(null);
   const [customer, setCustomer] = useState(null);
   const liveEnabled = !!config.data?.address_worker_enabled;
+  const [registration, setRegistration] = useState(null);
+  const [registrationAttempt, setRegistrationAttempt] = useState(0);
+  useEffect(() => {
+    if (!liveEnabled) return;
+    let disposed = false;
+    setRegistration({ loading: true });
+    crmPost("/address-jobs/backfill", {})
+      .then((data) => {
+        if (!disposed) setRegistration({ queued: data.queued });
+      })
+      .catch((e) => {
+        if (!disposed) setRegistration({ error: crmError(e) });
+      });
+    return () => { disposed = true; };
+  }, [liveEnabled, registrationAttempt]);
   const initial = useCrm(active && !liveEnabled ? "/nearby-customers" : null, {
     ...active,
     page,
@@ -316,6 +331,9 @@ export default function CrmMap() {
   }
   return (
     <>
+      {registration?.loading && <Alert severity="info">기존 고객의 주소 확인 작업을 등록하고 있습니다.</Alert>}
+      {!!registration?.queued && <Alert severity="info">기존 고객 {registration.queued}명의 주소 확인 작업을 등록했습니다. 완료된 위치는 지도 검색에 자동 반영됩니다.</Alert>}
+      {registration?.error && <Alert severity="error" action={<Button color="inherit" onClick={() => setRegistrationAttempt((value) => value + 1)}>다시 시도</Button>}>주소 확인 작업 등록 실패: {registration.error}</Alert>}
       <Panel>
         <Stack gap={2}>
           <Stack direction={{ xs: "column", sm: "row" }} gap={1}>

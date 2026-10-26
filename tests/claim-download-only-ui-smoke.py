@@ -141,6 +141,19 @@ with sync_playwright() as p:
     dongyang.check()
     next_to_details()
     generate_and_check(2, True)
+    actions = page.get_by_role('region', name='보험사별 다운로드·발송 안내', exact=True)
+    expect(actions.get_by_role('button', name='동양생명 PDF 다운로드', exact=True)).to_be_visible()
+    expect(actions.get_by_role('button', name='시험보험 PDF 다운로드', exact=True)).to_be_visible()
+    expect(actions.get_by_role('link', name='고객센터 1588-0000', exact=True)).to_be_visible()
+    # Every preview precedes the common list; switching preview tabs is unnecessary.
+    assert page.evaluate("""() => {
+        const list = document.querySelector('[aria-label="보험사별 다운로드·발송 안내"]');
+        return [...document.querySelectorAll('canvas[role="img"]')].every(canvas =>
+            Boolean(canvas.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING));
+    }""")
+    expect(page.get_by_role('img', name='동양생명 청구서 1쪽 미리보기')).to_be_visible()
+    expect(page.get_by_role('img', name='시험보험 청구서 1쪽 미리보기')).to_be_visible()
+    page.screenshot(path=str(ROOT / 'tmp/claim-download-list-desktop.png'), full_page=True)
     page.set_viewport_size({'width': 390, 'height': 844})
     assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth')
     # Unsupported mobile browsers keep individual PDF downloads available.
