@@ -66,10 +66,15 @@ export default function ClaimOriginalShare({ result, requestId, deliveryId, expi
         if (prepare) await prepare();
         setNotice(PC_SHARE_NOTICE);
       } else if (file && navigator.canShare?.({ files: [file] }) && navigator.share) {
-        // The file is ready before the click, preserving Safari's user activation.
-        await navigator.share({ files: [file], title: file.name });
+        // Open the share sheet before saving so Safari retains the click's user activation.
+        // Save even if the user cancels sharing, and report save failures independently.
+        const sharePromise = navigator.share({ files: [file], title: file.name });
+        const [shared, stored] = await Promise.allSettled([sharePromise, prepare?.()]);
+        if (stored.status === 'rejected') throw stored.reason;
+        if (shared.status === 'rejected') throw shared.reason;
       } else if (file) {
         downloadClaimBlob(file, file.name);
+        if (prepare) await prepare();
         setNotice('이 브라우저는 파일 공유를 지원하지 않습니다. 다운로드한 PDF를 모바일 팩스 앱에 첨부해 주세요.');
       }
     } catch (e) {

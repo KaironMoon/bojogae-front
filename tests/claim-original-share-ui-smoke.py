@@ -64,6 +64,31 @@ def handle(route):
     route.fulfill(content_type='application/json', body=json.dumps(body), headers=headers)
 
 
+def create_claim(page):
+    page.goto(BASE + '/claims/new')
+    page.get_by_role('checkbox', name='시험보험', exact=True).check()
+    page.get_by_role('button', name='다음', exact=True).click()
+    for key, value in {'insured_name': '시험고객', 'insured_id': '900101-1000000',
+                       'insured_phone': '01012345678'}.items():
+        page.locator(f'[name={key}]').fill(value)
+    canvas = page.get_by_role('img', name='피보험자 서명 입력 영역', exact=True)
+    canvas.scroll_into_view_if_needed()
+    box = canvas.bounding_box()
+    page.mouse.move(box['x'] + 20, box['y'] + 20)
+    page.mouse.down()
+    page.mouse.move(box['x'] + 80, box['y'] + 60, steps=5)
+    page.mouse.up()
+    page.get_by_role('button', name='다음', exact=True).click()
+    for key, value in {'accident_date': '2026-01-01', 'accident_description': '시험 사고',
+                       'bank_name': '시험은행', 'account_number': '123456789', 'account_holder': '시험고객'}.items():
+        page.locator(f'[name={key}]').fill(value)
+    page.get_by_role('checkbox').check()
+    page.get_by_role('button', name='PDF 생성', exact=True).click()
+    share = page.get_by_role('button', name='시험보험 공유하기', exact=True)
+    expect(share).to_be_enabled()
+    return share
+
+
 with sync_playwright() as p:
     browser = p.chromium.launch(headless=True, channel=os.environ.get('PLAYWRIGHT_CHANNEL', 'chrome'))
     for mobile in (False, True):
@@ -114,27 +139,7 @@ with sync_playwright() as p:
         }});
     """)
     page = context.new_page()
-    page.goto(BASE + '/claims/new')
-    page.get_by_role('checkbox', name='시험보험', exact=True).check()
-    page.get_by_role('button', name='다음', exact=True).click()
-    for key, value in {'insured_name': '시험고객', 'insured_id': '900101-1000000',
-                       'insured_phone': '01012345678'}.items():
-        page.locator(f'[name={key}]').fill(value)
-    canvas = page.get_by_role('img', name='피보험자 서명 입력 영역', exact=True)
-    canvas.scroll_into_view_if_needed()
-    box = canvas.bounding_box()
-    page.mouse.move(box['x'] + 20, box['y'] + 20)
-    page.mouse.down()
-    page.mouse.move(box['x'] + 80, box['y'] + 60, steps=5)
-    page.mouse.up()
-    page.get_by_role('button', name='다음', exact=True).click()
-    for key, value in {'accident_date': '2026-01-01', 'accident_description': '시험 사고',
-                       'bank_name': '시험은행', 'account_number': '123456789', 'account_holder': '시험고객'}.items():
-        page.locator(f'[name={key}]').fill(value)
-    page.get_by_role('checkbox').check()
-    page.get_by_role('button', name='PDF 생성', exact=True).click()
-    share = page.get_by_role('button', name='시험보험 공유하기', exact=True)
-    expect(share).to_be_enabled()
+    share = create_claim(page)
     before = requests.count('claims/requests')
     share.click()
     expect(page.get_by_role('status').filter(has_text='공유되었습니다. 모바일에서 청구내역에 있는 공유버튼을 눌러주세요')).to_be_visible()
@@ -151,5 +156,49 @@ with sync_playwright() as p:
     page.get_by_role('button', name='시험보험 발송 팩스번호 복사 아이콘', exact=True).click()
     assert page.evaluate('window.copiedNumbers') == ['021234567', '021234567']
     context.close()
+    for scenario in ('success', 'cancel', 'download', 'save_failure'):
+        context = browser.new_context(viewport={'width': 390, 'height': 900}, is_mobile=True, has_touch=True)
+        context.route('**/api/v1/**', handle)
+        context.add_init_script("""
+            window.sharedFiles = [];
+            Object.defineProperty(navigator, 'canShare', {value: () => true, configurable: true});
+            Object.defineProperty(navigator, 'share', {value: async ({files}) => {
+                window.shareHadActivation = navigator.userActivation.isActive;
+                window.sharedFiles.push(files.map(file => file.name));
+                if (window.cancelShare) throw new DOMException('Cancelled', 'AbortError');
+            }});
+        """)
+        page = context.new_page()
+        errors = []
+        page.on('pageerror', lambda error: errors.append(str(error)))
+        share = create_claim(page)
+        if scenario in ('cancel', 'save_failure'):
+            page.evaluate('window.cancelShare = true')
+        if scenario == 'download':
+            page.evaluate("Object.defineProperty(navigator, 'canShare', {value: () => false})")
+        if scenario == 'save_failure':
+            context.route('**/api/v1/claims/requests', lambda route: route.fulfill(
+                status=500, content_type='application/json', headers=headers,
+                body=json.dumps({'detail': '검증용 저장 실패'})))
+        before = requests.count('claims/requests')
+        share.click()
+        if scenario == 'save_failure':
+            expect(page.get_by_role('alert').filter(has_text='검증용 저장 실패').first).to_be_visible()
+            expect(page.get_by_role('status').filter(has_text='청구 요청 80번이 저장되었습니다.')).to_have_count(0)
+        else:
+            expect(page.get_by_role('status').filter(has_text='청구 요청 80번이 저장되었습니다.')).to_be_visible()
+            assert requests.count('claims/requests') == before + 1, scenario
+            expect(share).to_be_enabled()
+            share.click()
+            expect(share).to_be_enabled()
+            assert requests.count('claims/requests') == before + 1, 'Repeated mobile share must reuse the saved claim'
+        if scenario == 'download':
+            assert page.evaluate('window.sharedFiles') == []
+            expect(page.get_by_role('status').filter(has_text='이 브라우저는 파일 공유를 지원하지 않습니다.')).to_be_visible()
+        else:
+            assert page.evaluate('window.shareHadActivation'), scenario
+            assert page.evaluate('window.sharedFiles.length') >= 1, scenario
+        assert not errors, errors
+        context.close()
     browser.close()
-print('PC/mobile share, live countdown/expiry, fax text/icon copy in create/history: passed')
+print('PC/mobile share, mobile save/cancel/fallback/failure/deduplication, expiry and fax copy: passed')
