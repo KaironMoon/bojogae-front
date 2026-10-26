@@ -1,8 +1,11 @@
 /* eslint-disable react/prop-types */
+import { useId } from 'react';
 import { Alert, Box, Button, Chip, Paper, Stack, TextField, Typography } from '@mui/material';
 import FaxNumberCopy from './FaxNumberCopy';
 
 export default function ClaimFaxDestinations({ insurers, numbers, onChange, disabled, readOnly = false, renderAction }) {
+  const feedbackPrefix = useId();
+  const feedbackId = insurer => `${feedbackPrefix}-feedback-${insurer.id}`;
   function heading(insurer, label) {
     const phone = insurer.customer_center_phone;
     return <Box sx={{ display: 'grid', gap: 1.5, alignItems: 'center',
@@ -13,7 +16,7 @@ export default function ClaimFaxDestinations({ insurers, numbers, onChange, disa
       {phone ? <Button sx={{ justifySelf: 'start' }} size="small" href={`tel:${phone.replace(/[^0-9]/g, '')}`}>
         고객센터 {phone}
       </Button> : renderAction && <Typography variant="body2" color="text.secondary">등록된 고객센터 번호 없음</Typography>}
-      {renderAction && <Box sx={{ justifySelf: { xs: 'start', sm: 'end' }, minWidth: 0 }}>{renderAction(insurer)}</Box>}
+      {renderAction && <Box sx={{ justifySelf: { xs: 'start', sm: 'end' }, minWidth: 0 }}>{renderAction(insurer, feedbackId(insurer))}</Box>}
     </Box>;
   }
   return <Stack spacing={2} role="region" aria-label={renderAction ? '보험사별 다운로드·발송 안내' : '보험사별 발송 안내'}>
@@ -26,6 +29,7 @@ export default function ClaimFaxDestinations({ insurers, numbers, onChange, disa
         <Stack spacing={1.5}>
           {heading(insurer, '다운로드 전용')}
           <Typography variant="body2">{insurer.fax_disabled_reason || '팩스 발송을 지원하지 않습니다. 파일을 다운로드해 주세요.'}</Typography>
+          {renderAction && <Box id={feedbackId(insurer)} sx={{ minWidth: 0, '&:empty': { display: 'none' } }} />}
         </Stack>
       </Paper>;
       const common = insurer.fax_numbers?.[0] || '';
@@ -48,6 +52,7 @@ export default function ClaimFaxDestinations({ insurers, numbers, onChange, disa
             {custom || common ? <FaxNumberCopy number={custom || common} label={`${insurer.name} 팩스번호`} />
               : <Typography variant="body2">보험사에서 가상팩스 번호를 발급받아 주세요.</Typography>}
           </Stack>
+          {renderAction && <Box id={feedbackId(insurer)} sx={{ minWidth: 0, '&:empty': { display: 'none' } }} />}
         </Stack>
       </Paper>;
     })}

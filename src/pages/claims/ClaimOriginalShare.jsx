@@ -1,12 +1,13 @@
 /* eslint-disable react/prop-types */
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Alert, Button, Stack, Typography, useMediaQuery } from '@mui/material';
 import ShareOutlinedIcon from '@mui/icons-material/ShareOutlined';
 import { claimError, downloadClaimBlob, getClaimOriginal } from '@/services/claim-service';
 
 export const PC_SHARE_NOTICE = '공유되었습니다. 모바일에서 청구내역에 있는 공유버튼을 눌러주세요';
 
-export default function ClaimOriginalShare({ result, requestId, deliveryId, expiresAt, serverTime, prepare, disabled, showRemaining = false }) {
+export default function ClaimOriginalShare({ result, requestId, deliveryId, expiresAt, serverTime, prepare, disabled, showRemaining = false, additionalActions, feedbackId }) {
   const mobile = useMediaQuery('(max-width: 600px), (pointer: coarse)');
   const [expired, setExpired] = useState(false);
   const [file, setFile] = useState(null);
@@ -75,6 +76,11 @@ export default function ClaimOriginalShare({ result, requestId, deliveryId, expi
       if (e.name !== 'AbortError') setError(await claimError(e));
     } finally { setSharing(false); }
   }
+  const feedback = <>
+    {notice && !expired && <Alert severity="success" role="status" sx={{ overflowWrap: 'anywhere' }}>{notice}</Alert>}
+    {error && !expired && <Alert severity="error" sx={{ overflowWrap: 'anywhere' }}>{error}</Alert>}
+  </>;
+  const feedbackTarget = feedbackId && typeof document !== 'undefined' ? document.getElementById(feedbackId) : null;
   return <Stack ref={anchor} spacing={1}>
     {!expired && <Stack direction="row" gap={1} alignItems="center" flexWrap="wrap">
     <Button variant="outlined" startIcon={<ShareOutlinedIcon />} onClick={share}
@@ -82,11 +88,11 @@ export default function ClaimOriginalShare({ result, requestId, deliveryId, expi
       aria-label={`${result?.name || ''} 공유하기`.trim()}>
       {mobile && !file && !error ? '공유 파일 준비 중…' : '공유하기'}
     </Button>
+    {additionalActions}
     {showRemaining && remainingMs !== null && <Typography variant="caption" color="text.secondary">
       {remainingMs < 60000 ? '1분 미만 남음' : `약 ${Math.ceil(remainingMs / 60000)}분 남음`}
     </Typography>}
     </Stack>}
-    {notice && !expired && <Alert severity="success" role="status">{notice}</Alert>}
-    {error && !expired && <Alert severity="error">{error}</Alert>}
+    {(notice || error) && !expired && (feedbackTarget ? createPortal(feedback, feedbackTarget) : feedback)}
   </Stack>;
 }
