@@ -78,11 +78,13 @@ export async function downloadClaimDocument(requestId) {
 }
 
 export async function downloadOriginalClaim(requestKey, insurerIds, claim, files) {
-  const form = new FormData();
-  form.append('payload', JSON.stringify({ request_key: requestKey, insurer_ids: insurerIds, claim, save_mode: 'FILE' }));
-  files.forEach(file => form.append('files', file));
-  const response = await apiCaller.post('/api/v1/claims/original-download', form,
-    { responseType: 'blob', timeout: 300000 });
-  const encoded = response.headers['content-disposition']?.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
-  downloadClaimBlob(response.data, encoded ? decodeURIComponent(encoded) : `발송용_청구서.${insurerIds.length === 1 ? 'pdf' : 'zip'}`);
+  for (const insurerId of insurerIds) {
+    const form = new FormData();
+    form.append('payload', JSON.stringify({ request_key: requestKey, insurer_ids: [insurerId], claim, save_mode: 'FILE' }));
+    files.forEach(file => form.append('files', file));
+    const response = await apiCaller.post('/api/v1/claims/original-download', form,
+      { responseType: 'blob', timeout: 300000 });
+    const encoded = response.headers['content-disposition']?.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
+    downloadClaimBlob(response.data, encoded ? decodeURIComponent(encoded) : `발송용_청구서_${insurerId}.pdf`);
+  }
 }

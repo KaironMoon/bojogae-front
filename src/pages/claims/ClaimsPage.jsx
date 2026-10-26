@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Alert, Box, Button, Checkbox, Chip, CircularProgress, Divider, FormControlLabel, Grid,
+import { Link, useBlocker, useLocation, useNavigate } from 'react-router-dom';
+import { Alert, Box, Button, Checkbox, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Divider, FormControlLabel, Grid,
   MenuItem, Paper, Stack, Step, StepLabel, Stepper, TextField, Typography } from '@mui/material';
 import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
 import DownloadOutlinedIcon from '@mui/icons-material/DownloadOutlined';
 import SignaturePad from './SignaturePad';
-import ClaimPdfPreview from './ClaimPdfPreview';
+import ClaimPdfResult from './ClaimPdfResult';
 import ClaimHistory from './ClaimHistory';
 import ClaimFaxDestinations from './ClaimFaxDestinations';
 import ClaimCustomerDialog from './ClaimCustomerDialog';
@@ -43,7 +43,7 @@ export default function ClaimsPage() {
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
   const [results, setResults] = useState([]);
-  const [preview, setPreview] = useState('');
+  const [leavingStep, setLeavingStep] = useState(false);
   const [progress, setProgress] = useState('');
   const [saved, setSaved] = useState(null);
   const [customerTarget, setCustomerTarget] = useState(null);
@@ -51,19 +51,46 @@ export default function ClaimsPage() {
   const [partyRevision, setPartyRevision] = useState({ insured: 0, beneficiary: 0 });
   const downloadOnlyInsurers = insurers.filter(item => selected.includes(item.id) && item.fax_enabled === false);
   const requestKey = useRef(null);
-  const urls = useRef([]);
   const pending = useRef(null);
   const form = useRef(null);
+  const hasOriginals = view === 'create' && step === 3 && results.length > 0;
+  const blocker = useBlocker(({ currentLocation, nextLocation }) =>
+    hasOriginals && currentLocation.pathname !== nextLocation.pathname);
+  useEffect(() => {
+    if (!hasOriginals) return;
+    const warnBeforeUnload = event => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', warnBeforeUnload);
+    return () => window.removeEventListener('beforeunload', warnBeforeUnload);
+  }, [hasOriginals]);
+  function cancelLeave() {
+    setLeavingStep(false);
+    if (blocker.state === 'blocked') blocker.reset();
+  }
+  function confirmLeave() {
+    invalidate();
+    setLeavingStep(false);
+    if (blocker.state === 'blocked') {
+      // The history route can reuse this component: discard the original source too.
+      setPayload(EMPTY); setFiles([]); setSelected([]); setFaxNumbers({}); setStep(0);
+      blocker.proceed();
+    } else setStep(2);
+  }
+  function previousStep() {
+    if (hasOriginals) setLeavingStep(true);
+    else setStep(s => s - 1);
+  }
   useEffect(() => {
     const controller = new AbortController();
     getClaimInsurers(controller.signal).then(setInsurers).catch(async e => {
       if (!controller.signal.aborted) setError(await claimError(e));
     }).finally(() => { if (!controller.signal.aborted) setLoading(false); });
-    return () => { controller.abort(); pending.current?.abort(); urls.current.forEach(URL.revokeObjectURL); };
+    return () => { controller.abort(); pending.current?.abort(); };
   }, []);
   function invalidate() {
-    urls.current.forEach(URL.revokeObjectURL); urls.current = [];
-    setResults([]); setPreview(''); setSaved(null); setError(''); requestKey.current = null;
+    setResults([]); setSaved(null); setError(''); requestKey.current = null;
   }
   function update(key, value) {
     invalidate(); setPayload(previous => ({ ...previous, [key]: value }));
@@ -153,14 +180,13 @@ export default function ClaimsPage() {
       try {
         const result = await generateClaimPdf(id, activeClaimPayload(payload), files, controller.signal);
         if (controller.signal.aborted) return;
-        const url = URL.createObjectURL(result.blob); urls.current.push(url);
-        generated.push({ ...result, id, name: company.name, url });
+        generated.push({ ...result, id, name: company.name });
       } catch (e) {
         if (controller.signal.aborted) return;
         failures.push(`${company.name}: ${await claimError(e)}`);
       }
     }
-    setResults(generated); setPreview(generated[0]?.id || ''); setStep(3); setBusy(false); setProgress('');
+    setResults(generated); setStep(3); setBusy(false); setProgress('');
     if (failures.length) setError(failures.join('\n'));
   }
   async function save(mode) {
@@ -199,7 +225,6 @@ export default function ClaimsPage() {
     setFaxNumbers({});
     setFiles(attachments); setFieldErrors({}); setCustomerNotice(''); setStep(0); navigate('/claims/new');
   }
-  const active = results.find(item => item.id === preview);
   return <Box sx={{ maxWidth: 1100, mx: 'auto', p: { xs: 2, md: 3 } }}>
     {view === 'history' ? <ClaimHistory onReuse={reuse} /> : <Stack spacing={3} component="form" ref={form} onSubmit={e => e.preventDefault()}>
       <Box><Typography variant="h4" fontWeight={800}>보험금 청구서 만들기</Typography>
@@ -294,24 +319,24 @@ export default function ClaimsPage() {
         </Stack>}
         {step === 3 && <Stack spacing={2}>
           <Typography variant="h6" fontWeight={700}>생성된 PDF {results.length}건</Typography>
-          <Typography variant="body2" color="text.secondary">보험사별 내용을 확인한 뒤 파일만 저장 또는 팩스 발송을 선택하세요. 여러 보험사는 ZIP으로 다운로드합니다. 입력을 수정하면 다시 생성해야 합니다.</Typography>
+          <Typography variant="body2" color="text.secondary">보험사별 내용을 확인한 뒤 파일만 저장 또는 팩스 발송을 선택하세요. 보험사별 PDF를 각각 다운로드할 수 있으며, 파일 공유를 지원하는 모바일에서는 공유하기를 사용할 수 있습니다. 입력을 수정하면 다시 생성해야 합니다.</Typography>
           <Typography variant="body2" color="text.secondary">파일만 저장할 때는 수신 팩스 번호를 입력하지 않아도 됩니다.</Typography>
           {downloadOnlyInsurers.length > 0 && <Alert severity="info">{downloadOnlyInsurers.map(item => item.name).join(', ')}이 선택되어 팩스 발송을 사용할 수 없습니다. 파일만 저장으로 다운로드해 주세요.</Alert>}
           <Alert severity="warning">발송용 원본에는 주민등록번호 등 개인정보와 서명이 포함됩니다. 원본은 이 작성 화면에서 다운로드해 주세요. 청구내역에서는 본문 주민번호를 마스킹하고 당시 서명·동의 표시를 유지한 보관본을 제공합니다. 재작성 시에는 서명과 동의를 다시 받아야 합니다. 첨부파일은 원본으로 보관합니다.</Alert>
           <ClaimFaxDestinations insurers={insurers.filter(item => selected.includes(item.id))} numbers={faxNumbers}
             disabled={busy || Boolean(saved)} onChange={(id, value) => {
               requestKey.current = null; setFaxNumbers(previous => ({ ...previous, [id]: value }));
+            }} renderPdf={insurer => {
+              const result = results.find(item => item.id === insurer.id);
+              return result ? <ClaimPdfResult result={result} disabled={busy} />
+                : <Alert severity="warning">PDF를 생성하지 못했습니다. 이전 단계에서 다시 생성해 주세요.</Alert>;
             }} />
-          <Stack direction="row" gap={1} flexWrap="wrap">{results.map(item => <Button key={item.id} variant={preview === item.id ? 'contained' : 'outlined'} onClick={() => setPreview(item.id)}>{item.name} · {item.pages}쪽</Button>)}</Stack>
-          {active && <>
-            <ClaimPdfPreview key={active.id} blob={active.blob} name={active.name} />
-          </>}
           {!results.length && <Alert severity="warning">생성된 PDF가 없습니다. 이전 단계에서 내용을 확인해 주세요.</Alert>}
         </Stack>}
       </Paper>}
       {busy && <Stack direction="row" spacing={1} alignItems="center" role="status"><CircularProgress size={20} /><Typography>{progress || '청구 요청 저장 중'}</Typography></Stack>}
       <Stack direction="row" justifyContent="space-between" spacing={2}>
-        <Button disabled={step === 0 || busy} onClick={() => setStep(s => s-1)}>이전</Button>
+        <Button disabled={step === 0 || busy} onClick={previousStep}>이전</Button>
         {step < 2 ? <Button variant="contained" disabled={busy || loading} onClick={next}>다음</Button>
           : step === 2 ? <Button variant="contained" disabled={busy} startIcon={<DescriptionOutlinedIcon />} onClick={generate}>PDF 생성</Button>
             : <Stack direction="row" gap={1} flexWrap="wrap">
@@ -328,6 +353,17 @@ export default function ClaimsPage() {
             </Stack>}
       </Stack>
     </Stack>}
+    <Dialog open={leavingStep || blocker.state === 'blocked'} onClose={cancelLeave}
+      aria-labelledby="claim-leave-title" aria-describedby="claim-leave-description">
+      <DialogTitle id="claim-leave-title">원본 PDF를 받으셨나요?</DialogTitle>
+      <DialogContent><DialogContentText id="claim-leave-description">
+        이 화면을 벗어나면 주민등록번호가 마스킹되지 않은 원본 PDF를 더 이상 다운로드하거나 공유할 수 없습니다. 필요한 파일을 먼저 다운로드하거나 공유해 주세요.
+      </DialogContentText></DialogContent>
+      <DialogActions>
+        <Button onClick={cancelLeave} autoFocus>머무르기</Button>
+        <Button onClick={confirmLeave} color="warning">나가기</Button>
+      </DialogActions>
+    </Dialog>
     {view === 'create' && customerTarget && <ClaimCustomerDialog
       label={customerTarget === 'insured' ? '피보험자' : '수익자'}
       onClose={() => setCustomerTarget(null)} onSelect={loadCustomer} />}

@@ -1,7 +1,7 @@
 /* eslint-disable react/prop-types */
 import { Alert, Button, Chip, Paper, Stack, TextField, Typography } from '@mui/material';
 
-export default function ClaimFaxDestinations({ insurers, numbers, onChange, disabled, readOnly = false }) {
+export default function ClaimFaxDestinations({ insurers, numbers, onChange, disabled, readOnly = false, renderPdf }) {
   return <Stack spacing={2}>
     <Typography variant="h6" fontWeight={700}>보험사별 발송 안내</Typography>
     {insurers.some(insurer => insurer.fax_enabled !== false) && <Typography variant="body2" color="text.secondary">{readOnly
@@ -14,6 +14,7 @@ export default function ClaimFaxDestinations({ insurers, numbers, onChange, disa
             <Typography fontWeight={700}>{insurer.name}</Typography><Chip size="small" label="다운로드 전용" />
           </Stack>
           <Typography variant="body2">{insurer.fax_disabled_reason || '팩스 발송을 지원하지 않습니다. 파일을 다운로드해 주세요.'}</Typography>
+          {renderPdf?.(insurer)}
         </Stack>
       </Paper>;
       const common = insurer.fax_numbers?.[0] || '';
@@ -41,6 +42,7 @@ export default function ClaimFaxDestinations({ insurers, numbers, onChange, disa
           {(readOnly || !insurer.use_virtual_fax) && <Typography variant="body2">
             {custom ? '개별 가상팩스' : common ? '공용팩스' : '수신 팩스'}: {custom || common || '보험사에서 가상팩스 번호를 발급받아 주세요.'}
           </Typography>}
+          {renderPdf?.(insurer)}
         </Stack>
       </Paper>;
     })}
