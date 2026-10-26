@@ -7,6 +7,10 @@ export const crmPost = async (path, data, config) =>
 export const crmPut = async (path, data) =>
   (await api.put(base + path, data)).data;
 export const crmDelete = async (path) => (await api.delete(base + path)).data;
+export const crmNearbyEvents = (params) => new EventSource(
+  `${api.baseUrl}${base}/nearby-customers/events?${new URLSearchParams(params)}`,
+  { withCredentials: true },
+);
 export const attachmentUrl = (id) =>
   `${api.baseUrl}${base}/attachments/${id}/download`;
 export const crmUpload = async (file, target) => {
@@ -34,8 +38,6 @@ const errors = {
     "장소명 검색 설정이 준비되지 않았습니다. 검색 API 키와 백엔드 재시작 여부를 확인해 주세요.",
   crm_place_search_budget_exhausted:
     "장소명 검색의 무료 사용 한도에 도달했습니다. 주소 입력이나 지도 선택을 이용해 주세요.",
-  crm_map_address_filter_required:
-    "조회할 주소가 50개를 넘습니다. 상담 단계·태그·보험사 등의 조건을 좁혀 주세요.",
   crm_maps_unavailable:
     "지도 설정이 준비되지 않았습니다. 주소 입력과 목록은 계속 사용할 수 있습니다.",
   crm_map_budget_exhausted:

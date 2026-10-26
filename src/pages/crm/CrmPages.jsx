@@ -97,6 +97,7 @@ export function CustomersPage() {
   const [stage, setStage] = useState("");
   const [archived, setArchived] = useState(false);
   const [missing, setMissing] = useState(false);
+  const [unconfirmed, setUnconfirmed] = useState(false);
   const [tag, setTag] = useState("");
   const [hasContract, setHasContract] = useState("");
   const [page, setPage] = useState(1);
@@ -108,6 +109,7 @@ export function CustomersPage() {
     stage,
     archived,
     missing_location: missing,
+    unconfirmed_address: unconfirmed,
     tag,
     ...(hasContract !== "" ? { has_contract: hasContract } : {}),
     page,
@@ -161,15 +163,17 @@ export function CustomersPage() {
                 />
                 <Field
                   label="보기"
-                  value={archived ? "ARCHIVED" : missing ? "MISSING" : "ACTIVE"}
+                  value={archived ? "ARCHIVED" : missing ? "MISSING" : unconfirmed ? "UNCONFIRMED" : "ACTIVE"}
                   options={{
                     ACTIVE: "관리 고객",
                     ARCHIVED: "보관 고객",
                     MISSING: "위치 미등록",
+                    UNCONFIRMED: "미확정 주소만 보기",
                   }}
                   onChange={(v) => {
                     setArchived(v === "ARCHIVED");
                     setMissing(v === "MISSING");
+                    setUnconfirmed(v === "UNCONFIRMED");
                     setPage(1);
                   }}
                 />
@@ -217,6 +221,8 @@ export function CustomersPage() {
                   <Typography variant="body2">
                     {c.phone || "연락처 미등록"} ·{" "}
                     {c.location.address || "주소 미등록"}
+                    {c.address_resolution?.status === "UNRESOLVED" && <Chip size="small" color="warning" label="미확정 주소" sx={{ ml: 1 }} />}
+                    {["PENDING", "PROCESSING"].includes(c.address_resolution?.status) && <Chip size="small" label="주소 확인 대기·진행" sx={{ ml: 1 }} />}
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
                     최근 상담 {dateTime(c.last_contact_at)} · 계약{" "}
@@ -421,6 +427,8 @@ export function CustomerDetailPage() {
             <Typography mt={2}>{c.phone || "연락처 미등록"}</Typography>
             <Typography>
               {c.location.address} {c.address_detail}
+              {c.address_resolution?.status === "UNRESOLVED" && <Chip size="small" color="warning" label="미확정 주소" sx={{ ml: 1 }} />}
+              {["PENDING", "PROCESSING"].includes(c.address_resolution?.status) && <Chip size="small" label="주소 확인 대기·진행" sx={{ ml: 1 }} />}
             </Typography>
             <Typography variant="caption">
               {ACCURACY[c.location.accuracy]}

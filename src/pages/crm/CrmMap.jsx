@@ -10,7 +10,7 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import { crmGet, crmPost, crmPut, crmError } from "@/services/crm-service";
+import { crmGet, crmPost, crmPut, crmError, crmNearbyEvents } from "@/services/crm-service";
 import {
   useCrm,
   Panel,
@@ -30,6 +30,7 @@ function MapCanvas({ config, origin, radius, items, route, candidates, onPick })
   const element = useRef(null);
   const map = useRef(null);
   const [maps, setMaps] = useState(null);
+  const centeredAt = useRef("");
   useSearchPins(maps, map, candidates, onPick);
   const [error, setError] = useState("");
   const pickRef = useRef(onPick);
@@ -49,6 +50,7 @@ function MapCanvas({ config, origin, radius, items, route, candidates, onPick })
           zoom: 12,
           zoomControl: true,
         });
+        centeredAt.current = "";
         click = api.Event.addListener(map.current, "click", (e) =>
           pickRef.current({
             lat: e.coord.lat(),
@@ -87,7 +89,11 @@ function MapCanvas({ config, origin, radius, items, route, candidates, onPick })
     const overlays = [];
     if (hasLocation(origin)) {
       const position = new maps.LatLng(origin.lat, origin.lng);
-      map.current.setCenter(position);
+      const centerKey = `${origin.lat}:${origin.lng}:${radius}`;
+      if (centeredAt.current !== centerKey) {
+        map.current.setCenter(position);
+        centeredAt.current = centerKey;
+      }
       overlays.push(
         new maps.Marker({
           map: map.current,
@@ -179,10 +185,33 @@ export default function CrmMap() {
   const [route, setRoute] = useState([]);
   const [visit, setVisit] = useState(null);
   const [customer, setCustomer] = useState(null);
-  const resource = useCrm(active ? "/nearby-customers" : null, {
+  const liveEnabled = !!config.data?.address_worker_enabled;
+  const initial = useCrm(active && !liveEnabled ? "/nearby-customers" : null, {
     ...active,
     page,
   });
+  const [live, setLive] = useState(null);
+  const [connection, setConnection] = useState(0);
+  const searchKey = JSON.stringify({ ...active, page });
+  useEffect(() => {
+    if (!active || !liveEnabled) return;
+    let disposed = false;
+    setLive({ key: searchKey, data: null, error: "", loading: true });
+    const source = crmNearbyEvents({ ...active, page });
+    source.addEventListener("snapshot", (event) => {
+      if (!disposed) setLive({ key: searchKey, data: JSON.parse(event.data), error: "", loading: false });
+    });
+    const failed = () => {
+      if (!disposed) setLive((old) => ({ ...old, loading: false, error: "지도 실시간 연결이 끊겼습니다. 연결되지 않으면 새로고침 버튼을 눌러 주세요." }));
+    };
+    source.addEventListener("unavailable", () => { source.close(); failed(); });
+    source.onerror = failed;
+    return () => { disposed = true; source.close(); };
+  }, [active, page, liveEnabled, searchKey, connection]);
+  const resource = liveEnabled ? {
+    ...(live?.key === searchKey ? live : { data: null, loading: !!active, error: "" }),
+    reload: () => setConnection((value) => value + 1),
+  } : initial;
   const items = resource.data?.items || EMPTY;
   async function geocode() {
     setBusy(true);
@@ -447,6 +476,8 @@ export default function CrmMap() {
             직선거리 기준 {resource.data?.total || 0}건 · 연락 중단·보관 고객
             제외
           </Typography>
+          {!!resource.data?.address_progress?.pending && <Alert severity="info">주소 확인 대기·진행 {resource.data.address_progress.pending}명 (전체 고객 기준). 완료된 고객 중 검색 반경과 조건에 맞는 고객이 자동으로 표시됩니다.</Alert>}
+          {!!resource.data?.address_progress?.unresolved && <Alert severity="info">미확정 주소 {resource.data.address_progress.unresolved}명 (전체 고객 기준). 고객정보에서 주소를 확인해 주세요.</Alert>}
           {!!resource.data?.unresolved_addresses && <Alert severity="info">주소를 찾지 못한 {resource.data.unresolved_addresses}건은 지도에 표시하지 못했습니다. 고객 주소를 확인해 주세요.</Alert>}
           {items.map((c) => (
             <Panel key={keyOf(c)} id={`nearby-${c.id}-${c.task_id || 0}`}>

@@ -133,10 +133,10 @@ export default function CrmImport({ onClose, onDone }) {
                 <Button component="a" variant="outlined" href={`${import.meta.env.BASE_URL}templates/bojogae-customer-import.csv`} download="보조개_고객등록양식.csv">CSV 양식 다운로드</Button>
               </Stack>
               <Typography variant="body2" color="text.secondary">
-                양식의 첫 줄을 유지하고 한 행에 고객 한 명씩 입력해 주세요. 고객명과 연락처 또는 주소가 필요하며 최대 5,000명·2MB까지 가져올 수 있습니다. 엑셀은 첫 번째 시트를 읽습니다.
+                양식의 첫 줄을 유지하고 2행의 가상 고객 샘플을 삭제한 뒤 한 행에 고객 한 명씩 입력해 주세요. 고객명과 연락처 또는 주소가 필요하며 최대 5,000명·2MB까지 가져올 수 있습니다. 엑셀은 첫 번째 시트를 읽습니다.
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                윤달 여부는 예·아니오, 출생 연도 확인은 1900년대·2000년대로 입력하세요. 출생 연도 확인은 6자리 생년월일의 연도를 구분할 때 사용합니다. 윤달은 음력 생일에만 입력할 수 있습니다.
+                생년월일은 연도를 알면 19850307처럼 8자리로 입력하세요. 윤달 여부는 윤달·평달로 입력하며 예·아니오도 사용할 수 있습니다. 빈칸은 평달로 처리하고, 윤달은 음력 생일에만 입력할 수 있습니다.
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 주민번호는 앞 6자리와 뒤 첫 1자리만 입력하세요(예: 850307-1). 비우면 생년월일·성별로 자동 입력합니다. 상담 단계는 미접촉·연락 중·상담 중·제안 중·보류·상담 종료 중 하나이며, 비우면 미접촉으로 등록합니다. 태그는 쉼표로 구분하세요.
