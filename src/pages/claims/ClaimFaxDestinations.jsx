@@ -1,5 +1,6 @@
 /* eslint-disable react/prop-types */
 import { Alert, Box, Button, Chip, Paper, Stack, TextField, Typography } from '@mui/material';
+import FaxNumberCopy from './FaxNumberCopy';
 
 export default function ClaimFaxDestinations({ insurers, numbers, onChange, disabled, readOnly = false, renderAction }) {
   function heading(insurer, label) {
@@ -42,9 +43,11 @@ export default function ClaimFaxDestinations({ insurers, numbers, onChange, disa
           {insurer.virtual_fax_guide && <Typography variant="body2" sx={{ whiteSpace: 'pre-line' }}>{insurer.virtual_fax_guide}</Typography>}
           {insurer.virtual_fax_ars && <Typography variant="body2" sx={{ whiteSpace: 'pre-line' }}>{insurer.virtual_fax_ars}</Typography>}
           {insurer.use_virtual_fax && !readOnly && <Alert severity="info">발급받은 번호가 이번 청구에 유효한지 확인해 주세요.</Alert>}
-          {(readOnly || !insurer.use_virtual_fax) && <Typography variant="body2">
-            {custom ? '개별 가상팩스' : common ? '공용팩스' : '수신 팩스'}: {custom || common || '보험사에서 가상팩스 번호를 발급받아 주세요.'}
-          </Typography>}
+          <Stack direction="row" gap={0.5} alignItems="center" flexWrap="wrap">
+            <Typography variant="body2">{custom ? '개별 가상팩스' : common ? '공용팩스' : '수신 팩스'}:</Typography>
+            {custom || common ? <FaxNumberCopy number={custom || common} label={`${insurer.name} 팩스번호`} />
+              : <Typography variant="body2">보험사에서 가상팩스 번호를 발급받아 주세요.</Typography>}
+          </Stack>
         </Stack>
       </Paper>;
     })}

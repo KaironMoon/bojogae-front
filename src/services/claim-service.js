@@ -88,3 +88,10 @@ export async function downloadOriginalClaim(requestKey, insurerIds, claim, files
     downloadClaimBlob(response.data, encoded ? decodeURIComponent(encoded) : `발송용_청구서_${insurerId}.pdf`);
   }
 }
+
+export async function getClaimOriginal(requestId, deliveryId, signal) {
+  const response = await apiCaller.get(`/api/v1/claims/requests/${requestId}/originals/${deliveryId}`, {},
+    { responseType: 'blob', signal, timeout: 120000 });
+  const encoded = response.headers['content-disposition']?.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
+  return new File([response.data], encoded ? decodeURIComponent(encoded) : '발송용_청구서.pdf', { type: 'application/pdf' });
+}

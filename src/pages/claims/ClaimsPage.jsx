@@ -10,7 +10,7 @@ import ClaimPdfPreview from './ClaimPdfPreview';
 import ClaimHistory from './ClaimHistory';
 import ClaimFaxDestinations from './ClaimFaxDestinations';
 import ClaimCustomerDialog from './ClaimCustomerDialog';
-import { claimError, claimTemplateUrl, generateClaimPdf, getClaimInsurers, saveClaimRequest, downloadOriginalClaim } from '@/services/claim-service';
+import { claimError, claimTemplateUrl, generateClaimPdf, getClaimInsurers, saveClaimRequest, downloadClaimBlob } from '@/services/claim-service';
 import { activeClaimPayload, claimInputErrors, claimErrorStep, claimNeedsGuardian, claimHasGuardian,
   formatClaimInput, formatClaimInputEdit, isFormattedClaimField } from '@/services/claim-validation';
 
@@ -47,6 +47,7 @@ export default function ClaimsPage() {
   const [leavingStep, setLeavingStep] = useState(false);
   const [progress, setProgress] = useState('');
   const [saved, setSaved] = useState(null);
+  const [originalExpired, setOriginalExpired] = useState(false);
   const [customerTarget, setCustomerTarget] = useState(null);
   const [customerNotice, setCustomerNotice] = useState('');
   const [partyRevision, setPartyRevision] = useState({ insured: 0, beneficiary: 0 });
@@ -54,6 +55,20 @@ export default function ClaimsPage() {
   const requestKey = useRef(null);
   const pending = useRef(null);
   const form = useRef(null);
+  useEffect(() => {
+    if (!saved?.original_expires_at) return;
+    const remaining = Date.parse(saved.original_expires_at) - Date.parse(saved.server_time);
+    const deadline = performance.now() + Math.max(0, remaining);
+    const expire = () => {
+      if (performance.now() < deadline) return;
+      setResults([]); setFiles([]); setOriginalExpired(true);
+      setPayload(previous => ({ ...previous, insured_id: previous.insured_id.slice(0, 8),
+        beneficiary_id: previous.beneficiary_id.slice(0, 8) }));
+    };
+    const timer = setTimeout(expire, Math.max(0, remaining));
+    document.addEventListener('visibilitychange', expire);
+    return () => { clearTimeout(timer); document.removeEventListener('visibilitychange', expire); };
+  }, [saved]);
   const hasOriginals = view === 'create' && step === 3 && results.length > 0;
   const blocker = useBlocker(({ currentLocation, nextLocation }) =>
     hasOriginals && currentLocation.pathname !== nextLocation.pathname);
@@ -91,7 +106,7 @@ export default function ClaimsPage() {
     return () => { controller.abort(); pending.current?.abort(); };
   }, []);
   function invalidate() {
-    setResults([]); setSaved(null); setError(''); requestKey.current = null;
+    setResults([]); setSaved(null); setOriginalExpired(false); setError(''); requestKey.current = null;
   }
   function update(key, value) {
     invalidate(); setPayload(previous => ({ ...previous, [key]: value }));
@@ -191,13 +206,14 @@ export default function ClaimsPage() {
     if (failures.length) setError(failures.join('\n'));
   }
   async function save(mode) {
-    if (busy) return;
+    if (saved?.save_mode === mode) return saved;
+    if (busy) throw new Error('청구서 저장 중입니다. 잠시 후 다시 시도해 주세요.');
     if (mode === 'FAX' && downloadOnlyInsurers.length) {
       setError(`${downloadOnlyInsurers.map(item => item.name).join(', ')}은 다운로드만 지원합니다. 팩스 발송 대상에서 제외해 주세요.`);
       return;
     }
     if (results.length !== selected.length) {
-      setError('선택한 보험사의 PDF를 모두 생성한 후 다시 시도해 주세요.'); return;
+      throw new Error('선택한 보험사의 PDF를 모두 생성한 후 다시 시도해 주세요.');
     }
     setBusy(true); setError('');
     requestKey.current ||= { mode, key: crypto.randomUUID() };
@@ -205,12 +221,17 @@ export default function ClaimsPage() {
     try {
       const result = await saveClaimRequest(requestKey.current.key, selected, activeClaimPayload(payload), files, faxNumbers, mode);
       setSaved(result);
-      if (mode === 'FILE') {
-        try { await downloadOriginalClaim(requestKey.current.key, selected, activeClaimPayload(payload), files); }
-        catch (e) { setError(`청구서는 저장되었습니다. 다운로드를 다시 시도해 주세요. ${await claimError(e)}`); }
-      }
-    } catch (e) { setError(await claimError(e)); } finally { setBusy(false); }
+      return result;
+    } catch (e) { setError(await claimError(e)); throw e; } finally { setBusy(false); }
   }
+
+  async function saveFiles() {
+    try {
+      await save('FILE');
+      results.forEach(result => downloadClaimBlob(result.blob, `${result.name}_청구서.pdf`));
+    } catch (e) { setError(await claimError(e)); }
+  }
+
   function reuse(detail, attachments) {
     invalidate();
     const claim = { ...detail.claim };
@@ -230,11 +251,11 @@ export default function ClaimsPage() {
     {view === 'history' ? <ClaimHistory onReuse={reuse} /> : <Stack spacing={3} component="form" ref={form} onSubmit={e => e.preventDefault()}>
       <Box><Typography variant="h4" fontWeight={800}>보험금 청구서 만들기</Typography>
         <Typography color="text.secondary" sx={{ mt: 1 }}>공통 정보를 입력하면 보험사별 청구서를 만들 수 있습니다.</Typography></Box>
-      <Alert severity="info">파일만 저장하면 서명·첨부가 포함된 발송용 원본을 다운로드합니다. 청구내역에는 본문 주민번호를 마스킹하고 당시 서명·동의 표시를 유지한 보관본과 첨부 원본을 저장합니다. 팩스 발송은 현재 서비스 미연결로 실패 이력만 남으며 비용은 차감되지 않습니다.</Alert>
+      <Alert severity="info">파일만 저장하거나 PC에서 공유하기를 누르면 발송용 원본을 1시간 임시 보관합니다. 같은 계정의 모바일 청구내역에서 공유할 수 있습니다. 이후 발송용 원본은 삭제되고, 마스킹 보관본과 첨부서류는 청구내역에 남습니다. 첨부서류의 개인정보는 자동 마스킹되지 않습니다. 팩스 발송은 현재 서비스 미연결로 실패 이력만 남으며 비용은 차감되지 않습니다.</Alert>
       <Stepper activeStep={step} alternativeLabel>{STEPS.map(title => <Step key={title}><StepLabel>{title}</StepLabel></Step>)}</Stepper>
       {error && <Alert severity="error" sx={{ whiteSpace: 'pre-line' }}>{error}</Alert>}
       {saved && <Alert severity={saved.fax_history?.some(item => item.status === 'FAILED') ? 'warning' : 'success'} role="status" action={<Button component={Link} to="/claims/history" color="inherit" size="small">청구내역 보기</Button>}>
-        청구 요청 {saved.id}번이 저장되었습니다. {saved.save_mode === 'FILE' ? '파일 다운로드를 요청했습니다.' : '팩스 발송 결과는 청구내역의 발송 이력에서 확인해 주세요.'}
+        청구 요청 {saved.id}번이 저장되었습니다. {saved.save_mode === 'FILE' ? '발송용 원본은 저장 후 1시간 동안 청구내역에서 공유할 수 있습니다.' : '팩스 발송 결과는 청구내역의 발송 이력에서 확인해 주세요.'}
       </Alert>}
       {loading ? <CircularProgress aria-label="보험사 불러오는 중" /> : <Paper variant="outlined" sx={{ p: { xs: 2, md: 3 }, borderRadius: 3 }}>
         {step === 0 && <Stack spacing={2} role="group" aria-label="청구할 보험사">
@@ -323,7 +344,7 @@ export default function ClaimsPage() {
           <Typography variant="body2" color="text.secondary">보험사별 내용을 확인한 뒤 파일만 저장 또는 팩스 발송을 선택하세요. 보험사별 PDF를 각각 다운로드할 수 있으며, 파일 공유를 지원하는 모바일에서는 공유하기를 사용할 수 있습니다. 입력을 수정하면 다시 생성해야 합니다.</Typography>
           <Typography variant="body2" color="text.secondary">파일만 저장할 때는 수신 팩스 번호를 입력하지 않아도 됩니다.</Typography>
           {downloadOnlyInsurers.length > 0 && <Alert severity="info">{downloadOnlyInsurers.map(item => item.name).join(', ')}이 선택되어 팩스 발송을 사용할 수 없습니다. 파일만 저장으로 다운로드해 주세요.</Alert>}
-          <Alert severity="warning">발송용 원본에는 주민등록번호 등 개인정보와 서명이 포함됩니다. 원본은 이 작성 화면에서 다운로드해 주세요. 청구내역에서는 본문 주민번호를 마스킹하고 당시 서명·동의 표시를 유지한 보관본을 제공합니다. 재작성 시에는 서명과 동의를 다시 받아야 합니다. 첨부파일은 원본으로 보관합니다.</Alert>
+          <Alert severity="warning">발송용 원본에는 주민등록번호·서명·첨부서류가 포함됩니다. 파일 저장 또는 PC 공유 후 1시간 동안만 모바일 청구내역에서 공유할 수 있습니다. 만료 후에는 원본과 공유버튼이 삭제됩니다. 이미 내려받거나 공유한 파일은 사용자 기기에 남습니다.</Alert>
           {results.map(result => <Stack key={result.id} spacing={1.5}>
             <Typography fontWeight={700}>{result.name} PDF · {result.pages}쪽</Typography>
             <ClaimPdfPreview blob={result.blob} name={result.name} />
@@ -333,27 +354,24 @@ export default function ClaimsPage() {
               requestKey.current = null; setFaxNumbers(previous => ({ ...previous, [id]: value }));
             }} renderAction={insurer => {
               const result = results.find(item => item.id === insurer.id);
-              return result ? <ClaimPdfResult result={result} disabled={busy} />
+              return result ? <ClaimPdfResult result={result} disabled={busy} saved={saved} prepare={() => save('FILE')} />
                 : <Alert severity="warning">PDF를 생성하지 못했습니다. 이전 단계에서 다시 생성해 주세요.</Alert>;
             }} />
           {!results.length && <Alert severity="warning">생성된 PDF가 없습니다. 이전 단계에서 내용을 확인해 주세요.</Alert>}
         </Stack>}
       </Paper>}
+      {originalExpired && <Alert severity="info">원본 공유 기간 1시간이 만료되어 원본과 공유버튼이 삭제되었습니다. 마스킹 보관본은 청구내역에서 확인할 수 있습니다.</Alert>}
       {busy && <Stack direction="row" spacing={1} alignItems="center" role="status"><CircularProgress size={20} /><Typography>{progress || '청구 요청 저장 중'}</Typography></Stack>}
       <Stack direction="row" justifyContent="space-between" spacing={2}>
         <Button disabled={step === 0 || busy} onClick={previousStep}>이전</Button>
         {step < 2 ? <Button variant="contained" disabled={busy || loading} onClick={next}>다음</Button>
           : step === 2 ? <Button variant="contained" disabled={busy} startIcon={<DescriptionOutlinedIcon />} onClick={generate}>PDF 생성</Button>
             : <Stack direction="row" gap={1} flexWrap="wrap">
-              {saved ? <Button variant="outlined" disabled={busy} onClick={async () => {
-                setBusy(true); setError('');
-                try { await downloadOriginalClaim(requestKey.current.key, selected, activeClaimPayload(payload), files); } catch (e) { setError(await claimError(e)); }
-                finally { setBusy(false); }
-              }}>발송용 원본 다운로드</Button> : <>
+              {saved ? <Button variant="outlined" component={Link} to="/claims/history">청구내역 보기</Button> : <>
                 <Button variant="outlined" startIcon={<DownloadOutlinedIcon />}
-                  disabled={busy || !results.length || results.length !== selected.length} onClick={() => save('FILE')}>파일만 저장</Button>
+                  disabled={busy || !results.length || results.length !== selected.length} onClick={saveFiles}>파일만 저장</Button>
                 <Button variant="contained" disabled={busy || !results.length || results.length !== selected.length || downloadOnlyInsurers.length > 0}
-                  onClick={() => save('FAX')}>팩스 발송</Button>
+                  onClick={() => { save('FAX').catch(() => {}); }}>팩스 발송</Button>
               </>}
             </Stack>}
       </Stack>
@@ -362,7 +380,7 @@ export default function ClaimsPage() {
       aria-labelledby="claim-leave-title" aria-describedby="claim-leave-description">
       <DialogTitle id="claim-leave-title">원본 PDF를 받으셨나요?</DialogTitle>
       <DialogContent><DialogContentText id="claim-leave-description">
-        이 화면을 벗어나면 주민등록번호가 마스킹되지 않은 원본 PDF를 더 이상 다운로드하거나 공유할 수 없습니다. 필요한 파일을 먼저 다운로드하거나 공유해 주세요.
+        저장하지 않은 원본은 이 화면을 벗어나면 사라집니다. 파일만 저장 또는 PC 공유를 완료한 원본은 저장 후 1시간 동안 같은 계정의 모바일 청구내역에서 공유할 수 있습니다.
       </DialogContentText></DialogContent>
       <DialogActions>
         <Button onClick={cancelLeave} autoFocus>머무르기</Button>

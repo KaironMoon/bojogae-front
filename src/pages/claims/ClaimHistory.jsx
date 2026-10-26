@@ -3,6 +3,8 @@ import { Alert, Box, Button, CircularProgress, Dialog, DialogActions, DialogCont
   Divider, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from '@mui/material';
 import { claimError, getClaimFile, getClaimRequest, getClaimRequests, downloadClaimDocument, deleteClaimRequest } from '@/services/claim-service';
 import ClaimPdfPreview from './ClaimPdfPreview';
+import ClaimOriginalShare from './ClaimOriginalShare';
+import FaxNumberCopy from './FaxNumberCopy';
 import ClaimDeliveryStatus from './ClaimDeliveryStatus';
 
 const timestamp = value => value ? new Date(value).toLocaleString('ko-KR') : '—';
@@ -97,7 +99,7 @@ export default function ClaimHistory({ onReuse }) {
       <Typography variant="h4" fontWeight={800}>청구내역</Typography>
       <Button disabled={loading || busy} onClick={() => setRefresh(v => v + 1)}>새로고침</Button>
     </Stack>
-    <Alert severity="info">청구내역의 PDF는 주민등록번호가 마스킹된 보관용입니다. 이 파일을 그대로 발송하시면 안 됩니다.</Alert>
+    <Alert severity="info">발송용 원본은 저장 후 1시간 동안 공유할 수 있습니다. 만료 후 원본과 공유버튼은 삭제됩니다. 파일 다운로드는 주민등록번호가 마스킹된 보관용입니다.</Alert>
     {success && <Alert severity="success" role="status" onClose={() => setSuccess('')}>{success}</Alert>}
     {error && !detail && <Alert severity="error">{error}</Alert>}
     {(loading || (busy && !detail)) && <CircularProgress size={24} aria-label="청구 내역 불러오는 중" />}
@@ -110,6 +112,8 @@ export default function ClaimHistory({ onReuse }) {
           {item.deliveries.map(delivery => <Stack key={delivery.id} direction="row" gap={1} alignItems="center" flexWrap="wrap">
             <Typography variant="body2">{delivery.insurer_name}</Typography>
             <ClaimDeliveryStatus status={delivery.status} />
+            {item.original_available && <ClaimOriginalShare requestId={item.id} deliveryId={delivery.id}
+              expiresAt={item.original_expires_at} serverTime={item.server_time} disabled={busy} showRemaining />}
           </Stack>)}
         </Stack>
         <Stack direction="row" gap={1} flexWrap="wrap">
@@ -133,15 +137,18 @@ export default function ClaimHistory({ onReuse }) {
           <Typography>사고 유형: {detail.claim.accident_type} · 사고일: {detail.claim.accident_date}</Typography>
           <Typography sx={{ whiteSpace: 'pre-wrap' }}>사고 경위: {detail.claim.accident_description}</Typography>
           <Typography>지급 계좌: {detail.claim.bank_name} · 예금주 {detail.claim.account_holder}</Typography>
-          <Typography variant="body2" color="text.secondary">주민번호는 앞 6자리와 뒤 첫 자리만 보관합니다. 당시 서명과 동의 표시는 보관 PDF에 유지하며, 새 청구서에 재사용하지 않습니다. 첨부파일은 원본으로 보관합니다.</Typography>
+          <Typography variant="body2" color="text.secondary">주민번호는 앞 6자리와 뒤 첫 자리만 보관합니다. 당시 서명과 동의 표시는 보관 PDF에 유지하며, 새 청구서에 재사용하지 않습니다. 첨부서류는 원본 공유 만료 후에도 청구내역에 보관합니다. 첨부에 포함된 주민등록번호 등 개인정보는 자동 마스킹되지 않습니다.</Typography>
           <Divider />
           {detail.deliveries.map(d => <Stack key={d.id} direction="row" gap={1} alignItems="center" flexWrap="wrap">
             <Typography>{d.insurer_name} · {d.pages}쪽</Typography>
             <ClaimDeliveryStatus status={d.status} />
-            <Typography variant="body2" color="text.secondary">{d.fax_number
-              ? `${d.fax_type === 'VIRTUAL' ? '개별 가상팩스' : '공용팩스'}: ${d.fax_number}`
-              : '수신 팩스 번호 기록 없음'}</Typography>
+            {d.fax_number ? <Stack direction="row" gap={0.5} alignItems="center">
+              <Typography variant="body2" color="text.secondary">{d.fax_type === 'VIRTUAL' ? '개별 가상팩스' : '공용팩스'}:</Typography>
+              <FaxNumberCopy number={d.fax_number} label={`${d.insurer_name} 팩스번호`} />
+            </Stack> : <Typography variant="body2" color="text.secondary">수신 팩스 번호 기록 없음</Typography>}
             <Button disabled={busy} onClick={() => showPdf(d)}>저장된 PDF 확인</Button>
+            {detail.original_available && <ClaimOriginalShare requestId={detail.id} deliveryId={d.id}
+              expiresAt={detail.original_expires_at} serverTime={detail.server_time} disabled={busy} showRemaining />}
           </Stack>)}
           <Stack direction="row" gap={1}>
             <Button disabled={busy} onClick={() => setPendingDownload({ id: detail.id })}>파일 다운로드</Button>
@@ -158,7 +165,7 @@ export default function ClaimHistory({ onReuse }) {
                 <TableCell key={label} sx={{ whiteSpace: 'nowrap' }}>{label}</TableCell>)}</TableRow></TableHead>
               <TableBody>{detail.fax_history.map(attempt => <TableRow key={attempt.id}>
                 <TableCell>{attempt.insurer_name}</TableCell>
-                <TableCell>{attempt.fax_number}</TableCell>
+                <TableCell><FaxNumberCopy number={attempt.fax_number} label={`${attempt.insurer_name} 발송 팩스번호`} /></TableCell>
                 <TableCell sx={{ whiteSpace: 'nowrap' }}>{timestamp(attempt.requested_at)}</TableCell>
                 <TableCell><ClaimDeliveryStatus status={attempt.status} /></TableCell>
                 <TableCell sx={{ whiteSpace: 'nowrap' }}>{timestamp(attempt.completed_at)}</TableCell>
