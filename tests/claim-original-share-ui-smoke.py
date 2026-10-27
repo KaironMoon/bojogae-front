@@ -1,5 +1,6 @@
 """Synthetic UI check. Start Vite and set CLAIM_UI_BASE; no real API/DB writes."""
 import json
+import base64
 import os
 import sys
 from pathlib import Path
@@ -23,7 +24,7 @@ ITEM = {'id': 80, 'save_mode': 'FILE', 'created_at': '2026-10-26T00:00:00Z',
         'deliveries': [{'id': 1, 'insurer_name': '시험보험', 'status': 'STORED', 'pages': 4,
                         'fax_number': '02-123-4567', 'fax_type': 'COMMON'}]}
 headers = {'Access-Control-Allow-Origin': BASE, 'Access-Control-Allow-Credentials': 'true',
-           'Access-Control-Allow-Methods': 'GET,OPTIONS', 'Access-Control-Allow-Headers': 'content-type',
+           'Access-Control-Allow-Methods': 'GET,POST,OPTIONS', 'Access-Control-Allow-Headers': 'content-type',
            'Access-Control-Expose-Headers': 'Content-Disposition'}
 requests = []
 
@@ -57,10 +58,12 @@ def handle(route):
         body = {**ITEM, 'claim': payload().model_dump(mode='json'), 'files': [],
                 'fax_history': [{'id': 1, 'insurer_name': '시험보험', 'fax_number': '02-123-4567',
                                  'status': 'FAILED', 'requested_at': ITEM['created_at']}]}
-    elif path == 'claims/requests/80/originals/1':
-        route.fulfill(content_type='application/pdf', body=b'%PDF-synthetic',
-                      headers={**headers, 'Content-Disposition': "attachment; filename*=UTF-8''test.pdf"})
-        return
+    elif path in ('claims/requests/80/originals/1', 'claims/share-files'):
+        if path.endswith('/originals/1'):
+            assert 'share_files=true' in request.url
+        body = {'files': [{'filename': f'test_{i}.pdf',
+                           'content_base64': base64.b64encode(PDF).decode()}
+                          for i in (1, 2)]}
     route.fulfill(content_type='application/json', body=json.dumps(body), headers=headers)
 
 
@@ -113,7 +116,8 @@ with sync_playwright() as p:
         before = len(requests)
         share.click()
         if mobile:
-            assert page.evaluate('window.sharedFiles') == [['test.pdf']]
+            assert page.evaluate('window.sharedFiles') == [['test_1.pdf', 'test_2.pdf']]
+            expect(page.get_by_text('8MB 미만의 PDF 2개로 나눴습니다.', exact=False)).to_be_visible()
             # No fetch between the click and navigator.share: Safari activation is retained.
             assert len(requests) == before
         else:
@@ -129,6 +133,23 @@ with sync_playwright() as p:
         expect(page.get_by_role('button', name='파일 다운로드', exact=True)).to_be_visible()
         assert not errors, errors
         context.close()
+    # A failed preparation can be retried without creating another share button.
+    context = browser.new_context(viewport={'width': 390, 'height': 900}, is_mobile=True, has_touch=True)
+    context.route('**/api/v1/**', handle)
+    context.route('**/api/v1/claims/requests/80/originals/1?*', lambda route: route.fulfill(
+        status=503, content_type='application/json', headers=headers,
+        body=json.dumps({'detail': '검증용 준비 실패'})))
+    page = context.new_page()
+    page.goto(BASE + '/claims/history')
+    retry = page.get_by_role('button', name='공유하기', exact=True)
+    expect(page.get_by_text('검증용 준비 실패', exact=True)).to_be_visible()
+    expect(retry).to_be_enabled()
+    context.unroute('**/api/v1/claims/requests/80/originals/1?*')
+    retry.click()
+    expect(retry).to_have_text('공유하기')
+    expect(retry).to_be_enabled()
+    expect(page.get_by_text('8MB 미만의 PDF 2개로 나눴습니다.', exact=False)).to_be_visible()
+    context.close()
 
     context = browser.new_context(viewport={'width': 1280, 'height': 1000})
     context.route('**/api/v1/**', handle)
@@ -198,6 +219,7 @@ with sync_playwright() as p:
         else:
             assert page.evaluate('window.shareHadActivation'), scenario
             assert page.evaluate('window.sharedFiles.length') >= 1, scenario
+            assert page.evaluate('window.sharedFiles[0]') == ['test_1.pdf', 'test_2.pdf']
         assert not errors, errors
         context.close()
     browser.close()

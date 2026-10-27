@@ -95,3 +95,25 @@ export async function getClaimOriginal(requestId, deliveryId, signal) {
   const encoded = response.headers['content-disposition']?.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
   return new File([response.data], encoded ? decodeURIComponent(encoded) : '발송용_청구서.pdf', { type: 'application/pdf' });
 }
+
+function claimShareFiles(data) {
+  return data.files.map(item => {
+    const raw = atob(item.content_base64);
+    const bytes = new Uint8Array(raw.length);
+    for (let index = 0; index < raw.length; index += 1) bytes[index] = raw.charCodeAt(index);
+    return new File([bytes], item.filename, { type: 'application/pdf' });
+  });
+}
+
+export async function prepareClaimShare(blob, filename, signal) {
+  const form = new FormData();
+  form.append('file', blob, filename);
+  const response = await apiCaller.post('/api/v1/claims/share-files', form, { signal, timeout: 120000 });
+  return claimShareFiles(response.data);
+}
+
+export async function getClaimOriginalShare(requestId, deliveryId, signal) {
+  const response = await apiCaller.get(`/api/v1/claims/requests/${requestId}/originals/${deliveryId}`,
+    { share_files: true }, { signal, timeout: 120000 });
+  return claimShareFiles(response.data);
+}
