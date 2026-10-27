@@ -10,8 +10,10 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'bojogae-backend'))
 from services.claim_pdf_service import generate
 from tests.services.claim_pdf_service_test import payload
+from services.claim_share_service import prepare_share_files
 
 PDF = generate('35', payload())[0]
+SHARED_PDF = base64.b64decode(prepare_share_files(PDF, 'test.pdf')['files'][0]['content_base64'])
 
 BASE = os.environ.get('CLAIM_UI_BASE', 'http://127.0.0.1:3329')
 USER = {'id': 7, 'role': 'USER', 'status': 'ACTIVE', 'plan_code': 'STANDARD',
@@ -61,8 +63,8 @@ def handle(route):
     elif path in ('claims/requests/80/originals/1', 'claims/share-files'):
         if path.endswith('/originals/1'):
             assert 'share_files=true' in request.url
-        body = {'files': [{'filename': f'test_{i}.pdf',
-                           'content_base64': base64.b64encode(PDF).decode()}
+        body = {'monochrome': True, 'files': [{'filename': f'test_{i}.pdf',
+                           'content_base64': base64.b64encode(SHARED_PDF).decode()}
                           for i in (1, 2)]}
     route.fulfill(content_type='application/json', body=json.dumps(body), headers=headers)
 
@@ -100,9 +102,12 @@ with sync_playwright() as p:
         context.route('**/api/v1/**', handle)
         context.add_init_script("""
             window.sharedFiles = [];
+            window.sharedPdfBytes = [];
             Object.defineProperty(navigator, 'canShare', {value: () => true});
             Object.defineProperty(navigator, 'share', {value: async ({files}) => {
               window.sharedFiles.push(files.map(file => file.name));
+              window.sharedPdfBytes.push(await Promise.all(files.map(async file =>
+                btoa(Array.from(new Uint8Array(await file.arrayBuffer()), b => String.fromCharCode(b)).join('')))));
             }});
         """)
         page = context.new_page()
@@ -117,6 +122,8 @@ with sync_playwright() as p:
         share.click()
         if mobile:
             assert page.evaluate('window.sharedFiles') == [['test_1.pdf', 'test_2.pdf']]
+            page.wait_for_function('window.sharedPdfBytes.length === 1')
+            assert [base64.b64decode(data) for data in page.evaluate('window.sharedPdfBytes[0]')] == [SHARED_PDF] * 2
             expect(page.get_by_text('8MB 미만의 PDF 2개로 나눴습니다.', exact=False)).to_be_visible()
             # No fetch between the click and navigator.share: Safari activation is retained.
             assert len(requests) == before
@@ -145,6 +152,12 @@ with sync_playwright() as p:
     expect(page.get_by_text('검증용 준비 실패', exact=True)).to_be_visible()
     expect(retry).to_be_enabled()
     context.unroute('**/api/v1/claims/requests/80/originals/1?*')
+    context.route('**/api/v1/claims/requests/80/originals/1?*', lambda route: route.fulfill(
+        content_type='application/json', headers=headers,
+        body=json.dumps({'files': [{'filename': 'color.pdf', 'content_base64': base64.b64encode(PDF).decode()}]})))
+    retry.click()
+    expect(page.get_by_text('흑백 PDF를 준비하지 못했습니다.', exact=False)).to_be_visible()
+    context.unroute('**/api/v1/claims/requests/80/originals/1?*')
     retry.click()
     expect(retry).to_have_text('공유하기')
     expect(retry).to_be_enabled()
@@ -161,6 +174,32 @@ with sync_playwright() as p:
     """)
     page = context.new_page()
     share = create_claim(page)
+    # Desktop PDF download must use the exact same monochrome files as mobile
+    # sharing, including every split part, without saving a new claim.
+    downloads = []
+    page.on('download', lambda download: downloads.append(download))
+    before_download_save = requests.count('claims/requests')
+    download_button = page.get_by_role('button', name='시험보험 PDF 다운로드', exact=True)
+    with page.expect_download(predicate=lambda download: download.suggested_filename == 'test_2.pdf'):
+        download_button.click()
+    expect(download_button).to_be_enabled()
+    assert [download.suggested_filename for download in downloads] == ['test_1.pdf', 'test_2.pdf']
+    assert all(Path(download.path()).read_bytes() == SHARED_PDF for download in downloads)
+    assert requests.count('claims/requests') == before_download_save
+    context.route('**/api/v1/claims/share-files', lambda route: route.fulfill(
+        status=503, content_type='application/json', headers=headers,
+        body=json.dumps({'detail': '검증용 변환 실패'})))
+    download_button.click()
+    expect(page.get_by_role('alert').filter(has_text='검증용 변환 실패')).to_be_visible()
+    assert len(downloads) == 2, 'Conversion failure must never download the color source'
+    context.unroute('**/api/v1/claims/share-files')
+    context.route('**/api/v1/claims/share-files', lambda route: route.fulfill(
+        content_type='application/json', headers=headers,
+        body=json.dumps({'files': [{'filename': 'color.pdf', 'content_base64': base64.b64encode(PDF).decode()}]})))
+    download_button.click()
+    expect(page.get_by_role('alert').filter(has_text='흑백 PDF를 준비하지 못했습니다.')).to_be_visible()
+    assert len(downloads) == 2, 'An old/unmarked response must not be downloaded'
+    context.unroute('**/api/v1/claims/share-files')
     before = requests.count('claims/requests')
     share.click()
     expect(page.get_by_role('status').filter(has_text='공유되었습니다. 모바일에서 청구내역에 있는 공유버튼을 눌러주세요')).to_be_visible()
@@ -182,10 +221,13 @@ with sync_playwright() as p:
         context.route('**/api/v1/**', handle)
         context.add_init_script("""
             window.sharedFiles = [];
+            window.sharedPdfBytes = [];
             Object.defineProperty(navigator, 'canShare', {value: () => true, configurable: true});
             Object.defineProperty(navigator, 'share', {value: async ({files}) => {
                 window.shareHadActivation = navigator.userActivation.isActive;
                 window.sharedFiles.push(files.map(file => file.name));
+                window.sharedPdfBytes.push(await Promise.all(files.map(async file =>
+                  btoa(Array.from(new Uint8Array(await file.arrayBuffer()), b => String.fromCharCode(b)).join('')))));
                 if (window.cancelShare) throw new DOMException('Cancelled', 'AbortError');
             }});
         """)
@@ -220,6 +262,8 @@ with sync_playwright() as p:
             assert page.evaluate('window.shareHadActivation'), scenario
             assert page.evaluate('window.sharedFiles.length') >= 1, scenario
             assert page.evaluate('window.sharedFiles[0]') == ['test_1.pdf', 'test_2.pdf']
+            page.wait_for_function('window.sharedPdfBytes.length >= 1')
+            assert [base64.b64decode(data) for data in page.evaluate('window.sharedPdfBytes[0]')] == [SHARED_PDF] * 2
         assert not errors, errors
         context.close()
     browser.close()

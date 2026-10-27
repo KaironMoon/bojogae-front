@@ -97,6 +97,9 @@ export async function getClaimOriginal(requestId, deliveryId, signal) {
 }
 
 function claimShareFiles(data) {
+  if (data?.monochrome !== true || !data.files?.length) {
+    throw new Error('흑백 PDF를 준비하지 못했습니다. 화면을 새로고침한 뒤 다시 시도해 주세요.');
+  }
   return data.files.map(item => {
     const raw = atob(item.content_base64);
     const bytes = new Uint8Array(raw.length);
