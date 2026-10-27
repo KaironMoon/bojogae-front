@@ -10,7 +10,21 @@ import ClaimDeliveryStatus from './ClaimDeliveryStatus';
 const timestamp = value => value ? new Date(value).toLocaleString('ko-KR') : '—';
 
 // eslint-disable-next-line react/prop-types
-export default function ClaimHistory({ onReuse }) {
+function HistoryFaxNumber({ delivery, insurers }) {
+  /* eslint-disable react/prop-types */
+  const insurer = insurers.find(item => item.id === delivery.insurer_id);
+  const numbers = delivery.fax_number ? [delivery.fax_number] : insurer?.fax_numbers || [];
+  if (numbers.length) return <Stack direction="row" gap={0.5} alignItems="center" flexWrap="wrap">
+    <Typography variant="body2" color="text.secondary">{delivery.fax_type === 'VIRTUAL' ? '개별 가상팩스' : '공용팩스'}:</Typography>
+    {numbers.map(number => <FaxNumberCopy key={number} number={number} label={`${delivery.insurer_name} 팩스번호`} />)}
+  </Stack>;
+  return <Typography variant="body2" color="text.secondary">{insurer?.fax_enabled === false
+    ? '다운로드 전용' : insurer?.use_virtual_fax ? '보험사에서 가상팩스 번호를 발급받아 주세요.' : '등록된 팩스번호가 없습니다.'}</Typography>;
+  /* eslint-enable react/prop-types */
+}
+
+// eslint-disable-next-line react/prop-types
+export default function ClaimHistory({ onReuse, insurers = [] }) {
   const [page, setPage] = useState(1);
   const [refresh, setRefresh] = useState(0);
   const [pendingDownload, setPendingDownload] = useState(null);
@@ -112,10 +126,7 @@ export default function ClaimHistory({ onReuse }) {
           {item.deliveries.map(delivery => <Stack key={delivery.id} direction="row" gap={1} alignItems="center" flexWrap="wrap">
             <Typography variant="body2">{delivery.insurer_name}</Typography>
             <ClaimDeliveryStatus status={delivery.status} />
-            {delivery.fax_number ? <Stack direction="row" gap={0.5} alignItems="center">
-              <Typography variant="body2" color="text.secondary">수신 팩스:</Typography>
-              <FaxNumberCopy number={delivery.fax_number} label={`${delivery.insurer_name} 수신 팩스번호`} />
-            </Stack> : <Typography variant="body2" color="text.secondary">수신 팩스 번호 기록 없음</Typography>}
+            <HistoryFaxNumber delivery={delivery} insurers={insurers} />
             {item.original_available && <ClaimOriginalShare requestId={item.id} deliveryId={delivery.id}
               expiresAt={item.original_expires_at} serverTime={item.server_time} disabled={busy} showRemaining />}
           </Stack>)}
@@ -146,10 +157,7 @@ export default function ClaimHistory({ onReuse }) {
           {detail.deliveries.map(d => <Stack key={d.id} direction="row" gap={1} alignItems="center" flexWrap="wrap">
             <Typography>{d.insurer_name} · {d.pages}쪽</Typography>
             <ClaimDeliveryStatus status={d.status} />
-            {d.fax_number ? <Stack direction="row" gap={0.5} alignItems="center">
-              <Typography variant="body2" color="text.secondary">{d.fax_type === 'VIRTUAL' ? '개별 가상팩스' : '공용팩스'}:</Typography>
-              <FaxNumberCopy number={d.fax_number} label={`${d.insurer_name} 팩스번호`} />
-            </Stack> : <Typography variant="body2" color="text.secondary">수신 팩스 번호 기록 없음</Typography>}
+            <HistoryFaxNumber delivery={d} insurers={insurers} />
             <Button disabled={busy} onClick={() => showPdf(d)}>저장된 PDF 확인</Button>
             {detail.original_available && <ClaimOriginalShare requestId={detail.id} deliveryId={d.id}
               expiresAt={detail.original_expires_at} serverTime={detail.server_time} disabled={busy} showRemaining />}

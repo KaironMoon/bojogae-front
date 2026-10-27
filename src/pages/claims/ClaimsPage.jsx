@@ -242,7 +242,7 @@ export default function ClaimsPage() {
     setFiles(attachments); setFieldErrors({}); setCustomerNotice(''); setStep(0); navigate('/claims/new');
   }
   return <Box sx={{ maxWidth: 1100, mx: 'auto', p: { xs: 2, md: 3 } }}>
-    {view === 'history' ? <ClaimHistory onReuse={reuse} /> : <Stack spacing={3} component="form" ref={form} onSubmit={e => e.preventDefault()}>
+    {view === 'history' ? <ClaimHistory onReuse={reuse} insurers={insurers} /> : <Stack spacing={3} component="form" ref={form} onSubmit={e => e.preventDefault()}>
       <Box><Typography variant="h4" fontWeight={800}>보험금 청구서 만들기</Typography>
         <Typography color="text.secondary" sx={{ mt: 1 }}>공통 정보를 입력하면 보험사별 청구서를 만들 수 있습니다.</Typography></Box>
       <Alert severity="info">다운로드나 공유하기를 누르면 청구내역에 저장하고, PC 전송용 흑백 통합본과 모바일 전송용 흑백 분할본을 1시간 임시 보관합니다. 청구내역에서 PC는 다운로드, 모바일은 공유하기를 이용할 수 있습니다. 이후 발송용 원본은 삭제되고, 마스킹 보관본과 첨부서류는 청구내역에 남습니다. 첨부서류의 개인정보는 자동 마스킹되지 않습니다. 팩스 발송 결과는 청구내역의 발송 이력에서 확인할 수 있습니다. 결과 확인이 필요한 건은 확인 전까지 다시 발송하지 마세요. 비용은 차감되지 않습니다.</Alert>

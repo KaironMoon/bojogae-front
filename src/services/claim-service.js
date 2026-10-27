@@ -34,7 +34,7 @@ export async function claimError(error) {
 export async function saveClaimRequest(requestKey, insurerIds, claim, files, faxNumbers = {}, saveMode = 'FILE') {
   const form = new FormData();
   form.append('payload', JSON.stringify({ request_key: requestKey, insurer_ids: insurerIds, claim,
-    fax_numbers: saveMode === 'FAX' ? faxNumbers : {}, save_mode: saveMode }));
+    fax_numbers: faxNumbers, save_mode: saveMode }));
   files.forEach(file => form.append('files', file));
   return (await apiCaller.post('/api/v1/claims/requests', form, { timeout: 300000 })).data;
 }
