@@ -199,7 +199,7 @@ function SignupCompletePage() {
             <TextField label="닉네임 (선택)" value={profile.nickname}
               onChange={(event) => setProfile((current) => ({ ...current, nickname: event.target.value }))}
               disabled={profileLoading || loading || sent} inputProps={{ maxLength: 50 }} fullWidth />
-            <TextField label="추천인 이메일 또는 추천용 닉네임 (선택)" value={referrer}
+            <TextField label="추천용닉네임(기본값은 이메일)" value={referrer}
               onChange={event => setReferrer(event.target.value)} disabled={loading || sent} inputProps={{ maxLength: 254 }}
               helperText="가입 완료 시 내 계정에 50꼬막이 추가 지급되며 30일간 사용할 수 있습니다. 가입 후 내정보에서도 한 번 등록할 수 있습니다. 등록 후에는 추천인을 변경할 수 없습니다." />
             <TextField

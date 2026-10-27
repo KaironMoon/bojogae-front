@@ -50,7 +50,7 @@ export default function ReferralSection() {
         })}>추천용 닉네임 저장</Button>
         {data.registered ? <Alert severity="success">추천인 등록이 완료되었습니다. 보너스 {data.referral.bonus_amount}꼬막 · 유효기간: {date(data.referral.bonus_expires_at)} (한국 시간)</Alert> : <>
           <Typography variant="subtitle2" fontWeight={700}>추천인 등록</Typography>
-          <TextField label="추천인 이메일 또는 추천용 닉네임" value={referrer} disabled={busy} onChange={e => setReferrer(e.target.value)} inputProps={{ maxLength: 254 }}
+          <TextField label="추천용닉네임(기본값은 이메일)" value={referrer} disabled={busy} onChange={e => setReferrer(e.target.value)} inputProps={{ maxLength: 254 }}
             helperText="등록하면 내 계정에 50꼬막이 지급되며 30일간 사용할 수 있습니다. 추천인은 한 번만 등록할 수 있고 등록 후 변경할 수 없습니다." />
           <Button variant="contained" disabled={busy || !referrer.trim()} onClick={() => {
             if (!window.confirm('추천인을 등록하면 50꼬막이 지급되며 30일간 사용할 수 있습니다. 등록 후에는 추천인을 변경할 수 없습니다. 등록하시겠습니까?')) return;
