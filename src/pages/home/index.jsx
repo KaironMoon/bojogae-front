@@ -217,7 +217,7 @@ function PromptSection({ title, subtitle, prompts, ranked = false, showThumbnail
           onScroll={updateScrollState}
           sx={{
             display: showThumbnails ? { xs: "flex", sm: "grid" } : "grid",
-            gridTemplateColumns: showThumbnails ? { sm: "repeat(3, minmax(0, 1fr))" } : "minmax(0, 1fr)",
+            gridTemplateColumns: showThumbnails ? { sm: "repeat(6, minmax(0, 1fr))" } : "minmax(0, 1fr)",
             width: "100%", maxWidth: "100%", boxSizing: "border-box", gap: 1,
             px: showThumbnails ? { xs: "calc((100% - min(78vw, 240px)) / 2)", sm: 0 } : 0,
             overflowX: showThumbnails ? "auto" : "visible", pb: showThumbnails ? { xs: 0.5, sm: 1.2 } : 0,
@@ -297,7 +297,7 @@ export default function Home() {
           <StatCard icon={<CampaignRoundedIcon />} label="새로운 소식" value={data.latest_posts.length} accent="#ea580c" />
         </Box>
 
-        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "minmax(0, 1fr)", md: "repeat(2, minmax(0, 1fr))" }, gap: { xs: 3.5, md: 3 } }}>
+        <Box sx={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: { xs: 3.5, md: 3 } }}>
           <PromptSection title="새로 나온 보고서" subtitle="최근 새롭게 등록된 보고서입니다." prompts={data.latest_prompts} />
           <PromptSection title="최근 업데이트된 보고서" subtitle="최근 내용이 업데이트된 보고서입니다." prompts={data.updated_prompts} />
         </Box>
