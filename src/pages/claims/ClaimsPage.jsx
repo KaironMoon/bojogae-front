@@ -44,6 +44,7 @@ export default function ClaimsPage() {
   const [fieldErrors, setFieldErrors] = useState({});
   const [results, setResults] = useState([]);
   const [leavingStep, setLeavingStep] = useState(false);
+  const [faxConfirmationOpen, setFaxConfirmationOpen] = useState(false);
   const [progress, setProgress] = useState('');
   const [saved, setSaved] = useState(null);
   const [originalExpired, setOriginalExpired] = useState(false);
@@ -60,7 +61,7 @@ export default function ClaimsPage() {
     const deadline = performance.now() + Math.max(0, remaining);
     const expire = () => {
       if (performance.now() < deadline) return;
-      setResults([]); setFiles([]); setOriginalExpired(true);
+      setResults([]); setFiles([]); setOriginalExpired(true); setFaxConfirmationOpen(false);
       setPayload(previous => ({ ...previous, insured_id: previous.insured_id.slice(0, 8),
         beneficiary_id: previous.beneficiary_id.slice(0, 8) }));
     };
@@ -105,6 +106,7 @@ export default function ClaimsPage() {
     return () => { controller.abort(); pending.current?.abort(); };
   }, []);
   function invalidate() {
+    setFaxConfirmationOpen(false);
     setResults([]); setSaved(null); setOriginalExpired(false); setError(''); requestKey.current = null;
   }
   function update(key, value) {
@@ -243,10 +245,10 @@ export default function ClaimsPage() {
     {view === 'history' ? <ClaimHistory onReuse={reuse} /> : <Stack spacing={3} component="form" ref={form} onSubmit={e => e.preventDefault()}>
       <Box><Typography variant="h4" fontWeight={800}>보험금 청구서 만들기</Typography>
         <Typography color="text.secondary" sx={{ mt: 1 }}>공통 정보를 입력하면 보험사별 청구서를 만들 수 있습니다.</Typography></Box>
-      <Alert severity="info">다운로드나 공유하기를 누르면 청구내역에 저장하고, PC 전송용 흑백 통합본과 모바일 전송용 흑백 분할본을 1시간 임시 보관합니다. 청구내역에서 PC는 다운로드, 모바일은 공유하기를 이용할 수 있습니다. 이후 발송용 원본은 삭제되고, 마스킹 보관본과 첨부서류는 청구내역에 남습니다. 첨부서류의 개인정보는 자동 마스킹되지 않습니다. 팩스 발송은 현재 서비스 미연결로 실패 이력만 남으며 비용은 차감되지 않습니다.</Alert>
+      <Alert severity="info">다운로드나 공유하기를 누르면 청구내역에 저장하고, PC 전송용 흑백 통합본과 모바일 전송용 흑백 분할본을 1시간 임시 보관합니다. 청구내역에서 PC는 다운로드, 모바일은 공유하기를 이용할 수 있습니다. 이후 발송용 원본은 삭제되고, 마스킹 보관본과 첨부서류는 청구내역에 남습니다. 첨부서류의 개인정보는 자동 마스킹되지 않습니다. 팩스 발송 결과는 청구내역의 발송 이력에서 확인할 수 있습니다. 결과 확인이 필요한 건은 확인 전까지 다시 발송하지 마세요. 비용은 차감되지 않습니다.</Alert>
       <Stepper activeStep={step} alternativeLabel>{STEPS.map(title => <Step key={title}><StepLabel>{title}</StepLabel></Step>)}</Stepper>
       {error && <Alert severity="error" sx={{ whiteSpace: 'pre-line' }}>{error}</Alert>}
-      {saved && <Alert severity={saved.fax_history?.some(item => item.status === 'FAILED') ? 'warning' : 'success'} role="status" action={<Button component={Link} to="/claims/history" color="inherit" size="small">청구내역 보기</Button>}>
+      {saved && <Alert severity={saved.fax_history?.some(item => ['FAILED', 'UNKNOWN'].includes(item.status)) ? 'warning' : 'success'} role="status" action={<Button component={Link} to="/claims/history" color="inherit" size="small">청구내역 보기</Button>}>
         청구 요청 {saved.id}번이 저장되었습니다. {saved.save_mode === 'FILE' ? '흑백 전송용 파일은 저장 후 1시간 동안 청구내역에서 PC 다운로드·모바일 공유를 이용할 수 있습니다.' : '팩스 발송 결과는 청구내역의 발송 이력에서 확인해 주세요.'}
       </Alert>}
       {loading ? <CircularProgress aria-label="보험사 불러오는 중" /> : <Paper variant="outlined" sx={{ p: { xs: 2, md: 3 }, borderRadius: 3 }}>
@@ -349,7 +351,7 @@ export default function ClaimsPage() {
               return result ? <ClaimPdfResult result={result} disabled={busy} saved={saved} prepare={() => save('FILE')}
                 feedbackId={feedbackId} faxAction={<Button variant="contained"
                   disabled={busy || Boolean(saved) || !results.length || results.length !== selected.length || downloadOnlyInsurers.length > 0}
-                  onClick={() => { save('FAX').catch(() => {}); }}>팩스 발송</Button>} />
+                  onClick={() => setFaxConfirmationOpen(true)}>팩스 발송</Button>} />
                 : <Alert severity="warning">PDF를 생성하지 못했습니다. 이전 단계에서 다시 생성해 주세요.</Alert>;
             }} />
           {!results.length && <Alert severity="warning">생성된 PDF가 없습니다. 이전 단계에서 내용을 확인해 주세요.</Alert>}
@@ -364,6 +366,20 @@ export default function ClaimsPage() {
             : <Button variant="outlined" component={Link} to="/claims/history" disabled={busy}>청구내역으로</Button>}
       </Stack>
     </Stack>}
+    <Dialog open={faxConfirmationOpen} onClose={() => setFaxConfirmationOpen(false)}
+      aria-labelledby="claim-fax-test-title" aria-describedby="claim-fax-test-description">
+      <DialogTitle id="claim-fax-test-title">팩스 테스트 발송 안내</DialogTitle>
+      <DialogContent><DialogContentText id="claim-fax-test-description">
+        현재 팩스 발송 기능은 테스트 중입니다. 실제 보험사로는 발송되지 않으며, 테스트용 수신번호로만 전송됩니다.
+        계속 진행하시겠습니까?
+      </DialogContentText></DialogContent>
+      <DialogActions>
+        <Button onClick={() => setFaxConfirmationOpen(false)} autoFocus>취소</Button>
+        <Button variant="contained" color="warning"
+          disabled={busy || Boolean(saved) || !results.length || results.length !== selected.length || downloadOnlyInsurers.length > 0}
+          onClick={() => { setFaxConfirmationOpen(false); save('FAX').catch(() => {}); }}>계속 진행</Button>
+      </DialogActions>
+    </Dialog>
     <Dialog open={leavingStep || blocker.state === 'blocked'} onClose={cancelLeave}
       aria-labelledby="claim-leave-title" aria-describedby="claim-leave-description">
       <DialogTitle id="claim-leave-title">원본 PDF를 받으셨나요?</DialogTitle>
