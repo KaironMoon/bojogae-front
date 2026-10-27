@@ -1,7 +1,7 @@
 /* eslint-disable react/prop-types */
 import { useState } from "react";
 import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
-import { Box, Chip, Collapse, List, ListItemButton, ListItemText, Stack, Typography } from "@mui/material";
+import { Box, Chip, Collapse, List, ListItemButton, ListItemText, Stack, Tooltip, Typography } from "@mui/material";
 
 function formatDate(value) {
   if (!value) return "-";
@@ -50,6 +50,16 @@ function PromptCategoryList({ prompts, categories, selectedId, onSelect }) {
             primary={(
               <Stack direction="row" gap={1} alignItems="center">
                 <Typography title={prompt.title} noWrap sx={{ fontSize: 14, flex: 1, minWidth: 0 }}>{prompt.title}</Typography>
+                {prompt.is_new && (
+                  <Tooltip title="신규">
+                    <Chip label="N" aria-label="신규" size="small" sx={{ height: 22, minWidth: 22, flexShrink: 0, bgcolor: "#dcfce7", color: "#166534", fontWeight: 800, "& .MuiChip-label": { px: 0.75 } }} />
+                  </Tooltip>
+                )}
+                {prompt.is_recently_updated && (
+                  <Tooltip title="최근 업데이트">
+                    <Chip label="U" aria-label="최근 업데이트" size="small" sx={{ height: 22, minWidth: 22, flexShrink: 0, bgcolor: "#dbeafe", color: "#1e40af", fontWeight: 800, "& .MuiChip-label": { px: 0.75 } }} />
+                  </Tooltip>
+                )}
                 {prompt.is_default_favorite && <Chip label="기본" size="small" color="primary" variant="outlined" />}
                 {prompt.is_deleted && <Chip label="삭제됨" size="small" />}
               </Stack>
