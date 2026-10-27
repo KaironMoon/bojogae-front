@@ -108,11 +108,51 @@ function claimShareFiles(data) {
   });
 }
 
+// A generated PDF owns its browser-memory copies. Weak keys release them when
+// that result is discarded; a different PDF never reuses the previous files.
+const claimShareCopies = new WeakMap();
+
+async function prepareClaimCopies(blob, filename, signal) {
+  signal?.throwIfAborted();
+  let copies = claimShareCopies.get(blob);
+  if (!copies) { copies = new Map(); claimShareCopies.set(blob, copies); }
+  let pending = copies.get(filename);
+  if (!pending) {
+    const form = new FormData();
+    form.append('file', blob, filename);
+    // Sharing and downloading may await the same request. One component leaving
+    // must not cancel the conversion still needed by the other component.
+    pending = apiCaller.post('/api/v1/claims/share-files', form, { timeout: 120000 })
+      .then(response => {
+        const mobile = claimShareFiles(response.data);
+        const full = response.data.download;
+        if (!full?.content_base64) throw new Error('PC 전송용 흑백 PDF를 준비하지 못했습니다.');
+        return { mobile, full: new File([Uint8Array.from(atob(full.content_base64), c => c.charCodeAt(0))],
+          full.filename, { type: 'application/pdf' }) };
+      });
+    copies.set(filename, pending);
+    pending.catch(() => {
+      if (copies.get(filename) === pending) copies.delete(filename);
+    });
+  }
+  const files = await pending;
+  signal?.throwIfAborted();
+  return files;
+}
+
 export async function prepareClaimShare(blob, filename, signal) {
-  const form = new FormData();
-  form.append('file', blob, filename);
-  const response = await apiCaller.post('/api/v1/claims/share-files', form, { signal, timeout: 120000 });
-  return claimShareFiles(response.data);
+  return (await prepareClaimCopies(blob, filename, signal)).mobile;
+}
+
+export async function prepareClaimDownload(blob, filename, signal) {
+  return (await prepareClaimCopies(blob, filename, signal)).full;
+}
+
+export async function getClaimOriginalDownload(requestId, deliveryId, signal) {
+  const response = await apiCaller.get(`/api/v1/claims/requests/${requestId}/originals/${deliveryId}`,
+    { fax_download: true }, { responseType: 'blob', signal, timeout: 120000 });
+  const encoded = response.headers['content-disposition']?.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
+  return new File([response.data], encoded ? decodeURIComponent(encoded) : '청구서_흑백.pdf', { type: 'application/pdf' });
 }
 
 export async function getClaimOriginalShare(requestId, deliveryId, signal) {

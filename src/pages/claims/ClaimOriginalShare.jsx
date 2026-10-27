@@ -3,7 +3,8 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Alert, Button, Stack, Typography, useMediaQuery } from '@mui/material';
 import ShareOutlinedIcon from '@mui/icons-material/ShareOutlined';
-import { claimError, downloadClaimBlob, getClaimOriginalShare, prepareClaimShare } from '@/services/claim-service';
+import DownloadOutlinedIcon from '@mui/icons-material/DownloadOutlined';
+import { claimError, downloadClaimBlob, getClaimOriginalShare, getClaimOriginalDownload, prepareClaimShare } from '@/services/claim-service';
 
 export const PC_SHARE_NOTICE = '공유되었습니다. 모바일에서 청구내역에 있는 공유버튼을 눌러주세요';
 
@@ -36,19 +37,20 @@ export default function ClaimOriginalShare({ result, requestId, deliveryId, expi
     return () => { clearTimeout(timer); clearInterval(interval); document.removeEventListener('visibilitychange', expire); };
   }, [expiresAt, serverTime]);
   useEffect(() => {
-    if (!mobile || result) return;
+    if (result) return;
     const observer = new IntersectionObserver(entries => setVisible(entries[0].isIntersecting));
     if (anchor.current) observer.observe(anchor.current);
     return () => observer.disconnect();
   }, [mobile, result]);
   useEffect(() => {
     if (expired) { setFiles(null); return; }
-    if (!mobile || (!result && !visible) || expired) { setFiles(null); return; }
+    if ((result && !mobile) || (!result && !visible) || expired) { setFiles(null); return; }
     const controller = new AbortController();
     setError('');
     const pending = result
       ? prepareClaimShare(result.blob, `${result.name}_청구서.pdf`, controller.signal)
-      : getClaimOriginalShare(requestId, deliveryId, controller.signal);
+      : mobile ? getClaimOriginalShare(requestId, deliveryId, controller.signal)
+        : getClaimOriginalDownload(requestId, deliveryId, controller.signal).then(file => [file]);
     pending.then(value => {
       if (!controller.signal.aborted && performance.now() < deadlineRef.current) setFiles(value);
     }).catch(async e => {
@@ -63,8 +65,7 @@ export default function ClaimOriginalShare({ result, requestId, deliveryId, expi
     setError(''); setNotice(''); setSharing(true);
     try {
       if (!mobile) {
-        if (prepare) await prepare();
-        setNotice(PC_SHARE_NOTICE);
+        files?.forEach(file => downloadClaimBlob(file, file.name));
       } else if (files?.length && navigator.canShare?.({ files }) && navigator.share) {
         // Open the share sheet before saving so Safari retains the click's user activation.
         // Save even if the user cancels sharing, and report save failures independently.
@@ -88,14 +89,14 @@ export default function ClaimOriginalShare({ result, requestId, deliveryId, expi
   const feedbackTarget = feedbackId && typeof document !== 'undefined' ? document.getElementById(feedbackId) : null;
   return <Stack ref={anchor} spacing={1}>
     {!expired && <Stack direction="row" gap={1} alignItems="center" flexWrap="wrap">
-    <Button variant="outlined" startIcon={<ShareOutlinedIcon />} onClick={() => {
-      if (mobile && !files?.length && error) { setError(''); setAttempt(value => value + 1); }
+    {(mobile || !result) && <Button variant="outlined" startIcon={mobile ? <ShareOutlinedIcon /> : <DownloadOutlinedIcon />} onClick={() => {
+      if (!files?.length && error) { setError(''); setAttempt(value => value + 1); }
       else share();
     }}
-      disabled={disabled || sharing || (mobile && !files?.length && !error)} sx={{ alignSelf: 'flex-start' }}
-      aria-label={`${result?.name || ''} 공유하기`.trim()}>
-      {mobile && !files?.length ? (error ? '공유 파일 다시 준비' : '공유 파일 준비 중…') : '공유하기'}
-    </Button>
+      disabled={disabled || sharing || (!files?.length && !error)} sx={{ alignSelf: 'flex-start' }}
+      aria-label={`${result?.name || ''} ${mobile ? '공유하기' : '다운로드'}`.trim()}>
+      {!files?.length ? (error ? '파일 다시 준비' : '파일 준비 중…') : mobile ? '공유하기' : '다운로드'}
+    </Button>}
     {additionalActions}
     {showRemaining && remainingMs !== null && <Typography variant="caption" color="text.secondary">
       {remainingMs < 60000 ? '1분 미만 남음' : `약 ${Math.ceil(remainingMs / 60000)}분 남음`}

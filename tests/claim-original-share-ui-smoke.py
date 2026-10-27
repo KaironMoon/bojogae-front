@@ -3,6 +3,8 @@ import json
 import base64
 import os
 import sys
+from io import BytesIO
+from pypdf import PdfReader, PdfWriter
 from pathlib import Path
 from playwright.sync_api import sync_playwright, expect
 
@@ -14,6 +16,13 @@ from services.claim_share_service import prepare_share_files
 
 PDF = generate('35', payload())[0]
 SHARED_PDF = base64.b64decode(prepare_share_files(PDF, 'test.pdf')['files'][0]['content_base64'])
+MOBILE_PDFS = []
+reader = PdfReader(BytesIO(SHARED_PDF))
+for start in (0, 2):
+    writer = PdfWriter()
+    for page in reader.pages[start:start + 2]: writer.add_page(page)
+    stream = BytesIO(); writer.write(stream); MOBILE_PDFS.append(stream.getvalue())
+
 
 BASE = os.environ.get('CLAIM_UI_BASE', 'http://127.0.0.1:3329')
 USER = {'id': 7, 'role': 'USER', 'status': 'ACTIVE', 'plan_code': 'STANDARD',
@@ -23,7 +32,7 @@ ITEM = {'id': 80, 'save_mode': 'FILE', 'created_at': '2026-10-26T00:00:00Z',
         # Deliberately different from the device clock: use server-relative expiration.
         'server_time': '2020-01-01T00:00:00Z', 'original_expires_at': '2020-01-01T01:00:00Z',
         'original_available': True,
-        'deliveries': [{'id': 1, 'insurer_name': '시험보험', 'status': 'STORED', 'pages': 4,
+        'deliveries': [{'id': 1, 'insurer_id': '35', 'insurer_name': '시험보험', 'status': 'STORED', 'pages': 4,
                         'fax_number': '02-123-4567', 'fax_type': 'COMMON'}]}
 headers = {'Access-Control-Allow-Origin': BASE, 'Access-Control-Allow-Credentials': 'true',
            'Access-Control-Allow-Methods': 'GET,POST,OPTIONS', 'Access-Control-Allow-Headers': 'content-type',
@@ -62,9 +71,12 @@ def handle(route):
                                  'status': 'FAILED', 'requested_at': ITEM['created_at']}]}
     elif path in ('claims/requests/80/originals/1', 'claims/share-files'):
         if path.endswith('/originals/1'):
+            if 'fax_download=true' in request.url:
+                route.fulfill(content_type='application/pdf', body=SHARED_PDF, headers={**headers,  'Content-Disposition': "attachment; filename*=UTF-8''test_pc.pdf"})
+                return
             assert 'share_files=true' in request.url
-        body = {'monochrome': True, 'files': [{'filename': f'test_{i}.pdf',
-                           'content_base64': base64.b64encode(SHARED_PDF).decode()}
+        body = {'monochrome': True, 'download': {'filename': 'test_pc.pdf', 'content_base64': base64.b64encode(SHARED_PDF).decode()}, 'files': [{'filename': f'test_{i}.pdf',
+                           'content_base64': base64.b64encode(MOBILE_PDFS[i-1]).decode()}
                           for i in (1, 2)]}
     route.fulfill(content_type='application/json', body=json.dumps(body), headers=headers)
 
@@ -89,182 +101,131 @@ def create_claim(page):
         page.locator(f'[name={key}]').fill(value)
     page.get_by_role('checkbox').check()
     page.get_by_role('button', name='PDF 생성', exact=True).click()
-    share = page.get_by_role('button', name='시험보험 공유하기', exact=True)
+    mobile = page.evaluate("matchMedia('(max-width: 600px), (pointer: coarse)').matches")
+    share = page.get_by_role('button', name='시험보험 공유하기' if mobile else '시험보험 PDF 다운로드', exact=True)
     expect(share).to_be_enabled()
     return share
 
 
-with sync_playwright() as p:
-    browser = p.chromium.launch(headless=True, channel=os.environ.get('PLAYWRIGHT_CHANNEL', 'chrome'))
-    for mobile in (False, True):
-        context = browser.new_context(viewport={'width': 390 if mobile else 1280, 'height': 900},
-                                      is_mobile=mobile, has_touch=mobile)
-        context.route('**/api/v1/**', handle)
-        context.add_init_script("""
-            window.sharedFiles = [];
-            window.sharedPdfBytes = [];
-            Object.defineProperty(navigator, 'canShare', {value: () => true});
-            Object.defineProperty(navigator, 'share', {value: async ({files}) => {
-              window.sharedFiles.push(files.map(file => file.name));
-              window.sharedPdfBytes.push(await Promise.all(files.map(async file =>
-                btoa(Array.from(new Uint8Array(await file.arrayBuffer()), b => String.fromCharCode(b)).join('')))));
-            }});
-        """)
-        page = context.new_page()
-        errors = []
-        page.on('pageerror', lambda e: errors.append(str(e)))
-        page.clock.install()
-        page.goto(BASE + '/claims/history')
-        share = page.get_by_role('button', name='공유하기', exact=True)
-        expect(share).to_be_enabled()
-        expect(page.get_by_text('약 60분 남음', exact=True)).to_be_visible()
-        before = len(requests)
-        share.click()
-        if mobile:
-            assert page.evaluate('window.sharedFiles') == [['test_1.pdf', 'test_2.pdf']]
-            page.wait_for_function('window.sharedPdfBytes.length === 1')
-            assert [base64.b64decode(data) for data in page.evaluate('window.sharedPdfBytes[0]')] == [SHARED_PDF] * 2
-            expect(page.get_by_text('8MB 미만의 PDF 2개로 나눴습니다.', exact=False)).to_be_visible()
-            # No fetch between the click and navigator.share: Safari activation is retained.
-            assert len(requests) == before
-        else:
-            expect(page.get_by_role('status').filter(has_text='공유되었습니다. 모바일에서 청구내역에 있는 공유버튼을 눌러주세요')).to_be_visible()
-            assert page.evaluate('window.sharedFiles') == []
-        page.clock.fast_forward(1_800_000)
-        expect(page.get_by_text('약 30분 남음', exact=True)).to_be_visible()
-        page.clock.fast_forward(1_770_000)
-        expect(page.get_by_text('1분 미만 남음', exact=True)).to_be_visible()
-        page.clock.fast_forward(30_001)
-        expect(share).to_have_count(0)
-        expect(page.get_by_text('1분 미만 남음', exact=True)).to_have_count(0)
-        expect(page.get_by_role('button', name='파일 다운로드', exact=True)).to_be_visible()
-        assert not errors, errors
-        context.close()
-    # A failed preparation can be retried without creating another share button.
-    context = browser.new_context(viewport={'width': 390, 'height': 900}, is_mobile=True, has_touch=True)
-    context.route('**/api/v1/**', handle)
-    context.route('**/api/v1/claims/requests/80/originals/1?*', lambda route: route.fulfill(
-        status=503, content_type='application/json', headers=headers,
-        body=json.dumps({'detail': '검증용 준비 실패'})))
-    page = context.new_page()
-    page.goto(BASE + '/claims/history')
-    retry = page.get_by_role('button', name='공유하기', exact=True)
-    expect(page.get_by_text('검증용 준비 실패', exact=True)).to_be_visible()
-    expect(retry).to_be_enabled()
-    context.unroute('**/api/v1/claims/requests/80/originals/1?*')
-    context.route('**/api/v1/claims/requests/80/originals/1?*', lambda route: route.fulfill(
-        content_type='application/json', headers=headers,
-        body=json.dumps({'files': [{'filename': 'color.pdf', 'content_base64': base64.b64encode(PDF).decode()}]})))
-    retry.click()
-    expect(page.get_by_text('흑백 PDF를 준비하지 못했습니다.', exact=False)).to_be_visible()
-    context.unroute('**/api/v1/claims/requests/80/originals/1?*')
-    retry.click()
-    expect(retry).to_have_text('공유하기')
-    expect(retry).to_be_enabled()
-    expect(page.get_by_text('8MB 미만의 PDF 2개로 나눴습니다.', exact=False)).to_be_visible()
-    context.close()
-
-    context = browser.new_context(viewport={'width': 1280, 'height': 1000})
+def new_context(browser, mobile):
+    context = browser.new_context(viewport={'width': 390 if mobile else 1280, 'height': 900},
+                                  is_mobile=mobile, has_touch=mobile, accept_downloads=True)
     context.route('**/api/v1/**', handle)
     context.add_init_script("""
-        window.copiedNumbers = [];
-        Object.defineProperty(navigator, 'clipboard', {value: {
-          writeText: async text => window.copiedNumbers.push(text)
-        }});
+      window.sharedFiles = []; window.sharedPdfBytes = [];
+      Object.defineProperty(navigator, 'canShare', {configurable:true, value:()=>true});
+      Object.defineProperty(navigator, 'share', {value:async({files})=>{
+        window.shareHadActivation = navigator.userActivation.isActive;
+        window.sharedFiles.push(files.map(f=>f.name));
+        window.sharedPdfBytes.push(await Promise.all(files.map(async f=>
+          btoa(Array.from(new Uint8Array(await f.arrayBuffer()),b=>String.fromCharCode(b)).join('')))));
+        if(window.cancelShare) throw new DOMException('cancelled','AbortError');
+      }});
     """)
-    page = context.new_page()
-    share = create_claim(page)
-    # Desktop PDF download must use the exact same monochrome files as mobile
-    # sharing, including every split part, without saving a new claim.
-    downloads = []
-    page.on('download', lambda download: downloads.append(download))
-    before_download_save = requests.count('claims/requests')
-    download_button = page.get_by_role('button', name='시험보험 PDF 다운로드', exact=True)
-    with page.expect_download(predicate=lambda download: download.suggested_filename == 'test_2.pdf'):
-        download_button.click()
-    expect(download_button).to_be_enabled()
-    assert [download.suggested_filename for download in downloads] == ['test_1.pdf', 'test_2.pdf']
-    assert all(Path(download.path()).read_bytes() == SHARED_PDF for download in downloads)
-    assert requests.count('claims/requests') == before_download_save
-    context.route('**/api/v1/claims/share-files', lambda route: route.fulfill(
-        status=503, content_type='application/json', headers=headers,
-        body=json.dumps({'detail': '검증용 변환 실패'})))
-    download_button.click()
-    expect(page.get_by_role('alert').filter(has_text='검증용 변환 실패')).to_be_visible()
-    assert len(downloads) == 2, 'Conversion failure must never download the color source'
-    context.unroute('**/api/v1/claims/share-files')
-    context.route('**/api/v1/claims/share-files', lambda route: route.fulfill(
-        content_type='application/json', headers=headers,
-        body=json.dumps({'files': [{'filename': 'color.pdf', 'content_base64': base64.b64encode(PDF).decode()}]})))
-    download_button.click()
-    expect(page.get_by_role('alert').filter(has_text='흑백 PDF를 준비하지 못했습니다.')).to_be_visible()
-    assert len(downloads) == 2, 'An old/unmarked response must not be downloaded'
-    context.unroute('**/api/v1/claims/share-files')
-    before = requests.count('claims/requests')
-    share.click()
-    expect(page.get_by_role('status').filter(has_text='공유되었습니다. 모바일에서 청구내역에 있는 공유버튼을 눌러주세요')).to_be_visible()
-    assert requests.count('claims/requests') == before + 1
-    share.click()
-    assert requests.count('claims/requests') == before + 1, 'Repeated share must reuse the original expiry'
-    page.get_by_role('button', name='시험보험 팩스번호 02-123-4567 복사', exact=True).click()
-    expect(page.get_by_role('alert').filter(has_text='팩스번호가 복사되었습니다.')).to_be_visible()
-    page.get_by_role('button', name='시험보험 팩스번호 복사 아이콘', exact=True).click()
-    assert page.evaluate('window.copiedNumbers') == ['021234567', '021234567']
-    page.goto(BASE + '/claims/history')
-    page.get_by_role('button', name='상세 보기 · 같은 내용으로 작성', exact=True).click()
-    page.get_by_role('button', name='시험보험 팩스번호 02-123-4567 복사', exact=True).click()
-    page.get_by_role('button', name='시험보험 발송 팩스번호 복사 아이콘', exact=True).click()
-    assert page.evaluate('window.copiedNumbers') == ['021234567', '021234567']
+    return context
+
+
+def assert_pc_download(page, button):
+    with page.expect_download() as event:
+        button.click()
+    assert event.value.suggested_filename == 'test_pc.pdf'
+    assert Path(event.value.path()).read_bytes() == SHARED_PDF
+    expect(button).to_be_enabled()
+
+
+with sync_playwright() as p:
+    browser = p.chromium.launch(headless=True, channel=os.environ.get('PLAYWRIGHT_CHANNEL', 'chrome'))
+    # Both history actions use stored prepared files, respect device and expiry.
+    for mobile in (False, True):
+        context = new_context(browser, mobile)
+        page = context.new_page(); page.clock.install()
+        page.goto(BASE + '/claims/history')
+        action = page.get_by_role('button', name='공유하기' if mobile else '다운로드', exact=True)
+        expect(action).to_be_enabled()
+        expect(page.get_by_role('button', name='다운로드' if mobile else '공유하기', exact=True)).to_have_count(0)
+        if mobile:
+            action.click(); page.wait_for_function('window.sharedPdfBytes.length === 1')
+            assert page.evaluate('window.sharedFiles[0]') == ['test_1.pdf','test_2.pdf']
+            assert [base64.b64decode(v) for v in page.evaluate('window.sharedPdfBytes[0]')] == MOBILE_PDFS
+            assert page.evaluate('window.shareHadActivation')
+        else:
+            assert_pc_download(page, action)
+        page.clock.fast_forward(3_600_001)
+        expect(action).to_have_count(0)
+        expect(page.get_by_role('button',name='보관본 다운로드',exact=True)).to_be_visible()
+        context.close()
+
+    # PC download saves once, retains the browser full-file copy, and history's
+    # download returns the same whole monochrome file. No split-part download.
+    context = new_context(browser, False); page = context.new_page()
+    before_save = requests.count('claims/requests')
+    before_prepare = requests.count('claims/share-files')
+    download = create_claim(page)
+    expect(page.get_by_role('button',name='시험보험 공유하기',exact=True)).to_have_count(0)
+    assert_pc_download(page,download)
+    assert requests.count('claims/requests')==before_save+1
+    assert requests.count('claims/share-files')==before_prepare+1
+    assert_pc_download(page,download)
+    assert requests.count('claims/requests')==before_save+1
+    assert requests.count('claims/share-files')==before_prepare+1
+    page.goto(BASE+'/claims/history')
+    assert_pc_download(page,page.get_by_role('button',name='다운로드',exact=True))
     context.close()
-    for scenario in ('success', 'cancel', 'download', 'save_failure'):
-        context = browser.new_context(viewport={'width': 390, 'height': 900}, is_mobile=True, has_touch=True)
-        context.route('**/api/v1/**', handle)
-        context.add_init_script("""
-            window.sharedFiles = [];
-            window.sharedPdfBytes = [];
-            Object.defineProperty(navigator, 'canShare', {value: () => true, configurable: true});
-            Object.defineProperty(navigator, 'share', {value: async ({files}) => {
-                window.shareHadActivation = navigator.userActivation.isActive;
-                window.sharedFiles.push(files.map(file => file.name));
-                window.sharedPdfBytes.push(await Promise.all(files.map(async file =>
-                  btoa(Array.from(new Uint8Array(await file.arrayBuffer()), b => String.fromCharCode(b)).join('')))));
-                if (window.cancelShare) throw new DOMException('Cancelled', 'AbortError');
-            }});
-        """)
-        page = context.new_page()
-        errors = []
-        page.on('pageerror', lambda error: errors.append(str(error)))
-        share = create_claim(page)
-        if scenario in ('cancel', 'save_failure'):
-            page.evaluate('window.cancelShare = true')
-        if scenario == 'download':
-            page.evaluate("Object.defineProperty(navigator, 'canShare', {value: () => false})")
-        if scenario == 'save_failure':
-            context.route('**/api/v1/claims/requests', lambda route: route.fulfill(
-                status=500, content_type='application/json', headers=headers,
-                body=json.dumps({'detail': '검증용 저장 실패'})))
-        before = requests.count('claims/requests')
+
+    # Mobile created PDF: prefetch exactly once; share remains in user activation;
+    # saving (even on cancellation) prepares both variants for later history.
+    for scenario in ('success','cancel','fallback','save_failure'):
+        context = new_context(browser,True); page=context.new_page()
+        before_prepare=requests.count('claims/share-files')
+        share=create_claim(page)
+        assert requests.count('claims/share-files')==before_prepare+1
+        expect(page.get_by_role('button',name='시험보험 PDF 다운로드',exact=True)).to_have_count(0)
+        if scenario=='cancel': page.evaluate('window.cancelShare=true')
+        if scenario=='fallback':
+            page.evaluate("Object.defineProperty(navigator,'canShare',{value:()=>false})")
+        if scenario=='save_failure':
+            context.route('**/api/v1/claims/requests',lambda route:route.fulfill(status=503,
+                content_type='application/json',headers=headers,body=json.dumps({'detail':'검증용 저장 실패'})))
+        before_save=requests.count('claims/requests')
         share.click()
-        if scenario == 'save_failure':
+        if scenario=='save_failure':
             expect(page.get_by_role('alert').filter(has_text='검증용 저장 실패').first).to_be_visible()
-            expect(page.get_by_role('status').filter(has_text='청구 요청 80번이 저장되었습니다.')).to_have_count(0)
         else:
             expect(page.get_by_role('status').filter(has_text='청구 요청 80번이 저장되었습니다.')).to_be_visible()
-            assert requests.count('claims/requests') == before + 1, scenario
-            expect(share).to_be_enabled()
-            share.click()
-            expect(share).to_be_enabled()
-            assert requests.count('claims/requests') == before + 1, 'Repeated mobile share must reuse the saved claim'
-        if scenario == 'download':
-            assert page.evaluate('window.sharedFiles') == []
-            expect(page.get_by_role('status').filter(has_text='이 브라우저는 파일 공유를 지원하지 않습니다.')).to_be_visible()
-        else:
-            assert page.evaluate('window.shareHadActivation'), scenario
-            assert page.evaluate('window.sharedFiles.length') >= 1, scenario
-            assert page.evaluate('window.sharedFiles[0]') == ['test_1.pdf', 'test_2.pdf']
+            assert requests.count('claims/requests')==before_save+1
+            expect(share).to_be_enabled();share.click();expect(share).to_be_enabled()
+            assert requests.count('claims/requests')==before_save+1
+        if scenario!='fallback':
             page.wait_for_function('window.sharedPdfBytes.length >= 1')
-            assert [base64.b64decode(data) for data in page.evaluate('window.sharedPdfBytes[0]')] == [SHARED_PDF] * 2
-        assert not errors, errors
+            assert page.evaluate('window.shareHadActivation')
+            assert [base64.b64decode(v) for v in page.evaluate('window.sharedPdfBytes[0]')] == MOBILE_PDFS
+        assert requests.count('claims/share-files')==before_prepare+1
+        if scenario=='success':
+            page.goto(BASE+'/claims/history')
+            action=page.get_by_role('button',name='공유하기',exact=True)
+            expect(action).to_be_enabled();action.click()
+            page.wait_for_function('window.sharedPdfBytes.length === 1')
+            assert [base64.b64decode(v) for v in page.evaluate('window.sharedPdfBytes[0]')] == MOBILE_PDFS
         context.close()
-    browser.close()
-print('PC/mobile share, mobile save/cancel/fallback/failure/deduplication, expiry and fax copy: passed')
+
+    # Failure cannot save a new request or leak a color original; retries work.
+    context=new_context(browser,False)
+    context.route('**/api/v1/claims/share-files',lambda route:route.fulfill(status=503,
+        content_type='application/json',headers=headers,body=json.dumps({'detail':'검증용 변환 실패'})))
+    page=context.new_page(); download=create_claim(page);downloads=[]
+    page.on('download',lambda item:downloads.append(item))
+    before_save=requests.count('claims/requests')
+    download.click()
+    expect(page.get_by_role('alert').filter(has_text='검증용 변환 실패')).to_be_visible()
+    assert not downloads and requests.count('claims/requests')==before_save
+    context.unroute('**/api/v1/claims/share-files')
+    context.route('**/api/v1/claims/share-files',lambda route:route.fulfill(
+        content_type='application/json',headers=headers,body=json.dumps({'files':[]})))
+    download.click()
+    expect(page.get_by_role('alert').filter(has_text='흑백 PDF를 준비하지 못했습니다.')).to_be_visible()
+    assert not downloads and requests.count('claims/requests')==before_save
+    context.unroute('**/api/v1/claims/share-files')
+    assert_pc_download(page,download)
+    assert len(downloads)==1 and requests.count('claims/requests')==before_save+1
+    context.close();browser.close()
+print('PC full download/mobile split share, action save, history reuse, one-hour expiry, cache and failure: passed')

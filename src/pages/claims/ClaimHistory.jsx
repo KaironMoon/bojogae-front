@@ -99,7 +99,7 @@ export default function ClaimHistory({ onReuse }) {
       <Typography variant="h4" fontWeight={800}>청구내역</Typography>
       <Button disabled={loading || busy} onClick={() => setRefresh(v => v + 1)}>새로고침</Button>
     </Stack>
-    <Alert severity="info">발송용 원본은 저장 후 1시간 동안 공유할 수 있습니다. 만료 후 원본과 공유버튼은 삭제됩니다. 파일 다운로드는 주민등록번호가 마스킹된 보관용입니다.</Alert>
+    <Alert severity="info">전송용 흑백 PDF는 저장 후 1시간 동안 PC에서는 통합본 다운로드, 모바일에서는 8MB 미만 분할본 공유를 이용할 수 있습니다. 만료 후 전송용 파일과 버튼은 삭제됩니다. 보관본 다운로드는 주민등록번호가 마스킹된 보관용입니다.</Alert>
     {success && <Alert severity="success" role="status" onClose={() => setSuccess('')}>{success}</Alert>}
     {error && !detail && <Alert severity="error">{error}</Alert>}
     {(loading || (busy && !detail)) && <CircularProgress size={24} aria-label="청구 내역 불러오는 중" />}
@@ -118,7 +118,7 @@ export default function ClaimHistory({ onReuse }) {
         </Stack>
         <Stack direction="row" gap={1} flexWrap="wrap">
           <Button disabled={busy} onClick={() => open(item.id)}>상세 보기 · 같은 내용으로 작성</Button>
-          <Button disabled={busy} onClick={() => setPendingDownload({ id: item.id })}>파일 다운로드</Button>
+          <Button disabled={busy} onClick={() => setPendingDownload({ id: item.id })}>보관본 다운로드</Button>
           <Button color="error" disabled={busy} onClick={() => askDelete(item.id, item.insured_name)}>삭제</Button>
         </Stack>
       </Stack>
@@ -151,7 +151,7 @@ export default function ClaimHistory({ onReuse }) {
               expiresAt={detail.original_expires_at} serverTime={detail.server_time} disabled={busy} showRemaining />}
           </Stack>)}
           <Stack direction="row" gap={1}>
-            <Button disabled={busy} onClick={() => setPendingDownload({ id: detail.id })}>파일 다운로드</Button>
+            <Button disabled={busy} onClick={() => setPendingDownload({ id: detail.id })}>보관본 다운로드</Button>
           </Stack>
           {preview && <ClaimPdfPreview blob={preview.blob} name={preview.name} />}
           <Typography fontWeight={700}>첨부서류 {detail.files.length}개</Typography>
