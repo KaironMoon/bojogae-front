@@ -86,6 +86,7 @@ function SignupCompletePage() {
   const [profile, setProfile] = useState({ name: "", nickname: "", phone: "", affiliation: "", branch_name: "" });
   const [email, setEmail] = useState(searchParams.get("email") || "");
   const [referrer, setReferrer] = useState('');
+  const [referralWarning, setReferralWarning] = useState(false);
   const [termsAgreed, setTermsAgreed] = useState(false);
   const [planCode, setPlanCode] = useState(isSignupPlan(urlPlan) ? urlPlan : "");
   const [code, setCode] = useState("");
@@ -125,7 +126,8 @@ function SignupCompletePage() {
     setLoading(true);
     setError("");
     try {
-      await sendSignupEmail(signupToken, email, termsAgreed, planCode, profile, referrer);
+      const result = await sendSignupEmail(signupToken, email, termsAgreed, planCode, profile, referrer);
+      setReferralWarning(result?.referral_warning === "referrer_not_registered");
       setSent(true);
       setCooldown(60);
     } catch (requestError) {
@@ -187,6 +189,7 @@ function SignupCompletePage() {
               )}
             </Stack>
 
+            {sent && referralWarning && <Alert severity="warning">입력한 추천인을 등록할 수 없어 추천인 없이 인증메일을 보냈습니다. 가입 후 내정보에서 추천인을 등록할 수 있습니다.</Alert>}
             {error && <Alert severity="error">{referralErrors[error] || errorMessages[error] || "요청을 처리하지 못했습니다."}</Alert>}
 
             {profileLoading && <Typography role="status">소셜 계정 정보를 불러오는 중입니다.</Typography>}

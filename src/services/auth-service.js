@@ -88,7 +88,7 @@ async function grantFreePoints(userId, { amount, expirationDate, reason, idempot
 }
 
 async function sendSignupEmail(signupToken, email, termsAgreed, planCode, profile, referrer = '') {
-  await apiCaller.post("/api/v1/auth/signup/email", {
+  const response = await apiCaller.post("/api/v1/auth/signup/email", {
     ...profile,
     signup_token: signupToken,
     email,
@@ -96,6 +96,7 @@ async function sendSignupEmail(signupToken, email, termsAgreed, planCode, profil
     plan_code: planCode,
     referrer: referrer.trim() || null,
   });
+  return response.data;
 }
 
 export async function getSignupProfile(signupToken) {
