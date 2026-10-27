@@ -60,7 +60,7 @@ import PromptCategoryList from "./PromptCategoryList";
 import DefaultPromptFavoritesPanel from "./DefaultPromptFavoritesPanel";
 
 
-const EMPTY_PROMPT = { title: "", description: "", body: "", category_ids: [], input_schema: [], max_input_files: 10, common_prompt_ids: [] };
+const EMPTY_PROMPT = { is_new: false, is_recently_updated: false, title: "", description: "", body: "", category_ids: [], input_schema: [], max_input_files: 10, common_prompt_ids: [] };
 
 function categoryIds(prompt) {
   return (prompt?.categories || []).map((category) => category.id).sort((a, b) => a - b);
@@ -137,9 +137,11 @@ function PromptsPage() {
   const isNew = selectedId === "new";
   const isDirty = useMemo(() => {
     if (previewFile?.length || previewRemoved.length) return true;
-    if (isNew) return Boolean(draft.title || draft.description || draft.body || draft.category_ids.length || draft.input_schema.length || draft.common_prompt_ids.length || draft.max_input_files !== 10);
+    if (isNew) return Boolean(draft.is_new || draft.is_recently_updated || draft.title || draft.description || draft.body || draft.category_ids.length || draft.input_schema.length || draft.common_prompt_ids.length || draft.max_input_files !== 10);
     if (!selectedPrompt || selectedPrompt.is_deleted) return false;
     return JSON.stringify(draft.common_prompt_ids) !== JSON.stringify(selectedPrompt.common_prompt_ids || [])
+      || draft.is_new !== Boolean(selectedPrompt.is_new)
+      || draft.is_recently_updated !== Boolean(selectedPrompt.is_recently_updated)
       || draft.title !== selectedPrompt.title
       || draft.description !== (selectedPrompt.description || "")
       || draft.body !== selectedPrompt.body
@@ -195,7 +197,7 @@ function PromptsPage() {
         setSelectedPrompt(prompt);
         setPreviewFile(null);
         setPreviewRemoved([]);
-        setDraft({ title: prompt.title, body: prompt.body, category_ids: categoryIds(prompt), input_schema: prompt.input_schema || [], max_input_files: prompt.max_input_files ?? 10, description: prompt.description || "", common_prompt_ids: prompt.common_prompt_ids || [] });
+        setDraft({ is_new: Boolean(prompt.is_new), is_recently_updated: Boolean(prompt.is_recently_updated), title: prompt.title, body: prompt.body, category_ids: categoryIds(prompt), input_schema: prompt.input_schema || [], max_input_files: prompt.max_input_files ?? 10, description: prompt.description || "", common_prompt_ids: prompt.common_prompt_ids || [] });
         setVersions(versionRows);
       } catch {
         setError("프롬프트를 불러오지 못했습니다.");
@@ -312,8 +314,8 @@ function PromptsPage() {
     setError("");
     try {
       let saved = isNew
-        ? await createPrompt(title, draft.body, draft.category_ids, draft.input_schema, draft.description, draft.common_prompt_ids, draft.max_input_files)
-        : await updatePrompt(selectedPrompt.id, title, draft.body, draft.category_ids, draft.input_schema, draft.description, draft.common_prompt_ids, draft.max_input_files);
+        ? await createPrompt(title, draft.body, draft.category_ids, draft.input_schema, draft.description, draft.common_prompt_ids, draft.max_input_files, { is_new: draft.is_new, is_recently_updated: draft.is_recently_updated })
+        : await updatePrompt(selectedPrompt.id, title, draft.body, draft.category_ids, draft.input_schema, draft.description, draft.common_prompt_ids, draft.max_input_files, { is_new: draft.is_new, is_recently_updated: draft.is_recently_updated });
       setSelectedPrompt(saved);
       setSelectedId(saved.id);
       if (previewFile?.length || previewRemoved.length) {
@@ -324,7 +326,7 @@ function PromptsPage() {
       setSelectedPrompt(saved);
       setPreviewFile(null);
       setPreviewRemoved([]);
-      setDraft({ title: saved.title, body: saved.body, category_ids: categoryIds(saved), input_schema: saved.input_schema || [], max_input_files: saved.max_input_files ?? 10, description: saved.description || "", common_prompt_ids: saved.common_prompt_ids || [] });
+      setDraft({ is_new: Boolean(saved.is_new), is_recently_updated: Boolean(saved.is_recently_updated), title: saved.title, body: saved.body, category_ids: categoryIds(saved), input_schema: saved.input_schema || [], max_input_files: saved.max_input_files ?? 10, description: saved.description || "", common_prompt_ids: saved.common_prompt_ids || [] });
       await Promise.all([
         loadVersions(saved.id, includeDeletedVersions),
         loadList(saved.id),
@@ -362,7 +364,7 @@ function PromptsPage() {
           action.version.id,
         );
         setSelectedPrompt(restored);
-        setDraft({ title: restored.title, body: restored.body, category_ids: categoryIds(restored), input_schema: restored.input_schema || [], max_input_files: restored.max_input_files ?? 10, description: restored.description || "", common_prompt_ids: restored.common_prompt_ids || [] });
+        setDraft({ is_new: Boolean(restored.is_new), is_recently_updated: Boolean(restored.is_recently_updated), title: restored.title, body: restored.body, category_ids: categoryIds(restored), input_schema: restored.input_schema || [], max_input_files: restored.max_input_files ?? 10, description: restored.description || "", common_prompt_ids: restored.common_prompt_ids || [] });
         await Promise.all([
           loadVersions(restored.id, includeDeletedVersions),
           loadList(restored.id),
@@ -386,7 +388,7 @@ function PromptsPage() {
     try {
       const recovered = await recoverPrompt(selectedPrompt.id);
       setSelectedPrompt(recovered);
-      setDraft({ title: recovered.title, body: recovered.body, category_ids: categoryIds(recovered), input_schema: recovered.input_schema || [], max_input_files: recovered.max_input_files ?? 10, description: recovered.description || "", common_prompt_ids: recovered.common_prompt_ids || [] });
+      setDraft({ is_new: Boolean(recovered.is_new), is_recently_updated: Boolean(recovered.is_recently_updated), title: recovered.title, body: recovered.body, category_ids: categoryIds(recovered), input_schema: recovered.input_schema || [], max_input_files: recovered.max_input_files ?? 10, description: recovered.description || "", common_prompt_ids: recovered.common_prompt_ids || [] });
       await loadList(recovered.id);
     } catch {
       setError("프롬프트를 복구하지 못했습니다.");
@@ -605,6 +607,24 @@ function PromptsPage() {
                 fullWidth
               />
               <Box>
+                <Typography variant="subtitle2" fontWeight={750}>홈 보고서 노출</Typography>
+                <Stack direction="row" gap={2} flexWrap="wrap">
+                  <FormControlLabel
+                    label="신규"
+                    control={<Checkbox checked={draft.is_new} disabled={selectedPrompt?.is_deleted || working}
+                      onChange={(event) => setDraft((current) => ({ ...current, is_new: event.target.checked }))} />}
+                  />
+                  <FormControlLabel
+                    label="최근 업데이트"
+                    control={<Checkbox checked={draft.is_recently_updated} disabled={selectedPrompt?.is_deleted || working}
+                      onChange={(event) => setDraft((current) => ({ ...current, is_recently_updated: event.target.checked }))} />}
+                  />
+                </Stack>
+                <Typography variant="caption" color="text.secondary">
+                  각각 설정할 수 있습니다. 신규는 생성일, 최근 업데이트는 수정일 최신순으로 최대 6개 표시됩니다. 속성만 변경하면 버전은 유지되고 수정일은 갱신됩니다.
+                </Typography>
+              </Box>
+              <Box>
                 <Typography variant="subtitle2" fontWeight={750} sx={{ mb: 1 }}>
                   카테고리 (다중 선택)
                 </Typography>
@@ -673,7 +693,7 @@ function PromptsPage() {
                 onChange={common_prompt_ids => setDraft(current => ({ ...current, common_prompt_ids }))} />
               {!isNew && (
                 <Typography variant="caption" color="text.secondary">
-                  마지막 수정 {formatDate(selectedPrompt.updated_at)} · 제목·본문·입력 UI·공통 프롬프트 선택 및 순서를 변경하면 새 버전이 생성되며, 카테고리만 바꾸면 현재 프롬프트에 즉시 반영됩니다.
+                  마지막 수정 {formatDate(selectedPrompt.updated_at)} · 제목·본문·입력 UI·공통 프롬프트 선택 및 순서를 변경하면 새 버전이 생성되며, 카테고리·설명·홈 노출 속성만 바꾸면 버전 번호를 유지하고 현재 프롬프트에 반영됩니다.
                 </Typography>
               )}
             </Stack>

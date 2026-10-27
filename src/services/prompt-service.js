@@ -32,7 +32,7 @@ async function getPrompt(promptId) {
   return response.data;
 }
 
-async function createPrompt(title, body, categoryIds = [], inputSchema = [], description = "", commonPromptIds = [], maxInputFiles = 10) {
+async function createPrompt(title, body, categoryIds = [], inputSchema = [], description = "", commonPromptIds = [], maxInputFiles = 10, releaseFlags = {}) {
   const response = await apiCaller.post("/api/v1/admin/prompts", {
     title,
     body,
@@ -41,11 +41,13 @@ async function createPrompt(title, body, categoryIds = [], inputSchema = [], des
     max_input_files: maxInputFiles,
     description: description || null,
     common_prompt_ids: commonPromptIds,
+    is_new: releaseFlags.is_new ?? false,
+    is_recently_updated: releaseFlags.is_recently_updated ?? false,
   });
   return response.data;
 }
 
-async function updatePrompt(promptId, title, body, categoryIds = [], inputSchema = [], description = "", commonPromptIds = [], maxInputFiles = 10) {
+async function updatePrompt(promptId, title, body, categoryIds = [], inputSchema = [], description = "", commonPromptIds = [], maxInputFiles = 10, releaseFlags = {}) {
   const response = await apiCaller.put(`/api/v1/admin/prompts/${promptId}`, {
     title,
     body,
@@ -54,6 +56,8 @@ async function updatePrompt(promptId, title, body, categoryIds = [], inputSchema
     max_input_files: maxInputFiles,
     description: description || null,
     common_prompt_ids: commonPromptIds,
+    is_new: releaseFlags.is_new ?? false,
+    is_recently_updated: releaseFlags.is_recently_updated ?? false,
   });
   return response.data;
 }
