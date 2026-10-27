@@ -1,12 +1,11 @@
 /* eslint-disable react/prop-types */
 import { useEffect, useRef, useState } from 'react';
-import { Alert, Button, Stack, useMediaQuery } from '@mui/material';
+import { Alert, Button, Stack } from '@mui/material';
 import DownloadOutlinedIcon from '@mui/icons-material/DownloadOutlined';
 import { claimError, downloadClaimBlob, prepareClaimShare, prepareClaimDownload, getClaimOriginalDownload } from '@/services/claim-service';
 import ClaimOriginalShare from './ClaimOriginalShare';
 
 export default function ClaimPdfResult({ result, disabled, saved, prepare, faxAction, feedbackId }) {
-  const mobile = useMediaQuery('(max-width: 600px), (pointer: coarse)');
   const pending = useRef(null);
   const storedDownload = useRef(null);
   const [downloading, setDownloading] = useState(false);
@@ -54,11 +53,11 @@ export default function ClaimPdfResult({ result, disabled, saved, prepare, faxAc
     <ClaimOriginalShare result={result} disabled={disabled} prepare={prepare}
       additionalActions={faxAction} feedbackId={feedbackId}
       expiresAt={saved?.original_expires_at} serverTime={saved?.server_time} />
-    {!mobile && <Button variant="outlined" startIcon={<DownloadOutlinedIcon />} disabled={disabled || downloading}
+    <Button variant="outlined" startIcon={<DownloadOutlinedIcon />} disabled={disabled || downloading}
       aria-label={`${result.name} PDF 다운로드`}
       sx={{ alignSelf: 'flex-start' }} onClick={download}>
       {downloading ? '흑백 PDF 준비 중…' : 'PDF 다운로드'}
-    </Button>}
+    </Button>
     {error && <Alert severity="error">{error}</Alert>}
   </Stack>;
 }

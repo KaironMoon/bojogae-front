@@ -112,6 +112,10 @@ export default function ClaimHistory({ onReuse }) {
           {item.deliveries.map(delivery => <Stack key={delivery.id} direction="row" gap={1} alignItems="center" flexWrap="wrap">
             <Typography variant="body2">{delivery.insurer_name}</Typography>
             <ClaimDeliveryStatus status={delivery.status} />
+            {delivery.fax_number ? <Stack direction="row" gap={0.5} alignItems="center">
+              <Typography variant="body2" color="text.secondary">수신 팩스:</Typography>
+              <FaxNumberCopy number={delivery.fax_number} label={`${delivery.insurer_name} 수신 팩스번호`} />
+            </Stack> : <Typography variant="body2" color="text.secondary">수신 팩스 번호 기록 없음</Typography>}
             {item.original_available && <ClaimOriginalShare requestId={item.id} deliveryId={delivery.id}
               expiresAt={item.original_expires_at} serverTime={item.server_time} disabled={busy} showRemaining />}
           </Stack>)}

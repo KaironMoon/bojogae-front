@@ -16,6 +16,7 @@ export default function ClaimOriginalShare({ result, requestId, deliveryId, expi
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [sharing, setSharing] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const [visible, setVisible] = useState(false);
   const [remainingMs, setRemainingMs] = useState(null);
   const anchor = useRef(null);
@@ -65,7 +66,8 @@ export default function ClaimOriginalShare({ result, requestId, deliveryId, expi
     setError(''); setNotice(''); setSharing(true);
     try {
       if (!mobile) {
-        files?.forEach(file => downloadClaimBlob(file, file.name));
+        if (prepare) await prepare();
+        setNotice(PC_SHARE_NOTICE);
       } else if (files?.length && navigator.canShare?.({ files }) && navigator.share) {
         // Open the share sheet before saving so Safari retains the click's user activation.
         // Save even if the user cancels sharing, and report save failures independently.
@@ -89,13 +91,29 @@ export default function ClaimOriginalShare({ result, requestId, deliveryId, expi
   const feedbackTarget = feedbackId && typeof document !== 'undefined' ? document.getElementById(feedbackId) : null;
   return <Stack ref={anchor} spacing={1}>
     {!expired && <Stack direction="row" gap={1} alignItems="center" flexWrap="wrap">
-    {(mobile || !result) && <Button variant="outlined" startIcon={mobile ? <ShareOutlinedIcon /> : <DownloadOutlinedIcon />} onClick={() => {
-      if (!files?.length && error) { setError(''); setAttempt(value => value + 1); }
+    <Button variant="outlined" startIcon={<ShareOutlinedIcon />} onClick={() => {
+      if (mobile && !files?.length && error) { setError(''); setAttempt(value => value + 1); }
       else share();
     }}
-      disabled={disabled || sharing || (!files?.length && !error)} sx={{ alignSelf: 'flex-start' }}
-      aria-label={`${result?.name || ''} ${mobile ? '공유하기' : '다운로드'}`.trim()}>
-      {!files?.length ? (error ? '파일 다시 준비' : '파일 준비 중…') : mobile ? '공유하기' : '다운로드'}
+      disabled={disabled || sharing || (mobile && !files?.length && !error)} sx={{ alignSelf: 'flex-start' }}
+      aria-label={`${result?.name || ''} 공유하기`.trim()}>
+      {mobile && !files?.length ? (error ? '공유 파일 다시 준비' : '공유 파일 준비 중…') : sharing ? '저장 중…' : '공유하기'}
+    </Button>
+    {!result && <Button variant="outlined" startIcon={<DownloadOutlinedIcon />}
+      disabled={disabled || downloading || (!mobile && !files?.length && !error)}
+      onClick={async () => {
+        if (performance.now() >= deadlineRef.current) { setExpired(true); setFiles(null); return; }
+        if (!mobile && !files?.length && error) { setError(''); setAttempt(value => value + 1); return; }
+        setDownloading(true); setError('');
+        try {
+          const file = mobile ? await getClaimOriginalDownload(requestId, deliveryId) : files?.[0];
+          if (file && performance.now() < deadlineRef.current) downloadClaimBlob(file, file.name);
+        } catch (e) {
+          if (e.response?.status === 410) setExpired(true);
+          else setError(await claimError(e));
+        } finally { setDownloading(false); }
+      }}>
+      {downloading ? '흑백 PDF 준비 중…' : !mobile && !files?.length ? (error ? '파일 다시 준비' : '파일 준비 중…') : '다운로드'}
     </Button>}
     {additionalActions}
     {showRemaining && remainingMs !== null && <Typography variant="caption" color="text.secondary">

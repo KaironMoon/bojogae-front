@@ -142,7 +142,8 @@ with sync_playwright() as p:
         page.goto(BASE + '/claims/history')
         action = page.get_by_role('button', name='공유하기' if mobile else '다운로드', exact=True)
         expect(action).to_be_enabled()
-        expect(page.get_by_role('button', name='다운로드' if mobile else '공유하기', exact=True)).to_have_count(0)
+        expect(page.get_by_role('button', name='다운로드' if mobile else '공유하기', exact=True)).to_be_enabled()
+        if mobile: assert_pc_download(page, page.get_by_role('button', name='다운로드', exact=True))
         if mobile:
             action.click(); page.wait_for_function('window.sharedPdfBytes.length === 1')
             assert page.evaluate('window.sharedFiles[0]') == ['test_1.pdf','test_2.pdf']
@@ -161,7 +162,11 @@ with sync_playwright() as p:
     before_save = requests.count('claims/requests')
     before_prepare = requests.count('claims/share-files')
     download = create_claim(page)
-    expect(page.get_by_role('button',name='시험보험 공유하기',exact=True)).to_have_count(0)
+    pc_share = page.get_by_role('button', name='시험보험 공유하기', exact=True)
+    expect(pc_share).to_be_enabled()
+    pc_share.click()
+    expect(page.get_by_role('status').filter(has_text='공유되었습니다. 모바일에서 청구내역에 있는 공유버튼을 눌러주세요')).to_be_visible()
+    assert requests.count('claims/requests') == before_save + 1
     assert_pc_download(page,download)
     assert requests.count('claims/requests')==before_save+1
     assert requests.count('claims/share-files')==before_prepare+1
@@ -179,7 +184,7 @@ with sync_playwright() as p:
         before_prepare=requests.count('claims/share-files')
         share=create_claim(page)
         assert requests.count('claims/share-files')==before_prepare+1
-        expect(page.get_by_role('button',name='시험보험 PDF 다운로드',exact=True)).to_have_count(0)
+        expect(page.get_by_role('button',name='시험보험 PDF 다운로드',exact=True)).to_be_enabled()
         if scenario=='cancel': page.evaluate('window.cancelShare=true')
         if scenario=='fallback':
             page.evaluate("Object.defineProperty(navigator,'canShare',{value:()=>false})")

@@ -19,7 +19,7 @@ export default function FaxNumberCopy({ number, label = '팩스번호' }) {
     <Stack direction="row" alignItems="center" sx={{ display: 'inline-flex' }}>
       <Button size="small" onClick={copy} aria-label={`${label} ${number} 복사`}
         sx={{ minWidth: 0, px: 0.5, whiteSpace: 'nowrap' }}>{number}</Button>
-      <Tooltip title="팩스번호 복사"><IconButton size="small" onClick={copy} aria-label={`${label} 복사 아이콘`}>
+      <Tooltip title="팩스번호 복사" disableInteractive><IconButton size="small" onClick={copy} aria-label={`${label} 복사 아이콘`}>
         <ContentCopyOutlinedIcon fontSize="small" />
       </IconButton></Tooltip>
     </Stack>
