@@ -317,12 +317,12 @@ export default function ClaimsPage() {
             <Button variant="outlined" component="label" disabled={busy}>PDF·사진 추가<input type="file" hidden multiple accept="application/pdf,image/png,image/jpeg,image/webp"
               onChange={e => {
                 const added = [...e.target.files]; e.target.value = '';
-                if ([...files, ...added].length > 25 || [...files, ...added].reduce((s, f) => s+f.size, 0) > 20*1024*1024) {
-                  setError('첨부는 25개 파일, 합계 20MB까지 가능합니다.'); return;
+                if ([...files, ...added].length > 50 || [...files, ...added].reduce((s, f) => s+f.size, 0) > 100*1024*1024) {
+                  setError('첨부는 50개 파일, 합계 100MB까지 가능합니다.'); return;
                 }
                 invalidate(); setFiles(old => [...old, ...added]);
               }} /></Button>
-            <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>청구서 포함 최종 50쪽·20MB까지. PDF는 암호를 해제해서 첨부해 주세요.</Typography>
+            <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>첨부 최대 50개 파일·합계 100MB까지. 청구서 양식 포함 최종 50쪽·100MB까지. PDF는 암호를 해제해서 첨부해 주세요.</Typography>
             <Stack direction="row" flexWrap="wrap" gap={1} sx={{ mt: 1 }}>{files.map((f, i) => <Chip key={`${f.name}-${i}`} label={f.name} disabled={busy} onDelete={() => { invalidate(); setFiles(old => old.filter((_, n) => n !== i)); }} />)}</Stack>
           </Box>
           <Alert severity="warning">입력하지 않은 직업·주소 등의 칸은 비워 두며 일부 항목은 ‘자료첨부’로 표시됩니다. 생성 후 빠진 내용을 확인해 주세요.</Alert>
