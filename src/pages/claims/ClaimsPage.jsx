@@ -48,6 +48,7 @@ export default function ClaimsPage() {
   const [results, setResults] = useState([]);
   const [leavingStep, setLeavingStep] = useState(false);
   const [faxConfirmationOpen, setFaxConfirmationOpen] = useState(false);
+  const [faxError, setFaxError] = useState('');
   const [progress, setProgress] = useState('');
   const [saved, setSaved] = useState(null);
   const [originalExpired, setOriginalExpired] = useState(false);
@@ -230,7 +231,12 @@ export default function ClaimsPage() {
       const result = await saveClaimRequest(requestKey.current.key, selected, activeClaimPayload(payload), files, faxNumbers, mode, mode === 'FAX' ? { expected_fax_mode: faxMode, expected_fax_cost: faxMode === 'REAL' ? totalFaxCost : 0 } : {});
       setSaved(result);
       return result;
-    } catch (e) { setError(await claimError(e)); throw e; } finally { setBusy(false); }
+    } catch (e) {
+      const message = await claimError(e);
+      setError(message);
+      if (mode === 'FAX') setFaxError(message);
+      throw e;
+    } finally { setBusy(false); }
   }
 
   function reuse(detail, attachments) {
@@ -412,6 +418,16 @@ export default function ClaimsPage() {
         <Button variant="contained" color="warning"
           disabled={busy || Boolean(saved) || !results.length || results.length !== selected.length || downloadOnlyInsurers.length > 0 || faxUnavailable}
           onClick={() => { setFaxConfirmationOpen(false); save('FAX').catch(() => {}); }}>{faxMode === 'TEST' ? '테스트 발송' : `${totalFaxCost}꼬막 결제하고 발송`}</Button>
+      </DialogActions>
+    </Dialog>
+    <Dialog open={Boolean(faxError)} onClose={() => setFaxError('')}
+      role="alertdialog" aria-labelledby="claim-fax-error-title" aria-describedby="claim-fax-error-description">
+      <DialogTitle id="claim-fax-error-title">팩스 발송 접수 실패</DialogTitle>
+      <DialogContent><DialogContentText id="claim-fax-error-description" sx={{ whiteSpace: 'pre-line' }}>
+        {faxError}
+      </DialogContentText></DialogContent>
+      <DialogActions>
+        <Button onClick={() => setFaxError('')} autoFocus>확인</Button>
       </DialogActions>
     </Dialog>
     <Dialog open={leavingStep || blocker.state === 'blocked'} onClose={cancelLeave}
