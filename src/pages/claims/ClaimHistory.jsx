@@ -168,7 +168,7 @@ export default function ClaimHistory({ onReuse, insurers = [] }) {
           {preview && <ClaimPdfPreview blob={preview.blob} name={preview.name} />}
           <Typography fontWeight={700}>첨부서류 {detail.files.length}개</Typography>
           {detail.files.map(file => <Box key={file.id}><Button disabled={busy} onClick={() => setPendingDownload({ file })}>{file.filename}</Button></Box>)}
-          <Alert severity="info">같은 내용으로 작성하면 주민번호 일부와 입력 내용·첨부 원본을 불러옵니다. 주민번호 나머지 자리·모든 서명·가상팩스 번호는 다시 입력하고 개인정보 동의도 다시 확인해 주세요.</Alert>
+          <Alert severity="info">같은 내용으로 작성하면 청구서 양식은 새로 생성하고, 첨부 원본은 순서대로 뒤에 붙입니다. PDF는 원본 방향, 사진은 저장된 회전 방향을 유지합니다. 주민번호 나머지 자리·모든 서명·가상팩스 번호는 다시 입력하고 개인정보 동의도 다시 확인해 주세요.</Alert>
           <Divider />
           <Typography variant="h6" fontWeight={700}>팩스 발송 이력</Typography>
           {!detail.fax_history?.length ? <Typography color="text.secondary">팩스 발송 이력이 없습니다.</Typography> :

@@ -241,12 +241,18 @@ export default function ClaimsPage() {
       claim[`${party}_id`] = formatClaimInput(`${party}_id`, String(claim[`${party}_id`] || '').replace(/\D/g, '').slice(0, 7));
     }
     setPayload({ ...EMPTY, ...claim, consent: false,
+      attachment_rotations: attachments.map((file, index) => file.type === 'application/pdf' || /\.pdf$/i.test(file.name)
+        ? [] : [...(claim.attachment_rotations?.[index] || [])]),
       insured_guardian_enabled: Boolean(claim.insured_guardian_name),
       beneficiary_guardian_enabled: Boolean(claim.beneficiary_guardian_name) });
     setSelected(detail.deliveries.map(item => item.insurer_id));
     // A virtual number may belong to a previous claim or have expired.
     setFaxNumbers({});
-    setFiles(attachments); setFieldErrors({}); setCustomerNotice(''); setStep(0); navigate('/claims/new');
+    setFiles(attachments); setFieldErrors({});
+    setCustomerNotice(attachments.length
+      ? `기존 첨부서류 ${attachments.length}개를 원래 순서로 불러왔습니다. PDF는 원본 방향, 사진은 저장된 회전 방향을 유지합니다. 청구서 양식은 새로 생성합니다.`
+      : '입력 내용을 불러왔습니다. 청구서 양식은 새로 생성합니다.');
+    setStep(0); navigate('/claims/new');
   }
   return <Box sx={{ maxWidth: 1100, mx: 'auto', p: { xs: 2, md: 3 } }}>
     {view === 'history' ? <ClaimHistory onReuse={reuse} insurers={insurers} /> : <Stack spacing={3} component="form" ref={form} onSubmit={e => e.preventDefault()}>
@@ -327,13 +333,13 @@ export default function ClaimsPage() {
             <Button variant="outlined" component="label" disabled={busy}>PDF·사진 추가<input type="file" hidden multiple accept="application/pdf,image/png,image/jpeg,image/webp"
               onChange={e => {
                 const added = [...e.target.files]; e.target.value = '';
-                if ([...files, ...added].length > 50 || [...files, ...added].reduce((s, f) => s+f.size, 0) > 100*1024*1024) {
-                  setError('첨부는 50개 파일, 합계 100MB까지 가능합니다.'); return;
+                if ([...files, ...added].length > 50 || [...files, ...added].reduce((s, f) => s+f.size, 0) > 200*1024*1024) {
+                  setError('첨부는 50개 파일, 합계 200MB까지 가능합니다.'); return;
                 }
                 invalidate(); setPayload(old => ({ ...old, attachment_rotations: [...files.map((_, i) => old.attachment_rotations[i] || []), ...added.map(() => [])] })); setFiles(old => [...old, ...added]);
               }} /></Button>
-            <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>첨부 최대 50개 파일·합계 100MB까지. 청구서 양식 포함 최종 50쪽·100MB까지. PDF는 암호를 해제해서 첨부해 주세요.</Typography>
-            <Typography variant="caption" color="text.secondary" display="block">가로가 긴 이미지는 자동으로 90° 회전하고, 큰 이미지는 비율을 유지해 A4에 맞춥니다. 회전 버튼으로 방향을 조정할 수 있습니다.</Typography>
+            <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>첨부 최대 50개 파일·합계 200MB까지. 청구서 양식 포함 최종 50쪽·200MB까지. PDF는 암호를 해제해서 첨부해 주세요.</Typography>
+            <Typography variant="caption" color="text.secondary" display="block">가로가 긴 사진은 자동으로 90° 회전하고, 큰 사진은 비율을 유지해 A4에 맞춥니다. 사진은 회전 버튼으로 방향을 조정할 수 있으며, PDF는 원본 방향을 유지합니다.</Typography>
             <ClaimAttachments files={files} rotations={payload.attachment_rotations} disabled={busy}
               onRotate={(index, page) => {
                 const rotations = files.map((_, i) => [...(payload.attachment_rotations[i] || [])]);

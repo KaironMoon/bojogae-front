@@ -13,7 +13,7 @@ function loadLibrary() {
 }
 
 // eslint-disable-next-line react/prop-types
-export default function ClaimPdfPreview({ blob, name, rotations = [], onRotate, disabled = false }) {
+export default function ClaimPdfPreview({ blob, name }) {
   const container = useRef(null);
   const canvas = useRef(null);
   const [width, setWidth] = useState(600);
@@ -52,7 +52,6 @@ export default function ClaimPdfPreview({ blob, name, rotations = [], onRotate, 
     return () => { cancelled = true; task?.destroy(); };
   }, [blob]);
 
-  const pageRotation = rotations[page - 1] || 0;
   useEffect(() => {
     if (!document) return;
     let cancelled = false;
@@ -62,7 +61,7 @@ export default function ClaimPdfPreview({ blob, name, rotations = [], onRotate, 
       try {
         const pdfPage = await document.getPage(page);
         if (cancelled) return;
-        const rotation = (pdfPage.rotate + pageRotation) % 360;
+        const rotation = pdfPage.rotate;
         const base = pdfPage.getViewport({ scale: 1, rotation });
         const cssScale = width / base.width;
         const ratio = Math.min(window.devicePixelRatio || 1, 2, Math.sqrt(4000000 / (width * base.height * cssScale)));
@@ -78,7 +77,7 @@ export default function ClaimPdfPreview({ blob, name, rotations = [], onRotate, 
       }
     })();
     return () => { cancelled = true; render?.cancel(); };
-  }, [document, page, width, pageRotation]);
+  }, [document, page, width]);
 
   return <Stack spacing={1}>
     <Stack direction="row" spacing={2} alignItems="center" justifyContent="center">
@@ -86,8 +85,6 @@ export default function ClaimPdfPreview({ blob, name, rotations = [], onRotate, 
       <Typography aria-live="polite">{page} / {document?.numPages || '…'}쪽</Typography>
       <Button disabled={!document || page >= document.numPages} onClick={() => setPage(p => p + 1)}>다음 쪽</Button>
     </Stack>
-    {onRotate && <Button variant="outlined" size="small" disabled={disabled || !document || busy || Boolean(error)}
-      onClick={() => onRotate(page - 1)} aria-label={`${name} ${page}쪽 90도 회전`}>현재 {page}쪽 90° 회전</Button>}
     {error && <Alert severity="warning">{error}</Alert>}
     <Box ref={container} sx={{ position: 'relative', width: '100%', minHeight: 160, border: '1px solid #dce2ea', bgcolor: 'white', overflow: 'hidden' }}>
       {busy && <CircularProgress size={28} sx={{ position: 'absolute', top: 24, left: 'calc(50% - 14px)' }} />}

@@ -30,8 +30,7 @@ export default function ClaimAttachments({ files, rotations, disabled, onRotate,
         <Button color="error" disabled={disabled} onClick={() => onDelete(index)} aria-label={`${file.name} 삭제`}>삭제</Button>
       </Stack>
       {file.type === 'application/pdf' || /\.pdf$/i.test(file.name)
-        ? <ClaimPdfPreview blob={file} name={file.name} rotations={rotations[index] || []}
-            disabled={disabled} onRotate={page => onRotate(index, page)} />
+        ? <ClaimPdfPreview blob={file} name={file.name} />
         : <>
           <ImagePreview file={file} rotation={rotations[index]?.[0] || 0} />
           <Button size="small" variant="outlined" startIcon={<RotateRightIcon />} disabled={disabled}
