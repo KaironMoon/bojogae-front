@@ -12,10 +12,13 @@ function ImagePreview({ file, rotation }) {
     setUrl(source); setAutomatic(0);
     return () => URL.revokeObjectURL(source);
   }, [file]);
-  return <Box sx={{ height: 240, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#f5f6f8', overflow: 'hidden' }}>
+  return <Box sx={{ display: 'flex', justifyContent: 'center', bgcolor: '#f5f6f8', overflow: 'hidden' }}>
+    <Box sx={{ position: 'relative', width: '100%', maxWidth: 540, aspectRatio: '1' }}>
     {url && <Box component="img" src={url} alt={`${file.name} 첨부 미리보기`}
       onLoad={event => setAutomatic(event.target.naturalWidth > event.target.naturalHeight ? 90 : 0)}
-      sx={{ maxWidth: 180, maxHeight: 180, objectFit: 'contain', transform: `rotate(${automatic + rotation}deg)` }} />}
+      sx={{ position: 'absolute', top: '50%', left: '50%', maxWidth: '100%', maxHeight: '100%',
+        objectFit: 'contain', transform: `translate(-50%, -50%) rotate(${automatic + rotation}deg)` }} />}
+    </Box>
   </Box>;
 }
 
