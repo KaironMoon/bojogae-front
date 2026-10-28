@@ -274,7 +274,7 @@ export default function ClaimsPage() {
             <Grid container spacing={1}>{insurers.filter(item => item.kind === kind).map(item => <Grid item xs={12} sm={6} md={4} key={item.id}>
               <Paper variant="outlined" sx={{ px: 1, bgcolor: selected.includes(item.id) ? '#eef4ff' : 'white' }}>
                 <FormControlLabel sx={{ width: '100%', m: 0 }} label={<Stack direction="row" alignItems="center" gap={1}><ClaimInsurerLogo insurer={item} />
-                  <Typography variant="body2">{item.name}{item.fax_enabled === false ? ' · 다운로드 전용' : ''}</Typography></Stack>} control={<Checkbox checked={selected.includes(item.id)} disabled={busy}
+                  <Typography variant="body2">{item.name}{item.admin_only ? ' · 관리자 테스트용' : ''}{item.fax_enabled === false ? ' · 다운로드 전용' : ''}</Typography></Stack>} control={<Checkbox checked={selected.includes(item.id)} disabled={busy}
                   onChange={event => { invalidate(); setSelected(previous => event.target.checked
                     ? [...previous, item.id] : previous.filter(id => id !== item.id));
                     setFaxNumbers(previous => { const next = { ...previous }; delete next[item.id]; return next; }); }} />} />

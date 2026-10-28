@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="80" viewBox="0 0 200 80">
+  <rect width="200" height="80" rx="16" fill="#f0fdfa"/>
+  <path d="M38 58 18 38C5 23 25 10 38 25 51 10 71 23 58 38Z" fill="#0d9488"/>
+  <path d="m23 36 10 10 19-19" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="79" y="38" fill="#115e59" font-family="sans-serif" font-size="24" font-weight="700">한마음</text>
+  <text x="80" y="59" fill="#0f766e" font-family="sans-serif" font-size="12">보험사 · TEST</text>
+</svg>

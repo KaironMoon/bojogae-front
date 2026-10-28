@@ -37,21 +37,21 @@ export default function ClaimFaxDestinations({ insurers, numbers, onChange, disa
       const custom = numbers[insurer.id] || '';
       return <Paper key={insurer.id} variant="outlined" sx={{ p: 2 }}>
         <Stack spacing={1.5}>
-          {heading(insurer, insurer.use_virtual_fax ? '가상팩스' : '공용팩스')}
+          {heading(insurer, insurer.admin_only ? '관리자 테스트용' : insurer.use_virtual_fax ? '가상팩스' : '공용팩스')}
           {insurer.use_virtual_fax && !readOnly && <>
-            <TextField fullWidth size="small" type="tel" label={`${insurer.name} 가상팩스 번호`}
+            <TextField fullWidth size="small" type="tel" label={`${insurer.name} ${insurer.admin_only ? '테스트 수신 팩스 번호' : '가상팩스 번호'}`}
               value={custom} disabled={disabled} autoComplete="off"
               inputProps={{ maxLength: 30, pattern: '0(( |-)?[0-9]){8,11}', inputMode: 'tel' }}
               onChange={event => onChange(insurer.id, event.target.value)}
-              helperText={common ? `입력하지 않으면 공용 번호 ${common}을 사용합니다.` : '보험사에서 발급받은 수신 번호를 입력해 주세요.'} />
+              helperText={insurer.admin_only ? '테스트 문서를 수신할 팩스 번호를 입력해 주세요.' : common ? `입력하지 않으면 공용 번호 ${common}을 사용합니다.` : '보험사에서 발급받은 수신 번호를 입력해 주세요.'} />
           </>}
           {insurer.virtual_fax_guide && <Typography variant="body2" sx={{ whiteSpace: 'pre-line' }}>{insurer.virtual_fax_guide}</Typography>}
           {insurer.virtual_fax_ars && <Typography variant="body2" sx={{ whiteSpace: 'pre-line' }}>{insurer.virtual_fax_ars}</Typography>}
-          {insurer.use_virtual_fax && !readOnly && <Alert severity="info">발급받은 번호가 이번 청구에 유효한지 확인해 주세요.</Alert>}
+          {insurer.use_virtual_fax && !readOnly && <Alert severity="info">{insurer.admin_only ? '현재 발송 모드와 요금이 적용됩니다. 테스트 수신번호를 확인해 주세요.' : '발급받은 번호가 이번 청구에 유효한지 확인해 주세요.'}</Alert>}
           <Stack direction="row" gap={0.5} alignItems="center" flexWrap="wrap">
-            <Typography variant="body2">{custom ? '개별 가상팩스' : common ? '공용팩스' : '수신 팩스'}:</Typography>
+            <Typography variant="body2">{insurer.admin_only ? '테스트 수신 팩스' : custom ? '개별 가상팩스' : common ? '공용팩스' : '수신 팩스'}:</Typography>
             {custom || common ? <FaxNumberCopy number={custom || common} label={`${insurer.name} 팩스번호`} />
-              : <Typography variant="body2">보험사에서 가상팩스 번호를 발급받아 주세요.</Typography>}
+              : <Typography variant="body2">{insurer.admin_only ? '테스트 수신 팩스 번호를 입력해 주세요.' : '보험사에서 가상팩스 번호를 발급받아 주세요.'}</Typography>}
           </Stack>
           {renderAction && <Box id={feedbackId(insurer)} sx={{ minWidth: 0, '&:empty': { display: 'none' } }} />}
         </Stack>
