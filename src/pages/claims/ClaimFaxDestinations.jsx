@@ -41,9 +41,10 @@ export default function ClaimFaxDestinations({ insurers, numbers, onChange, disa
           {insurer.use_virtual_fax && !readOnly && <>
             <TextField fullWidth size="small" type="tel" label={`${insurer.name} ${insurer.admin_only ? '테스트 수신 팩스 번호' : '가상팩스 번호'}`}
               value={custom} disabled={disabled} autoComplete="off"
+              placeholder={insurer.admin_only ? common : undefined}
               inputProps={{ maxLength: 30, pattern: '0(( |-)?[0-9]){8,11}', inputMode: 'tel' }}
               onChange={event => onChange(insurer.id, event.target.value)}
-              helperText={insurer.admin_only ? '테스트 문서를 수신할 팩스 번호를 입력해 주세요.' : common ? `입력하지 않으면 공용 번호 ${common}을 사용합니다.` : '보험사에서 발급받은 수신 번호를 입력해 주세요.'} />
+              helperText={insurer.admin_only ? (common ? `입력하지 않으면 기본 테스트 번호 ${common}을 사용합니다. 다른 번호로 변경할 수 있습니다.` : '테스트 문서를 수신할 팩스 번호를 입력해 주세요.') : common ? `입력하지 않으면 공용 번호 ${common}을 사용합니다.` : '보험사에서 발급받은 수신 번호를 입력해 주세요.'} />
           </>}
           {insurer.virtual_fax_guide && <Typography variant="body2" sx={{ whiteSpace: 'pre-line' }}>{insurer.virtual_fax_guide}</Typography>}
           {insurer.virtual_fax_ars && <Typography variant="body2" sx={{ whiteSpace: 'pre-line' }}>{insurer.virtual_fax_ars}</Typography>}
