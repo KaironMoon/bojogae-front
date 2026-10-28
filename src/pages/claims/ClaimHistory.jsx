@@ -173,7 +173,7 @@ export default function ClaimHistory({ onReuse, insurers = [] }) {
           <Typography variant="h6" fontWeight={700}>팩스 발송 이력</Typography>
           {!detail.fax_history?.length ? <Typography color="text.secondary">팩스 발송 이력이 없습니다.</Typography> :
             <TableContainer><Table size="small" aria-label="팩스 발송 이력">
-              <TableHead><TableRow>{['보험사', '수신 번호', '요청 시각', '상태', '완료 시각', '실패 사유'].map(label =>
+              <TableHead><TableRow>{['보험사', '수신 번호', '요청 시각', '상태', '완료 시각', '요금', '실패 사유'].map(label =>
                 <TableCell key={label} sx={{ whiteSpace: 'nowrap' }}>{label}</TableCell>)}</TableRow></TableHead>
               <TableBody>{detail.fax_history.map(attempt => <TableRow key={attempt.id}>
                 <TableCell>{attempt.insurer_name}</TableCell>
@@ -181,6 +181,7 @@ export default function ClaimHistory({ onReuse, insurers = [] }) {
                 <TableCell sx={{ whiteSpace: 'nowrap' }}>{timestamp(attempt.requested_at)}</TableCell>
                 <TableCell><ClaimDeliveryStatus status={attempt.status} /></TableCell>
                 <TableCell sx={{ whiteSpace: 'nowrap' }}>{timestamp(attempt.completed_at)}</TableCell>
+                <TableCell sx={{ whiteSpace: 'nowrap' }}>{attempt.point_cost ? `${attempt.point_cost}꼬막${attempt.refunded_points ? ` · ${attempt.refunded_points}꼬막 반환` : attempt.point_status === 'REVIEW_REQUIRED' ? ' · 결과 확인 중' : ' 차감'}` : '무료'}</TableCell>
                 <TableCell sx={{ minWidth: 180 }}>{attempt.failure_reason || '—'}</TableCell>
               </TableRow>)}</TableBody>
             </Table></TableContainer>}

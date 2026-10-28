@@ -16,7 +16,8 @@ export async function generateClaimPdf(id, payload, files, signal) {
   const response = await apiCaller.post('/api/v1/claims/pdf', form, { responseType: 'blob', signal, timeout: 120000 });
   const receipt = response.headers['x-claim-receipt'];
   if (!receipt) throw new Error('생성 확인 정보를 받지 못했습니다. 서버 연결을 확인해 주세요.');
-  return { blob: response.data, receipt, pages: Number(response.headers['x-claim-pages']) };
+  return { blob: response.data, receipt, pages: Number(response.headers['x-claim-pages']),
+    faxCost: Number(response.headers['x-claim-fax-cost']), faxMode: response.headers['x-claim-fax-mode'] || 'DISABLED' };
 }
 
 export async function simulateClaimSend(receipts) {
@@ -31,10 +32,10 @@ export async function claimError(error) {
   return typeof data?.detail === 'string' ? data.detail : error?.message || '청구서를 처리하지 못했습니다.';
 }
 
-export async function saveClaimRequest(requestKey, insurerIds, claim, files, faxNumbers = {}, saveMode = 'FILE') {
+export async function saveClaimRequest(requestKey, insurerIds, claim, files, faxNumbers = {}, saveMode = 'FILE', faxQuote = {}) {
   const form = new FormData();
   form.append('payload', JSON.stringify({ request_key: requestKey, insurer_ids: insurerIds, claim,
-    fax_numbers: faxNumbers, save_mode: saveMode }));
+    fax_numbers: faxNumbers, save_mode: saveMode, ...faxQuote }));
   files.forEach(file => form.append('files', file));
   return (await apiCaller.post('/api/v1/claims/requests', form, { timeout: 300000 })).data;
 }

@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useBlocker, useLocation, useNavigate } from 'react-router-dom';
-import { Alert, Box, Button, Checkbox, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Divider, FormControlLabel, Grid,
+import { Alert, Box, Button, Checkbox, CircularProgress, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Divider, FormControlLabel, Grid,
   MenuItem, Paper, Stack, Step, StepLabel, Stepper, TextField, Typography } from '@mui/material';
 import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
 import SignaturePad from './SignaturePad';
+import ClaimAttachments from './ClaimAttachments';
+import ClaimInsurerLogo from './ClaimInsurerLogo';
+import ClaimFaxHelp from './ClaimFaxHelp';
 import ClaimPdfResult from './ClaimPdfResult';
 import ClaimPdfPreview from './ClaimPdfPreview';
 import ClaimHistory from './ClaimHistory';
@@ -14,7 +17,7 @@ import { activeClaimPayload, claimInputErrors, claimErrorStep, claimNeedsGuardia
   formatClaimInput, formatClaimInputEdit, isFormattedClaimField } from '@/services/claim-validation';
 
 const EMPTY = {
-  insured_name: '', insured_id: '', insured_phone: '', insured_signature: '', beneficiary_same: true,
+  attachment_rotations: [], insured_name: '', insured_id: '', insured_phone: '', insured_signature: '', beneficiary_same: true,
   beneficiary_name: '', beneficiary_id: '', beneficiary_phone: '', beneficiary_signature: '',
   insured_guardian_name: '', insured_guardian_relationship: '', insured_guardian_phone: '',
   beneficiary_guardian_name: '', beneficiary_guardian_relationship: '', beneficiary_guardian_phone: '',
@@ -52,6 +55,10 @@ export default function ClaimsPage() {
   const [customerNotice, setCustomerNotice] = useState('');
   const [partyRevision, setPartyRevision] = useState({ insured: 0, beneficiary: 0 });
   const downloadOnlyInsurers = insurers.filter(item => selected.includes(item.id) && item.fax_enabled === false);
+  const faxMode = results[0]?.faxMode || 'DISABLED';
+  const totalFaxPages = results.reduce((sum, result) => sum + result.pages, 0);
+  const totalFaxCost = results.reduce((sum, result) => sum + (result.faxCost || 0), 0);
+  const faxUnavailable = faxMode === 'DISABLED' || results.some(result => result.faxMode !== faxMode || !Number.isFinite(result.faxCost));
   const requestKey = useRef(null);
   const pending = useRef(null);
   const form = useRef(null);
@@ -220,7 +227,7 @@ export default function ClaimsPage() {
     requestKey.current ||= { mode, key: crypto.randomUUID() };
     if (requestKey.current.mode !== mode) requestKey.current = { mode, key: crypto.randomUUID() };
     try {
-      const result = await saveClaimRequest(requestKey.current.key, selected, activeClaimPayload(payload), files, faxNumbers, mode);
+      const result = await saveClaimRequest(requestKey.current.key, selected, activeClaimPayload(payload), files, faxNumbers, mode, mode === 'FAX' ? { expected_fax_mode: faxMode, expected_fax_cost: faxMode === 'REAL' ? totalFaxCost : 0 } : {});
       setSaved(result);
       return result;
     } catch (e) { setError(await claimError(e)); throw e; } finally { setBusy(false); }
@@ -245,7 +252,7 @@ export default function ClaimsPage() {
     {view === 'history' ? <ClaimHistory onReuse={reuse} insurers={insurers} /> : <Stack spacing={3} component="form" ref={form} onSubmit={e => e.preventDefault()}>
       <Box><Typography variant="h4" fontWeight={800}>보험금 청구서 만들기</Typography>
         <Typography color="text.secondary" sx={{ mt: 1 }}>공통 정보를 입력하면 보험사별 청구서를 만들 수 있습니다.</Typography></Box>
-      <Alert severity="info">다운로드나 공유하기를 누르면 청구내역에 저장하고, PC 전송용 흑백 통합본과 모바일 전송용 흑백 분할본을 1시간 임시 보관합니다. 청구내역에서 PC는 다운로드, 모바일은 공유하기를 이용할 수 있습니다. 이후 발송용 원본은 삭제되고, 마스킹 보관본과 첨부서류는 청구내역에 남습니다. 첨부서류의 개인정보는 자동 마스킹되지 않습니다. 팩스 발송 결과는 청구내역의 발송 이력에서 확인할 수 있습니다. 결과 확인이 필요한 건은 확인 전까지 다시 발송하지 마세요. 비용은 차감되지 않습니다.</Alert>
+      <Alert severity="info">다운로드나 공유하기를 누르면 청구내역에 저장하고, PC 전송용 흑백 통합본과 모바일 전송용 흑백 분할본을 1시간 임시 보관합니다. 청구내역에서 PC는 다운로드, 모바일은 공유하기를 이용할 수 있습니다. 이후 발송용 원본은 삭제되고, 마스킹 보관본과 첨부서류는 청구내역에 남습니다. 첨부서류의 개인정보는 자동 마스킹되지 않습니다. 팩스 발송 결과는 청구내역의 발송 이력에서 확인할 수 있습니다. 결과 확인이 필요한 건은 확인 전까지 다시 발송하지 마세요. 다운로드·공유하기는 무료이며, 실제 팩스 발송은 보험사별 장수에 따라 꼬막이 차감됩니다. 최종 발송 실패 시 해당 요금을 반환합니다.</Alert>
       <Stepper activeStep={step} alternativeLabel>{STEPS.map(title => <Step key={title}><StepLabel>{title}</StepLabel></Step>)}</Stepper>
       {error && <Alert severity="error" sx={{ whiteSpace: 'pre-line' }}>{error}</Alert>}
       {saved && <Alert severity={saved.fax_history?.some(item => ['FAILED', 'UNKNOWN'].includes(item.status)) ? 'warning' : 'success'} role="status" action={<Button component={Link} to="/claims/history" color="inherit" size="small">청구내역 보기</Button>}>
@@ -260,7 +267,8 @@ export default function ClaimsPage() {
             <Typography fontWeight={700} sx={{ mb: 1 }}>{kind === 'DAMAGE' ? '손해보험·공제' : '생명보험'}</Typography>
             <Grid container spacing={1}>{insurers.filter(item => item.kind === kind).map(item => <Grid item xs={12} sm={6} md={4} key={item.id}>
               <Paper variant="outlined" sx={{ px: 1, bgcolor: selected.includes(item.id) ? '#eef4ff' : 'white' }}>
-                <FormControlLabel sx={{ width: '100%', m: 0 }} label={`${item.name}${item.fax_enabled === false ? ' · 다운로드 전용' : ''}`} control={<Checkbox checked={selected.includes(item.id)} disabled={busy}
+                <FormControlLabel sx={{ width: '100%', m: 0 }} label={<Stack direction="row" alignItems="center" gap={1}><ClaimInsurerLogo insurer={item} />
+                  <Typography variant="body2">{item.name}{item.fax_enabled === false ? ' · 다운로드 전용' : ''}</Typography></Stack>} control={<Checkbox checked={selected.includes(item.id)} disabled={busy}
                   onChange={event => { invalidate(); setSelected(previous => event.target.checked
                     ? [...previous, item.id] : previous.filter(id => id !== item.id));
                     setFaxNumbers(previous => { const next = { ...previous }; delete next[item.id]; return next; }); }} />} />
@@ -322,10 +330,20 @@ export default function ClaimsPage() {
                 if ([...files, ...added].length > 50 || [...files, ...added].reduce((s, f) => s+f.size, 0) > 100*1024*1024) {
                   setError('첨부는 50개 파일, 합계 100MB까지 가능합니다.'); return;
                 }
-                invalidate(); setFiles(old => [...old, ...added]);
+                invalidate(); setPayload(old => ({ ...old, attachment_rotations: [...files.map((_, i) => old.attachment_rotations[i] || []), ...added.map(() => [])] })); setFiles(old => [...old, ...added]);
               }} /></Button>
             <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>첨부 최대 50개 파일·합계 100MB까지. 청구서 양식 포함 최종 50쪽·100MB까지. PDF는 암호를 해제해서 첨부해 주세요.</Typography>
-            <Stack direction="row" flexWrap="wrap" gap={1} sx={{ mt: 1 }}>{files.map((f, i) => <Chip key={`${f.name}-${i}`} label={f.name} disabled={busy} onDelete={() => { invalidate(); setFiles(old => old.filter((_, n) => n !== i)); }} />)}</Stack>
+            <Typography variant="caption" color="text.secondary" display="block">가로가 긴 이미지는 자동으로 90° 회전하고, 큰 이미지는 비율을 유지해 A4에 맞춥니다. 회전 버튼으로 방향을 조정할 수 있습니다.</Typography>
+            <ClaimAttachments files={files} rotations={payload.attachment_rotations} disabled={busy}
+              onRotate={(index, page) => {
+                const rotations = files.map((_, i) => [...(payload.attachment_rotations[i] || [])]);
+                while (rotations[index].length <= page) rotations[index].push(0);
+                rotations[index][page] = (rotations[index][page] + 90) % 360;
+                update('attachment_rotations', rotations);
+              }} onDelete={index => {
+                invalidate(); setFiles(old => old.filter((_, i) => i !== index));
+                setPayload(old => ({ ...old, attachment_rotations: files.map((_, i) => old.attachment_rotations[i] || []).filter((_, i) => i !== index) }));
+              }} />
           </Box>
           <Alert severity="warning">입력하지 않은 직업·주소 등의 칸은 비워 두며 일부 항목은 ‘자료첨부’로 표시됩니다. 생성 후 빠진 내용을 확인해 주세요.</Alert>
           <Box><Typography fontWeight={700}>보험사 양식·동의서 확인</Typography>
@@ -343,15 +361,21 @@ export default function ClaimsPage() {
             <Typography fontWeight={700}>{result.name} PDF · {result.pages}쪽</Typography>
             <ClaimPdfPreview blob={result.blob} name={result.name} />
           </Stack>)}
+          <Typography variant="body2">요금: 보험사별 1~16장 10꼬막 · 17~18장 11꼬막 · 19~20장 12꼬막 · 이후 2장마다 1꼬막 추가</Typography>
+          <Alert severity={faxUnavailable ? 'warning' : 'info'}>{faxUnavailable ? '현재 팩스 발송을 사용할 수 없습니다. 다운로드 또는 공유하기를 이용해 주세요.'
+            : faxMode === 'TEST' ? '현재 테스트 번호로만 발송하며 꼬막은 차감되지 않습니다.'
+              : `선택 보험사 ${selected.length}곳 전체 발송 · 총 ${totalFaxPages}장 · 합계 ${totalFaxCost}꼬막`}</Alert>
           <ClaimFaxDestinations insurers={insurers.filter(item => selected.includes(item.id))} numbers={faxNumbers}
             disabled={busy || Boolean(saved)} onChange={(id, value) => {
               requestKey.current = null; setFaxNumbers(previous => ({ ...previous, [id]: value }));
             }} renderAction={(insurer, feedbackId) => {
               const result = results.find(item => item.id === insurer.id);
               return result ? <ClaimPdfResult result={result} disabled={busy} saved={saved} prepare={() => save('FILE')}
-                feedbackId={feedbackId} faxAction={<Button variant="contained"
-                  disabled={busy || Boolean(saved) || !results.length || results.length !== selected.length || downloadOnlyInsurers.length > 0}
-                  onClick={() => setFaxConfirmationOpen(true)}>팩스 발송</Button>} />
+                feedbackId={feedbackId} faxAction={<Stack direction="row" alignItems="center" flexWrap="wrap" gap={1}><Button variant="contained"
+                  disabled={busy || Boolean(saved) || !results.length || results.length !== selected.length || downloadOnlyInsurers.length > 0 || faxUnavailable}
+                  onClick={() => setFaxConfirmationOpen(true)}>팩스 발송</Button>
+                  <Typography variant="body2">{result.pages}장 · {faxMode === 'TEST' ? '테스트 무료' : Number.isFinite(result.faxCost) ? `${result.faxCost}꼬막` : '요금 확인 필요'}</Typography>
+                  <ClaimFaxHelp /></Stack>} />
                 : <Alert severity="warning">PDF를 생성하지 못했습니다. 이전 단계에서 다시 생성해 주세요.</Alert>;
             }} />
           {!results.length && <Alert severity="warning">생성된 PDF가 없습니다. 이전 단계에서 내용을 확인해 주세요.</Alert>}
@@ -368,16 +392,20 @@ export default function ClaimsPage() {
     </Stack>}
     <Dialog open={faxConfirmationOpen} onClose={() => setFaxConfirmationOpen(false)}
       aria-labelledby="claim-fax-test-title" aria-describedby="claim-fax-test-description">
-      <DialogTitle id="claim-fax-test-title">팩스 테스트 발송 안내</DialogTitle>
+      <DialogTitle id="claim-fax-test-title">{faxMode === 'TEST' ? '팩스 테스트 발송 안내' : '팩스 발송 및 요금 확인'}</DialogTitle>
       <DialogContent><DialogContentText id="claim-fax-test-description">
-        현재 팩스 발송 기능은 테스트 중입니다. 실제 보험사로는 발송되지 않으며, 테스트용 수신번호로만 전송됩니다.
-        계속 진행하시겠습니까?
-      </DialogContentText></DialogContent>
+        {faxMode === 'TEST' ? '테스트용 수신번호로만 전송하며 꼬막은 차감되지 않습니다.'
+          : `선택한 보험사 ${selected.length}곳에 총 ${totalFaxPages}장을 실제 발송합니다. 접수 시 합계 ${totalFaxCost}꼬막이 차감되며, 최종 실패한 보험사의 요금은 자동 반환됩니다. 결과 확인 중인 건은 확인 전까지 다시 발송하지 마세요.`}
+      </DialogContentText>
+        <Stack spacing={1} sx={{ mt: 2 }}>{results.map(result => <Typography key={result.id} variant="body2">
+          {result.name} · {faxNumbers[result.id] || insurers.find(item => item.id === result.id)?.fax_numbers?.[0] || '수신번호 미입력'} · {result.pages}장 · {faxMode === 'TEST' ? '무료' : Number.isFinite(result.faxCost) ? `${result.faxCost}꼬막` : '요금 확인 필요'}
+        </Typography>)}</Stack>
+      </DialogContent>
       <DialogActions>
         <Button onClick={() => setFaxConfirmationOpen(false)} autoFocus>취소</Button>
         <Button variant="contained" color="warning"
-          disabled={busy || Boolean(saved) || !results.length || results.length !== selected.length || downloadOnlyInsurers.length > 0}
-          onClick={() => { setFaxConfirmationOpen(false); save('FAX').catch(() => {}); }}>계속 진행</Button>
+          disabled={busy || Boolean(saved) || !results.length || results.length !== selected.length || downloadOnlyInsurers.length > 0 || faxUnavailable}
+          onClick={() => { setFaxConfirmationOpen(false); save('FAX').catch(() => {}); }}>{faxMode === 'TEST' ? '테스트 발송' : `${totalFaxCost}꼬막 결제하고 발송`}</Button>
       </DialogActions>
     </Dialog>
     <Dialog open={leavingStep || blocker.state === 'blocked'} onClose={cancelLeave}

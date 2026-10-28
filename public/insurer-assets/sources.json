@@ -876,5 +876,17 @@
       "checked_at": "2026-10-10"
     },
     "browser": null
+  },
+  {
+    "id": "non-life-shinhanez",
+    "name": "신한EZ손해보험",
+    "logo": {
+      "path": "/insurer-assets/non-life-shinhanez.svg",
+      "source_url": "https://www.shinhanez.co.kr/resources/image/logo-shez.svg",
+      "checked_at": "2026-10-28",
+      "width": 200,
+      "height": 30,
+      "view_box": "0 0 200 30"
+    }
   }
 ]

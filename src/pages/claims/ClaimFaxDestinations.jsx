@@ -2,6 +2,7 @@
 import { useId } from 'react';
 import { Alert, Box, Button, Chip, Paper, Stack, TextField, Typography } from '@mui/material';
 import FaxNumberCopy from './FaxNumberCopy';
+import ClaimInsurerLogo from './ClaimInsurerLogo';
 
 export default function ClaimFaxDestinations({ insurers, numbers, onChange, disabled, readOnly = false, renderAction }) {
   const feedbackPrefix = useId();
@@ -9,14 +10,14 @@ export default function ClaimFaxDestinations({ insurers, numbers, onChange, disa
   function heading(insurer, label) {
     const phone = insurer.customer_center_phone;
     return <Box sx={{ display: 'grid', gap: 1.5, alignItems: 'center',
-      gridTemplateColumns: renderAction ? { xs: 'minmax(0, 1fr)', sm: 'minmax(0, 1fr) auto minmax(0, 1fr)' } : 'minmax(0, 1fr)' }}>
+      gridTemplateColumns: renderAction ? { xs: 'minmax(0, 1fr)', lg: 'minmax(0, 1fr) auto minmax(0, 1.5fr)' } : 'minmax(0, 1fr)' }}>
       <Stack direction="row" gap={1} alignItems="center" flexWrap="wrap">
-        <Typography fontWeight={700}>{insurer.name}</Typography><Chip size="small" label={label} />
+        <ClaimInsurerLogo insurer={insurer} /><Typography fontWeight={700}>{insurer.name}</Typography><Chip size="small" label={label} />
       </Stack>
       {phone ? <Button sx={{ justifySelf: 'start' }} size="small" href={`tel:${phone.replace(/[^0-9]/g, '')}`}>
         고객센터 {phone}
       </Button> : renderAction && <Typography variant="body2" color="text.secondary">등록된 고객센터 번호 없음</Typography>}
-      {renderAction && <Box sx={{ justifySelf: { xs: 'start', sm: 'end' }, minWidth: 0 }}>{renderAction(insurer, feedbackId(insurer))}</Box>}
+      {renderAction && <Box sx={{ justifySelf: { xs: 'start', lg: 'end' }, minWidth: 0 }}>{renderAction(insurer, feedbackId(insurer))}</Box>}
     </Box>;
   }
   return <Stack spacing={2} role="region" aria-label={renderAction ? '보험사별 다운로드·발송 안내' : '보험사별 발송 안내'}>
