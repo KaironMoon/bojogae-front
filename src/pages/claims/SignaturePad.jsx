@@ -55,7 +55,7 @@ export default function SignaturePad({ label, value, onChange, disabled }) {
     if (ref.current.hasPointerCapture(event.pointerId)) ref.current.releasePointerCapture(event.pointerId);
     if (moved.current) onChange(ref.current.toDataURL('image/png'));
   }
-  return <Box>
+  return <Box sx={{ width: '100%', maxWidth: 480 }}>
     <Stack direction="row" justifyContent="space-between" alignItems="center">
       <Typography variant="body2" fontWeight={700}>{label}</Typography>
       <Stack direction="row" spacing={1}>
@@ -82,7 +82,7 @@ export default function SignaturePad({ label, value, onChange, disabled }) {
         drawing.current = true; moved.current = false;
         ref.current.setPointerCapture(event.pointerId);
         const context = ref.current.getContext('2d');
-        context.lineWidth = 2.8; context.strokeStyle = '#172536'; context.lineCap = 'round';
+        context.lineWidth = 7; context.strokeStyle = '#172536'; context.lineCap = 'round';
         context.beginPath(); context.moveTo(...point(event));
       }}
       onPointerMove={event => {
