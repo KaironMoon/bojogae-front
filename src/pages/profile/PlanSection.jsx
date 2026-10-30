@@ -128,7 +128,7 @@ function LegacyPlanSection() {
     <Paper id="plan" elevation={0} sx={{ p: { xs: 2.5, md: 3 }, mb: 3, border: "1px solid", borderColor: "divider", borderRadius: 3 }}>
       <Stack spacing={2}>
         <Stack direction="row" spacing={1.5} alignItems="center">
-          <Box sx={{ width: 44, height: 44, display: "grid", placeItems: "center", borderRadius: 2.5, color: "primary.main", bgcolor: "#eff6ff" }}>
+          <Box sx={{ width: 44, height: 44, display: "grid", placeItems: "center", borderRadius: 2.5, color: "primary.main", bgcolor: "var(--bojogae-tint)" }}>
             <WorkspacePremiumRoundedIcon />
           </Box>
           <Box sx={{ flex: 1 }}>

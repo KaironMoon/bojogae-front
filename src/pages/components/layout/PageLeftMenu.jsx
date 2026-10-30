@@ -148,7 +148,7 @@ function PageLeftMenu({ onNavigate }) { // eslint-disable-line react/prop-types
             minHeight: 42,
             px: 1.5,
             borderRadius: 1.5,
-            color: active ? "primary.main" : "#526174",
+            color: active ? "primary.dark" : "var(--bojogae-muted)",
             position: "relative",
             "&::after": active ? {
               content: '""',
@@ -158,14 +158,14 @@ function PageLeftMenu({ onNavigate }) { // eslint-disable-line react/prop-types
               bottom: 7,
               width: 3,
               borderRadius: "3px 0 0 3px",
-              bgcolor: "primary.main",
+              bgcolor: "primary.dark",
             } : undefined,
             "&.Mui-selected": {
-              bgcolor: "#eef4ff",
-              color: "primary.main",
-              "&:hover": { bgcolor: "#e5edff" },
+              bgcolor: "var(--bojogae-tint)",
+              color: "primary.dark",
+              "&:hover": { bgcolor: "var(--bojogae-tint-hover)" },
             },
-            "&:hover": { bgcolor: "#f6f8fc", color: "#1e293b" },
+            "&:hover": { bgcolor: "var(--bojogae-canvas)", color: "var(--bojogae-ink)" },
           }}
         >
           <ListItemIcon sx={{ minWidth: 34, color: "inherit" }}>
@@ -197,9 +197,9 @@ function PageLeftMenu({ onNavigate }) { // eslint-disable-line react/prop-types
               minHeight: 42,
               px: 1.5,
               borderRadius: 1.5,
-              color: active ? "primary.main" : "#526174",
-              "&.Mui-selected": { bgcolor: "#eef4ff", color: "primary.main" },
-              "&:hover": { bgcolor: "#f6f8fc", color: "#1e293b" },
+              color: active ? "primary.dark" : "var(--bojogae-muted)",
+              "&.Mui-selected": { bgcolor: "var(--bojogae-tint)", color: "primary.dark" },
+              "&:hover": { bgcolor: "var(--bojogae-canvas)", color: "var(--bojogae-ink)" },
             }}
           >
             <ListItemIcon sx={{ minWidth: 34, color: "inherit" }}><Icon sx={{ fontSize: 20 }} /></ListItemIcon>
@@ -216,7 +216,7 @@ function PageLeftMenu({ onNavigate }) { // eslint-disable-line react/prop-types
                   <ListItemButton
                     selected={childActive}
                     onClick={() => { navigate(item.path); onNavigate?.(); }}
-                    sx={{ minHeight: 38, pl: 5.75, pr: 1.5, borderRadius: 1.5, color: childActive ? "primary.main" : "#64748b", "&.Mui-selected": { bgcolor: "#eef4ff" } }}
+                    sx={{ minHeight: 38, pl: 5.75, pr: 1.5, borderRadius: 1.5, color: childActive ? "primary.dark" : "var(--bojogae-muted)", "&.Mui-selected": { bgcolor: "var(--bojogae-tint)" } }}
                   >
                     <ListItemText primary={item.label} primaryTypographyProps={{ fontSize: 13.5, fontWeight: childActive ? 750 : 500 }} />
                   </ListItemButton>
@@ -241,7 +241,7 @@ function PageLeftMenu({ onNavigate }) { // eslint-disable-line react/prop-types
         display: "flex",
         flexDirection: "column",
         bgcolor: "#fff",
-        borderRight: "1px solid #e5eaf1",
+        borderRight: "1px solid var(--bojogae-line)",
       }}
     >
       <List sx={{ pt: 2, pb: 1 }}>
@@ -282,7 +282,7 @@ function PageLeftMenu({ onNavigate }) { // eslint-disable-line react/prop-types
         {user && !user.group_id && (
           <Typography
             onClick={() => navigate("/profile#plan")}
-            sx={{ color: user?.plan_code && user.plan_code !== "FREE" ? "primary.main" : "#64748b", fontSize: 11, fontWeight: 800, mb: 0.5, cursor: "pointer" }}
+            sx={{ color: user?.plan_code && user.plan_code !== "FREE" ? "primary.dark" : "var(--bojogae-muted)", fontSize: 11, fontWeight: 800, mb: 0.5, cursor: "pointer" }}
           >
             개인 {planName(user?.plan_code)} 요금제
           </Typography>
@@ -306,7 +306,7 @@ function StackVersion() {
 
 function StackedBrand() {
   return (
-    <Typography sx={{ color: "#64748b", fontSize: 11, fontWeight: 800, mb: 0.25 }}>
+    <Typography sx={{ color: "var(--bojogae-muted)", fontSize: 11, fontWeight: 800, mb: 0.25 }}>
       BOJOGAE
     </Typography>
   );

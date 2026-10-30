@@ -119,7 +119,7 @@ function PolicyPage({ kind }) {
                 borderRadius: 2.5,
                 color: "#fff",
                 fontWeight: 900,
-                background: "linear-gradient(145deg,#3157e6,#6680f4)",
+                background: "linear-gradient(145deg,var(--bojogae-accent-ink),var(--bojogae-deep))",
               }}
             >
               B

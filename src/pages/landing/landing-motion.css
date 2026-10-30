@@ -117,7 +117,7 @@
   width: 6px;
   height: 5px;
   content: "";
-  background: #536fe9;
+  background: var(--bojogae-accent-ink);
   border-radius: 5px;
   animation: scrollCue 2.2s ease-in-out infinite;
 }
@@ -126,8 +126,8 @@
   width: 100%;
   overflow: hidden;
   padding: 18px 0;
-  border-top: 1px solid #e8ecf2;
-  border-bottom: 1px solid #e8ecf2;
+  border-top: 1px solid var(--bojogae-line);
+  border-bottom: 1px solid var(--bojogae-line);
   background: #fff;
 }
 
@@ -152,9 +152,9 @@
 .marquee-track i {
   width: 7px;
   height: 7px;
-  background: linear-gradient(135deg, #4968ed, #22bed3);
+  background: linear-gradient(135deg, var(--bojogae-accent-ink), var(--bojogae-accent));
   border-radius: 50%;
-  box-shadow: 0 0 0 6px rgba(73, 104, 237, 0.08);
+  box-shadow: 0 0 0 6px rgba(232, 128, 104, 0.08);
 }
 
 .flow-section {
@@ -168,9 +168,9 @@
   width: 3px;
   height: calc(var(--flow-progress) * 100%);
   content: "";
-  background: linear-gradient(#4263e9, #19b8d3);
+  background: linear-gradient(var(--bojogae-accent-ink), var(--bojogae-accent));
   border-radius: 10px;
-  box-shadow: 0 0 18px rgba(58, 104, 231, 0.45);
+  box-shadow: 0 0 18px rgba(232, 128, 104, 0.45);
   transform: translateX(-1px);
 }
 
@@ -182,9 +182,9 @@
   width: 13px;
   height: 13px;
   background: #fff;
-  border: 3px solid #3e66e8;
+  border: 3px solid var(--bojogae-accent-ink);
   border-radius: 50%;
-  box-shadow: 0 0 0 8px rgba(62, 102, 232, 0.11), 0 0 24px rgba(62, 102, 232, 0.5);
+  box-shadow: 0 0 0 8px rgba(232, 128, 104, 0.11), 0 0 24px rgba(232, 128, 104, 0.5);
   transform: translate(-50%, -50%);
   transition: top 0.16s linear;
 }
@@ -219,7 +219,7 @@
 }
 
 .flow-step[data-active="true"] .step-number {
-  color: rgba(65, 96, 220, 0.12);
+  color: rgba(232, 128, 104, 0.12);
   transform: translateY(-8px);
   transition: color 0.5s ease, transform 0.7s var(--motion-ease);
 }
@@ -241,7 +241,7 @@
 }
 
 .flow-step[data-active="true"] .upload-drop {
-  background: #3157e6;
+  background: var(--bojogae-accent-ink);
   transform: translateY(-8px);
 }
 
@@ -308,7 +308,7 @@
 
 .bento-card:hover {
   z-index: 2;
-  border-color: rgba(66, 99, 233, 0.28);
+  border-color: rgba(232, 128, 104, 0.28);
   box-shadow: 0 28px 65px rgba(37, 53, 86, 0.13);
   transform: translateY(-9px) rotateX(1deg);
 }
@@ -344,7 +344,7 @@
 
 .review-grid article:hover {
   background: rgba(255, 255, 255, 0.075);
-  border-color: rgba(116, 143, 255, 0.35);
+  border-color: rgba(232, 128, 104, 0.35);
   transform: translateY(-12px);
 }
 
@@ -358,25 +358,25 @@
 
 .pricing-grid article:hover {
   z-index: 2;
-  border-color: rgba(49, 87, 230, 0.42);
+  border-color: rgba(232, 128, 104, 0.42);
   box-shadow: 0 28px 60px rgba(37, 53, 86, 0.12);
   transform: translateY(-10px);
 }
 
 .pricing-grid article.coming-soon {
-  background: linear-gradient(145deg, #ffffff, #f4f6fa);
+  background: linear-gradient(145deg, #ffffff, var(--bojogae-canvas));
   border-style: dashed;
 }
 
 .pricing-grid article.coming-soon:hover {
-  border-color: #d6dce6;
+  border-color: var(--bojogae-line);
   box-shadow: none;
   transform: none;
 }
 
 .pricing-grid article.coming-soon .plan-tag {
   color: #6f7b8e;
-  background: #e8ecf2;
+  background: var(--bojogae-line);
 }
 
 .pricing-grid article.coming-soon ul {
@@ -386,7 +386,7 @@
 .pricing-grid article.coming-soon > button,
 .pricing-grid article.coming-soon > button:hover {
   color: #8c96a6;
-  background: #e5e9ef;
+  background: var(--bojogae-line);
   cursor: not-allowed;
 }
 
@@ -441,8 +441,8 @@
 }
 
 @keyframes signalPulse {
-  0% { box-shadow: 0 0 0 0 rgba(78, 108, 240, 0.32); }
-  70%, 100% { box-shadow: 0 0 0 9px rgba(78, 108, 240, 0); }
+  0% { box-shadow: 0 0 0 0 rgba(232, 128, 104, 0.32); }
+  70%, 100% { box-shadow: 0 0 0 9px rgba(232, 128, 104, 0); }
 }
 
 @keyframes productFloat {
@@ -502,8 +502,8 @@
 }
 
 @keyframes aiChipGlow {
-  0%, 100% { box-shadow: 0 0 0 rgba(112, 231, 255, 0); }
-  50% { box-shadow: 0 0 28px rgba(112, 231, 255, 0.19); }
+  0%, 100% { box-shadow: 0 0 0 rgba(242, 184, 157, 0); }
+  50% { box-shadow: 0 0 28px rgba(242, 184, 157, 0.19); }
 }
 
 @keyframes referralGlow {

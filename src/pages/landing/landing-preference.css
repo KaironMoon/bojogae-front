@@ -7,7 +7,7 @@
 }
 
 .skip-landing-button:hover {
-  color: var(--blue);
+  color: var(--brand-accent);
 }
 
 @media (max-width: 700px) {

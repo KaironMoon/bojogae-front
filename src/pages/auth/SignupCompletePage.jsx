@@ -161,7 +161,7 @@ function SignupCompletePage() {
   }
 
   return (
-    <Box component="main" sx={{ minHeight: "100vh", display: "grid", placeItems: "center", p: 2, backgroundColor: "#f6f8fc" }}>
+    <Box component="main" sx={{ minHeight: "100vh", display: "grid", placeItems: "center", p: 2, backgroundColor: "var(--bojogae-canvas)" }}>
       <Container maxWidth="sm">
         <Paper elevation={0} sx={{ p: { xs: 3, sm: 5 }, border: "1px solid", borderColor: "divider", borderRadius: 4 }}>
           <Stack spacing={3}>

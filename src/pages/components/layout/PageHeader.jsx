@@ -24,7 +24,7 @@ function PageHeader({ onMenuClick }) { // eslint-disable-line react/prop-types
         px: { xs: 2, md: 2.5 },
         backgroundColor: theme.palette.background.header,
         justifyContent: "space-between",
-        borderBottom: "1px solid #e5eaf1",
+        borderBottom: "1px solid var(--bojogae-line)",
       }}
     >
       <Stack direction="row" spacing={1.25} alignItems="center">
@@ -51,15 +51,15 @@ function PageHeader({ onMenuClick }) { // eslint-disable-line react/prop-types
           }}
         >
           <Box component="img" src="/bojogae-icon.png" alt="" sx={{ width: 32, height: 32, borderRadius: "8px", display: "block" }} />
-          <Typography variant="h6" component="span" sx={{ color: theme.palette.text.primary, fontWeight: 900, letterSpacing: "-0.03em" }}>
+          <Typography variant="h6" component="span" sx={{ color: "primary.dark", fontWeight: 900, letterSpacing: "-0.03em" }}>
             BOJOGAE
           </Typography>
         </Stack>
-        <Chip label="GA PRO Edition" size="small" sx={{ display: { xs: "none", sm: "inline-flex" }, height: 22, bgcolor: "#dbeafe", color: "#1e40af", fontSize: 10.5, fontWeight: 750 }} />
+        <Chip label="GA PRO Edition" size="small" sx={{ display: { xs: "none", sm: "inline-flex" }, height: 22, bgcolor: "var(--bojogae-tint)", color: "var(--bojogae-accent-ink)", fontSize: 10.5, fontWeight: 750 }} />
       </Stack>
       <Stack direction="row" spacing={{ xs: 0.5, sm: 1.5 }} alignItems="center">
         <Stack direction="row" spacing={0.8} alignItems="center">
-          <Avatar sx={{ width: 28, height: 28, bgcolor: "#dbeafe", color: "#1d4ed8", fontSize: 10, fontWeight: 800 }}>
+          <Avatar sx={{ width: 28, height: 28, bgcolor: "var(--bojogae-tint)", color: "var(--bojogae-accent-ink)", fontSize: 10, fontWeight: 800 }}>
             {user?.role === "ADMIN" ? "AD" : "GA"}
           </Avatar>
           <Typography variant="body2" color="text.primary" sx={{ display: { xs: "none", sm: "block" }, fontWeight: 650 }}>

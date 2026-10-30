@@ -18,6 +18,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "@/auth/AuthContext";
 import { dashboardBannerImageUrl, getDashboard } from "@/services/dashboard-service";
 import { promptPreviewImageUrl } from "@/services/prompt-service";
+import { brand } from "@/styles/palette";
 
 const STATUS = {
   QUEUED: ["대기 중", "default"], RUNNING: ["생성 중", "primary"],
@@ -28,7 +29,7 @@ const BOARD_NAMES = { notices: "공지사항", "industry-news": "업계소식", 
 
 function StatCard({ icon, label, value, accent }) {
   return (
-    <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, minWidth: 0, borderColor: "#e7ebf2" }}>
+    <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, minWidth: 0, borderColor: "var(--bojogae-line)" }}>
       <Stack direction="row" spacing={1.3} alignItems="center">
         <Box sx={{ width: 38, height: 38, borderRadius: 2.2, display: "grid", placeItems: "center", bgcolor: `${accent}14`, color: accent }}>{icon}</Box>
         <Box sx={{ minWidth: 0 }}>
@@ -42,7 +43,7 @@ function StatCard({ icon, label, value, accent }) {
 
 const RELEASE_BADGES = {
   NEW: { label: "신규", sx: { bgcolor: "#dcfce7", color: "#166534" } },
-  UPDATED: { label: "업데이트", sx: { bgcolor: "#dbeafe", color: "#1e40af" } },
+  UPDATED: { label: "업데이트", sx: { bgcolor: "var(--bojogae-tint)", color: "var(--bojogae-accent-ink)" } },
 };
 
 function PromptCard({ prompt, rank, showThumbnail = true }) {
@@ -53,8 +54,8 @@ function PromptCard({ prompt, rank, showThumbnail = true }) {
   const showPreview = preview && !failedPreviewIds[preview.id];
   const failPreview = (id) => setFailedPreviewIds((current) => ({ ...current, [id]: true }));
   return (
-    <Paper variant="outlined" sx={{ flex: showThumbnail ? "0 0 auto" : "initial", width: showThumbnail ? { xs: "min(78vw, 240px)", sm: "auto" } : "100%", minWidth: 0, maxWidth: "100%", boxSizing: "border-box", borderRadius: 3, overflow: "hidden", borderColor: "#e7ebf2", transition: "transform .18s, box-shadow .18s", scrollSnapAlign: showThumbnail ? { xs: "center", sm: "start" } : "none", "&:hover": { transform: "translateY(-3px)", boxShadow: "0 12px 30px rgba(29,47,78,.10)" } }}>
-      {showThumbnail && <Box sx={{ height: 146, position: "relative", overflow: "hidden", bgcolor: "#eef3ff" }}>
+    <Paper variant="outlined" sx={{ flex: showThumbnail ? "0 0 auto" : "initial", width: showThumbnail ? { xs: "min(78vw, 240px)", sm: "auto" } : "100%", minWidth: 0, maxWidth: "100%", boxSizing: "border-box", borderRadius: 3, overflow: "hidden", borderColor: "var(--bojogae-line)", transition: "transform .18s, box-shadow .18s", scrollSnapAlign: showThumbnail ? { xs: "center", sm: "start" } : "none", "&:hover": { transform: "translateY(-3px)", boxShadow: "0 12px 30px rgba(29,47,78,.10)" } }}>
+      {showThumbnail && <Box sx={{ height: 146, position: "relative", overflow: "hidden", bgcolor: "var(--bojogae-tint)" }}>
         {showPreview ? (
           previewCount > 1 ? (
             <Box sx={{ position: "relative", width: 103 + (visiblePreviews.length - 1) * 30, height: "100%", mx: "auto" }}>
@@ -77,7 +78,7 @@ function PromptCard({ prompt, rank, showThumbnail = true }) {
                     objectFit: "contain",
                     objectPosition: "center",
                     bgcolor: "white",
-                    border: "1px solid #cbd5e1",
+                    border: "1px solid var(--bojogae-line)",
                     borderRadius: "2px",
                     boxShadow: "0 4px 10px rgba(15,23,42,.14)",
                   }}
@@ -90,7 +91,7 @@ function PromptCard({ prompt, rank, showThumbnail = true }) {
               src={promptPreviewImageUrl(prompt.id, prompt.preview_image_revision, preview.id)}
               alt={`${prompt.title} 미리보기`}
               onError={() => failPreview(preview.id)}
-              sx={{ width: "100%", height: "100%", display: "block", objectFit: "contain", objectPosition: "center", bgcolor: "#eef3ff" }}
+              sx={{ width: "100%", height: "100%", display: "block", objectFit: "contain", objectPosition: "center", bgcolor: "var(--bojogae-tint)" }}
             />
           )
         ) : (
@@ -280,18 +281,18 @@ export default function Home() {
       {error && <Alert severity="error">{error}</Alert>}
       <CrmHomeSummary />
       {data && <Stack spacing={{ xs: 3.5, md: 4.5 }}>
-        <Paper sx={{ p: { xs: 2.5, md: 4 }, borderRadius: 4, color: "white", overflow: "hidden", position: "relative", background: "linear-gradient(120deg,#172554 0%,#1d4ed8 57%,#6366f1 100%)", boxShadow: "0 18px 50px rgba(30,64,175,.22)" }}>
+        <Paper sx={{ p: { xs: 2.5, md: 4 }, borderRadius: 4, color: "white", overflow: "hidden", position: "relative", background: "linear-gradient(120deg,var(--bojogae-deep) 0%,var(--bojogae-accent-ink) 100%)", boxShadow: "0 18px 50px rgba(155,69,50,.18)" }}>
           <Box sx={{ position: "absolute", width: 260, height: 260, borderRadius: "50%", bgcolor: "rgba(255,255,255,.09)", right: -70, top: -120 }} />
           <Box sx={{ position: "relative", maxWidth: 720 }}>
             <Chip icon={<AutoAwesomeRoundedIcon />} label="BOJOGAE AI" sx={{ mb: 2, color: "white", bgcolor: "rgba(255,255,255,.14)", "& .MuiChip-icon": { color: "#fef08a" } }} />
             <Typography variant="h3" sx={{ fontSize: { xs: 28, md: 40 }, fontWeight: 900, letterSpacing: "-.04em", overflowWrap: "anywhere" }}>{user?.display_name || "고객"}님, 오늘은 어떤 보고서를 만들까요?</Typography>
             <Typography sx={{ mt: 1.2, color: "rgba(255,255,255,.78)" }}>필요한 보고서를 선택하면 보조개가 빠르게 작업을 시작합니다.</Typography>
-            <Button component={Link} to="/proposals" variant="contained" size="large" endIcon={<ArrowForwardRoundedIcon />} sx={{ mt: 3, bgcolor: "white", color: "#1d4ed8", fontWeight: 850, px: 2.6, "&:hover": { bgcolor: "#eff6ff" } }}>보고서 만들기</Button>
+            <Button component={Link} to="/proposals" variant="contained" size="large" endIcon={<ArrowForwardRoundedIcon />} sx={{ mt: 3, bgcolor: "white", color: "var(--bojogae-accent-ink)", fontWeight: 850, px: 2.6, "&:hover": { bgcolor: "var(--bojogae-tint)" } }}>보고서 만들기</Button>
           </Box>
         </Paper>
 
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "repeat(2,minmax(0,1fr))", lg: "repeat(4,minmax(0,1fr))" }, gap: 1.5 }}>
-          <StatCard icon={<KkomakIcon size={32} />} label="보유 꼬막" value={data.summary.total_points} accent="#2563eb" />
+          <StatCard icon={<KkomakIcon size={32} />} label="보유 꼬막" value={data.summary.total_points} accent={brand.accentInk} />
           <StatCard icon={<BoltRoundedIcon />} label="진행 중" value={data.summary.active_reports} accent="#7c3aed" />
           <StatCard icon={<CheckCircleRoundedIcon />} label="완료한 보고서" value={data.summary.completed_reports} accent="#059669" />
           <StatCard icon={<CampaignRoundedIcon />} label="새로운 소식" value={data.latest_posts.length} accent="#ea580c" />
@@ -313,17 +314,17 @@ export default function Home() {
         </Box>}
 
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "minmax(0, 1fr)", lg: "minmax(0, 1.15fr) minmax(0, .85fr)" }, gap: 2, minWidth: 0 }}>
-          <Paper variant="outlined" sx={{ p: { xs: 2, md: 2.7 }, minWidth: 0, overflow: "hidden", borderRadius: 3.5, borderColor: "#e7ebf2" }}>
+          <Paper variant="outlined" sx={{ p: { xs: 2, md: 2.7 }, minWidth: 0, overflow: "hidden", borderRadius: 3.5, borderColor: "var(--bojogae-line)" }}>
             <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.5, minWidth: 0 }}><Typography variant="h6" fontWeight={850} sx={{ minWidth: 0 }}>최근 작업</Typography><Button component={Link} to="/proposals" size="small" sx={{ flexShrink: 0 }}>전체 보기</Button></Stack>
             <Stack divider={<Box sx={{ borderTop: "1px solid #eef1f5" }} />}>
               {data.recent_reports.map(report => <Stack key={report.id} direction="row" justifyContent="space-between" alignItems="center" spacing={1} sx={{ py: 1.4, minWidth: 0 }}><Box sx={{ minWidth: 0, flex: 1 }}><Typography fontWeight={750} noWrap>{report.title}</Typography><Typography variant="caption" color="text.secondary" noWrap sx={{ display: "block" }}>{report.prompt_title} · {new Date(report.created_at).toLocaleDateString("ko-KR")}</Typography></Box><Chip size="small" label={(STATUS[report.status] || [report.status])[0]} color={(STATUS[report.status] || [null, "default"])[1]} sx={{ flexShrink: 0 }} /></Stack>)}
               {!data.recent_reports.length && <Typography color="text.secondary" sx={{ py: 4, textAlign: "center" }}>아직 만든 보고서가 없습니다.</Typography>}
             </Stack>
           </Paper>
-          <Paper variant="outlined" sx={{ p: { xs: 2, md: 2.7 }, minWidth: 0, overflow: "hidden", borderRadius: 3.5, borderColor: "#e7ebf2" }}>
+          <Paper variant="outlined" sx={{ p: { xs: 2, md: 2.7 }, minWidth: 0, overflow: "hidden", borderRadius: 3.5, borderColor: "var(--bojogae-line)" }}>
             <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.5 }}><Typography variant="h6" fontWeight={850}>최신 소식</Typography><LocalFireDepartmentRoundedIcon sx={{ color: "#f97316" }} /></Stack>
             <Stack spacing={0.4}>
-              {data.latest_posts.map(post => <Box key={post.id} component={Link} to={`/board/posts/${post.id}`} sx={{ display: "block", minWidth: 0, overflow: "hidden", px: 1, py: 1.1, borderRadius: 2, textDecoration: "none", color: "inherit", "&:hover": { bgcolor: "#f8fafc" } }}><Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0 }}><Chip size="small" label={BOARD_NAMES[post.board_type]} sx={{ flexShrink: 0 }} /><Typography fontWeight={700} noWrap sx={{ minWidth: 0, flex: 1 }}>{post.title}</Typography></Stack></Box>)}
+              {data.latest_posts.map(post => <Box key={post.id} component={Link} to={`/board/posts/${post.id}`} sx={{ display: "block", minWidth: 0, overflow: "hidden", px: 1, py: 1.1, borderRadius: 2, textDecoration: "none", color: "inherit", "&:hover": { bgcolor: "var(--bojogae-canvas)" } }}><Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0 }}><Chip size="small" label={BOARD_NAMES[post.board_type]} sx={{ flexShrink: 0 }} /><Typography fontWeight={700} noWrap sx={{ minWidth: 0, flex: 1 }}>{post.title}</Typography></Stack></Box>)}
               {!data.latest_posts.length && <Typography color="text.secondary" sx={{ py: 4, textAlign: "center" }}>등록된 소식이 없습니다.</Typography>}
             </Stack>
           </Paper>

@@ -141,7 +141,7 @@ function LoginPage() {
         justifyContent: "center",
         py: { xs: 4, md: 8 },
         background:
-          "radial-gradient(circle at 15% 20%, rgba(67, 97, 238, .18), transparent 34%), radial-gradient(circle at 85% 80%, rgba(0, 180, 216, .16), transparent 30%), #f6f8fc",
+          "radial-gradient(circle at 15% 20%, rgba(232, 128, 104, .18), transparent 34%), radial-gradient(circle at 85% 80%, rgba(242, 184, 157, .20), transparent 30%), var(--bojogae-canvas)",
       }}
     >
       <Container maxWidth="sm" sx={{ width: "100%" }}>
@@ -305,7 +305,7 @@ function LoginPage() {
                         size="small"
                         sx={{
                           height: 22,
-                          backgroundColor: provider.id === "kakao" ? "rgba(25, 25, 25, .12)" : "rgba(67, 97, 238, .10)",
+                          backgroundColor: provider.id === "kakao" ? "rgba(25, 25, 25, .12)" : "rgba(232, 128, 104, .12)",
                           color: "inherit",
                           fontSize: 11,
                           fontWeight: 800,

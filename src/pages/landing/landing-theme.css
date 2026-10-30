@@ -1,0 +1,33 @@
+/* Brand colors come from the same palette as the application's MUI theme. */
+.landing-page {
+  background: var(--bojogae-canvas);
+}
+
+.landing-header .brand-mark,
+.landing-page .primary-cta,
+.landing-page .hero-actions .primary-cta,
+.landing-page .pricing-grid article.featured > button {
+  color: var(--bojogae-ink);
+  background: var(--bojogae-accent);
+}
+
+.landing-page .primary-cta:hover,
+.landing-page .hero-actions .primary-cta:hover,
+.landing-page .pricing-grid article.featured > button:hover {
+  background: var(--bojogae-accent-hover);
+}
+
+.landing-page .eyebrow-pill,
+.landing-page .featured .plan-tag {
+  color: var(--bojogae-accent-ink);
+  background: var(--bojogae-tint);
+}
+
+.landing-page .pricing-grid article.featured {
+  border-color: var(--bojogae-accent);
+}
+
+.landing-page :is(a, button):focus-visible {
+  outline: 2px solid var(--bojogae-accent-ink);
+  outline-offset: 4px;
+}

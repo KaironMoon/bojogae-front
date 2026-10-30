@@ -1201,7 +1201,7 @@ function ProposalsPage() {
                       borderRadius: "12px",
                       borderWidth: selected ? 2 : 1,
                       borderColor: selected ? "primary.main" : "divider",
-                      bgcolor: selected ? "#f5f8ff" : "background.paper",
+                      bgcolor: selected ? "primary.light" : "background.paper",
                       cursor: "pointer",
                     }}
                   >
@@ -1396,7 +1396,7 @@ function ProposalsPage() {
                 borderStyle: "dashed",
                 borderWidth: 2,
                 borderColor: filesDragging ? "primary.main" : files.length ? "success.main" : "divider",
-                bgcolor: filesDragging ? "rgba(37, 99, 235, 0.06)" : files.length ? "rgba(22, 163, 74, 0.06)" : "#f8faff",
+                bgcolor: filesDragging ? "primary.light" : files.length ? "rgba(22, 163, 74, 0.06)" : "background.default",
                 cursor: working ? "not-allowed" : "pointer",
                 opacity: working ? 0.6 : 1,
                 textAlign: "center",
@@ -1636,12 +1636,12 @@ function ProposalsPage() {
                 borderTop: "1px solid #f1f5f9",
                 borderRadius: "10px",
                 cursor: "pointer",
-                bgcolor: (statusItem?.id ?? previewItem?.id) === item.id ? "#eff6ff" : "transparent",
-                outline: (statusItem?.id ?? previewItem?.id) === item.id ? "2px solid #3b82f6" : "none",
+                bgcolor: (statusItem?.id ?? previewItem?.id) === item.id ? "primary.light" : "transparent",
+                outline: (statusItem?.id ?? previewItem?.id) === item.id ? "2px solid var(--bojogae-accent-ink)" : "none",
                 outlineOffset: "-2px",
                 transition: "background-color 150ms ease, outline-color 150ms ease",
                 "&:hover": { bgcolor: "#f8fafc" },
-                "&:focus-visible": { outline: "2px solid #2563eb", outlineOffset: "-2px" },
+                "&:focus-visible": { outline: "2px solid var(--bojogae-accent-ink)", outlineOffset: "-2px" },
               }}
             >
               <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between" gap={{ xs: 0.5, md: 1.5 }}>

@@ -142,7 +142,7 @@ export default function BoardPostPage({ admin = false, embedded = false }) { // 
   if (admin || embedded) return body;
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
-      <Box component="header" sx={{ bgcolor: "#fff", borderBottom: "1px solid #e5eaf1", px: 2.5, py: 1.75 }}>
+      <Box component="header" sx={{ bgcolor: "#fff", borderBottom: "1px solid var(--bojogae-line)", px: 2.5, py: 1.75 }}>
         <Typography fontWeight={900} color="primary.main">BOJOGAE</Typography>
       </Box>
       {body}
