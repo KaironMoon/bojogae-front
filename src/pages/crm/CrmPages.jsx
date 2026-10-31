@@ -147,7 +147,7 @@ export function CustomersPage() {
             >
               <Stack direction={{ xs: "column", md: "row" }} gap={1}>
                 <Field
-                  label="이름·별칭·연락처·주소·메모 검색"
+                  label="이름·카톡대화명·연락처·주소·메모 검색"
                   value={q}
                   onChange={setQ}
                 />
@@ -493,7 +493,7 @@ export function CustomerDetailPage() {
                   ["통화 가능 시간", c.call_preference],
                   ["방문 가능 시간", c.visit_preference],
                   ["방문 참고", c.visit_note],
-                  ["고객 별칭", c.alias],
+                  ["카톡대화명", c.alias],
                   ["직업", c.occupation],
                   ["주민번호 앞 6자리·뒤 첫 1자리", c.resident_number],
                   ["유입", c.source],

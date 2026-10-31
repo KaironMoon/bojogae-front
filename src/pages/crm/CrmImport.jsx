@@ -18,7 +18,7 @@ import { Field, Panel } from "./CrmShared";
 import { CustomerForm } from "./CrmForms";
 const MAPPABLE = {
   name: "고객명",
-  alias: "고객 별칭",
+  alias: "카톡대화명",
   occupation: "직업",
   phone: "연락처",
   address: "주소",
@@ -263,6 +263,11 @@ export default function CrmImport({ onClose, onDone }) {
                       >
                         {c.memo}
                       </Typography>
+                      {r.kakao_name_duplicate && !overrides[r.index] && (
+                        <Alert severity="warning">
+                          기존 고객 또는 가져올 자료에 같은 카톡대화명이 있습니다. 대화명을 수정하거나 중복 행의 선택을 해제해 주세요.
+                        </Alert>
+                      )}
                       {r.duplicates?.length > 0 && (
                         <Alert severity="warning">
                           같은 연락처 고객:{" "}

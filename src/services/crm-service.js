@@ -29,6 +29,7 @@ const errors = {
   crm_version_conflict:
     "다른 곳에서 수정한 내용이 있습니다. 새로고침한 뒤 다시 확인해 주세요.",
   crm_record_archived: "보관된 항목에는 새 기록을 추가할 수 없습니다.",
+  crm_kakao_name_duplicate: "이미 사용 중인 카톡대화명입니다. 다른 대화명으로 수정해 주세요.",
   crm_contract_customer_mismatch: "이 고객에게 연결된 계약을 선택해 주세요.",
   crm_origin_immutable: "기존 보험·신규 계약 등록 구분은 변경할 수 없습니다.",
   crm_use_status_event: "계약 상태와 성립일은 상태 변경에서 수정해 주세요.",

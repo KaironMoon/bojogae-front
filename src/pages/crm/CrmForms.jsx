@@ -11,7 +11,7 @@ import {
   Typography,
 } from "@mui/material";
 import ContractParty from "./CrmContractParty";
-import { crmError, crmPost } from "@/services/crm-service";
+import { crmError, crmGet, crmPost } from "@/services/crm-service";
 import {
   Field,
   Editor,
@@ -72,6 +72,27 @@ export function CustomerForm({ value, onSave, onClose }) {
   const state = useSave(onSave, onClose);
   const [duplicates, setDuplicates] = useState(null);
   const [confirmed, setConfirmed] = useState(false);
+  const [aliasDuplicate, setAliasDuplicate] = useState(false);
+  const [aliasCheckError, setAliasCheckError] = useState("");
+  const { alias } = data;
+  const customerId = value?.id;
+  useEffect(() => {
+    let active = true;
+    setAliasDuplicate(false);
+    setAliasCheckError("");
+    if (!alias.trim() || alias.length > 20) return;
+    const timer = setTimeout(async () => {
+      try {
+        const result = await crmGet("/customers/kakao-name-check", {
+          alias: alias.trim(), ...(customerId ? { exclude_id: customerId } : {}),
+        });
+        if (active) setAliasDuplicate(result.duplicate);
+      } catch (error) {
+        if (active) setAliasCheckError(crmError(error));
+      }
+    }, 350);
+    return () => { active = false; clearTimeout(timer); };
+  }, [alias, customerId]);
   const [tagsText, setTagsText] = useState((value?.tags || []).join(", "));
   const [birthPreview, setBirthPreview] = useState(null);
   const [birthError, setBirthError] = useState("");
@@ -127,6 +148,7 @@ export function CustomerForm({ value, onSave, onClose }) {
     }
   };
   async function submit() {
+    if (aliasDuplicate) return;
     if (!value && !confirmed) {
       try {
         const result = await crmPost("/customers/duplicates", data);
@@ -162,12 +184,13 @@ export function CustomerForm({ value, onSave, onClose }) {
         />
       </Stack>
       <Field
-        label="고객 별칭"
+        label="카톡대화명"
         value={data.alias}
         onChange={(v) => set("alias", v)}
-        inputProps={{ maxLength: 200 }}
-        helperText="고객을 구분하기 위해 연락처·메신저에 저장한 이름"
-        placeholder="김성춘 보험고객 흥국화재 76 도봉"
+        inputProps={{ maxLength: 20 }}
+        error={aliasDuplicate || !!aliasCheckError}
+        helperText={aliasDuplicate ? "이미 사용 중인 카톡대화명입니다. 다른 대화명으로 수정해 주세요." : aliasCheckError || "카카오톡 대화명을 최대 20자로 입력해 주세요."}
+        placeholder="김성춘 흥국화재 도봉"
       />
       <Field label="직업" value={data.occupation} onChange={(v) => set("occupation", v)} inputProps={{ maxLength: 200 }} />
       {duplicates?.length > 0 && (
