@@ -33,6 +33,10 @@ def handle(route):
         body = {'items': [], 'total': 0, 'page': 1, 'page_size': 20}
     elif path == 'crm/imports/parse-file':
         body = {**parsed, 'warning': '자동 인식을 완료하지 못했습니다. 제목 행과 저장 항목을 직접 선택해 주세요.' if fallback else ''}
+        if any(name in (request.post_data or '') for name in ('customers.html', 'customers.png')):
+            body = {**parsed, 'format': 'CSV', 'extractor': 'gpt-6-luna', 'header_options': [], 'warning': '추출한 값을 원본과 대조해 주세요.'}
+    elif path == 'crm/imports/extract-html':
+        body = {**parsed, 'format': 'CSV', 'extractor': 'gpt-6-luna', 'header_options': [], 'warning': '추출한 값을 원본과 대조해 주세요.'}
     elif path == 'crm/imports/mapping-sample':
         sample_requests.append(request.post_data_json)
         body = {'columns': [{'source': source, 'field': field} for source, field in request.post_data_json['mapping'].items()],
@@ -92,7 +96,23 @@ with sync_playwright() as p:
     expect(consent).not_to_be_checked()
     page.set_viewport_size({'width': 390, 'height': 844})
     assert dialog.evaluate('(d) => d.scrollWidth <= d.clientWidth')
+    # HTML and image extraction reuse the mapping/sample/consent flow.
+    for filename, mime in [('customers.html', 'text/html'), ('customers.png', 'image/png')]:
+        dialog.locator('input[type=file]').set_input_files({'name': filename, 'mimeType': mime, 'buffer': b'synthetic'})
+        expect(dialog.get_by_label('추출된 CSV (수정 가능)', exact=True)).to_be_visible()
+        expect(dialog.get_by_label('제목 행', exact=True)).to_have_count(0)
+        expect(dialog.get_by_role('table')).to_have_count(0)
+        dialog.get_by_role('button', name='매핑 결과 10명 확인', exact=True).click()
+        expect(consent).not_to_be_checked()
+        expect(proceed).to_be_disabled()
+    # Pasted arbitrary HTML gets extracted before the sample step.
+    dialog.get_by_label('자료 형식', exact=True).click()
+    page.get_by_role('option', name='HTML 붙여넣기', exact=True).click()
+    dialog.get_by_label('원본 내용 붙여넣기', exact=True).fill('<table><tr><td>시험고객</td></tr></table>')
+    dialog.get_by_role('button', name='HTML 추출 및 매핑', exact=True).click()
+    expect(dialog.get_by_label('추출된 CSV (수정 가능)', exact=True)).to_be_visible()
+    expect(dialog.get_by_role('table')).to_have_count(0)
     assert not errors, errors
-    assert all(path in ('crm/imports/parse-file', 'crm/imports/mapping-sample', 'crm/imports') for path in writes), writes
+    assert all(path in ('crm/imports/parse-file', 'crm/imports/mapping-sample', 'crm/imports/extract-html', 'crm/imports') for path in writes), writes
     browser.close()
-    print('PASS: ten normalized samples, consent gate, mapping change and upload reset consent, confirmed full preview, final review gate, failure message and mobile layout; no commit request')
+    print('PASS: ten normalized samples, consent gate, mapping change and upload reset consent, confirmed full preview, final review gate, failure message, mobile layout, HTML/image upload and pasted HTML extraction; no commit request')

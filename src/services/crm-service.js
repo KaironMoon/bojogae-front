@@ -52,14 +52,20 @@ const errors = {
   crm_import_review_required:
     "가져올 내용을 검토한 뒤 확인 항목을 선택해 주세요.",
   crm_import_file_size: "2MB 이하의 파일을 선택해 주세요.",
-  crm_import_file_type: "엑셀(.xlsx), CSV 또는 지원되는 표 파일을 선택해 주세요.",
-  crm_import_invalid_file: "파일을 읽지 못했습니다. 지원되는 엑셀 또는 CSV 파일인지 확인해 주세요.",
+  crm_import_file_type: "엑셀(.xlsx), CSV, HTML 또는 이미지(PNG·JPEG·WebP)를 선택해 주세요.",
+  crm_import_invalid_file: "파일을 읽지 못했습니다. 지원되는 형식의 파일인지 확인해 주세요.",
   crm_import_invalid_headers: "제목 행과 열 구성을 확인해 주세요. 최대 30열까지 가져올 수 있습니다.",
   crm_import_duplicate_mapping: "여러 열을 같은 저장 항목에 연결할 수 없습니다. 하나를 선택하고 나머지는 가져오지 않음으로 설정해 주세요.",
   crm_import_invalid_mapping: "저장 항목 연결을 확인해 주세요.",
   crm_import_formula_unsupported: "엑셀 수식은 가져올 수 없습니다. 수식 결과를 값으로 붙여넣은 뒤 올려 주세요.",
   crm_import_html_unsupported:
     "지원하는 고객 데이터 형식이 없습니다. 표를 탭 구분 텍스트로 붙여넣어 주세요.",
+  crm_import_invalid_image: "읽을 수 있는 PNG·JPEG·WebP 단일 이미지를 선택해 주세요. 최대 2,000만 화소까지 지원합니다.",
+  crm_import_extraction_not_configured: "HTML·이미지 추출을 위한 OpenAI 설정이 준비되지 않았습니다.",
+  crm_import_extraction_timeout: "추출 시간이 초과되었습니다. 표를 더 작게 나누어 다시 시도해 주세요.",
+  crm_import_extraction_failed: "HTML·이미지를 추출하지 못했습니다. 원본을 확인하거나 CSV로 변환해 올려 주세요.",
+  crm_import_extraction_incomplete: "표 전체를 추출하지 못했습니다. 고객 표 하나만 포함하도록 파일을 나누어 다시 올려 주세요.",
+  crm_import_extraction_invalid: "추출된 표의 열 구성이 올바르지 않습니다. 원본을 확인하거나 CSV로 변환해 올려 주세요.",
   crm_import_row_limit: "한 번에 1~5,000행을 가져올 수 있습니다.",
 };
 export function crmError(error) {

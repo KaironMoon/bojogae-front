@@ -119,7 +119,9 @@ export default function PaymentMethodsPage() {
             {!card.selected && card.status === 'ACTIVE' && <Button variant="outlined" disabled={busy || !card.can_select || Boolean(pendingKey.current)} onClick={() => { setTarget(card); setDialog('select'); }}>결제수단으로 사용</Button>}
             <Button color="error" disabled={busy || !card.can_delete || Boolean(pendingKey.current)} onClick={() => { setTarget(card); setDialog('delete'); }}>{card.status === 'DELETING' ? '삭제 상태 확인' : '카드 삭제'}</Button>
           </Stack>
-          {card.selected && <Typography variant="caption" color="text.secondary">다른 카드를 결제수단으로 선택한 뒤 삭제할 수 있습니다.</Typography>}
+          {card.selected && card.delete_block_reason === 'payment_method_in_use' && <Typography variant="caption" color="text.secondary">다른 카드를 결제수단으로 선택한 뒤 삭제할 수 있습니다.</Typography>}
+          {card.selected && card.delete_block_reason === 'payment_pending_review' && <Typography variant="caption" color="text.secondary">결제 상태 확인이 끝난 뒤 삭제할 수 있습니다.</Typography>}
+          {card.selected && card.can_delete && <Typography variant="caption" color="text.secondary">프리 요금제에서는 현재 결제수단도 삭제할 수 있습니다.</Typography>}
         </Stack></Paper>)}
         {data?.can_register && <Button variant="contained" disabled={busy || Boolean(pendingKey.current)} onClick={open}>카드 등록</Button>}
         {data && !data.plan_code && <Button component={Link} to={returnTo}>구독 시작</Button>}

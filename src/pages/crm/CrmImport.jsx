@@ -80,6 +80,10 @@ export default function CrmImport({ onClose, onDone }) {
     setMappingConfirmed(false);
   }
   async function showMappingSample() {
+    if (format === "HTML") {
+      await extractHtml();
+      return;
+    }
     resetMappingReview();
     setError("");
     setBusy(true);
@@ -87,6 +91,26 @@ export default function CrmImport({ onClose, onDone }) {
       setSample(await crmPost("/imports/mapping-sample", { format, text, mapping }));
     } catch (e) {
       setError(crmError(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+  function applyParsed(parsed, file = null) {
+    setText(parsed.text);
+    setFormat(parsed.format);
+    setMapping(parsed.mapping || {});
+    setTable(parsed.headers ? parsed : null);
+    setSourceFile(file);
+    setJob(null);
+  }
+  async function extractHtml() {
+    resetMappingReview();
+    setBusy(true);
+    setError("");
+    try {
+      applyParsed(await crmPost("/imports/extract-html", { format: "HTML", text }, { timeout: 150000 }));
+    } catch (error) {
+      setError(crmError(error));
     } finally {
       setBusy(false);
     }
@@ -108,13 +132,8 @@ export default function CrmImport({ onClose, onDone }) {
       const form = new FormData();
       form.append("file", file);
       if (headerRow !== undefined) form.append("header_row", headerRow);
-      const parsed = await crmPost("/imports/parse-file", form, { timeout: 45000 });
-      setText(parsed.text);
-      setFormat(parsed.format);
-      setMapping(parsed.mapping || {});
-      setTable(parsed.headers ? parsed : null);
-      setSourceFile(file);
-      setJob(null);
+      const parsed = await crmPost("/imports/parse-file", form, { timeout: 150000 });
+      applyParsed(parsed, file);
     } catch (error) {
       setError(crmError(error));
     } finally {
@@ -171,15 +190,20 @@ export default function CrmImport({ onClose, onDone }) {
                 원본을 미리보기로 검토한 뒤 선택한 고객만 등록합니다. 계약
                 상태와 불완전한 날짜·금액은 자동 확정하지 않습니다.
               </Alert>
-              <Stack direction={{ xs: "column", sm: "row" }} gap={1}>
-                <Button component="a" variant="outlined" href={`${import.meta.env.BASE_URL}templates/bojogae-customer-import.xlsx`} download="보조개_고객등록양식.xlsx">엑셀 양식 다운로드</Button>
-                <Button component="a" variant="outlined" href={`${import.meta.env.BASE_URL}templates/bojogae-customer-import.csv`} download="보조개_고객등록양식.csv">CSV 양식 다운로드</Button>
+              <Stack alignItems="flex-end">
+                <details>
+                  <summary style={{ cursor: "pointer", fontSize: 13 }}>양식 다운로드</summary>
+                  <Stack direction={{ xs: "column", sm: "row" }} gap={1}>
+                <Button component="a" size="small" href={`${import.meta.env.BASE_URL}templates/bojogae-customer-import.xlsx`} download="보조개_고객등록양식.xlsx">엑셀 양식 다운로드</Button>
+                <Button component="a" size="small" href={`${import.meta.env.BASE_URL}templates/bojogae-customer-import.csv`} download="보조개_고객등록양식.csv">CSV 양식 다운로드</Button>
+                  </Stack>
+                </details>
               </Stack>
               <Typography variant="body2" color="text.secondary">
                 기존에 사용하던 엑셀을 그대로 올릴 수 있습니다. 첫 번째 시트의 표 하나를 읽어 제목 행과 저장 항목을 제안합니다. 고객명과 연락처 또는 주소가 필요하며 최대 5,000명·2MB까지 가져올 수 있습니다. 제목 행은 처음 10행 안에 있어야 합니다.
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                자동 인식을 위해 첫 10행의 헤더와 일부 샘플을 TypeSafe에 전송합니다. 제안된 항목은 등록 전에 확인하고 수정할 수 있습니다.
+                엑셀·CSV는 첫 10행의 헤더와 샘플을 TypeSafe에 전송합니다. HTML·이미지는 파일 내용을 OpenAI에 전송해 표와 저장 항목을 함께 추출합니다. 추출된 값과 매핑은 등록 전에 확인하고 수정할 수 있습니다.
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 생년월일은 연도를 알면 19850307처럼 8자리로 입력하세요. 윤달 여부는 윤달·평달로 입력하며 예·아니오도 사용할 수 있습니다. 빈칸은 평달로 처리하고, 윤달은 음력 생일에만 입력할 수 있습니다.
@@ -193,22 +217,22 @@ export default function CrmImport({ onClose, onDone }) {
                 options={{
                   TSV: "표 붙여넣기 (엑셀에서 복사)",
                   CSV: "CSV (쉼표 구분)",
-                  HTML: "첨부 고객 HTML",
+                  HTML: "HTML 붙여넣기",
                 }}
                 disabled={busy}
                 onChange={(value) => { resetMappingReview(); setFormat(value); setTable(null); setMapping({}); setSourceFile(null); }}
               />
               <Button component="label" disabled={busy}>
-                {busy ? "파일 분석 중…" : "엑셀·CSV 파일 선택"}
+                {busy ? "파일 분석 중…" : "엑셀·CSV·HTML·이미지 파일 선택"}
                 <input
                   type="file"
                   hidden
-                  accept=".xlsx,.csv,.html,.htm,.tsv,.txt"
+                  accept=".xlsx,.csv,.html,.htm,.tsv,.txt,.png,.jpg,.jpeg,.webp"
                   onChange={upload}
                 />
               </Button>
               <Field
-                label="원본 내용 붙여넣기"
+                label={table?.extractor ? "추출된 CSV (수정 가능)" : "원본 내용 붙여넣기"}
                 value={text}
                 disabled={busy}
                 onChange={(value) => { resetMappingReview(); setText(value); setTable(null); setMapping({}); setSourceFile(null); }}
@@ -218,9 +242,9 @@ export default function CrmImport({ onClose, onDone }) {
               {table?.warning && <Alert severity="warning">{table.warning}</Alert>}
               {table && (
                 <>
-                  <Field label="제목 행" value={String(table.header_row)} disabled={busy}
+                  {table.header_options.length > 0 && <Field label="제목 행" value={String(table.header_row)} disabled={busy}
                     options={Object.fromEntries(table.header_options.map((option) => [String(option.value), option.label]))}
-                    onChange={(value) => parseFile(sourceFile, Number(value))} />
+                    onChange={(value) => parseFile(sourceFile, Number(value))} />}
                   <Typography variant="body2">각 열의 저장 항목을 확인해 주세요. 불확실한 제안은 직접 확인하고, 필요 없는 열은 가져오지 않을 수 있습니다.</Typography>
                 </>
               )}
@@ -249,7 +273,7 @@ export default function CrmImport({ onClose, onDone }) {
                 disabled={busy || !text}
                 onClick={showMappingSample}
               >
-                매핑 결과 10명 확인
+                {format === "HTML" ? "HTML 추출 및 매핑" : "매핑 결과 10명 확인"}
               </Button>
               {sample && (
                 <Panel>
