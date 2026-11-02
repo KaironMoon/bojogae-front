@@ -48,12 +48,15 @@ const errors = {
   crm_narrow_search: "검색 대상이 많습니다. 반경이나 필터를 좁혀 주세요.",
   crm_attachment_size: "첨부파일은 10MB 이하로 선택해 주세요.",
   crm_attachment_type: "PDF, PNG, JPG 파일만 첨부할 수 있습니다.",
+  crm_import_mapping_confirmation_required: "매핑된 고객 데이터 샘플을 확인하고 가져오기 방식에 동의해 주세요.",
   crm_import_review_required:
     "가져올 내용을 검토한 뒤 확인 항목을 선택해 주세요.",
   crm_import_file_size: "2MB 이하의 파일을 선택해 주세요.",
   crm_import_file_type: "엑셀(.xlsx), CSV 또는 지원되는 표 파일을 선택해 주세요.",
-  crm_import_invalid_file: "파일을 읽지 못했습니다. 내려받은 양식으로 작성한 엑셀 또는 CSV 파일인지 확인해 주세요.",
-  crm_import_invalid_headers: "첫 줄의 항목명이 비어 있거나 중복되었습니다. 양식의 항목명을 유지해 주세요.",
+  crm_import_invalid_file: "파일을 읽지 못했습니다. 지원되는 엑셀 또는 CSV 파일인지 확인해 주세요.",
+  crm_import_invalid_headers: "제목 행과 열 구성을 확인해 주세요. 최대 30열까지 가져올 수 있습니다.",
+  crm_import_duplicate_mapping: "여러 열을 같은 저장 항목에 연결할 수 없습니다. 하나를 선택하고 나머지는 가져오지 않음으로 설정해 주세요.",
+  crm_import_invalid_mapping: "저장 항목 연결을 확인해 주세요.",
   crm_import_formula_unsupported: "엑셀 수식은 가져올 수 없습니다. 수식 결과를 값으로 붙여넣은 뒤 올려 주세요.",
   crm_import_html_unsupported:
     "지원하는 고객 데이터 형식이 없습니다. 표를 탭 구분 텍스트로 붙여넣어 주세요.",
