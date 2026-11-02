@@ -1,7 +1,8 @@
 /* eslint-disable react/prop-types */
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   Alert,
+  Box,
   Button,
   Checkbox,
   Dialog,
@@ -58,6 +59,9 @@ function sampleValue(row, field) {
   return labels[value] || String(value ?? "").trim() || "—";
 }
 export default function CrmImport({ onClose, onDone }) {
+  const fileInput = useRef(null);
+  const uploadInProgress = useRef(false);
+  const [dragging, setDragging] = useState(false);
   const [sample, setSample] = useState(null);
   const [mappingConfirmed, setMappingConfirmed] = useState(false);
   const [table, setTable] = useState(null);
@@ -118,14 +122,33 @@ export default function CrmImport({ onClose, onDone }) {
   async function upload(e) {
     const file = e.target.files?.[0];
     e.target.value = "";
-    if (file) await parseFile(file);
+    if (file) await acceptFiles([file]);
+  }
+  async function acceptFiles(files) {
+    if (busy || uploadInProgress.current || !files.length) return;
+    if (files.length !== 1) {
+      setError("파일은 한 번에 하나씩 올려 주세요.");
+      return;
+    }
+    if (!/\.(xlsx|csv|html?|tsv|txt|png|jpe?g|webp)$/i.test(files[0].name)) {
+      setError("엑셀(.xlsx), CSV, HTML 또는 이미지(PNG·JPEG·WebP)를 선택해 주세요.");
+      return;
+    }
+    await parseFile(files[0]);
+  }
+  function dropFile(event) {
+    event.preventDefault();
+    setDragging(false);
+    void acceptFiles(Array.from(event.dataTransfer.files));
   }
   async function parseFile(file, headerRow) {
+    if (busy || uploadInProgress.current) return;
     resetMappingReview();
     if (file.size > 2000000) {
       setError("2MB 이하 파일을 선택해 주세요.");
       return;
     }
+    uploadInProgress.current = true;
     setBusy(true);
     setError("");
     try {
@@ -137,6 +160,7 @@ export default function CrmImport({ onClose, onDone }) {
     } catch (error) {
       setError(crmError(error));
     } finally {
+      uploadInProgress.current = false;
       setBusy(false);
     }
   }
@@ -211,6 +235,34 @@ export default function CrmImport({ onClose, onDone }) {
               <Typography variant="body2" color="text.secondary">
                 주민번호는 앞 6자리와 뒤 첫 1자리만 입력하세요(예: 850307-1). 비우면 생년월일·성별로 자동 입력합니다. 상담 단계는 미접촉·연락 중·상담 중·제안 중·보류·상담 종료 중 하나이며, 비우면 미접촉으로 등록합니다. 태그는 쉼표로 구분하세요.
               </Typography>
+              <Box
+                component="button"
+                type="button"
+                aria-label="고객 자료 파일 업로드"
+                aria-busy={busy}
+                disabled={busy}
+                onClick={() => fileInput.current?.click()}
+                onDragEnter={(event) => { event.preventDefault(); if (!busy && event.dataTransfer.types.includes("Files")) setDragging(true); }}
+                onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = busy ? "none" : "copy"; }}
+                onDragLeave={() => setDragging(false)}
+                onDrop={dropFile}
+                sx={{ width: "100%", p: { xs: 2.5, sm: 4 }, border: "2px dashed", borderColor: dragging ? "primary.main" : "divider",
+                  borderRadius: 2, bgcolor: dragging ? "action.selected" : "background.default", color: "text.primary",
+                  cursor: busy ? "wait" : "pointer", textAlign: "center", font: "inherit",
+                  "& > *": { pointerEvents: "none" }, "&:hover:not(:disabled)": { borderColor: "primary.main", bgcolor: "action.hover" },
+                  "&:focus-visible": { outline: "2px solid", outlineColor: "primary.main", outlineOffset: 3 },
+                  "&:disabled": { opacity: 0.6 } }}
+              >
+                <Typography component="span" display="block" fontWeight={600}>
+                  {busy ? "자료 처리 중…" : dragging ? "여기에 파일을 놓아 주세요" : "파일을 끌어다 놓거나 클릭해서 선택하세요"}
+                </Typography>
+                <Typography component="span" display="block" variant="body2" color="text.secondary" mt={1}>
+                  엑셀·CSV·HTML·이미지(PNG·JPEG·WebP) · 최대 2MB · 파일 1개
+                </Typography>
+                {sourceFile && <Typography component="span" display="block" variant="body2" mt={1} sx={{ overflowWrap: "anywhere" }}>선택한 파일: {sourceFile.name}</Typography>}
+              </Box>
+              <input ref={fileInput} type="file" hidden disabled={busy}
+                accept=".xlsx,.csv,.html,.htm,.tsv,.txt,.png,.jpg,.jpeg,.webp" onChange={upload} />
               <Field
                 label="자료 형식"
                 value={format}
@@ -222,15 +274,6 @@ export default function CrmImport({ onClose, onDone }) {
                 disabled={busy}
                 onChange={(value) => { resetMappingReview(); setFormat(value); setTable(null); setMapping({}); setSourceFile(null); }}
               />
-              <Button component="label" disabled={busy}>
-                {busy ? "파일 분석 중…" : "엑셀·CSV·HTML·이미지 파일 선택"}
-                <input
-                  type="file"
-                  hidden
-                  accept=".xlsx,.csv,.html,.htm,.tsv,.txt,.png,.jpg,.jpeg,.webp"
-                  onChange={upload}
-                />
-              </Button>
               <Field
                 label={table?.extractor ? "추출된 CSV (수정 가능)" : "원본 내용 붙여넣기"}
                 value={text}

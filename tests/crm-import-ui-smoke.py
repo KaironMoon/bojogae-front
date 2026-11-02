@@ -56,11 +56,34 @@ with sync_playwright() as p:
     page.goto(BASE + '/crm/customers')
     page.get_by_role('button', name='자료 가져오기', exact=True).click()
     dialog = page.get_by_role('dialog')
-    dialog.locator('input[type=file]').set_input_files({'name': 'customers.csv', 'mimeType': 'text/csv', 'buffer': b'synthetic'})
+    upload_area = dialog.get_by_role('button', name='고객 자료 파일 업로드', exact=True)
+    def drop_files(files, twice=False):
+        upload_area.evaluate("""(element, {files, twice}) => {
+          const data = new DataTransfer();
+          for (const file of files) data.items.add(new File([file.content || 'synthetic'], file.name, {type: file.mime || 'text/csv'}));
+          element.dispatchEvent(new DragEvent('dragenter', {bubbles: true, dataTransfer: data}));
+          element.dispatchEvent(new DragEvent('drop', {bubbles: true, cancelable: true, dataTransfer: data}));
+          if (twice) element.dispatchEvent(new DragEvent('drop', {bubbles: true, cancelable: true, dataTransfer: data}));
+        }""", {'files': files, 'twice': twice})
+    drop_files([{'name': 'one.csv'}, {'name': 'two.csv'}])
+    expect(dialog.get_by_text('파일은 한 번에 하나씩 올려 주세요.', exact=True)).to_be_visible()
+    assert not writes
+    drop_files([{'name': 'unsupported.exe'}])
+    expect(dialog.get_by_text('엑셀(.xlsx), CSV, HTML 또는 이미지(PNG·JPEG·WebP)를 선택해 주세요.', exact=True)).to_be_visible()
+    assert not writes
+    # Two immediate drop events must result in just one upload.
+    drop_files([{'name': 'customers.csv'}], twice=True)
+
     expect(dialog.get_by_label('성함 → 저장 항목', exact=True)).to_contain_text('고객명')
     expect(dialog.get_by_label('TEL → 저장 항목 · 확인 필요', exact=True)).to_contain_text('연락처')
     expect(dialog.get_by_label('기타 → 저장 항목 · 확인 필요', exact=True)).to_contain_text('가져오지 않음')
     expect(dialog.get_by_text('샘플: 시험고객', exact=True)).to_be_visible()
+    expect(dialog.get_by_text('선택한 파일: customers.csv', exact=True)).to_be_visible()
+    assert writes.count('crm/imports/parse-file') == 1
+    with page.expect_file_chooser() as chooser:
+        upload_area.click()
+    # Closing the chooser keeps the existing mapping intact.
+    chooser.value.set_files([])
     consent = dialog.get_by_role('checkbox', name='표시된 매핑 결과를 확인했으며, 이 방식으로 가져오는 데 동의합니다', exact=True)
     proceed = dialog.get_by_role('button', name='동의하고 전체 데이터 검증', exact=True)
     dialog.get_by_role('button', name='매핑 결과 10명 확인', exact=True).click()
@@ -115,4 +138,4 @@ with sync_playwright() as p:
     assert not errors, errors
     assert all(path in ('crm/imports/parse-file', 'crm/imports/mapping-sample', 'crm/imports/extract-html', 'crm/imports') for path in writes), writes
     browser.close()
-    print('PASS: ten normalized samples, consent gate, mapping change and upload reset consent, confirmed full preview, final review gate, failure message, mobile layout, HTML/image upload and pasted HTML extraction; no commit request')
+    print('PASS: drag/drop and click upload, multi-file/type rejection, concurrent-drop guard, ten normalized samples, consent gate, mapping change and upload reset consent, confirmed full preview, final review gate, failure message, mobile layout, HTML/image upload and pasted HTML extraction; no commit request')
