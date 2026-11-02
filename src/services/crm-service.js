@@ -22,6 +22,7 @@ export const crmUpload = async (file, target) => {
   return crmPost("/attachments", data);
 };
 const errors = {
+  crm_archive_confirmation_required: "선택한 고객과 보관 안내를 확인한 뒤 보관해 주세요.",
   crm_schema_required:
     "고객·계약관리 DB 준비가 필요합니다. 작성된 SQL의 적용 여부를 확인해 주세요.",
   crm_unavailable: "고객·계약관리가 현재 비활성화되어 있습니다.",
