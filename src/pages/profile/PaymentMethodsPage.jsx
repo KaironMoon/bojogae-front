@@ -3,7 +3,7 @@ import { Alert, Box, Button, Checkbox, Chip, CircularProgress, Dialog, DialogAct
 import { Link } from 'react-router-dom';
 import api from '@/services/api-caller';
 import { getMyProfile } from '@/services/profile-service';
-import { getPaymentConfig, openBillingKey, paymentError, paymentPost } from '@/services/payment-service';
+import { getPaymentConfig, createPaymentPopup, openBillingKey, completeMobilpayRegistration, paymentError, paymentPost } from '@/services/payment-service';
 
 const pendingStatuses = ['REVOKING','SCHEDULING','RESTORING','REVIEW'];
 export default function PaymentMethodsPage() {
@@ -52,9 +52,14 @@ export default function PaymentMethodsPage() {
             window.history.replaceState(null, '', `${window.location.pathname}${returnPlan ? `?plan=${encodeURIComponent(returnPlan)}` : ''}`);
             throw new Error(params.get('message') || '카드 등록이 취소되었습니다.');
           }
-          pendingKey.current = params.get('billingKey');
-          if (!pendingKey.current) throw new Error('카드 등록 결과가 없습니다. 다시 등록해 주세요.');
-          await confirm(pendingKey.current, cfg.policyVersion);
+          if (params.get('mobilpayIssue')) {
+            registrationResult(await completeMobilpayRegistration(params.get('mobilpayIssue')));
+            window.history.replaceState(null, '', `${window.location.pathname}${returnPlan ? `?plan=${encodeURIComponent(returnPlan)}` : ''}`);
+          } else {
+            pendingKey.current = params.get('billingKey');
+            if (!pendingKey.current) throw new Error('카드 등록 결과가 없습니다. 다시 등록해 주세요.');
+            await confirm(pendingKey.current, cfg.policyVersion);
+          }
         }
         await load();
       } catch (e) { setError(paymentError(e)); }
@@ -80,14 +85,22 @@ export default function PaymentMethodsPage() {
     const contact = { fullName:customer.fullName.trim(), phoneNumber:customer.phoneNumber.replace(/-/g,''), email:customer.email.trim() };
     if (!contact.fullName || !/^0\d{8,10}$/.test(contact.phoneNumber) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact.email)) throw new Error('결제자 이름·휴대폰 번호·이메일을 확인해 주세요.');
     if (!alias.trim()) throw new Error('카드 별칭을 입력해 주세요.');
-    const request = await paymentPost('methods/prepare', { accepted:true, consent_version:config.policyVersion, alias:alias.trim() });
-    const result = await openBillingKey(request, contact, `/payment-methods?cardRegistrationReturn=1${returnPlan ? `&plan=${encodeURIComponent(returnPlan)}` : ''}`);
-    if (!result) return;
-    if (result.code) throw new Error(result.message || '카드 등록이 취소되었습니다.');
-    if (!result.billingKey) throw new Error('카드 등록 결과가 없습니다.');
-    pendingKey.current = result.billingKey;
-    setDialog(null);
-    await confirm(result.billingKey, config.policyVersion);
+    const popup = createPaymentPopup(config.provider);
+    try {
+      const request = await paymentPost('methods/prepare', { accepted:true, consent_version:config.policyVersion, alias:alias.trim() });
+      const result = await openBillingKey(request, contact, `/payment-methods?cardRegistrationReturn=1${returnPlan ? `&plan=${encodeURIComponent(returnPlan)}` : ''}`, popup);
+      if (!result) return;
+      if (result.code) throw new Error(result.message || '카드 등록이 취소되었습니다.');
+      if (result.mobilpayIssue) {
+        setDialog(null);
+        registrationResult(await completeMobilpayRegistration(result.mobilpayIssue));
+        return;
+      }
+      if (!result.billingKey) throw new Error('카드 등록 결과가 없습니다.');
+      pendingKey.current = result.billingKey;
+      setDialog(null);
+      await confirm(result.billingKey, config.policyVersion);
+    } catch (error) { popup?.close(); throw error; }
   };
   const pending = pendingStatuses.includes(data?.change_status) || Boolean(data?.verification);
   return <Box sx={{ maxWidth:720, mx:'auto', p:{ xs:2, md:3 } }}><Stack spacing={2}>
@@ -97,7 +110,8 @@ export default function PaymentMethodsPage() {
     {message && <Alert severity="info">{message}</Alert>}
     {config && (!config.enabled || !config.eligible) && <Alert severity="info">{!config.eligible ? '개인 회원 계정에서 결제수단을 관리할 수 있습니다.' : '현재 결제수단 등록을 사용할 수 없습니다.'}</Alert>}
     {config?.enabled && config?.eligible && <>
-      {config.billingTestMode && <Alert severity="info">KG이니시스 테스트 정기결제입니다. 국민카드 및 국민카드 계열(카카오뱅크 등)은 테스트 결제를 지원하지 않습니다.</Alert>}
+      {config.billingTestMode && <Alert severity="info">{config.provider === 'MOBILPAY' ? 'KG파이낸셜 테스트 정기결제입니다. 실제 카드 승인이 발생할 수 있습니다.' : 'KG이니시스 테스트 정기결제입니다. 국민카드 및 국민카드 계열(카카오뱅크 등)은 테스트 결제를 지원하지 않습니다.'}</Alert>}
+      {config.cardDeletionScope === 'LOCAL' && <Alert severity="info">카드 삭제 시 보조개에 저장된 결제정보가 제거됩니다. 이후 보조개에서는 해당 카드로 청구하지 않습니다.</Alert>}
       <Paper variant="outlined" sx={{ p:3, borderRadius:3 }}><Stack spacing={2}>
         <Typography fontWeight={700}>등록된 카드</Typography>
         <Typography variant="body2" color="text.secondary">카드 등록 시 확인을 위해 1,000원을 승인하고 즉시 전액 취소합니다. 취소 확인 후 목록에 추가됩니다. 등록된 카드에서 결제수단으로 사용을 선택하면 이후 구독 결제에 적용됩니다.</Typography>
@@ -111,6 +125,7 @@ export default function PaymentMethodsPage() {
         {data?.cards.map((card) => <Paper key={card.id} variant="outlined" sx={{ p:2, borderColor:card.selected ? 'primary.main' : 'divider' }}><Stack spacing={1}>
           <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap"><Typography fontWeight={700}>{card.alias || card.name}</Typography>{card.selected && <Chip size="small" color="primary" label="현재 결제수단" />}</Stack>
           {card.alias && <Typography variant="body2" color="text.secondary">{card.name}</Typography>}
+          {config.provider === 'MOBILPAY' && card.provider === 'PORTONE' && <Typography variant="body2" color="text.secondary">이전 결제사에 등록한 카드입니다. 새 결제에 사용하려면 카드를 다시 등록해 주세요.</Typography>}
           {card.number && <Typography>{card.number}</Typography>}
           {card.unavailable && <Typography variant="body2" color="error">카드 정보를 확인하지 못했습니다. 잠시 후 다시 확인해 주세요.</Typography>}
           {card.status === 'DELETING' && <Typography variant="body2">카드 삭제 결과를 확인 중입니다.</Typography>}
@@ -126,7 +141,7 @@ export default function PaymentMethodsPage() {
         {data?.can_retry && !pending && <Button variant="outlined" disabled={busy || Boolean(pendingKey.current)} onClick={() => { setAccepted(false); setPlan(data.plan_code); retryKey.current = crypto.randomUUID(); setDialog('retry'); }}>첫 결제 재시도</Button>}
         {pendingKey.current && <Button disabled={busy} onClick={() => perform(() => confirm(pendingKey.current, config.policyVersion))}>카드 등록 결과 다시 확인</Button>}
       </Stack></Paper>
-      <Stack direction="row" spacing={1}><Button disabled={busy} onClick={() => perform(load)}>새로고침</Button><Button component={Link} to="/payment-history">결제내역 보기</Button></Stack>
+      <Stack direction="row" spacing={1}><Button disabled={busy} onClick={() => { if (new URLSearchParams(window.location.search).has('mobilpayIssue')) window.location.reload(); else perform(load); }}>새로고침</Button><Button component={Link} to="/payment-history">결제내역 보기</Button></Stack>
     </>}
   </Stack>
   <Dialog open={Boolean(dialog)} onClose={() => { if (!busy) setDialog(null); }} fullWidth maxWidth="sm">
@@ -135,7 +150,7 @@ export default function PaymentMethodsPage() {
       {error && <Alert severity="error">{error}</Alert>}
       {dialog === 'alias' ? <TextField label="카드 별칭" required value={alias} disabled={busy} onChange={(e) => setAlias(e.target.value)} slotProps={{ htmlInput:{ maxLength:50 } }} helperText="예: 생활비 카드, 회사 카드 · 카드번호는 입력하지 마세요." /> : ['select','delete'].includes(dialog) ? <>
         <Typography fontWeight={700}>{target?.alias || target?.name}{target?.number ? ` · ${target.number}` : ''}</Typography>
-        <Alert severity={dialog === 'delete' ? 'warning' : 'info'}>{dialog === 'delete' ? '이 카드를 목록과 PG에서 삭제합니다. 다시 사용하려면 새로 등록해야 합니다.' : '이 카드를 이후 구독 결제에 사용합니다. 지금 결제되지 않으며 요금제·이용기간과 자동 갱신 해지 상태는 유지됩니다.'}</Alert>
+        <Alert severity={dialog === 'delete' ? 'warning' : 'info'}>{dialog === 'delete' ? target?.deletion_scope === 'LOCAL' ? '보조개에 저장된 카드 결제정보를 삭제하고 이후 청구를 차단합니다. 다시 사용하려면 새로 등록해야 합니다.' : '이 카드를 목록과 PG에서 삭제합니다. 다시 사용하려면 새로 등록해야 합니다.' : '이 카드를 이후 구독 결제에 사용합니다. 지금 결제되지 않으며 요금제·이용기간과 자동 갱신 해지 상태는 유지됩니다.'}</Alert>
       </> : dialog === 'retry' ? <>
         <Alert severity="info">현재 등록된 카드로 첫 구독 결제를 요청합니다. 승인 후 유료 이용이 시작됩니다.</Alert>
         <TextField select label="요금제" value={plan} disabled={busy} onChange={(e) => { setPlan(e.target.value); setAccepted(false); retryKey.current = crypto.randomUUID(); }}>

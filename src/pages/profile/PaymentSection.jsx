@@ -4,7 +4,7 @@ import { Alert, Box, Button, Checkbox, CircularProgress, Dialog, DialogActions, 
 import { Link } from 'react-router-dom';
 import { REFUND_NOTICE } from '@/constants/refund-policy';
 import { getMyProfile, savePaymentContact } from '@/services/profile-service';
-import { getPayments, getPaymentMethods, getTerminationPreview, openBillingKey, paymentError, paymentPost } from '@/services/payment-service';
+import { getPayments, getPaymentMethods, getTerminationPreview, createPaymentPopup, openBillingKey, completeMobilpayRegistration, paymentError, paymentPost } from '@/services/payment-service';
 
 const date = (v) => v ? new Date(v).toLocaleString('ko-KR', { timeZone:'Asia/Seoul' }) : '-';
 const monthlyValidity = '월간 구독권은 매월 자동 결제되며, 결제 승인 후 한 달간 이용할 수 있습니다. 요금제별 이용 한도가 적용되며 미사용 이용량은 이용기간 종료 시 소멸하고 이월되지 않습니다. 이용 한도와 사용 내역은 별도 이용 내역 화면에서 확인해 주세요.';
@@ -51,10 +51,11 @@ export default function PaymentSection({ config, onChanged, onContactSaved }) {
     const id = params.get('paymentId'); const billingKey = params.get('billingKey');
     if (!params.has('paymentReturn') && !params.has('billingReturn')) return;
     returnHandled.current = true;
-    // IDs supplied by the SDK redirect are verified with PortOne on the server.
+    // Browser return only identifies the checkout; the server verifies its result.
     perform(async () => {
       if (params.get('code')) throw new Error(params.get('message') || '결제가 취소되었습니다.');
-      if (id) checkResult(await paymentPost(`orders/${encodeURIComponent(id)}/complete`));
+      if (params.get('mobilpayIssue')) checkResult(await completeMobilpayRegistration(params.get('mobilpayIssue')));
+      else if (id) checkResult(await paymentPost(`orders/${encodeURIComponent(id)}/complete`));
       else if (billingKey) checkResult(await paymentPost('subscriptions/activate', { billing_key:billingKey }));
       else throw new Error('결제 결과가 없습니다. 결제 내역을 확인해 주세요.');
       window.history.replaceState(null, '', `${window.location.pathname}#plan`);
@@ -142,37 +143,50 @@ export default function PaymentSection({ config, onChanged, onContactSaved }) {
       throw new Error('결제자 이름·휴대폰 번호·이메일을 확인해 주세요.');
     }
     const contact = { fullName:customer.fullName.trim(), phoneNumber:customer.phoneNumber.replace(/-/g,''), email:customer.email.trim() };
-    if (saveContact) {
-      let updated;
-      try {
-        updated = await savePaymentContact({ name:contact.fullName, phone:contact.phoneNumber, email:contact.email });
-      } catch {
-        throw new Error('내정보 저장에 실패했습니다. 결제는 요청되지 않았습니다. 다시 시도하거나 저장 체크를 해제해 주세요.');
-      }
-      onContactSaved?.(updated);
-      setContactMessage(updated.pending_email ? '결제자 정보를 저장했습니다. 변경한 이메일은 내정보에서 인증해 주세요.' : '결제자 정보를 내정보에 저장했습니다.');
-      setSaveContact(false);
-    }
     if (!cardAlias.trim()) throw new Error('카드 별칭을 입력해 주세요.');
-    const request = await paymentPost('subscriptions/prepare', { ...consent, plan_code:plan, alias:cardAlias.trim() });
-    const result = await openBillingKey(request, contact);
-    if (!result) return;
-    if (result.code) throw new Error(result.message || '카드 등록이 취소되었습니다.');
-    if (!result.billingKey) throw new Error('카드 등록 결과가 없습니다.');
-    const verified = await paymentPost('subscriptions/activate', { billing_key:result.billingKey });
-    checkResult(verified);
-    setMessage(verified.status === 'PAID' ? '결제가 확인되어 월간 구독이 시작되었습니다.' : '첫 결제 상태를 확인 중입니다. 결제내역을 확인해 주세요.');
+    const popup = createPaymentPopup(config.provider);
+    try {
+      if (saveContact) {
+        let updated;
+        try {
+          updated = await savePaymentContact({ name:contact.fullName, phone:contact.phoneNumber, email:contact.email });
+        } catch {
+          throw new Error('내정보 저장에 실패했습니다. 결제는 요청되지 않았습니다. 다시 시도하거나 저장 체크를 해제해 주세요.');
+        }
+        onContactSaved?.(updated);
+        setContactMessage(updated.pending_email ? '결제자 정보를 저장했습니다. 변경한 이메일은 내정보에서 인증해 주세요.' : '결제자 정보를 내정보에 저장했습니다.');
+        setSaveContact(false);
+      }
+      if (!cardAlias.trim()) throw new Error('카드 별칭을 입력해 주세요.');
+      const request = await paymentPost('subscriptions/prepare', { ...consent, plan_code:plan, alias:cardAlias.trim() });
+      const result = await openBillingKey(request, contact, undefined, popup);
+      if (!result) return;
+      if (result.code) throw new Error(result.message || '카드 등록이 취소되었습니다.');
+      if (result.mobilpayIssue) {
+        setDialog(null);
+        checkResult(await completeMobilpayRegistration(result.mobilpayIssue));
+        return;
+      }
+      if (!result.billingKey) throw new Error('카드 등록 결과가 없습니다.');
+      const verified = await paymentPost('subscriptions/activate', { billing_key:result.billingKey });
+      checkResult(verified);
+      setMessage(verified.status === 'PAID' ? '결제가 확인되어 월간 구독이 시작되었습니다.' : '첫 결제 상태를 확인 중입니다. 결제내역을 확인해 주세요.');
+    } catch (error) { popup?.close(); throw error; }
   };
   return <><Paper id="plan" variant="outlined" sx={{ p:{ xs:2, md:3 }, mb:3, borderRadius:3 }}>
     <Stack spacing={2}>
       <Stack direction="row" spacing={1} alignItems="center"><Typography variant="h6" fontWeight={800}>월간 구독권</Typography></Stack>
       <Typography variant="body2" color="text.secondary">보조개의 보험 제안서 분석·보고서 생성 기능을 이용하는 월간 구독 상품입니다.</Typography>
       <Alert severity="info"><Stack spacing={1}>
-        {config.billingTestMode && <Typography variant="body2">KG이니시스 정기결제는 테스트 채널입니다.</Typography>}
+        {config.billingTestMode && <Typography variant="body2">{config.provider === 'MOBILPAY' ? 'KG파이낸셜 테스트 정기결제입니다. 실제 카드 승인이 발생할 수 있습니다.' : 'KG이니시스 정기결제는 테스트 채널입니다.'}</Typography>}
         <Typography variant="body2">{monthlyValidity}</Typography>
         <Typography variant="body2">{upgradeValidity}</Typography>
       </Stack></Alert>
       {error && !dialog && <Alert severity="error">{error}</Alert>}{message && <Alert severity="success">{message}</Alert>}
+      {new URLSearchParams(window.location.search).has('mobilpayIssue') && <Button disabled={busy} onClick={() => perform(async () => {
+        checkResult(await completeMobilpayRegistration(new URLSearchParams(window.location.search).get('mobilpayIssue')));
+        window.history.replaceState(null, '', `${window.location.pathname}#plan`);
+      })}>결제 결과 확인</Button>}
       {!data && !error && <CircularProgress size={24} />}
       {data && <Box><Typography fontWeight={700}>{active ? `${config.products[sub.current_plan_code]?.name} · ${subscriptionStatuses[sub.status] || '상태 확인 필요'}` : '프리 요금제'}</Typography>
         {active && <Typography variant="body2" fontWeight={700}>현재 구독 이용기간 종료: {date(sub.period_end)} (한국 시간)</Typography>}
@@ -208,7 +222,7 @@ export default function PaymentSection({ config, onChanged, onContactSaved }) {
               <FormControlLabel control={<Checkbox checked={accepted} disabled={busy} onChange={(e) => setAccepted(e.target.checked)} />} label="즉시 이용 종료·남은 이용량 소멸 및 안내된 환불 처리 방식에 동의합니다." />
             </>}
           </> : <>
-          {dialog === 'change' ? <Alert severity="info">{upgrading ? '남은 이용기간의 요금 차액을 등록된 카드로 결제하면 즉시 업그레이드됩니다. 다음 결제일은 유지됩니다.' : '상위 요금제는 남은 기간의 차액 결제 후 즉시 적용되고, 하위 요금제는 다음 결제부터 적용됩니다. 기존 결제일과 등록된 카드는 유지됩니다.'}</Alert> : dialog === 'retry' ? <Alert severity="info">등록된 카드로 선택한 요금제의 첫 결제를 다시 요청합니다. 승인되면 이용기간이 시작되고 이후 매월 자동 결제됩니다.</Alert> : <Typography variant="body2">{dialog === 'subscribe' ? hasRegisteredCards ? '선택한 결제수단으로 첫 구독 결제를 진행합니다.' : '결제자 정보를 확인한 뒤 KG이니시스에서 카드를 등록합니다. 등록 완료 후 선택한 요금제의 첫 결제를 진행합니다.' : '결제자 정보를 확인한 뒤 KG이니시스 결제창으로 이동합니다.'}</Typography>}
+          {dialog === 'change' ? <Alert severity="info">{upgrading ? '남은 이용기간의 요금 차액을 등록된 카드로 결제하면 즉시 업그레이드됩니다. 다음 결제일은 유지됩니다.' : '상위 요금제는 남은 기간의 차액 결제 후 즉시 적용되고, 하위 요금제는 다음 결제부터 적용됩니다. 기존 결제일과 등록된 카드는 유지됩니다.'}</Alert> : dialog === 'retry' ? <Alert severity="info">등록된 카드로 선택한 요금제의 첫 결제를 다시 요청합니다. 승인되면 이용기간이 시작되고 이후 매월 자동 결제됩니다.</Alert> : <Typography variant="body2">{dialog === 'subscribe' ? hasRegisteredCards ? '선택한 결제수단으로 첫 구독 결제를 진행합니다.' : `결제자 정보를 확인한 뒤 ${config.provider === 'MOBILPAY' ? 'KG파이낸셜' : 'KG이니시스'}에서 카드를 등록합니다. 등록 완료 후 선택한 요금제의 첫 결제를 진행합니다.` : `결제자 정보를 확인한 뒤 ${config.provider === 'MOBILPAY' ? 'KG파이낸셜' : 'KG이니시스'} 결제창으로 이동합니다.`}</Typography>}
           {dialog === 'change' && sub?.cancel_at_period_end && <Alert severity="warning">{upgrading ? '차액 결제가 승인되면 자동 갱신 해지를 철회하고 다음 결제일부터 새 요금제 전액으로 자동 결제를 재개합니다.' : '자동 갱신 해지를 철회하고 선택한 요금제로 다음 회차부터 자동 결제를 재개합니다.'}</Alert>}
             <TextField select label="월간 구독권" value={plan} onChange={(e) => { setAccepted(false); setUpgradeQuote(null); setPlan(e.target.value); }} disabled={busy || quoteBusy} fullWidth sx={{ '& .MuiSelect-select': { whiteSpace:'normal' } }}>
               {['BASIC','STANDARD','PRO'].map((code) => <MenuItem key={code} value={code} sx={{ whiteSpace:'normal' }}>{config.products[code].name} · {config.products[code].amount.toLocaleString()}원/월</MenuItem>)}
