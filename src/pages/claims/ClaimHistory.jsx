@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Alert, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle,
   Divider, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from '@mui/material';
-import { claimError, getClaimFile, getClaimRequest, getClaimRequests, downloadClaimDocument, deleteClaimRequest } from '@/services/claim-service';
+import { claimError, getClaimFaxReceipt, getClaimFile, getClaimRequest, getClaimRequests, downloadClaimDocument, deleteClaimRequest } from '@/services/claim-service';
 import ClaimPdfPreview from './ClaimPdfPreview';
 import ClaimOriginalShare from './ClaimOriginalShare';
 import FaxNumberCopy from './FaxNumberCopy';
@@ -66,6 +66,12 @@ export default function ClaimHistory({ onReuse, insurers = [] }) {
   async function showPdf(delivery) {
     setBusy(true); setError('');
     try { setPreview({ name: delivery.insurer_name, blob: await getClaimFile(detail.id, delivery.id, true) }); }
+    catch (e) { setError(await claimError(e)); }
+    finally { setBusy(false); }
+  }
+  async function showFaxReceipt(attempt) {
+    setBusy(true); setError('');
+    try { setPreview({ name: `${attempt.insurer_name} 팩스 회신`, blob: await getClaimFaxReceipt(detail.id, attempt.id) }); }
     catch (e) { setError(await claimError(e)); }
     finally { setBusy(false); }
   }
@@ -173,7 +179,7 @@ export default function ClaimHistory({ onReuse, insurers = [] }) {
           <Typography variant="h6" fontWeight={700}>팩스 발송 이력</Typography>
           {!detail.fax_history?.length ? <Typography color="text.secondary">팩스 발송 이력이 없습니다.</Typography> :
             <TableContainer><Table size="small" aria-label="팩스 발송 이력">
-              <TableHead><TableRow>{['보험사', '수신 번호', '요청 시각', '상태', '완료 시각', '요금', '실패 사유'].map(label =>
+              <TableHead><TableRow>{['보험사', '수신 번호', '요청 시각', '상태', '완료 시각', '요금', '회신', '실패 사유'].map(label =>
                 <TableCell key={label} sx={{ whiteSpace: 'nowrap' }}>{label}</TableCell>)}</TableRow></TableHead>
               <TableBody>{detail.fax_history.map(attempt => <TableRow key={attempt.id}>
                 <TableCell>{attempt.insurer_name}</TableCell>
@@ -182,6 +188,14 @@ export default function ClaimHistory({ onReuse, insurers = [] }) {
                 <TableCell><ClaimDeliveryStatus status={attempt.status} /></TableCell>
                 <TableCell sx={{ whiteSpace: 'nowrap' }}>{timestamp(attempt.completed_at)}</TableCell>
                 <TableCell sx={{ whiteSpace: 'nowrap' }}>{attempt.point_cost ? `${attempt.point_cost}꼬막${attempt.refunded_points ? ` · ${attempt.refunded_points}꼬막 반환` : attempt.point_status === 'REVIEW_REQUIRED' ? ' · 결과 확인 중' : ' 차감'}` : '무료'}</TableCell>
+                <TableCell sx={{ whiteSpace: 'nowrap' }}>{attempt.receipt_id
+                  ? <Stack spacing={0.5}>
+                    <Typography variant="caption">회신 첨부 · {timestamp(attempt.receipt_received_at)}</Typography>
+                    <Button size="small" disabled={busy || !attempt.receipt_available}
+                      onClick={() => showFaxReceipt(attempt)}>
+                      {!attempt.receipt_available ? '보관기간 만료' : '회신 PDF 보기'}
+                    </Button>
+                  </Stack> : '—'}</TableCell>
                 <TableCell sx={{ minWidth: 180 }}>{attempt.failure_reason || '—'}</TableCell>
               </TableRow>)}</TableBody>
             </Table></TableContainer>}
