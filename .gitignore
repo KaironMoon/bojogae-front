@@ -21,3 +21,21 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Generated output and local tooling caches
+bin/
+obj/
+output/
+tmp/
+artifacts/
+coverage/
+test-results/
+playwright-report/
+.cache/
+.vite/
+__pycache__/
+*.py[cod]
+*.tsbuildinfo
+*.tmp
+*.bak
+Thumbs.db

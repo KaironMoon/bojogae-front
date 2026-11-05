@@ -247,6 +247,9 @@ export default function CrmImport({ onClose, onDone, renderRegistration }) {
       <DialogContent>
         <Stack gap={2}>
           {error && <Alert severity="error">{error}</Alert>}
+          <Typography variant="body2" color="text.secondary">
+            고객명만 필수이며 연락처·주소·생년월일은 나중에 입력할 수 있습니다.
+          </Typography>
           {mappingOpen ? (
             <>
               {table ? (
