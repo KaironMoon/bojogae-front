@@ -6,7 +6,8 @@ export const crmPost = async (path, data, config) =>
   (await api.post(base + path, data, config)).data;
 export const crmPut = async (path, data) =>
   (await api.put(base + path, data)).data;
-export const crmDelete = async (path) => (await api.delete(base + path)).data;
+export const crmDelete = async (path, params) =>
+  (await api.delete(base + path, params)).data;
 export const crmNearbyEvents = (params) => new EventSource(
   `${api.baseUrl}${base}/nearby-customers/events?${new URLSearchParams(params)}`,
   { withCredentials: true },
@@ -30,6 +31,8 @@ const errors = {
   crm_version_conflict:
     "다른 곳에서 수정한 내용이 있습니다. 새로고침한 뒤 다시 확인해 주세요.",
   crm_record_archived: "보관된 항목에는 새 기록을 추가할 수 없습니다.",
+  crm_group_invalid_customers: "추가할 수 없는 고객이 있습니다. 내고객 목록을 새로고침하고 다시 선택해 주세요.",
+  crm_group_duplicate_name: "이미 같은 이름의 고객 그룹이 있습니다.",
   crm_kakao_name_duplicate: "이미 사용 중인 카톡대화명입니다. 다른 대화명으로 수정해 주세요.",
   crm_contract_customer_mismatch: "이 고객에게 연결된 계약을 선택해 주세요.",
   crm_origin_immutable: "기존 보험·신규 계약 등록 구분은 변경할 수 없습니다.",

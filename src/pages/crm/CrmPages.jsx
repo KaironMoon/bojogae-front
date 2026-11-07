@@ -54,6 +54,7 @@ import {
 } from "./crm-utils";
 import CrmMap from "./CrmMap";
 import CrmImport from "./CrmImport";
+import CrmCustomerGroups from "./CrmCustomerGroups";
 
 function Archive({ kind, value, onClose, onDone }) {
   const [error, setError] = useState("");
@@ -145,6 +146,7 @@ export function CustomersPage() {
   const [selection, setSelection] = useState({ data: null, scope: "", ids: [] });
   const [archiveTargets, setArchiveTargets] = useState(null);
   const [archiveNotice, setArchiveNotice] = useState("");
+  const [groupTargets, setGroupTargets] = useState(null);
   const resource = useCrm("/customers", {
     q: search,
     stage,
@@ -169,6 +171,7 @@ export function CustomersPage() {
       description="상담부터 보험·방문까지, 고객의 업무를 한곳에서 관리합니다."
       actions={
         <>
+          {view === "list" && <Button onClick={() => setGroupTargets([])}>고객 그룹 관리</Button>}
           <Button onClick={() => setImportOpen(true)}>자료 가져오기</Button>
           <Button variant="contained" onClick={() => setForm(true)}>
             고객 등록
@@ -261,6 +264,7 @@ export function CustomersPage() {
                 onChange={(event) => selectCustomers(event.target.checked ? selectable.map((customer) => customer.id) : [])}
               />} />
               <Typography variant="body2">선택 {selected.length}명</Typography>
+              <Button variant="outlined" disabled={!selected.length} onClick={() => setGroupTargets(selected)}>선택 고객 그룹에 추가</Button>
               <Button variant="outlined" disabled={!selected.length || resource.loading} onClick={() => { setArchiveNotice(""); setArchiveTargets(selected); }}>선택 고객 보관</Button>
               {selected.length > 0 && <Button onClick={() => selectCustomers([])}>선택 해제</Button>}
             </Stack>
@@ -336,6 +340,7 @@ export function CustomersPage() {
           onDone={resource.reload}
         />
       )}
+      {groupTargets && <CrmCustomerGroups selectedCustomers={groupTargets} onClose={() => setGroupTargets(null)} />}
       {archiveTargets && <BulkCustomerArchive customers={archiveTargets} onClose={() => setArchiveTargets(null)} onDone={(count) => {
         setArchiveTargets(null);
         selectCustomers([]);
