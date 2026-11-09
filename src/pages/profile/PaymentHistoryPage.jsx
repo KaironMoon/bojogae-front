@@ -69,7 +69,7 @@ export default function PaymentHistoryPage({ admin=false }) {
                 return <TableRow key={order.id}>
                   <TableCell sx={{ whiteSpace:'nowrap' }}>{date(admin ? order.period_start : order.paid_at || order.created_at)}</TableCell>
                   <TableCell><Typography variant="body2" fontWeight={700}>{order.order_name}</Typography>
-                    {admin && <Typography variant="body2">회원 #{order.user_id}</Typography>}
+                    {admin && <Typography variant="body2">회원 #{order.user_id}{order.customer_name && ` ${order.customer_name}`}</Typography>}
                     <Typography variant="caption" color="text.secondary" sx={{ overflowWrap:'anywhere' }}>{order.id}</Typography>
                   </TableCell>
                   <TableCell sx={{ whiteSpace:'nowrap' }}>{order.amount.toLocaleString()}원

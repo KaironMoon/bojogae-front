@@ -30,6 +30,7 @@ export default function PaymentMethodsPage() {
   }, []);
   const registrationResult = (result) => {
     if (result.status === 'VERIFICATION_FAILED') setError('카드 등록 확인 결제가 실패했습니다. 카드가 등록되지 않았습니다.');
+    else if (result.cancellation_pending) setMessage('카드를 등록했습니다. 사용할 카드를 결제수단으로 선택해 주세요.');
     else setMessage(result.status === 'REGISTERED' ? '1,000원 승인과 전액 취소를 확인하고 카드를 등록했습니다. 사용할 카드를 결제수단으로 선택해 주세요.' : '1,000원 승인·취소 결과를 확인 중입니다. 카드 등록 상태 확인을 눌러 주세요.');
   };
   const confirm = useCallback(async (key, policyVersion) => {
@@ -103,6 +104,7 @@ export default function PaymentMethodsPage() {
     } catch (error) { popup?.close(); throw error; }
   };
   const pending = pendingStatuses.includes(data?.change_status) || Boolean(data?.verification);
+  const registrationTiming = config?.registerCardWhileCancelPending ? '취소 요청 후 카드를 목록에 추가합니다.' : '취소 확인 후 카드를 목록에 추가합니다.';
   return <Box sx={{ maxWidth:720, mx:'auto', p:{ xs:2, md:3 } }}><Stack spacing={2}>
     <Stack direction="row" alignItems="center" justifyContent="space-between"><Typography variant="h5" fontWeight={800}>결제수단 관리</Typography><Button component={Link} to={returnTo}>내정보로</Button></Stack>
     {busy && <CircularProgress size={24} />}
@@ -114,11 +116,11 @@ export default function PaymentMethodsPage() {
       {config.cardDeletionScope === 'LOCAL' && <Alert severity="info">카드 삭제 시 보조개에 저장된 결제정보가 제거됩니다. 이후 보조개에서는 해당 카드로 청구하지 않습니다.</Alert>}
       <Paper variant="outlined" sx={{ p:3, borderRadius:3 }}><Stack spacing={2}>
         <Typography fontWeight={700}>등록된 카드</Typography>
-        <Typography variant="body2" color="text.secondary">카드 등록 시 확인을 위해 1,000원을 승인하고 즉시 전액 취소합니다. 취소 확인 후 목록에 추가됩니다. 등록된 카드에서 결제수단으로 사용을 선택하면 이후 구독 결제에 적용됩니다.</Typography>
+        <Typography variant="body2" color="text.secondary">카드 등록 시 확인을 위해 1,000원을 승인하고 즉시 전액 취소를 요청합니다. {registrationTiming} 등록된 카드에서 결제수단으로 사용을 선택하면 이후 구독 결제에 적용됩니다.</Typography>
         {data?.next_payment_at && <Typography variant="body2">다음 결제일: {new Date(data.next_payment_at).toLocaleString('ko-KR')}</Typography>}
         {pendingStatuses.includes(data?.change_status) && <Alert severity="warning">{data.change_status === 'REVIEW' ? '결제수단 변경 결과 확인이 필요합니다. 고객센터로 문의해 주세요.' : data.change_status === 'RESTORING' ? '기존 카드의 결제 예약을 복원하고 있습니다.' : '결제수단과 다음 결제 예약을 전환하고 있습니다.'} 완료 전에는 추가 변경·재결제를 진행할 수 없습니다.</Alert>}
         {data?.change_status === 'FAILED' && <Alert severity="warning">결제수단 변경에 실패했습니다. 기존 카드와 결제 예약을 유지했습니다.</Alert>}
-        {data?.verification && <Alert severity="warning">{data.verification.status === 'REVIEW' ? '카드 등록 확인 결제에 고객센터 확인이 필요합니다.' : data.verification.status === 'CANCELING' ? '카드 등록 확인 결제 1,000원의 전액 취소를 확인 중입니다.' : '카드 등록 확인 결제의 승인·취소 결과를 확인 중입니다.'} 처리 완료 전에는 카드 등록·결제수단 변경·삭제를 진행할 수 없습니다.</Alert>}
+        {data?.verification && <Alert severity="warning">{data.verification.status === 'REVIEW' ? '카드 등록 확인 결제에 고객센터 확인이 필요합니다.' : '카드 등록 결과를 확인 중입니다.'}</Alert>}
         {data?.verification && <Button disabled={busy} onClick={() => perform(async () => registrationResult(await paymentPost(`methods/verifications/${encodeURIComponent(data.verification.id)}/check`)))}>카드 등록 상태 확인</Button>}
         {!data && <Typography>{busy ? '카드 목록을 불러오는 중입니다.' : '카드 목록을 불러오지 못했습니다.'}</Typography>}
         {data?.cards.length === 0 && <Typography>등록된 카드가 없습니다.</Typography>}
@@ -136,7 +138,6 @@ export default function PaymentMethodsPage() {
           </Stack>
           {card.selected && card.delete_block_reason === 'payment_method_in_use' && <Typography variant="caption" color="text.secondary">다른 카드를 결제수단으로 선택한 뒤 삭제할 수 있습니다.</Typography>}
           {card.selected && card.delete_block_reason === 'payment_pending_review' && <Typography variant="caption" color="text.secondary">결제 상태 확인이 끝난 뒤 삭제할 수 있습니다.</Typography>}
-          {card.selected && card.can_delete && <Typography variant="caption" color="text.secondary">프리 요금제에서는 현재 결제수단도 삭제할 수 있습니다.</Typography>}
         </Stack></Paper>)}
         {data?.can_register && <Button variant="contained" disabled={busy || Boolean(pendingKey.current)} onClick={open}>카드 등록</Button>}
         {data && !data.plan_code && <Button component={Link} to={returnTo}>구독 시작</Button>}
@@ -159,7 +160,7 @@ export default function PaymentMethodsPage() {
           {['BASIC','STANDARD','PRO'].map((code) => <MenuItem key={code} value={code}>{config?.products[code].name} · {config?.products[code].amount.toLocaleString()}원</MenuItem>)}
         </TextField>
       </> : <>
-        <Alert severity="info">카드 확인을 위해 1,000원을 승인하고 즉시 전액 취소합니다. 취소가 확인되면 카드를 목록에 추가합니다. 카드사에 따라 취소 내역 반영에는 시간이 걸릴 수 있습니다. 등록 후 사용할 카드를 따로 선택해 주세요.</Alert>
+        <Alert severity="info">카드 확인을 위해 1,000원을 승인하고 즉시 전액 취소를 요청합니다. {registrationTiming} 카드사에 따라 취소 내역 반영에는 시간이 걸릴 수 있습니다. 등록 후 사용할 카드를 따로 선택해 주세요.</Alert>
         <TextField label="카드 별칭" required value={alias} disabled={busy} onChange={(e) => setAlias(e.target.value)} slotProps={{ htmlInput:{ maxLength:50 } }} helperText="예: 생활비 카드, 회사 카드 · 카드번호는 입력하지 마세요." />
         {[['fullName','결제자 이름'],['phoneNumber','휴대폰 번호'],['email','이메일']].map(([key,label]) => <TextField key={key} label={label} required value={customer[key]} disabled={busy} type={key === 'email' ? 'email' : key === 'phoneNumber' ? 'tel' : 'text'} onChange={(e) => setCustomer({ ...customer, [key]:e.target.value })} />)}
       </>}
@@ -175,7 +176,7 @@ export default function PaymentMethodsPage() {
         setMessage(result.status === 'COMPLETED' ? '결제수단이 변경되었습니다. 지금 결제는 발생하지 않습니다.' : result.status === 'FAILED' ? '변경에 실패해 기존 결제수단과 예약을 유지했습니다.' : '결제수단 변경 결과를 확인 중입니다. 새로고침으로 확인해 주세요.');
         setDialog(null);
       } else if (dialog === 'delete') {
-        const result = (await api.delete(`/api/v1/payments/methods/${encodeURIComponent(target.id)}`, {}, { timeout:60000 })).data;
+        const result = (await api.delete(`/api/v1/payments/methods/${encodeURIComponent(target.id)}`, { timeout:60000 })).data;
         setMessage(result.status === 'DELETED' ? '카드가 삭제되었습니다.' : '카드 삭제 결과를 확인 중입니다. 새로고침으로 확인해 주세요.');
         setDialog(null);
       } else if (dialog === 'retry') {

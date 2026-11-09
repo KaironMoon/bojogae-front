@@ -1,9 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
-import { Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography } from '@mui/material';
+import { Alert, Box, Button, Chip, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography } from '@mui/material';
 import api from '@/services/api-caller';
 import { paymentError, paymentPost } from '@/services/payment-service';
+import PaymentRefundDialog from './PaymentRefundDialog';
 
 const statuses = { READY: '결제 대기', SCHEDULED: '예약됨', PAID: '결제 완료', FAILED: '결제 실패', CANCELED: '취소', REVIEW: '검토 필요', PENDING: '처리 중', COMPLETED: '완료', PENDING_VERIFICATION: '환불 결과 확인 중' };
+const terminationMessages = {
+  PENDING: '구독을 종료했습니다. 환불 처리가 진행 중입니다.',
+  REVIEW: '구독을 종료했습니다. 환불 결과는 관리자 검토가 필요합니다.',
+  COMPLETED: '구독 종료와 환불 처리가 완료됐습니다.',
+};
 const date = value => value ? new Date(value).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }) : '-';
 const canRefund = order => !order.isVerification && order.status === 'PAID' && order.refunded_amount < order.amount && !['PENDING', 'REVIEW'].includes(order.refund_status);
 
@@ -14,13 +20,9 @@ export default function PaymentSupportPanel({ customer, onChanged, onBusyChange 
   const [summary, setSummary] = useState(null);
   const [reason, setReason] = useState('');
   const [selectedOrder, setSelectedOrder] = useState(null);
-  const [refundReason, setRefundReason] = useState('');
-  const [refundAmount, setRefundAmount] = useState('');
   // eslint-disable-next-line react/prop-types
   const [reviewJobId, setReviewJobId] = useState(customer?.id || '');
   const reviewReasonRef = useRef(null);
-  const reviewedRefundKey = useRef(null);
-  const setRefundField = (setter, value) => { reviewedRefundKey.current = null; setter(value); };
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(Boolean(customer));
@@ -47,17 +49,25 @@ export default function PaymentSupportPanel({ customer, onChanged, onBusyChange 
   };
   const refreshAfterAction = async action => {
     const response = await action();
-    // A refresh failure must not erase a successful refund response or its retry key.
+    // Keep the action result even if refreshing the list fails.
     try { await load(); onChanged?.(); } catch (e) { setError(`처리 후 목록을 다시 불러오지 못했습니다. ${paymentError(e)}`); }
     return response;
   };
   const changeUser = value => {
-    setUserId(value); setSummary(null); setSelectedOrder(null); setRefundAmount('');
-    setRefundReason(''); setReviewJobId(''); setReason(''); setResult(null); setError(''); reviewedRefundKey.current = null;
+    setUserId(value); setSummary(null); setSelectedOrder(null);
+    setReviewJobId(''); setReason(''); setResult(null); setError('');
   };
   const selectOrder = order => {
-    setSelectedOrder({ ...order, userId }); setRefundAmount(''); setRefundReason('');
-    setError(''); setResult(null); reviewedRefundKey.current = null;
+    setSelectedOrder({ ...order, user_id:userId });
+    setError(''); setResult(null);
+  };
+  const terminateSubscription = () => {
+    if (!window.confirm(`사용자 ${userId}의 구독을 즉시 종료하고 남은 월 제공분을 중단합니다. 각 결제의 약관에 따라 자동 환불하거나 검토 대상으로 접수합니다.`)) return;
+    run(() => refreshAfterAction(async () => {
+      const response = await paymentPost(`admin/users/${userId}/terminate`, { reason });
+      setReviewJobId(response.job_id);
+      return response;
+    }));
   };
   const orders = [...(summary?.orders || []), ...(summary?.card_verifications || []).map(order => ({ ...order, isVerification: true }))];
   const selectedReview = summary?.termination_jobs?.find(job => job.id === reviewJobId);
@@ -100,34 +110,19 @@ export default function PaymentSupportPanel({ customer, onChanged, onBusyChange 
       </>}
     </>}
     <TextField label="고객 요청·처리 사유" value={reason} disabled={busy} inputRef={reviewReasonRef} onChange={e => setReason(e.target.value)} multiline />
-    <Button color="warning" disabled={busy || !/^\d+$/.test(userId) || !reason.trim()} onClick={() => { if (window.confirm(`사용자 ${userId}의 구독을 즉시 종료하고 남은 월 제공분을 중단합니다. 각 결제의 약관에 따라 자동 환불하거나 검토 대상으로 접수합니다.`)) run(() => refreshAfterAction(() => paymentPost(`admin/users/${userId}/terminate`, { reason }))); }}>고객 요청으로 즉시 구독 종료</Button>
+    <Button color="warning" disabled={busy || !/^\d+$/.test(userId) || !reason.trim()} onClick={terminateSubscription}>고객 요청으로 즉시 구독 종료</Button>
+    {result?.refund_status && <Alert severity={result.refund_status === 'REVIEW' ? 'warning' : 'info'}>
+      {terminationMessages[result.refund_status]} · {result.amount.toLocaleString()}원
+    </Alert>}
     {selectedReview && <Alert severity={selectedReview.status === 'REVIEW' ? 'warning' : 'info'}>선택한 {selectedReview.scope === 'WITHDRAWAL' ? '탈퇴' : '구독 종료'} 검토 · {date(selectedReview.terminated_at)} · {statuses[selectedReview.status] || selectedReview.status}</Alert>}
     <Button disabled={busy || selectedReview?.status !== 'REVIEW' || !reason.trim()} onClick={() => { if (window.confirm('환불 여부와 금액 검토를 완료하고, 필요한 환불의 완료를 확인했습니까? 검토 결과는 처리 사유에 기록해 주세요.')) run(() => refreshAfterAction(() => paymentPost(`admin/termination-jobs/${encodeURIComponent(reviewJobId)}/resolve`, { reason }))); }}>환불 검토 완료 기록</Button>
-    {result && <Alert severity="info">요청 처리 결과: {statuses[result.status] || '최신 결제·검토 내역을 확인해 주세요.'}{result.refund_id && <Typography variant="caption" display="block" sx={{ overflowWrap: 'anywhere' }}>환불 요청 ID: {result.refund_id}</Typography>}</Alert>}
+    {result && !result.refund_status && <Alert severity="info">요청 처리 결과: {statuses[result.status] || '최신 결제·검토 내역을 확인해 주세요.'}{result.refund_id && <Typography variant="caption" display="block" sx={{ overflowWrap: 'anywhere' }}>환불 요청 ID: {result.refund_id}</Typography>}</Alert>}
     {result && <Box component="details"><Box component="summary" sx={{ cursor: 'pointer' }}>처리 결과 상세</Box><Typography component="pre" variant="body2" sx={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{JSON.stringify(result, null, 2)}</Typography></Box>}
-    <Dialog open={Boolean(selectedOrder)} onClose={() => { if (!busy) setSelectedOrder(null); }} fullWidth maxWidth="sm" aria-labelledby="support-refund-title">
-      <DialogTitle id="support-refund-title">검토 후 환불 처리</DialogTitle>
-      <DialogContent dividers><Stack spacing={2}>
-        {error && <Alert severity="error">{error}</Alert>}
-        <Typography fontWeight={700}>사용자 #{selectedOrder?.userId} · {selectedOrder?.order_name}</Typography>
-        <TextField label="검토한 결제 ID" value={selectedOrder?.id || ''} InputProps={{ readOnly: true }} fullWidth />
-        <Typography variant="body2">결제금액 {selectedOrder?.amount.toLocaleString()}원 · 기환불액 {selectedOrder?.refunded_amount.toLocaleString()}원</Typography>
-        <Typography variant="body2" color="text.secondary">결제·사용 내역을 검토한 환불액을 입력해 주세요. 환불 가능 여부와 금액은 서버에서 다시 확인합니다.</Typography>
-        <TextField label="검토 후 확정한 환불액 (원)" type="number" value={refundAmount} disabled={busy} onChange={e => setRefundField(setRefundAmount, e.target.value)} autoFocus />
-        <TextField label="환불 처리 사유" value={refundReason} disabled={busy} onChange={e => setRefundField(setRefundReason, e.target.value)} multiline />
-      </Stack></DialogContent>
-      <DialogActions>
-        <Button disabled={busy} onClick={() => setSelectedOrder(null)}>닫기</Button>
-        <Button color="warning" variant="contained" disabled={busy || !selectedOrder || !refundReason.trim() || !/^\d+$/.test(refundAmount) || Number(refundAmount) < 1 || !Number.isSafeInteger(Number(refundAmount))} onClick={() => {
-          if (!window.confirm(`사용자 ${selectedOrder.userId}의 결제 ${selectedOrder.id}에 대해 검토한 ${Number(refundAmount).toLocaleString()}원을 환불하고 해당 결제의 남은 꼬막을 회수합니다. 진행하시겠습니까?`)) return;
-          reviewedRefundKey.current ||= crypto.randomUUID();
-          run(() => refreshAfterAction(async () => {
-            const response = await paymentPost(`admin/users/${selectedOrder.userId}/orders/${encodeURIComponent(selectedOrder.id)}/refund`, { reason: refundReason, expected_amount: Number(refundAmount), idempotency_key: reviewedRefundKey.current });
-            setSelectedOrder(null);
-            return response;
-          }));
-        }}>검토 금액으로 환불</Button>
-      </DialogActions>
-    </Dialog>
+    <PaymentRefundDialog key={selectedOrder?.id || 'closed'} order={selectedOrder} busy={busy} error={error}
+      onClose={() => setSelectedOrder(null)} onSubmit={action => run(() => refreshAfterAction(async () => {
+        const response = await action();
+        setSelectedOrder(null);
+        return response;
+      }))} />
   </Stack></Paper>;
 }
