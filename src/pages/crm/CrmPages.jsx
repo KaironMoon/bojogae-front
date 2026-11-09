@@ -4,12 +4,14 @@ import {
   Alert,
   Box,
   Button,
+  Checkbox,
   Chip,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
   Divider,
+  FormControlLabel,
   Stack,
   Tab,
   Tabs,
@@ -52,6 +54,7 @@ import {
 } from "./crm-utils";
 import CrmMap from "./CrmMap";
 import CrmImport from "./CrmImport";
+import CrmCustomerGroups from "./CrmCustomerGroups";
 
 function Archive({ kind, value, onClose, onDone }) {
   const [error, setError] = useState("");
@@ -91,6 +94,42 @@ function Archive({ kind, value, onClose, onDone }) {
     </Dialog>
   );
 }
+function BulkCustomerArchive({ customers, onClose, onDone }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  async function submit() {
+    if (busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      const result = await crmPost("/customers/bulk-archive", {
+        customers: customers.map(({ id, version }) => ({ id, version })),
+        confirmed: true,
+      });
+      onDone(result.count);
+    } catch (e) {
+      setError(crmError(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <Dialog open onClose={busy ? undefined : onClose} fullWidth maxWidth="xs">
+      <DialogTitle>선택한 고객 {customers.length}명을 보관할까요?</DialogTitle>
+      <DialogContent>
+        <Stack gap={1}>
+          {error && <Alert severity="error">{error}</Alert>}
+          <Typography>보관하면 기본 목록에서 제외됩니다. 고객 정보와 계약·상담 등 기존 기록은 유지되며, 보관 고객에서 확인할 수 있습니다.</Typography>
+          <Typography variant="body2" sx={{ overflowWrap: "anywhere" }}>{customers.slice(0, 10).map((customer) => customer.alias ? `${customer.name} (${customer.alias})` : customer.name).join(", ")}{customers.length > 10 ? ` 외 ${customers.length - 10}명` : ""}</Typography>
+        </Stack>
+      </DialogContent>
+      <DialogActions>
+        <Button disabled={busy} onClick={onClose}>취소</Button>
+        <Button disabled={busy} variant="contained" onClick={submit}>{busy ? "보관 중…" : "보관"}</Button>
+      </DialogActions>
+    </Dialog>
+  );
+}
 export function CustomersPage() {
   const [q, setQ] = useState("");
   const [search, setSearch] = useState("");
@@ -104,6 +143,10 @@ export function CustomersPage() {
   const [view, setView] = useState("list");
   const [form, setForm] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [selection, setSelection] = useState({ data: null, scope: "", ids: [] });
+  const [archiveTargets, setArchiveTargets] = useState(null);
+  const [archiveNotice, setArchiveNotice] = useState("");
+  const [groupTargets, setGroupTargets] = useState(null);
   const resource = useCrm("/customers", {
     q: search,
     stage,
@@ -115,12 +158,20 @@ export function CustomersPage() {
     page,
   });
   const navigate = useNavigate();
+  const selectionScope = JSON.stringify([search, stage, archived, missing, unconfirmed, tag, hasContract, page, view]);
+  const selectable = archived ? [] : (resource.data?.items || []).filter((customer) => !customer.archived);
+  const selected = !resource.loading && !resource.error && selection.data === resource.data && selection.scope === selectionScope
+    ? selectable.filter((customer) => selection.ids.includes(customer.id)) : [];
+  function selectCustomers(ids) {
+    setSelection({ data: resource.data, scope: selectionScope, ids });
+  }
   return (
     <Page
       title="내고객"
       description="상담부터 보험·방문까지, 고객의 업무를 한곳에서 관리합니다."
       actions={
         <>
+          {view === "list" && <Button onClick={() => setGroupTargets([])}>고객 그룹 관리</Button>}
           <Button onClick={() => setImportOpen(true)}>자료 가져오기</Button>
           <Button variant="contained" onClick={() => setForm(true)}>
             고객 등록
@@ -128,7 +179,7 @@ export function CustomersPage() {
         </>
       }
     >
-      <Tabs value={view} onChange={(_, v) => setView(v)} sx={{ mb: 2 }}>
+      <Tabs value={view} onChange={(_, v) => { selectCustomers([]); setView(v); }} sx={{ mb: 2 }}>
         <Tab value="list" label="내고객 목록" />
         <Tab value="map" label="주변 고객 지도" />
       </Tabs>
@@ -200,9 +251,24 @@ export function CustomersPage() {
             </Box>
           </Panel>
           <State resource={resource} />
+          {archiveNotice && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setArchiveNotice("")}>{archiveNotice}</Alert>}
           <Typography variant="body2" color="text.secondary" mb={1}>
             총 {resource.data?.total || 0}명
           </Typography>
+          {!archived && (
+            <Stack direction="row" flexWrap="wrap" alignItems="center" gap={1} mb={1}>
+              <FormControlLabel label="현재 페이지 전체 선택" control={<Checkbox
+                disabled={resource.loading || !!resource.error || !selectable.length}
+                checked={selected.length > 0 && selected.length === selectable.length}
+                indeterminate={selected.length > 0 && selected.length < selectable.length}
+                onChange={(event) => selectCustomers(event.target.checked ? selectable.map((customer) => customer.id) : [])}
+              />} />
+              <Typography variant="body2">선택 {selected.length}명</Typography>
+              <Button variant="outlined" disabled={!selected.length} onClick={() => setGroupTargets(selected)}>선택 고객 그룹에 추가</Button>
+              <Button variant="outlined" disabled={!selected.length || resource.loading} onClick={() => { setArchiveNotice(""); setArchiveTargets(selected); }}>선택 고객 보관</Button>
+              {selected.length > 0 && <Button onClick={() => selectCustomers([])}>선택 해제</Button>}
+            </Stack>
+          )}
           {resource.data?.items.map((c) => (
             <Panel key={c.id}>
               <Stack
@@ -212,6 +278,13 @@ export function CustomersPage() {
               >
                 <Box>
                   <Stack direction="row" gap={1} alignItems="center">
+                    {!archived && <Checkbox
+                      size="small"
+                      inputProps={{ "aria-label": `${c.name} 고객 선택` }}
+                      disabled={resource.loading || !!resource.error || c.archived}
+                      checked={selected.some((customer) => customer.id === c.id)}
+                      onChange={(event) => selectCustomers(event.target.checked ? [...selected.map((customer) => customer.id), c.id] : selected.filter((customer) => customer.id !== c.id).map((customer) => customer.id))}
+                    />}
                     <CustomerLink id={c.id} name={c.alias ? `${c.name} (${c.alias})` : c.name} />
                     <Chip size="small" label={STAGES[c.stage]} />
                     {c.do_not_contact && (
@@ -267,6 +340,14 @@ export function CustomersPage() {
           onDone={resource.reload}
         />
       )}
+      {groupTargets && <CrmCustomerGroups selectedCustomers={groupTargets} onClose={() => setGroupTargets(null)} />}
+      {archiveTargets && <BulkCustomerArchive customers={archiveTargets} onClose={() => setArchiveTargets(null)} onDone={(count) => {
+        setArchiveTargets(null);
+        selectCustomers([]);
+        setArchiveNotice(`${count}명의 고객을 보관했습니다.`);
+        if (page > 1 && count === resource.data?.items.length) setPage(page - 1);
+        else resource.reload();
+      }} />}
     </Page>
   );
 }

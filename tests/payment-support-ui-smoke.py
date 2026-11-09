@@ -5,7 +5,7 @@ from pathlib import Path
 from urllib.parse import urlparse, parse_qs
 from playwright.sync_api import sync_playwright
 
-BASE = 'http://127.0.0.1:3307'
+BASE = os.environ.get('BOJOGAE_UI_BASE', 'http://127.0.0.1:3307')
 USER = {'id': 2, 'role': 'ADMIN', 'status': 'ACTIVE', 'email': 'admin@example.com', 'display_name': '관리자', 'group_id': None}
 ORDERS = [
     {'id': 'paid-order', 'order_name': '스탠다드 월 구독', 'amount': 29000, 'refunded_amount': 0, 'status': 'PAID', 'paid_at': '2026-10-23T07:00:00Z'},
@@ -30,6 +30,8 @@ def handle(route):
     if path == 'auth/me': body = USER
     elif path == 'admin/users': body = {'items': [], 'page': 1, 'total_pages': 0, 'total': 0}
     elif path == 'web-push/configuration': body = {'enabled': False}
+    elif path == 'payments/admin/fax-refund-reviews':
+        body = {'items': [], 'total': 0, 'total_pages': 0, 'page': 1, 'page_size': 20}
     elif path == 'payments/admin/termination-jobs':
         params = parse_qs(urlparse(req.url).query)
         q = params.get('q', [''])[0].lower(); state = params.get('status', [''])[0]
@@ -78,7 +80,7 @@ with sync_playwright() as p:
     search.fill('owner@example.com')
     page.get_by_role('button', name='검색', exact=True).click()
     queue.get_by_text('문승욱 · #7', exact=True).wait_for()
-    assert queue.get_by_text('탈퇴고객 · #8', exact=True).count() == 0
+    queue.get_by_text('탈퇴고객 · #8', exact=True).wait_for(state='hidden')
     queue.get_by_role('button', name='검토하기', exact=True).click()
     review = page.get_by_role('dialog', name='문승욱 · 구독 종료 검토', exact=True)
     review.get_by_role('table', name='고객지원 결제 목록', exact=True).wait_for()

@@ -27,6 +27,7 @@ import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
 import ViewCarouselOutlinedIcon from "@mui/icons-material/ViewCarouselOutlined";
 import ContactPhoneOutlinedIcon from "@mui/icons-material/ContactPhoneOutlined";
 import HelpOutlineOutlinedIcon from "@mui/icons-material/HelpOutlineOutlined";
+import ChatBubbleOutlineRoundedIcon from "@mui/icons-material/ChatBubbleOutlineRounded";
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { planName } from "@/constants/plans";
@@ -43,6 +44,12 @@ const PRIMARY_MENU = [
 const CUSTOMER_MENU = [
   { label: "내 고객", path: "/crm/customers" },
   { label: "내 계약", path: "/crm/contracts" },
+];
+
+const KAKAO_TEMPLATE_PATH = "/kakao-message-templates/";
+const KAKAO_TEMPLATE_MENU = [
+  { label: "상용구", path: `${KAKAO_TEMPLATE_PATH}snippets` },
+  { label: "서명", path: `${KAKAO_TEMPLATE_PATH}signatures` },
 ];
 
 const CLAIM_MENU = [
@@ -113,6 +120,7 @@ function PageLeftMenu({ onNavigate }) { // eslint-disable-line react/prop-types
   const [boardsOpen, setBoardsOpen] = useState(location.pathname.startsWith("/boards/"));
   const [helpOpen, setHelpOpen] = useState(location.pathname.startsWith("/help/"));
   const [customersOpen, setCustomersOpen] = useState(CUSTOMER_MENU.some(item => location.pathname.startsWith(item.path)));
+  const [kakaoTemplatesOpen, setKakaoTemplatesOpen] = useState(location.pathname.startsWith(KAKAO_TEMPLATE_PATH));
   const [claimsOpen, setClaimsOpen] = useState(location.pathname.startsWith("/claims"));
   const [adminBoardsOpen, setAdminBoardsOpen] = useState(location.pathname.startsWith("/admin/boards/"));
   const [adminPointsOpen, setAdminPointsOpen] = useState(ADMIN_POINT_MENU.some(item => location.pathname === item.path));
@@ -126,6 +134,7 @@ function PageLeftMenu({ onNavigate }) { // eslint-disable-line react/prop-types
     if (location.pathname.startsWith("/help/")) setHelpOpen(true);
     if (location.pathname.startsWith("/claims")) setClaimsOpen(true);
     if (CUSTOMER_MENU.some(item => location.pathname.startsWith(item.path))) setCustomersOpen(true);
+    if (location.pathname.startsWith(KAKAO_TEMPLATE_PATH)) setKakaoTemplatesOpen(true);
     if (location.pathname.startsWith("/admin/boards/")) setAdminBoardsOpen(true);
     if (ADMIN_POINT_MENU.some(item => location.pathname === item.path)) setAdminPointsOpen(true);
   }, [location.pathname]);
@@ -248,6 +257,7 @@ function PageLeftMenu({ onNavigate }) { // eslint-disable-line react/prop-types
         {PRIMARY_MENU.map(renderMenuItem)}
         {renderMenuGroup({ label: "보험금 청구", icon: DescriptionOutlinedIcon, items: CLAIM_MENU, open: claimsOpen, setOpen: setClaimsOpen, prefix: "/claims/" })}
         {renderMenuGroup({ label: "고객관리", icon: ContactPhoneOutlinedIcon, items: CUSTOMER_MENU, open: customersOpen, setOpen: setCustomersOpen, prefix: "/crm/customer-menu/" })}
+        {renderMenuGroup({ label: "카톡 상용구/서명 관리", icon: ChatBubbleOutlineRoundedIcon, items: KAKAO_TEMPLATE_MENU, open: kakaoTemplatesOpen, setOpen: setKakaoTemplatesOpen, prefix: KAKAO_TEMPLATE_PATH })}
         {renderMenuItem({ label: "할 일·방문 일정", path: "/crm/tasks", icon: HomeOutlinedIcon })}
         {renderMenuGroup({ label: "요청하기", icon: DescriptionOutlinedIcon, items: REPORT_MENU, open: reportOpen, setOpen: setReportOpen, prefix: "/report-menu/" })}
         {renderMenuGroup({ label: "내 정보", icon: AccountCircleOutlinedIcon, items: PROFILE_MENU, open: profileOpen, setOpen: setProfileOpen, prefix: "/account/" })}

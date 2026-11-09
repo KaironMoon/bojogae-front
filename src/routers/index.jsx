@@ -48,6 +48,7 @@ import QnaPage from "../pages/help/QnaPage";
 import HelpContactPage from "../pages/help/HelpContactPage";
 import FaqPage from "../pages/help/FaqPage";
 import FaqsPage from "../pages/admin/FaqsPage";
+import KakaoTemplatesPage from "../pages/kakao-templates/KakaoTemplatesPage";
 
 const CustomersPage = lazy(() => import('../pages/crm/CrmPages').then((m) => ({ default: m.CustomersPage })));
 const CustomerDetailPage = lazy(() => import('../pages/crm/CrmPages').then((m) => ({ default: m.CustomerDetailPage })));
@@ -150,6 +151,8 @@ const router = createBrowserRouter([
           { path: '/crm/contracts', element: <Suspense fallback={<div role="status">불러오는 중…</div>}><ContractsPage /></Suspense> },
           { path: '/crm/contracts/:contractId', element: <Suspense fallback={<div role="status">불러오는 중…</div>}><ContractDetailPage /></Suspense> },
           { path: '/crm/tasks', element: <Suspense fallback={<div role="status">불러오는 중…</div>}><TasksPage /></Suspense> },
+          { path: "/kakao-message-templates/snippets", element: <KakaoTemplatesPage key="snippets" collection="snippets" label="상용구" /> },
+          { path: "/kakao-message-templates/signatures", element: <KakaoTemplatesPage key="signatures" collection="signatures" label="서명" /> },
           { path: "/insurers", element: <InsurersPage /> },
           { path: "/claims", element: <Navigate to="/claims/new" replace /> },
           { path: "/claims/new", element: <ClaimsPage /> },

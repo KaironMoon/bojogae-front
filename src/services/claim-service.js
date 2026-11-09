@@ -161,3 +161,8 @@ export async function getClaimOriginalShare(requestId, deliveryId, signal) {
     { share_files: true }, { signal, timeout: 120000 });
   return claimShareFiles(response.data);
 }
+
+export async function getClaimFaxReceipt(requestId, attemptId) {
+  return (await apiCaller.get(`/api/v1/claims/requests/${requestId}/fax/${attemptId}/receipt`, {},
+    { responseType: 'blob' })).data;
+}

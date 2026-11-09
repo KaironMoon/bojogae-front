@@ -6,7 +6,8 @@ export const crmPost = async (path, data, config) =>
   (await api.post(base + path, data, config)).data;
 export const crmPut = async (path, data) =>
   (await api.put(base + path, data)).data;
-export const crmDelete = async (path) => (await api.delete(base + path)).data;
+export const crmDelete = async (path, params) =>
+  (await api.delete(base + path, params)).data;
 export const crmNearbyEvents = (params) => new EventSource(
   `${api.baseUrl}${base}/nearby-customers/events?${new URLSearchParams(params)}`,
   { withCredentials: true },
@@ -22,6 +23,7 @@ export const crmUpload = async (file, target) => {
   return crmPost("/attachments", data);
 };
 const errors = {
+  crm_archive_confirmation_required: "선택한 고객과 보관 안내를 확인한 뒤 보관해 주세요.",
   crm_schema_required:
     "고객·계약관리 DB 준비가 필요합니다. 작성된 SQL의 적용 여부를 확인해 주세요.",
   crm_unavailable: "고객·계약관리가 현재 비활성화되어 있습니다.",
@@ -29,6 +31,8 @@ const errors = {
   crm_version_conflict:
     "다른 곳에서 수정한 내용이 있습니다. 새로고침한 뒤 다시 확인해 주세요.",
   crm_record_archived: "보관된 항목에는 새 기록을 추가할 수 없습니다.",
+  crm_group_invalid_customers: "추가할 수 없는 고객이 있습니다. 내고객 목록을 새로고침하고 다시 선택해 주세요.",
+  crm_group_duplicate_name: "이미 같은 이름의 고객 그룹이 있습니다.",
   crm_kakao_name_duplicate: "이미 사용 중인 카톡대화명입니다. 다른 대화명으로 수정해 주세요.",
   crm_contract_customer_mismatch: "이 고객에게 연결된 계약을 선택해 주세요.",
   crm_origin_immutable: "기존 보험·신규 계약 등록 구분은 변경할 수 없습니다.",
@@ -48,15 +52,24 @@ const errors = {
   crm_narrow_search: "검색 대상이 많습니다. 반경이나 필터를 좁혀 주세요.",
   crm_attachment_size: "첨부파일은 10MB 이하로 선택해 주세요.",
   crm_attachment_type: "PDF, PNG, JPG 파일만 첨부할 수 있습니다.",
+  crm_import_mapping_confirmation_required: "매핑된 고객 데이터 샘플을 확인하고 가져오기 방식에 동의해 주세요.",
   crm_import_review_required:
     "가져올 내용을 검토한 뒤 확인 항목을 선택해 주세요.",
   crm_import_file_size: "2MB 이하의 파일을 선택해 주세요.",
-  crm_import_file_type: "엑셀(.xlsx), CSV 또는 지원되는 표 파일을 선택해 주세요.",
-  crm_import_invalid_file: "파일을 읽지 못했습니다. 내려받은 양식으로 작성한 엑셀 또는 CSV 파일인지 확인해 주세요.",
-  crm_import_invalid_headers: "첫 줄의 항목명이 비어 있거나 중복되었습니다. 양식의 항목명을 유지해 주세요.",
+  crm_import_file_type: "엑셀(.xlsx), CSV, HTML 또는 이미지(PNG·JPEG·WebP)를 선택해 주세요.",
+  crm_import_invalid_file: "파일을 읽지 못했습니다. 지원되는 형식의 파일인지 확인해 주세요.",
+  crm_import_invalid_headers: "제목 행과 열 구성을 확인해 주세요. 최대 30열까지 가져올 수 있습니다.",
+  crm_import_duplicate_mapping: "여러 열을 같은 저장 항목에 연결할 수 없습니다. 하나를 선택하고 나머지는 가져오지 않음으로 설정해 주세요.",
+  crm_import_invalid_mapping: "저장 항목 연결을 확인해 주세요.",
   crm_import_formula_unsupported: "엑셀 수식은 가져올 수 없습니다. 수식 결과를 값으로 붙여넣은 뒤 올려 주세요.",
   crm_import_html_unsupported:
     "지원하는 고객 데이터 형식이 없습니다. 표를 탭 구분 텍스트로 붙여넣어 주세요.",
+  crm_import_invalid_image: "읽을 수 있는 PNG·JPEG·WebP 단일 이미지를 선택해 주세요. 최대 2,000만 화소까지 지원합니다.",
+  crm_import_extraction_not_configured: "HTML·이미지 추출을 위한 OpenAI 설정이 준비되지 않았습니다.",
+  crm_import_extraction_timeout: "추출 시간이 초과되었습니다. 표를 더 작게 나누어 다시 시도해 주세요.",
+  crm_import_extraction_failed: "HTML·이미지를 추출하지 못했습니다. 원본을 확인하거나 CSV로 변환해 올려 주세요.",
+  crm_import_extraction_incomplete: "표 전체를 추출하지 못했습니다. 고객 표 하나만 포함하도록 파일을 나누어 다시 올려 주세요.",
+  crm_import_extraction_invalid: "추출된 표의 열 구성이 올바르지 않습니다. 원본을 확인하거나 CSV로 변환해 올려 주세요.",
   crm_import_row_limit: "한 번에 1~5,000행을 가져올 수 있습니다.",
 };
 export function crmError(error) {
