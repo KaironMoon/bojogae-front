@@ -27,6 +27,7 @@ import UploadFileRoundedIcon from "@mui/icons-material/UploadFileRounded";
 import { useEffect, useRef, useState } from "react";
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 
+import { PLAN_COCKLE_NOTE, PLAN_INFO, planCockleAllowance } from "@/constants/plans";
 import { createGroupInquiry, groupInquiryError } from "@/services/group-inquiry-service";
 import BusinessInfo from "@/pages/components/layout/BusinessInfo";
 import { shouldSkipLanding, skipLandingFromNowOn } from "@/auth/landing-preference-storage";
@@ -101,11 +102,11 @@ const reviews = [
 ];
 
 const plans = [
-  { name: "1달 무료 체험", code: "FREE", price: "0원", unit: "30일", tag: "30일 무료체험", features: ["보험 제안서 분석·보고서 생성 체험", "카드 등록 없이 시작", "유료 전환은 직접 선택"] },
-  { name: "베이직", code: "BASIC", price: "19,000원", unit: "월", tag: "가볍게 시작", features: ["보험 제안서 분석·보고서 생성", "쉬운 설명 자동 변환", "생성 보고서 아카이빙"] },
-  { name: "스탠다드", code: "STANDARD", price: "29,000원", unit: "월", tag: "가장 선호", featured: true, features: ["보험 제안서 분석·보고서 생성", "쉬운 설명 자동 변환", "생성 보고서 아카이빙"] },
-  { name: "프로", price: "49,000원", unit: "월", code: "PRO", tag: "많이 사용하는 분께", features: ["보험 제안서 분석·보고서 생성", "쉬운 설명 자동 변환", "생성 보고서 아카이빙"] },
-  { name: "사무실 그룹", price: "별도 문의", unit: "단체 할인", tag: "지점 · 본부 · GA", dark: true, features: ["사번 기반 그룹 로그인", "지점장 관리자 대시보드", "단체 맞춤형 운영 지원"] },
+  { ...PLAN_INFO.FREE, name: "1달 무료 체험", tag: "30일 무료체험", features: ["보험 제안서 분석·보고서 생성 체험", "카드 등록 없이 시작", "유료 전환은 직접 선택"] },
+  { ...PLAN_INFO.BASIC, tag: "가볍게 시작", features: ["보험 제안서 분석·보고서 생성", "쉬운 설명 자동 변환", "생성 보고서 아카이빙"] },
+  { ...PLAN_INFO.STANDARD, tag: "가장 선호", featured: true, features: ["보험 제안서 분석·보고서 생성", "쉬운 설명 자동 변환", "생성 보고서 아카이빙"] },
+  { ...PLAN_INFO.PRO, tag: "많이 사용하는 분께", features: ["보험 제안서 분석·보고서 생성", "쉬운 설명 자동 변환", "생성 보고서 아카이빙"] },
+  { name: "사무실 그룹", price: "별도 문의", priceUnit: "단체 할인", tag: "지점 · 본부 · GA", dark: true, features: ["사번 기반 그룹 로그인", "지점장 관리자 대시보드", "단체 맞춤형 운영 지원"] },
 ];
 
 const faqs = [
@@ -434,7 +435,24 @@ export default function LandingPage() {
 
         <section id="pricing" className="pricing-section">
           <div className="section-heading" data-reveal><span>PRICING PLAN</span><h2>부담 없는 요금으로<br />나만의 AI 영업 비서를 두세요</h2><p>보조개 월간 구독권으로 보험 제안서 분석·보고서 생성 기능을 이용하세요.<br />요금제별 이용 한도가 적용됩니다. 30일 무료체험 후 유료 전환은 직접 선택합니다.</p></div>
-          <div className="pricing-grid">{plans.map(plan => <article key={plan.name} className={`${plan.featured ? "featured" : ""} ${plan.dark ? "dark" : ""} ${plan.comingSoon ? "coming-soon" : ""}`} data-reveal><span className="plan-tag">{plan.tag}</span><h3>{plan.name}</h3><div className="plan-price"><strong>{plan.price}</strong><small>/ {plan.unit}</small></div><ul>{plan.features.map(feature => <li key={feature}><CheckRoundedIcon />{feature}</li>)}</ul><button disabled={plan.comingSoon} onClick={() => plan.dark ? setInquiryOpen(true) : goLogin("personal", plan.code)}>{plan.comingSoon ? "출시 준비 중" : plan.dark ? "단체 도입 문의" : plan.code === "FREE" ? "무료로 시작" : `${plan.name} 가입 신청`}{!plan.comingSoon && <ArrowForwardRoundedIcon />}</button></article>)}</div>
+          <div className="pricing-grid">
+            {plans.map(plan => (
+              <article key={plan.name} className={`${plan.featured ? "featured" : ""} ${plan.dark ? "dark" : ""} ${plan.comingSoon ? "coming-soon" : ""}`} data-reveal>
+                <span className="plan-tag">{plan.tag}</span>
+                <h3>{plan.name}</h3>
+                <div className="plan-price"><strong>{plan.price}</strong><small>/ {plan.priceUnit}</small></div>
+                <ul>
+                  {plan.code && <li><CheckRoundedIcon /><strong>{planCockleAllowance(plan.code)}</strong></li>}
+                  {plan.features.map(feature => <li key={feature}><CheckRoundedIcon />{feature}</li>)}
+                </ul>
+                <button disabled={plan.comingSoon} onClick={() => plan.dark ? setInquiryOpen(true) : goLogin("personal", plan.code)}>
+                  {plan.comingSoon ? "출시 준비 중" : plan.dark ? "단체 도입 문의" : plan.code === "FREE" ? "무료로 시작" : `${plan.name} 가입 신청`}
+                  {!plan.comingSoon && <ArrowForwardRoundedIcon />}
+                </button>
+              </article>
+            ))}
+          </div>
+          <Typography variant="body2" color="text.secondary" align="center" sx={{ mt: 3 }}>{PLAN_COCKLE_NOTE}</Typography>
         </section>
 
         <section className="faq-section"><div className="faq-heading" data-reveal><span>FAQ</span><h2>자주 묻는 질문</h2><p>보조개 서비스 이용에 관해 궁금한 점을 확인하세요.</p></div><div className="faq-list">{faqs.map(([question, answer], index) => <article key={question} className={openFaq === index ? "open" : ""} data-reveal><button onClick={() => setOpenFaq(openFaq === index ? -1 : index)} aria-expanded={openFaq === index}><span>{question}</span><i>+</i></button><div><p>{answer}</p></div></article>)}</div></section>

@@ -19,12 +19,10 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
 import { useAuth } from "@/auth/AuthContext";
 import { getSignupProfile, sendSignupEmail, verifySignupCode } from "@/services/auth-service";
-import { PLAN_INFO, isSignupPlan } from "@/constants/plans";
+import { PLAN_COCKLE_NOTE, PLAN_INFO, SIGNUP_PLAN_CODES, isSignupPlan, planCockleAllowance } from "@/constants/plans";
 
 import SignupProfileFields from "@/components/signup/SignupProfileFields";
 import { referralErrors } from '@/services/referral-service';
-
-const PLAN_OPTIONS = ["FREE", "BASIC", "STANDARD", "PRO"];
 
 function PlanOption({ code, selected, disabled, onSelect }) { // eslint-disable-line react/prop-types
   const plan = PLAN_INFO[code];
@@ -52,6 +50,7 @@ function PlanOption({ code, selected, disabled, onSelect }) { // eslint-disable-
           {plan.price}{code === "FREE" ? "" : ` / ${plan.priceUnit}`}
         </Typography>
       </Stack>
+      <Typography variant="body2" fontWeight={700}>{planCockleAllowance(code)}</Typography>
       <Typography variant="caption" color="text.secondary">{plan.summary}</Typography>
     </ButtonBase>
   );
@@ -176,10 +175,11 @@ function SignupCompletePage() {
             <Stack spacing={1.25}>
               <Typography variant="subtitle2" fontWeight={800}>요금제 선택 (필수)</Typography>
               <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 1.25 }}>
-                {PLAN_OPTIONS.map((code) => (
+                {SIGNUP_PLAN_CODES.map((code) => (
                   <PlanOption key={code} code={code} selected={planCode === code} disabled={loading || sent} onSelect={setPlanCode} />
                 ))}
               </Box>
+              <Typography variant="body2" color="text.secondary">{PLAN_COCKLE_NOTE}</Typography>
               {planCode && (
                 <Alert severity={planCode === "FREE" ? "success" : "info"}>
                   {planCode === "FREE"

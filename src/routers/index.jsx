@@ -17,6 +17,7 @@ import UsersPage from "../pages/admin/UsersPage";
 import SignupCompletePage from "../pages/auth/SignupCompletePage";
 import EmailVerificationPage from "../pages/auth/EmailVerificationPage";
 import ProfilePage from "../pages/profile/ProfilePage";
+import PlanGuidePage from "../pages/profile/PlanGuidePage";
 import NotificationTargetPage from '../pages/profile/NotificationTargetPage';
 import PaymentMethodsPage from "../pages/profile/PaymentMethodsPage";
 import PaymentHistoryPage from "../pages/profile/PaymentHistoryPage";
@@ -132,6 +133,7 @@ const router = createBrowserRouter([
             path: "/profile",
             element: <ProfilePage />,
           },
+          { path: "/plans", element: <PlanGuidePage /> },
           { path: "/payment-methods", element: <PaymentMethodsPage /> },
           { path: "/payment-history", element: <PaymentHistoryPage /> },
           {
