@@ -141,14 +141,16 @@ function LoginPage() {
         justifyContent: "center",
         py: { xs: 4, md: 8 },
         background:
-          "radial-gradient(circle at 15% 20%, rgba(232, 128, 104, .18), transparent 34%), radial-gradient(circle at 85% 80%, rgba(242, 184, 157, .20), transparent 30%), var(--bojogae-canvas)",
+          "radial-gradient(circle at 15% 20%, rgba(3, 199, 90, .18), transparent 34%), radial-gradient(circle at 85% 80%, rgba(107, 56, 251, .20), transparent 30%), var(--bojogae-canvas)",
       }}
     >
       <Container maxWidth="sm" sx={{ width: "100%" }}>
         <Stack alignItems="center" spacing={3}>
           <Stack alignItems="center" spacing={1.25}>
             <Chip label="BOJOGAE" color="primary" size="small" sx={{ fontWeight: 800, letterSpacing: 2 }} />
-            <Typography variant="h3" component="h1" align="center" sx={{ fontWeight: 850, letterSpacing: "-0.04em" }}>
+            <Typography variant="h3" component="h1" align="center" sx={{
+              fontSize: { xs: 30, sm: 42 }, fontWeight: 900, letterSpacing: "-0.025em", wordBreak: "keep-all",
+            }}>
               반가워요.
               <br />보조개에 로그인하세요.
             </Typography>
@@ -172,7 +174,8 @@ function LoginPage() {
           >
             <Stack spacing={1.5}>
               {searchParams.get("passwordChanged") && <Alert severity="success">비밀번호가 변경되었습니다. 다시 로그인해 주세요.</Alert>}
-              <Tabs value={loginMethod} onChange={(_, value) => { setLoginMethod(value); setLastLoginMethod(value); }} variant="fullWidth" aria-label="로그인 방식" sx={{ mb: 1 }}>
+              <Tabs value={loginMethod} onChange={(_, value) => { setLoginMethod(value); setLastLoginMethod(value); }} variant="fullWidth" aria-label="로그인 방식"
+                sx={{ mb: 1, "& .MuiTab-root": { minWidth: 0, px: 0.5, wordBreak: "keep-all", fontSize: { xs: 12, sm: 14 } } }}>
                 <Tab value="group" label="단체 회원 로그인" id="login-tab-group" aria-controls="login-panel-group" />
                 <Tab value="personal" label="개인 가입 / 로그인" id="login-tab-personal" aria-controls="login-panel-personal" />
                 <Tab value="review" label="심사용 계정 로그인" id="login-tab-review" aria-controls="login-panel-review" />
@@ -305,7 +308,7 @@ function LoginPage() {
                         size="small"
                         sx={{
                           height: 22,
-                          backgroundColor: provider.id === "kakao" ? "rgba(25, 25, 25, .12)" : "rgba(232, 128, 104, .12)",
+                          backgroundColor: provider.id === "kakao" ? "rgba(25, 25, 25, .12)" : "rgba(3, 199, 90, .12)",
                           color: "inherit",
                           fontSize: 11,
                           fontWeight: 800,

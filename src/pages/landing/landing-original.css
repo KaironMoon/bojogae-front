@@ -40,7 +40,7 @@
   padding: 86px 28px 112px;
   grid-template-columns: minmax(0, 0.92fr) minmax(520px, 1.08fr);
   gap: 58px;
-  background: radial-gradient(circle at 72% 20%, rgba(232, 128, 104, 0.14), transparent 36%);
+  background: radial-gradient(circle at 72% 20%, rgba(3, 199, 90, 0.14), transparent 36%);
 }
 
 .hero-copy h1 {
@@ -80,7 +80,7 @@
 .hero-actions .primary-cta {
   min-width: 300px;
   background: var(--bojogae-accent-ink);
-  box-shadow: 0 18px 36px rgba(232, 128, 104, 0.25);
+  box-shadow: 0 18px 36px rgba(3, 199, 90, 0.25);
 }
 
 .hero-trust {
@@ -94,7 +94,7 @@
   border: 1px solid rgba(203, 213, 225, 0.9);
   border-radius: 28px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(251, 248, 245, 0.94));
-  box-shadow: 0 34px 80px rgba(155, 69, 50, 0.17), 0 12px 30px rgba(15, 23, 42, 0.09);
+  box-shadow: 0 34px 80px rgba(0, 110, 67, 0.17), 0 12px 30px rgba(15, 23, 42, 0.09);
   backdrop-filter: blur(18px);
 }
 
@@ -386,7 +386,7 @@
 .comparison-card.after-card {
   border: 2px solid var(--bojogae-accent-ink);
   background: linear-gradient(145deg, var(--bojogae-tint), #fff 62%);
-  box-shadow: 0 22px 55px rgba(232, 128, 104, 0.13);
+  box-shadow: 0 22px 55px rgba(3, 199, 90, 0.13);
 }
 
 .comparison-label {
@@ -456,7 +456,7 @@
 
 .after-card li::before {
   background: var(--bojogae-accent-ink);
-  box-shadow: 0 0 0 5px rgba(232, 128, 104, 0.09);
+  box-shadow: 0 0 0 5px rgba(3, 199, 90, 0.09);
 }
 
 .comparison-card li b {
@@ -490,7 +490,7 @@
 .original-feature-grid article:hover {
   transform: translateY(-6px);
   border-color: var(--bojogae-accent);
-  box-shadow: 0 20px 45px rgba(232, 128, 104, 0.1);
+  box-shadow: 0 20px 45px rgba(3, 199, 90, 0.1);
 }
 
 .original-feature-icon {

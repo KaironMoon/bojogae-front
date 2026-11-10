@@ -19,6 +19,7 @@ import { useAuth } from "@/auth/AuthContext";
 import { dashboardBannerImageUrl, getDashboard } from "@/services/dashboard-service";
 import { promptPreviewImageUrl } from "@/services/prompt-service";
 import { brand } from "@/styles/palette";
+import { reportHero } from "@/styles/reportTheme";
 
 const STATUS = {
   QUEUED: ["대기 중", "default"], RUNNING: ["생성 중", "primary"],
@@ -276,16 +277,14 @@ export default function Home() {
 
   return (
     <Box sx={{ p: { xs: 2, md: 4 }, maxWidth: 1440, width: "100%", minWidth: 0, boxSizing: "border-box", overflowX: "hidden", mx: "auto" }}>
-      <Paper sx={{ p: { xs: 2.5, md: 4 }, mb: { xs: 3, md: 4 }, borderRadius: 4, color: "white", overflow: "hidden", position: "relative", background: "linear-gradient(120deg,var(--bojogae-deep) 0%,var(--bojogae-accent-ink) 100%)", boxShadow: "0 18px 50px rgba(0,110,67,.18)" }}>
-        <Box aria-hidden="true" sx={{ position: "absolute", width: 260, height: 260, borderRadius: "50%", bgcolor: "rgba(255,255,255,.09)", right: -70, top: -120 }} />
+      <Paper variant="outlined" sx={{ p: { xs: 2.5, md: 3.5 }, mb: { xs: 2.5, md: 3 }, overflow: "hidden", position: "relative", boxShadow: "0 2px 10px rgba(18,19,20,.03)" }}>
+        <Box aria-hidden="true" sx={{ position: "absolute", width: 240, height: 240, borderRadius: "50%", bgcolor: "#ECFDF5", right: -62, top: -100 }} />
         <Box sx={{ position: "relative", maxWidth: 720 }}>
-          <Chip icon={<AutoAwesomeRoundedIcon />} label="BOJOGAE AI" sx={{ mb: 2, color: "white", bgcolor: "rgba(255,255,255,.14)", "& .MuiChip-icon": { color: "#fef08a" } }} />
-          <Typography variant="h3" component="h1" sx={{ fontSize: { xs: 28, md: 40 }, fontWeight: 900, letterSpacing: "-.04em", wordBreak: "keep-all", overflowWrap: "anywhere" }}>{user?.display_name || "고객"}님, 오늘은 어떤 보고서를 만들까요?</Typography>
-          <Typography sx={{ mt: 1.2, color: "rgba(255,255,255,.87)", wordBreak: "keep-all" }}>버튼을 눌러 필요한 보고서 종류를 선택해 주세요.</Typography>
+          <Chip icon={<AutoAwesomeRoundedIcon />} label="BOJOGAE AI" color="info" size="small" sx={{ mb: 1.25, fontWeight: 850, "& .MuiChip-icon": { color: "#6B38FB" } }} />
+          <Typography variant="h3" component="h1" sx={{ fontSize: { xs: 24, md: 32 }, fontWeight: 900, letterSpacing: "-.025em", wordBreak: "keep-all", overflowWrap: "anywhere" }}>{user?.display_name || "고객"}님, 오늘은 어떤 보고서를 만들까요?</Typography>
+          <Typography color="text.secondary" sx={{ mt: 1, fontSize: 14, wordBreak: "keep-all" }}>버튼을 눌러 필요한 보고서 종류를 선택해 주세요.</Typography>
           <Button component={Link} to="/proposals" variant="contained" size="large" endIcon={<ArrowForwardRoundedIcon />}
-            sx={{ mt: 2.5, width: { xs: "100%", sm: "auto" }, minHeight: 48, bgcolor: "white", color: "var(--bojogae-accent-ink)", fontWeight: 850, px: 2.6,
-              "&:hover": { bgcolor: "var(--bojogae-tint)" },
-              "&.Mui-focusVisible": { outline: "2px solid white", outlineOffset: 3 } }}>
+            sx={{ ...reportHero, mt: 2, width: { xs: "100%", sm: "auto" }, minHeight: 48, fontWeight: 900, px: 2.6 }}>
             보고서 만들기
           </Button>
         </Box>

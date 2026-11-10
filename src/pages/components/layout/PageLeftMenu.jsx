@@ -1,3 +1,4 @@
+import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
 import {
   Box,
   Button,
@@ -264,8 +265,8 @@ function PageLeftMenu({ onNavigate }) { // eslint-disable-line react/prop-types
       component="nav"
       aria-label="주요 메뉴"
       sx={{
-        width: 224,
-        minWidth: 224,
+        width: { xs: 280, sm: 264 },
+        minWidth: { xs: 280, sm: 264 },
         height: "100%",
         minHeight: "100%",
         display: "flex",
@@ -278,12 +279,13 @@ function PageLeftMenu({ onNavigate }) { // eslint-disable-line react/prop-types
         <ListItem disablePadding sx={{ px: 1.25, mb: 1.25 }}>
           <Button component={Link} to="/proposals" onClick={onNavigate} aria-current={isActive("/proposals") ? "page" : undefined}
             variant="contained" fullWidth disableElevation
-            sx={{ ...reportHero, justifyContent: "flex-start", minHeight: 54, px: 1.25, gap: 1, borderRadius: "12px" }}>
-            <Box component="span" sx={reportHeroIcon}><AutoAwesomeRoundedIcon sx={{ fontSize: 17 }} /></Box>
+            sx={{ ...reportHero, justifyContent: "flex-start", minHeight: 68, px: 1.75, gap: 1.25, borderRadius: "16px" }}>
+            <Box component="span" sx={{ ...reportHeroIcon, width: 40, height: 40, borderRadius: "12px" }}><AutoAwesomeRoundedIcon sx={{ fontSize: 20 }} /></Box>
             <Box component="span" sx={{ display: "grid", justifyItems: "start", gap: 0.25, fontSize: 15, fontWeight: 900, letterSpacing: "-0.025em" }}>
               <Box component="span" aria-hidden="true" sx={reportHeroBadge}>CORE FEATURE</Box>
               보고서 만들기
             </Box>
+            <ChevronRightRoundedIcon aria-hidden="true" sx={{ ml: "auto", fontSize: 18 }} />
           </Button>
         </ListItem>
         {PRIMARY_MENU.map(renderMenuItem)}

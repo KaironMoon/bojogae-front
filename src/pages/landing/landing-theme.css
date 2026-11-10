@@ -31,3 +31,15 @@
   outline: 2px solid var(--bojogae-accent-ink);
   outline-offset: 4px;
 }
+
+@media (max-width: 599px) {
+  .landing-page .hero-copy h1 {
+    font-size: clamp(30px, 8.5vw, 42px);
+    line-height: 1.18;
+  }
+
+  .landing-page .hero-copy :is(h1, p) {
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+  }
+}

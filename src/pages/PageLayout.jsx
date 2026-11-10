@@ -32,11 +32,14 @@ function PageLayout() {
     >
       <AppBar
         position="static"
+        elevation={0}
         sx={{
           position: { xs: "sticky", lg: "static" },
           top: { xs: 0, lg: "auto" },
           zIndex: { xs: theme.zIndex.drawer + 1, lg: theme.zIndex.appBar },
           backgroundColor: theme.palette.background.paper,
+          border: 0,
+          borderBottom: "1px solid var(--bojogae-line)",
         }}
       >
         <PageHeader onMenuClick={() => setMobileMenuOpen(true)} />
@@ -53,9 +56,9 @@ function PageLayout() {
           slotProps={{
             paper: {
               sx: {
-                width: 224,
-                top: 56,
-                height: "calc(100% - 56px)",
+                width: { xs: 280, sm: 264 },
+                top: { xs: 105, md: 65 },
+                height: { xs: "calc(100% - 105px)", md: "calc(100% - 65px)" },
                 overflowY: "auto",
               },
             },

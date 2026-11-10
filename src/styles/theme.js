@@ -114,7 +114,7 @@ export const lightTheme = createTheme({
       standardInfo: { color: "#4020A0", backgroundColor: "#F3EEFF", "& .MuiAlert-icon": { color: "#6B38FB" } },
     } },
     MuiChip: { styleOverrides: {
-      colorPrimary: { color: brand.accentInk },
+      colorPrimary: { color: brand.accentInk, "&.MuiChip-filled": { color: "#00100A" } },
       colorWarning: { color: "#854D0E", backgroundColor: "#FFFBEB", borderColor: "#F59E0B" },
       colorInfo: { color: "#4020A0", backgroundColor: "#F3EEFF" },
       colorSuccess: { color: "#006E43", backgroundColor: "#ECFDF5" },

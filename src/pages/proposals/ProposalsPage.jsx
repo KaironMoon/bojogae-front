@@ -117,18 +117,18 @@ const WORKFLOW_STEPS = [
     title: "1. 카테고리 체크 & 프롬프트 선택",
     description: "체크 항목 연동 추천 및 결과 미리보기",
     icon: FactCheckRoundedIcon,
-    color: "#2563eb",
-    background: "#eff6ff",
-    border: "#bfdbfe",
+    color: "#006E43",
+    background: "#03C75A",
+    border: "#03C75A",
   },
   {
     eyebrow: "Step 2",
     title: "2. 설계 제안서 업로드",
     description: "보험사 원본 PDF 첨부 및 분석",
     icon: CloudUploadRoundedIcon,
-    color: "#4f46e5",
-    background: "#eef2ff",
-    border: "#c7d2fe",
+    color: "#6B38FB",
+    background: "#F5F3FF",
+    border: "#F5F3FF",
   },
   {
     eyebrow: "Step 3",
@@ -167,7 +167,8 @@ function isCompletedStatus(status) {
 
 
 function ProposalsPage() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const promptQuery = (searchParams.get("promptQuery") || "").trim().slice(0, 100);
   const { user } = useAuth();
   const helpRootRef = useRef(null);
   const helpStartedRef = useRef(false);
@@ -254,8 +255,15 @@ function ProposalsPage() {
     group.children.map((child) => ({ ...child, parentName: group.name }))
   )), [categoryGroups]);
   const filteredPromptOptions = useMemo(
-    () => filterPromptCategories(tabPromptOptions, selectedCategoryIds),
-    [tabPromptOptions, selectedCategoryIds],
+    () => {
+      const categorized = filterPromptCategories(tabPromptOptions, selectedCategoryIds);
+      const term = promptQuery.toLocaleLowerCase("ko-KR");
+      return term ? categorized.filter(option => (
+        [option.title, option.description, ...(option.categories || []).flatMap(category => [category.name, category.parent_name])]
+          .some(text => text?.toLocaleLowerCase("ko-KR").includes(term))
+      )) : categorized;
+    },
+    [tabPromptOptions, selectedCategoryIds, promptQuery],
   );
 
   const changePromptTab = (_, tab) => {
@@ -437,7 +445,7 @@ function ProposalsPage() {
         );
         const requestedPromptId = Number(searchParams.get("promptId"));
         const requestedPrompt = options.find(option => option.id === requestedPromptId);
-        const initialTab = requestedPrompt ? "recommended" : defaultPromptTab(options);
+        const initialTab = requestedPrompt || searchParams.get("promptQuery") ? "recommended" : defaultPromptTab(options);
         pendingPromptScrollId.current = requestedPrompt?.id || null;
         setPromptTab(initialTab);
         setSelectedCategoryIds(requestedPrompt?.categories?.map((category) => category.id) || []);
@@ -998,35 +1006,53 @@ function ProposalsPage() {
   return (
     <Box ref={helpRootRef} sx={{ p: { xs: 1.75, sm: 2.5, lg: 3.5 }, width: "100%", maxWidth: 1440, mx: "auto", boxSizing: "border-box", overflowX: "hidden" }}>
       <Paper variant="outlined" sx={{ p: { xs: 2, sm: 2.5 }, mb: 2.5 }}>
-        <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" gap={1}>
-          <Typography variant="h4" component="h1" sx={{ fontSize: { xs: 20, sm: 24 }, fontWeight: 900, letterSpacing: "-0.025em" }}>보고서 만들기</Typography>
-          <Stack direction="row" spacing={1}>
-            <Chip icon={<KkomakIcon />} label={`보유 ${pointBalance.total_points.toLocaleString()}꼬막`} color="warning" variant="outlined" />
-          </Stack>
-        </Stack>
-        <Stack direction="row" alignItems="center" flexWrap="wrap" gap={1} sx={{ mt: 0.5 }}>
-          <Typography color="text.secondary" sx={{ fontSize: 12, fontWeight: 500, lineHeight: 1.55 }}>
-            문서 유형을 선택하고 필요한 자료를 입력하면, 선택한 프롬프트로 문서를 생성합니다.
-          </Typography>
-          <Button size="small" startIcon={<HelpOutlineRoundedIcon />} onClick={startHelp} sx={{ flexShrink: 0 }}>도움말 보기</Button>
+        <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ xs: "stretch", sm: "center" }} gap={1.5}>
+          <Box>
+            <Stack direction="row" alignItems="center" flexWrap="wrap" gap={1}>
+              <Typography variant="h4" component="h1" sx={{ fontSize: { xs: 20, sm: 24 }, fontWeight: 900, letterSpacing: "-0.025em" }}>보고서 만들기</Typography>
+              <Button size="small" startIcon={<HelpOutlineRoundedIcon />} onClick={startHelp}
+                sx={{ bgcolor: "background.default", px: 1, fontSize: 12, fontWeight: 800, borderRadius: "8px" }}>도움말 보기</Button>
+            </Stack>
+            <Typography color="text.secondary" sx={{ mt: 0.5, fontSize: 12, fontWeight: 500, lineHeight: 1.55 }}>
+              문서 유형을 선택하고 필요한 자료를 입력하면, 선택한 프롬프트로 문서를 생성합니다.
+            </Typography>
+          </Box>
+          <Button component={Link} to="/my-coins" startIcon={<KkomakIcon />} sx={{
+            flexShrink: 0, justifyContent: "flex-start", gap: 0.75, px: 1.5, py: 0.75, bgcolor: "#FFFBEB", color: "#854D0E",
+            border: "2px solid #FDE68A", borderRadius: "16px", fontWeight: 900, "&:hover": { bgcolor: "#FEF3C7" },
+          }}>
+            보유 {pointBalance.total_points.toLocaleString()}꼬막
+            <Box component="span" sx={{ ml: "auto", px: 0.75, borderRadius: 99, border: "1px solid #FCD34D", bgcolor: "white", fontSize: 10 }}>내역</Box>
+          </Button>
         </Stack>
       </Paper>
 
-      <Box sx={{ display: { xs: "none", md: "grid" }, gridTemplateColumns: "repeat(3, 1fr)", gap: 2, mb: 2 }}>
-        {WORKFLOW_STEPS.map(({ eyebrow, title: stepTitle, description, icon: StepIcon, color, background, border }) => (
+      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(3, minmax(0, 1fr))" }, gap: { xs: 1.25, sm: 2 }, mb: 2 }}>
+        {WORKFLOW_STEPS.map(({ eyebrow, title: stepTitle, description, icon: StepIcon, color, background, border }, index) => (
           <Paper
             key={eyebrow}
             variant="outlined"
-            sx={{ p: 2, borderRadius: "12px", display: "flex", alignItems: "center", gap: 1.75, boxShadow: "0 2px 8px rgba(15, 23, 42, 0.04)" }}
+            component={index === 0 ? "div" : "button"}
+            type={index === 0 ? undefined : "button"}
+            onClick={index === 0 ? undefined : () => {
+              if (index === 2) setCanvasOpen(true);
+              else helpRootRef.current?.querySelector('[data-report-help="inputs"]')?.scrollIntoView({ block: "start" });
+            }}
+            sx={{ p: { xs: 1.75, sm: 2 }, display: "flex", alignItems: "center", gap: 1.5, textAlign: "left",
+              border: index === 0 ? "2px solid #03C75A" : undefined, cursor: index === 0 ? "default" : "pointer",
+              boxShadow: "0 2px 10px rgba(18, 19, 20, 0.03)",
+              "&:focus-visible": { outline: "2px solid #006E43", outlineOffset: 2 },
+              "&:hover": index === 0 ? undefined : { borderColor: "#03C75A" },
+            }}
           >
             <Box
               sx={{
-                width: 48,
-                height: 48,
-                borderRadius: "12px",
+                width: { xs: 40, sm: 44 },
+                height: { xs: 40, sm: 44 },
+                borderRadius: "16px",
                 display: "grid",
                 placeItems: "center",
-                color,
+                color: index === 0 ? "#00100A" : color,
                 bgcolor: background,
                 border: `1px solid ${border}`,
                 flexShrink: 0,
@@ -1035,8 +1061,8 @@ function ProposalsPage() {
               <StepIcon />
             </Box>
             <Box sx={{ minWidth: 0 }}>
-              <Typography variant="caption" sx={{ color, fontWeight: 850, textTransform: "uppercase" }}>{eyebrow}</Typography>
-              <Typography variant="subtitle2" sx={{ fontWeight: 800, color: "#0f172a" }}>{stepTitle}</Typography>
+              <Typography variant="caption" sx={{ color, fontSize: 11, fontWeight: 900, textTransform: "uppercase" }}>{eyebrow}</Typography>
+              <Typography variant="subtitle2" sx={{ fontWeight: 900, color: "text.primary" }}>{stepTitle}</Typography>
               <Typography variant="caption" color="text.secondary">{description}</Typography>
             </Box>
           </Paper>
@@ -1056,7 +1082,7 @@ function ProposalsPage() {
           alignItems: "center",
           fontSize: 12,
           fontWeight: 700,
-          "& .MuiAlert-action": { display: { xs: "none", sm: "flex" } },
+          "& .MuiAlert-action": { display: "flex", alignItems: "center", pl: 1, mr: 0 },
         }}
       >
         카테고리를 체크하시면 입력폼 상단의 추천 프롬프트가 실시간으로 재구성되며, [결과 미리보기]로 슬라이드를 확인할 수 있습니다.
@@ -1067,18 +1093,18 @@ function ProposalsPage() {
       <Box
         sx={{
           display: "grid",
-          gridTemplateColumns: { xs: "minmax(0, 1fr)", md: "240px minmax(0, 1fr)" },
-          gap: { xs: 2, md: 2.5, xl: 3 },
-          alignItems: "stretch",
+          gridTemplateColumns: { xs: "minmax(0, 1fr)", md: "minmax(220px, 1fr) minmax(0, 3fr)" },
+          gap: { xs: 2, md: 2.5 },
+          alignItems: "start",
         }}
       >
-        <Stack spacing={2} sx={{ minWidth: 0, minHeight: 0, alignSelf: "stretch" }}>
+        <Stack spacing={2} sx={{ minWidth: 0, minHeight: 0 }}>
           <Paper
             data-report-help="categories"
             variant="outlined"
-            sx={{ borderRadius: "16px", height: { xs: "auto", md: 600 }, boxSizing: "border-box", flexShrink: 0, minHeight: 0, display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 1px 3px rgba(15, 23, 42, 0.05)" }}
+            sx={{ borderRadius: "16px", maxHeight: { md: 680 }, boxSizing: "border-box", flexShrink: 0, minHeight: 0, display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 1px 3px rgba(15, 23, 42, 0.05)" }}
           >
-            <Box sx={{ px: 2, py: 1.75, flexShrink: 0, borderBottom: 1, borderColor: "divider" }}>
+            <Box sx={{ px: 2, py: 1.75, flexShrink: 0, borderBottom: 1, borderColor: "divider", bgcolor: "#F8FAFC" }}>
               <Stack direction="row" justifyContent="space-between" alignItems="center">
                 <Stack direction="row" spacing={1} alignItems="center">
                   <FolderOpenRoundedIcon color="primary" fontSize="small" />
@@ -1197,7 +1223,12 @@ function ProposalsPage() {
             <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ xs: "stretch", sm: "center" }} gap={1} sx={{ pb: 1.25, borderBottom: 1, borderColor: "divider", flexShrink: 0 }}>
               <Box sx={{ minWidth: 0 }}>
                 <Stack direction="row" spacing={0.75} alignItems="center">
-                  <Tabs value={promptTab} onChange={changePromptTab} aria-label="프롬프트 목록" variant="scrollable" scrollButtons={false} sx={{ minHeight: 36, maxWidth: "100%" }}>
+                  <Tabs value={promptTab} onChange={changePromptTab} aria-label="프롬프트 목록" variant="scrollable" scrollButtons={false} sx={{ minHeight: 36, maxWidth: "100%",
+                    "& .MuiTabs-indicator": { display: "none" },
+                    "& .MuiTabs-list": { gap: 0.75 },
+                    "& .MuiTab-root": { minHeight: 34, px: 1.5, fontSize: 12, fontWeight: 850, borderRadius: 99, bgcolor: "background.default" },
+                    "& .MuiTab-root.Mui-selected": { color: "#00452B", bgcolor: "#D1FAE5" },
+                  }}>
                     <Tab value="favorites" label="즐겨찾기" icon={<StarRoundedIcon fontSize="small" sx={{ color: "#f59e0b" }} />} iconPosition="start" sx={{ minHeight: 36, px: 1 }} />
                     <Tab value="recommended" label="추천 프롬프트" sx={{ minHeight: 36, px: 1 }} />
                   </Tabs>
@@ -1206,6 +1237,11 @@ function ProposalsPage() {
                   {selectedCategoryIds.length ? "선택한 카테고리를 모두 포함한 프롬프트입니다." : promptTab === "favorites" ? "내가 즐겨찾기한 프롬프트 목록입니다." : "사용 가능한 프롬프트 전체 목록입니다."}
                 </Typography>
               </Box>
+              {promptQuery && <Chip label={`검색: ${promptQuery}`} size="small" onDelete={() => {
+                const next = new URLSearchParams(searchParams);
+                next.delete("promptQuery");
+                setSearchParams(next);
+              }} sx={{ maxWidth: "100%" }} />}
               <Chip label={`${displayedPromptOptions.length}개`} size="small" color="primary" variant="outlined" sx={{ alignSelf: { xs: "flex-start", sm: "center" } }} />
             </Stack>
 
@@ -1216,7 +1252,7 @@ function ProposalsPage() {
               sx={{
                 display: { xs: "flex", md: "grid" },
                 gridTemplateColumns: { md: "repeat(2, minmax(0, 1fr))" },
-                gap: { xs: 1, md: 0.75 },
+                gap: { xs: 1, md: 1.75 },
                 alignContent: "start",
                 py: 1,
                 px: { xs: "4%", md: 0 },
@@ -1357,7 +1393,11 @@ function ProposalsPage() {
               </Stack>
             )}
           </Paper>
-          <Paper data-report-help="inputs" variant="outlined" sx={{ p: 2.25, borderRadius: "16px 16px 0 0", boxShadow: "0 1px 3px rgba(15, 23, 42, 0.05)" }}>
+          <Paper data-report-help="inputs" variant="outlined" sx={{ p: { xs: 2, sm: 3 }, scrollMarginTop: { xs: 118, md: 80 }, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.05)" }}>
+            {selectedPrompt && <Stack direction="row" alignItems="center" flexWrap="wrap" gap={1} sx={{ mb: 2, pb: 1.5, borderBottom: 1, borderColor: "divider" }}>
+              <Chip label="선택된 프롬프트" size="small" sx={{ borderRadius: "8px", bgcolor: "#D1FAE5", color: "#00452B", fontWeight: 900 }} />
+              <Typography variant="body2" fontWeight={900}>{selectedPrompt.title} v{selectedPrompt.current_version_no}</Typography>
+            </Stack>}
             {customInputs ? <PromptInputForm maxInputFiles={maxInputFiles} fields={inputSchema} values={inputValues} uploads={fieldUploads} pdfPasswords={pdfPasswords}
               documents={fieldDocuments} documentOptions={generatedDocumentOptions} disabled={working}
               onValue={(key, value) => {
@@ -1674,8 +1714,8 @@ function ProposalsPage() {
           </Box>
       </Drawer>
 
-      <Paper variant="outlined" sx={{ p: { xs: 2, md: 2.5 }, borderRadius: "16px", mt: 3, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.05)" }}>
-        <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ xs: "stretch", sm: "center" }} gap={1} sx={{ mb: { xs: 1, sm: 2 } }}>
+      <Paper variant="outlined" sx={{ p: { xs: 2, md: 3 }, mt: 2.5, ml: { md: "calc(max(220px, (100% - 20px) / 4) + 20px)" }, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.05)" }}>
+        <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ xs: "stretch", sm: "center" }} gap={1} sx={{ mb: { xs: 1, sm: 2 }, pb: 1.25, borderBottom: 1, borderColor: "divider" }}>
           <Box>
             <Stack direction="row" alignItems="center" spacing={1}>
               <Typography variant="h6" sx={{ fontWeight: 800 }}>보고서 리스트</Typography>
