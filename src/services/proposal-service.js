@@ -78,6 +78,14 @@ async function updateShareSummary(id, summary) {
   return response.data;
 }
 
+export async function downloadProposalCanvas(id, color, scale, revision) {
+  const response = await apiCaller.get(`/api/v1/proposals/${id}/output/jpg`, { color, scale, revision }, {
+    responseType: "blob",
+    timeout: 120000,
+  });
+  return response.data;
+}
+
 async function saveProposalDocument(id, html, revision) {
   const response = await apiCaller.put(`/api/v1/proposals/${id}/output`, { html, revision });
   return response.data;

@@ -1,3 +1,8 @@
+import AutoAwesomeRoundedIcon from "@mui/icons-material/AutoAwesomeRounded";
+import PrintOutlinedIcon from "@mui/icons-material/PrintOutlined";
+import DownloadRoundedIcon from "@mui/icons-material/DownloadRounded";
+import { reportGradient, reportHero, reportHeroBadge, reportHeroIcon } from "@/styles/reportTheme";
+import { canvasInsurerThemes } from "./canvasInsurerThemes";
 import KkomakIcon from "@/pages/components/KkomakIcon";
 import { Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/auth/AuthContext";
@@ -77,6 +82,7 @@ import {
   retryProposal,
   updateShareSummary,
   saveProposalDocument,
+  downloadProposalCanvas,
 } from "@/services/proposal-service";
 
 
@@ -204,6 +210,11 @@ function ProposalsPage() {
   const [statusMessage, setStatusMessage] = useState("");
   const [previewItem, setPreviewItem] = useState(null);
   const [canvasOpen, setCanvasOpen] = useState(false);
+  const [canvasInsurer, setCanvasInsurer] = useState("");
+  const [canvasFontScale, setCanvasFontScale] = useState(100);
+  const [canvasExporting, setCanvasExporting] = useState(false);
+  const [canvasError, setCanvasError] = useState("");
+  const canvasColor = canvasInsurerThemes.find(([name]) => name === canvasInsurer)?.[1] || "";
   const [copiedShareId, setCopiedShareId] = useState(null);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [shareDraft, setShareDraft] = useState("");
@@ -564,6 +575,18 @@ function ProposalsPage() {
     };
   }, [previewItemId]);
 
+  const sendCanvasMessage = useCallback((type) => {
+    const frame = previewFrameRef.current;
+    frame?.contentWindow?.postMessage(
+      { source: "bojogae-parent", type, color: canvasColor, scale: canvasFontScale },
+      new URL(frame.src).origin,
+    );
+  }, [canvasColor, canvasFontScale]);
+
+  useEffect(() => {
+    if (canvasOpen && previewItemId) sendCanvasMessage("canvas-style");
+  }, [canvasOpen, previewItemId, sendCanvasMessage]);
+
   const requestDocumentSnapshot = () => new Promise((resolve, reject) => {
     const frame = previewFrameRef.current;
     if (!frame?.contentWindow) {
@@ -860,6 +883,34 @@ function ProposalsPage() {
     setPreviewZoom((current) => Math.min(1.25, Math.max(0.3, Number((current + amount).toFixed(2)))));
   };
 
+  const exportCanvasJpg = async () => {
+    if (!previewItem || canvasExporting) return;
+    setCanvasExporting(true);
+    setCanvasError("");
+    try {
+      const snapshot = await requestDocumentSnapshot();
+      if (snapshot.dirty) {
+        setCanvasError("편집한 문서를 저장한 뒤 JPG를 내려받아 주세요.");
+        return;
+      }
+      const response = await downloadProposalCanvas(previewItem.id, canvasColor, canvasFontScale, snapshot.revision);
+      const url = URL.createObjectURL(response);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `보고서-${previewItem.id}.${response.type === "application/zip" ? "zip" : "jpg"}`;
+      document.body.append(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (error) {
+      setCanvasError(error?.response?.status === 409
+        ? "다른 창에서 문서가 변경되었습니다. 문서를 다시 열어 주세요."
+        : "JPG를 저장하지 못했습니다. 문서를 확인한 뒤 다시 시도해 주세요.");
+    } finally {
+      setCanvasExporting(false);
+    }
+  };
+
   const openShareDialog = async (item) => {
     if (!item?.share_uuid) return;
     setSharePreparing(true);
@@ -950,7 +1001,7 @@ function ProposalsPage() {
         <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" gap={1}>
           <Typography variant="h4" sx={{ fontSize: { xs: 26, sm: 30, md: 34 }, fontWeight: 850, letterSpacing: "-0.04em" }}>보고서 만들기</Typography>
           <Stack direction="row" spacing={1}>
-            <Chip icon={<KkomakIcon />} label={`보유 ${pointBalance.total_points.toLocaleString()}꼬막`} color="primary" variant="outlined" />
+            <Chip icon={<KkomakIcon />} label={`보유 ${pointBalance.total_points.toLocaleString()}꼬막`} color="warning" variant="outlined" />
           </Stack>
         </Stack>
         <Stack direction="row" alignItems="center" flexWrap="wrap" gap={1} sx={{ mt: 0.5 }}>
@@ -997,8 +1048,8 @@ function ProposalsPage() {
         action={<Chip label="스마트 매칭" size="small" color="info" sx={{ fontWeight: 750 }} />}
         sx={{
           mb: 2,
-          border: "1px solid #bae6fd",
-          bgcolor: "#f0f9ff",
+          border: "1px solid #DDD1FF",
+          bgcolor: "#F3EEFF",
           alignItems: "center",
           fontSize: { xs: 12, sm: 14 },
           "& .MuiAlert-action": { display: { xs: "none", sm: "flex" } },
@@ -1198,7 +1249,7 @@ function ProposalsPage() {
                       flex: { xs: "0 0 calc(100% - 16px)", md: "initial" },
                       boxSizing: "border-box",
                       scrollSnapAlign: { xs: "center", md: "none" },
-                      borderRadius: "12px",
+                      borderRadius: "18px",
                       borderWidth: selected ? 2 : 1,
                       borderColor: selected ? "primary.main" : "divider",
                       bgcolor: selected ? "primary.light" : "background.paper",
@@ -1209,8 +1260,7 @@ function ProposalsPage() {
                       <Stack direction="row" justifyContent="space-between" alignItems="flex-start" gap={0.75}>
                         <Stack direction="row" alignItems="center" gap={0.75} sx={{ minWidth: 0 }}>
                         <Chip label={`${index + 1}순위`} size="small"
-                          color={selected ? "primary" : "default"}
-                          sx={{ height: 22, fontSize: 10, fontWeight: 850, borderRadius: "5px", flexShrink: 0 }} />
+                          sx={{ ...(index < 3 && { bgcolor: "#F04452", color: "#381017" }), height: 22, fontSize: 10, fontWeight: 850, borderRadius: "5px", flexShrink: 0 }} />
                           <Tooltip title={option.is_default_favorite
                             ? option.is_favorite ? "기본 즐겨찾기에서 제외" : "기본 즐겨찾기에 다시 추가"
                             : option.is_favorite ? "즐겨찾기 해제" : "즐겨찾기 등록"}>
@@ -1462,14 +1512,18 @@ function ProposalsPage() {
             size="large"
             onClick={submit}
             disabled={working || !promptId || !filteredPromptOptions.length || pointBalance.total_points < selectedPointCost}
-            startIcon={working ? <CircularProgress size={18} color="inherit" /> : <DescriptionRoundedIcon />}
-            sx={{ flexShrink: 0, py: 1.25, fontWeight: 800, borderRadius: "0 0 12px 12px" }}
-          >
-            {working
-              ? "등록 중..."
-              : pointBalance.total_points < selectedPointCost
-                ? `꼬막 부족 (${selectedPointCost.toLocaleString()}꼬막 필요)`
-                : `보고서 생성 · ${selectedPointCost.toLocaleString()}꼬막`}
+            sx={{ ...reportHero, flexShrink: 0, py: 1.25, fontWeight: 850, borderRadius: "12px", gap: 1 }}>
+            <Box component="span" sx={reportHeroIcon}>
+              {working ? <CircularProgress size={18} color="inherit" /> : <AutoAwesomeRoundedIcon sx={{ fontSize: 17 }} />}
+            </Box>
+            <Box component="span" sx={{ display: "grid", justifyItems: "start" }}>
+              {working
+                ? "등록 중..."
+                : pointBalance.total_points < selectedPointCost
+                  ? `꼬막 부족 (${selectedPointCost.toLocaleString()}꼬막 필요)`
+                  : `보고서 생성 · ${selectedPointCost.toLocaleString()}꼬막`}
+              <Box component="span" aria-hidden="true" sx={reportHeroBadge}>CORE FEATURE</Box>
+            </Box>
           </Button>
         </Stack>
 
@@ -1482,7 +1536,8 @@ function ProposalsPage() {
           aria-expanded={canvasOpen}
           aria-controls="document-canvas-panel"
           onClick={() => setCanvasOpen(true)}
-          sx={{ position: "fixed", right: 0, top: "50%", transform: "translateY(-50%)", zIndex: (theme) => theme.zIndex.drawer - 1, writingMode: "vertical-rl", minWidth: 40, px: 1, py: 2, borderRadius: "12px 0 0 12px", letterSpacing: 2 }}
+          sx={{ position: "fixed", right: 0, top: "50%", transform: "translateY(-50%)", zIndex: (theme) => theme.zIndex.drawer - 1, writingMode: "vertical-rl", minWidth: 40, px: 1, py: 2, borderRadius: "12px 0 0 12px", letterSpacing: 2, background: reportGradient,
+            boxShadow: reportHero.boxShadow, color: "#00100A" }}
         >
           캔버스
         </Button>
@@ -1545,6 +1600,30 @@ function ProposalsPage() {
               <Tooltip title="캔버스 접기"><IconButton aria-label="캔버스 접기" onClick={() => setCanvasOpen(false)}><CloseRoundedIcon /></IconButton></Tooltip>
             </Stack>
           </Stack>
+          <Stack direction="row" gap={1} flexWrap="wrap" sx={{ p: 1.25, borderBottom: 1, borderColor: "divider" }}>
+            <TextField select size="small" label="보험사 테마" value={canvasInsurer}
+              slotProps={{ select: { native: true }, inputLabel: { shrink: true } }}
+              onChange={(event) => setCanvasInsurer(event.target.value)} sx={{ minWidth: 148 }}>
+              <option value="">원본 테마</option>
+              {[["손해보험사", "non_life"], ["생명보험사", "life"]].map(([label, kind]) =>
+                <optgroup key={kind} label={label}>
+                  {canvasInsurerThemes.filter((theme) => theme[2] === kind).map(([name]) =>
+                    <option key={name} value={name}>{name}</option>)}
+                </optgroup>)}
+            </TextField>
+            <TextField select size="small" label="글자 크기" value={canvasFontScale}
+              slotProps={{ select: { native: true }, inputLabel: { shrink: true } }}
+              onChange={(event) => setCanvasFontScale(Number(event.target.value))} sx={{ minWidth: 98 }}>
+              {[80, 90, 100, 110, 120, 130].map(scale => <option key={scale} value={scale}>{scale}%</option>)}
+            </TextField>
+            <Button size="small" variant="outlined" startIcon={<PrintOutlinedIcon />}
+              disabled={!previewItem} onClick={() => sendCanvasMessage("canvas-print")}>인쇄</Button>
+            <Button size="small" variant="contained" startIcon={<DownloadRoundedIcon />}
+              disabled={!previewItem || canvasExporting} onClick={exportCanvasJpg}>
+              {canvasExporting ? "JPG 만드는 중…" : "JPG 저장"}
+            </Button>
+          </Stack>
+          {canvasError && <Alert severity="error" onClose={() => setCanvasError("")}>{canvasError}</Alert>}
           <Box sx={{ flex: 1, minHeight: 0, overflow: "hidden", bgcolor: "#e8edf5", p: { xs: 1.5, md: 2.5 } }}>
             {previewItem ? (
               <Box
@@ -1562,6 +1641,7 @@ function ProposalsPage() {
                   key={previewItem.id}
                   title={`${previewItem.title} 미리보기`}
                   src={proposalFileUrl(previewItem.id, "output")}
+                  onLoad={() => sendCanvasMessage("canvas-style")}
                   referrerPolicy="no-referrer"
                   sx={{
                     position: "absolute",
@@ -1609,7 +1689,8 @@ function ProposalsPage() {
           </Stack>
         </Stack>
         <Stack component="form" direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ mb: 2 }} onSubmit={(event) => { event.preventDefault(); searchReports(draftListQuery); }}>
-          <TextField size="small" fullWidth label="보고서 검색" placeholder="제목, 프롬프트명, 보고서 번호" value={draftListQuery} inputProps={{ maxLength: 100 }} onChange={(event) => setDraftListQuery(event.target.value)} />
+          <TextField size="small" fullWidth label="보고서 검색" placeholder="제목, 프롬프트명, 보고서 번호" value={draftListQuery} inputProps={{ maxLength: 100 }} onChange={(event) => setDraftListQuery(event.target.value)}
+            sx={{ "& .MuiOutlinedInput-root .MuiOutlinedInput-notchedOutline": { border: "2px solid #03C75A" } }} />
           <Button type="submit" variant="outlined">검색</Button>
           {listQuery && <Button onClick={() => { setDraftListQuery(""); searchReports(""); }}>초기화</Button>}
         </Stack>

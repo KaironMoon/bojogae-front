@@ -11,10 +11,17 @@ import {
   Typography,
 } from "@mui/material";
 import AccountCircleOutlinedIcon from "@mui/icons-material/AccountCircleOutlined";
-import AddRoundedIcon from "@mui/icons-material/AddRounded";
+import AutoAwesomeRoundedIcon from "@mui/icons-material/AutoAwesomeRounded";
+import CalendarMonthOutlinedIcon from "@mui/icons-material/CalendarMonthOutlined";
+import ContactPageOutlinedIcon from "@mui/icons-material/ContactPageOutlined";
+import AccountBalanceOutlinedIcon from "@mui/icons-material/AccountBalanceOutlined";
+import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
+import RateReviewOutlinedIcon from "@mui/icons-material/RateReviewOutlined";
+import ReplayRoundedIcon from "@mui/icons-material/ReplayRounded";
+import LibraryBooksOutlinedIcon from "@mui/icons-material/LibraryBooksOutlined";
+import EditNoteRoundedIcon from "@mui/icons-material/EditNoteRounded";
 import AnalyticsOutlinedIcon from "@mui/icons-material/AnalyticsOutlined";
 import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
-import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import GroupOutlinedIcon from "@mui/icons-material/GroupOutlined";
 import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
@@ -35,11 +42,25 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { planName } from "@/constants/plans";
 
 import { useAuth } from "@/auth/AuthContext";
+import { reportHero, reportHeroBadge, reportHeroIcon } from "@/styles/reportTheme";
 
+
+const ICON_TONES = {
+  slate: ["#EEF2F6", "#475569"], blue: ["#EAF3FF", "#2563EB"], green: ["#E6F9EF", "#087A43"],
+  indigo: ["#EEF2FF", "#4338CA"], amber: ["#FFFBEB", "#92400E"], rose: ["#FFF0F2", "#B42347"],
+  purple: ["#F3EEFF", "#6B38FB"],
+};
+
+function MenuIcon({ icon: Icon, tone = "slate" }) { // eslint-disable-line react/prop-types
+  const [background, color] = ICON_TONES[tone];
+  return <ListItemIcon sx={{ minWidth: 36 }}><Box sx={{
+    width: 28, height: 28, borderRadius: "10px", display: "grid", placeItems: "center", bgcolor: background, color,
+  }}><Icon sx={{ fontSize: 17 }} /></Box></ListItemIcon>;
+}
 
 const PRIMARY_MENU = [
-  { label: "Home", path: "/home", icon: HomeOutlinedIcon },
-  { label: "보험사 정보·링크", path: "/insurers", icon: ContactPhoneOutlinedIcon },
+  { label: "Home", path: "/home", icon: HomeOutlinedIcon, tone: "slate" },
+  { label: "보험사 정보·링크", path: "/insurers", icon: AccountBalanceOutlinedIcon, tone: "blue" },
   { label: "요금 안내", path: "/plans", icon: InfoOutlinedIcon },
 ];
 
@@ -67,12 +88,12 @@ const ADMIN_POINT_MENU = [
 const ADMIN_MENU = [
   { label: "조직 관리", path: "/admin/groups", icon: GroupOutlinedIcon },
   { label: "설계사 관리", path: "/admin/users", icon: GroupOutlinedIcon },
-  { label: "꼬막 관리", items: ADMIN_POINT_MENU, icon: AccountBalanceWalletOutlinedIcon },
+  { label: "꼬막 관리", items: ADMIN_POINT_MENU, icon: AccountBalanceWalletOutlinedIcon, tone: "amber" },
   { label: "예약결제 목록", path: "/admin/payment-reservations", icon: AccountBalanceWalletOutlinedIcon },
   { label: "프롬프트 관리", path: "/admin/prompts", icon: AutoAwesomeOutlinedIcon },
-  { label: "보고서 관리", path: "/admin/proposals", icon: DescriptionOutlinedIcon },
-  { label: "환불 요청 관리", path: "/admin/refund-requests", icon: AccountBalanceWalletOutlinedIcon },
-  { label: "문서 건의 관리", path: "/admin/document-suggestions", icon: DescriptionOutlinedIcon },
+  { label: "보고서 관리", path: "/admin/proposals", icon: LibraryBooksOutlinedIcon, tone: "indigo" },
+  { label: "환불 요청 관리", path: "/admin/refund-requests", icon: ReplayRoundedIcon, tone: "rose" },
+  { label: "문서 건의 관리", path: "/admin/document-suggestions", icon: EditNoteRoundedIcon, tone: "purple" },
   { label: "사용량 / 통계", path: "/admin/usage", icon: AnalyticsOutlinedIcon },
   { label: "설정 및 서식", path: "/admin/proposal-settings", icon: TuneOutlinedIcon },
   { label: "메인 배너 관리", path: "/admin/dashboard-banners", icon: ViewCarouselOutlinedIcon },
@@ -88,7 +109,7 @@ const BOARD_MENU = [
 
 const REPORT_MENU = [
   { label: "환불 요청 내역", path: "/refund-requests", icon: AccountBalanceWalletOutlinedIcon },
-  { label: "문서 개선 건의", path: "/document-suggestions", icon: DescriptionOutlinedIcon },
+  { label: "문서 개선 건의", path: "/document-suggestions", icon: EditNoteRoundedIcon, tone: "purple" },
 ];
 
 const HELP_MENU = [
@@ -145,7 +166,7 @@ function PageLeftMenu({ onNavigate }) { // eslint-disable-line react/prop-types
     location.pathname === path || (path !== "/home" && location.pathname.startsWith(`${path}/`))
   );
 
-  const renderMenuItem = ({ label, path, icon: Icon }) => {
+  const renderMenuItem = ({ label, path, icon, tone }) => {
     const active = isActive(path);
     return (
       <ListItem key={path} disablePadding sx={{ px: 1.25, mb: 0.35 }}>
@@ -179,9 +200,7 @@ function PageLeftMenu({ onNavigate }) { // eslint-disable-line react/prop-types
             "&:hover": { bgcolor: "var(--bojogae-canvas)", color: "var(--bojogae-ink)" },
           }}
         >
-          <ListItemIcon sx={{ minWidth: 34, color: "inherit" }}>
-            <Icon sx={{ fontSize: 20 }} />
-          </ListItemIcon>
+          <MenuIcon icon={icon} tone={tone} />
           <ListItemText
             primary={label}
             primaryTypographyProps={{
@@ -195,7 +214,7 @@ function PageLeftMenu({ onNavigate }) { // eslint-disable-line react/prop-types
     );
   };
 
-  const renderMenuGroup = ({ label, icon: Icon, items, open, setOpen, prefix }) => {
+  const renderMenuGroup = ({ label, icon, tone, items, open, setOpen, prefix }) => {
     const active = items.some(item => isActive(item.path));
     return (
       <Box key={prefix}>
@@ -213,7 +232,7 @@ function PageLeftMenu({ onNavigate }) { // eslint-disable-line react/prop-types
               "&:hover": { bgcolor: "var(--bojogae-canvas)", color: "var(--bojogae-ink)" },
             }}
           >
-            <ListItemIcon sx={{ minWidth: 34, color: "inherit" }}><Icon sx={{ fontSize: 20 }} /></ListItemIcon>
+            <MenuIcon icon={icon} tone={tone} />
             <ListItemText primary={label} primaryTypographyProps={{ fontSize: 14, fontWeight: active ? 750 : 550 }} />
             {open ? <ExpandLessRoundedIcon fontSize="small" /> : <ExpandMoreRoundedIcon fontSize="small" />}
           </ListItemButton>
@@ -258,20 +277,21 @@ function PageLeftMenu({ onNavigate }) { // eslint-disable-line react/prop-types
       <List sx={{ pt: 2, pb: 1 }}>
         <ListItem disablePadding sx={{ px: 1.25, mb: 1.25 }}>
           <Button component={Link} to="/proposals" onClick={onNavigate} aria-current={isActive("/proposals") ? "page" : undefined}
-            variant="contained" fullWidth disableElevation startIcon={<AddRoundedIcon />}
-            sx={{ justifyContent: "flex-start", minHeight: 46, px: 1.5, borderRadius: 1.5, fontSize: 14,
-              fontWeight: 800, bgcolor: "var(--bojogae-accent-ink)", color: "white",
-              "&:hover": { bgcolor: "var(--bojogae-deep)" },
-              "&.Mui-focusVisible": { outline: "2px solid var(--bojogae-accent-ink)", outlineOffset: 2 } }}>
-            보고서 만들기
+            variant="contained" fullWidth disableElevation
+            sx={{ ...reportHero, justifyContent: "flex-start", minHeight: 54, px: 1.25, gap: 1, borderRadius: "12px" }}>
+            <Box component="span" sx={reportHeroIcon}><AutoAwesomeRoundedIcon sx={{ fontSize: 17 }} /></Box>
+            <Box component="span" sx={{ display: "grid", justifyItems: "start", fontSize: 14, fontWeight: 850 }}>
+              보고서 만들기
+              <Box component="span" aria-hidden="true" sx={reportHeroBadge}>CORE FEATURE</Box>
+            </Box>
           </Button>
         </ListItem>
         {PRIMARY_MENU.map(renderMenuItem)}
-        {renderMenuGroup({ label: "보험금 청구", icon: DescriptionOutlinedIcon, items: CLAIM_MENU, open: claimsOpen, setOpen: setClaimsOpen, prefix: "/claims/" })}
-        {renderMenuGroup({ label: "고객관리", icon: ContactPhoneOutlinedIcon, items: CUSTOMER_MENU, open: customersOpen, setOpen: setCustomersOpen, prefix: "/crm/customer-menu/" })}
-        {renderMenuGroup({ label: "카톡 상용구/서명 관리", icon: ChatBubbleOutlineRoundedIcon, items: KAKAO_TEMPLATE_MENU, open: kakaoTemplatesOpen, setOpen: setKakaoTemplatesOpen, prefix: KAKAO_TEMPLATE_PATH })}
-        {renderMenuItem({ label: "할 일·방문 일정", path: "/crm/tasks", icon: HomeOutlinedIcon })}
-        {renderMenuGroup({ label: "요청하기", icon: DescriptionOutlinedIcon, items: REPORT_MENU, open: reportOpen, setOpen: setReportOpen, prefix: "/report-menu/" })}
+        {renderMenuGroup({ label: "보험금 청구", icon: ReceiptLongOutlinedIcon, tone: "green", items: CLAIM_MENU, open: claimsOpen, setOpen: setClaimsOpen, prefix: "/claims/" })}
+        {renderMenuGroup({ label: "고객관리", icon: ContactPageOutlinedIcon, tone: "indigo", items: CUSTOMER_MENU, open: customersOpen, setOpen: setCustomersOpen, prefix: "/crm/customer-menu/" })}
+        {renderMenuGroup({ label: "카톡 상용구/서명 관리", icon: ChatBubbleOutlineRoundedIcon, tone: "amber", items: KAKAO_TEMPLATE_MENU, open: kakaoTemplatesOpen, setOpen: setKakaoTemplatesOpen, prefix: KAKAO_TEMPLATE_PATH })}
+        {renderMenuItem({ label: "할 일·방문 일정", path: "/crm/tasks", icon: CalendarMonthOutlinedIcon, tone: "rose" })}
+        {renderMenuGroup({ label: "요청하기", icon: RateReviewOutlinedIcon, tone: "purple", items: REPORT_MENU, open: reportOpen, setOpen: setReportOpen, prefix: "/report-menu/" })}
         {renderMenuGroup({ label: "내 정보", icon: AccountCircleOutlinedIcon, items: PROFILE_MENU, open: profileOpen, setOpen: setProfileOpen, prefix: "/account/" })}
         {renderMenuGroup({ label: "게시판", icon: ArticleOutlinedIcon, items: BOARD_MENU, open: boardsOpen, setOpen: setBoardsOpen, prefix: "/boards/" })}
         {renderMenuGroup({ label: "도움말 센터", icon: HelpOutlineOutlinedIcon, items: HELP_MENU, open: helpOpen, setOpen: setHelpOpen, prefix: "/help/" })}

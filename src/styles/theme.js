@@ -45,13 +45,17 @@ export const lightTheme = createTheme({
     text: {
       primary: brand.ink,
       secondary: brand.muted,
-      disabled: "#9C8D85",
+      disabled: "#687682",
     },
     divider: brand.line,
+    info: { main: "#6B38FB" },
+    warning: { main: "#F59E0B", dark: "#854D0E" },
+    error: { main: "#F04452", dark: "#A91E34" },
+    success: { main: "#008A49" },
     action: {
-      hover: "rgba(232, 128, 104, 0.06)",
-      selected: "rgba(232, 128, 104, 0.12)",
-      focus: "rgba(155, 69, 50, 0.14)",
+      hover: "rgba(3, 199, 90, 0.06)",
+      selected: "rgba(3, 199, 90, 0.12)",
+      focus: "rgba(0, 110, 67, 0.14)",
       disabledBackground: brand.disabled,
     },
   },
@@ -94,6 +98,19 @@ export const lightTheme = createTheme({
     MuiCheckbox: { styleOverrides: { colorPrimary: { "&.Mui-checked, &.MuiCheckbox-indeterminate": { color: brand.accentInk } } } },
     MuiRadio: { styleOverrides: { colorPrimary: { "&.Mui-checked": { color: brand.accentInk } } } },
     MuiCircularProgress: { styleOverrides: { colorPrimary: { color: brand.accentInk } } },
-    MuiPaper: { styleOverrides: { outlined: { borderColor: brand.line } } },
+    MuiPaper: {
+      styleOverrides: { root: { backgroundColor: "#FFFFFF", border: `1px solid ${brand.line}`, "&.MuiPaper-rounded": { borderRadius: "18px" } }, outlined: { borderColor: brand.line } },
+    },
+    MuiCard: { styleOverrides: { root: { border: `1px solid ${brand.line}`, borderRadius: "18px" } } },
+    MuiAlert: { styleOverrides: {
+      standardInfo: { color: "#4020A0", backgroundColor: "#F3EEFF", "& .MuiAlert-icon": { color: "#6B38FB" } },
+    } },
+    MuiChip: { styleOverrides: {
+      colorPrimary: { color: brand.accentInk },
+      colorWarning: { color: "#854D0E", backgroundColor: "#FFFBEB", borderColor: "#F59E0B" },
+      colorInfo: { color: "#4020A0", backgroundColor: "#F3EEFF" },
+      colorSuccess: { color: "#006E43", backgroundColor: "#ECFDF5" },
+    } },
+    MuiFormLabel: { styleOverrides: { asterisk: { color: "#F04452" } } },
   },
 });

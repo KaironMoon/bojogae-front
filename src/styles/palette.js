@@ -1,16 +1,15 @@
-// Shared with the Windows sender's apricot theme.
 export const brand = {
-  accent: "#E88068",
-  accentHover: "#DE745D",
-  accentInk: "#9B4532",
-  tint: "#FCEDE7",
-  tintHover: "#F8E1D7",
-  canvas: "#FBF8F5",
-  ink: "#352F2D",
-  muted: "#7D716A",
-  line: "#EBE2DC",
-  disabled: "#F0EBE7",
-  deep: "#763827",
+  accent: "#03C75A",
+  accentHover: "#00A84B",
+  accentInk: "#006E43",
+  tint: "#ECFDF5",
+  tintHover: "#D1FAE5",
+  canvas: "#F4F6F8",
+  ink: "#17232E",
+  muted: "#53616E",
+  line: "#E6EAEE",
+  disabled: "#E6EAEE",
+  deep: "#075A3E",
 };
 
 export const brandCssVariables = Object.fromEntries(

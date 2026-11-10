@@ -55,7 +55,7 @@ function PageHeader({ onMenuClick }) { // eslint-disable-line react/prop-types
             BOJOGAE
           </Typography>
         </Stack>
-        <Chip label="GA PRO Edition" size="small" sx={{ display: { xs: "none", sm: "inline-flex" }, height: 22, bgcolor: "var(--bojogae-tint)", color: "var(--bojogae-accent-ink)", fontSize: 10.5, fontWeight: 750 }} />
+        <Chip label="GA PRO Edition" size="small" sx={{ display: { xs: "none", sm: "inline-flex" }, height: 22, bgcolor: "#F3EEFF", color: "#6B38FB", fontSize: 10.5, fontWeight: 750 }} />
       </Stack>
       <Stack direction="row" spacing={{ xs: 0.5, sm: 1.5 }} alignItems="center">
         <Stack direction="row" spacing={0.8} alignItems="center">

@@ -106,14 +106,14 @@ function PromptCard({ prompt, rank, showThumbnail = true }) {
               background: "linear-gradient(145deg, #2d2a36 0%, #403947 58%, #554550 100%)",
             }}
           >
-            <Box sx={{ position: "absolute", width: 104, height: 104, top: -45, right: -28, borderRadius: "50%", bgcolor: "rgba(255,151,135,.22)" }} />
+            <Box sx={{ position: "absolute", width: 104, height: 104, top: -45, right: -28, borderRadius: "50%", bgcolor: "rgba(152,255,203,.22)" }} />
             <Box sx={{ position: "absolute", width: 78, height: 78, left: -28, bottom: -34, borderRadius: "50%", bgcolor: "rgba(190,167,232,.18)" }} />
-            <Box sx={{ position: "absolute", width: 58, height: 3, top: 17, left: 14, borderRadius: 99, bgcolor: "rgba(255,244,225,.48)" }} />
+            <Box sx={{ position: "absolute", width: 58, height: 3, top: 17, left: 14, borderRadius: 99, bgcolor: "rgba(229,255,239,.48)" }} />
             <Box component="img" src="/bojogae-icon.png" alt="" sx={{ width: 76, height: 76, display: "block", position: "relative", zIndex: 1, border: "1px solid rgba(255,244,225,.18)", borderRadius: 2.5 }} />
             <Typography sx={{ position: "absolute", left: 12, bottom: 8, zIndex: 1, color: "rgba(255,244,225,.82)", fontSize: 9, fontWeight: 900, letterSpacing: ".12em" }}>BOJOGAE REPORT</Typography>
           </Box>
         )}
-        {rank && <Box sx={{ position: "absolute", zIndex: 10, top: 10, left: 10, width: 30, height: 30, borderRadius: 2, bgcolor: rank <= 3 ? "#111827" : "rgba(17,24,39,.78)", color: "white", display: "grid", placeItems: "center", fontWeight: 900, boxShadow: "0 2px 8px rgba(15,23,42,.24)" }}>{rank}</Box>}
+        {rank && <Box sx={{ position: "absolute", zIndex: 10, top: 10, left: 10, width: 30, height: 30, borderRadius: 2, bgcolor: rank <= 3 ? "#F04452" : "rgba(17,24,39,.78)", color: "white", display: "grid", placeItems: "center", fontWeight: 900, boxShadow: "0 2px 8px rgba(15,23,42,.24)" }}>{rank}</Box>}
       </Box>}
       {showThumbnail ? (
         <Stack spacing={1} sx={{ p: { xs: 1.5, sm: 1.25 }, minWidth: 0 }}>
@@ -139,7 +139,7 @@ function PromptCard({ prompt, rank, showThumbnail = true }) {
       ) : (
         <Stack direction="row" spacing={{ xs: 0.5, sm: 1 }} alignItems="center" sx={{ p: { xs: 1.25, sm: 1.5 }, minWidth: 0 }}>
           {rank && (
-            <Box sx={{ width: 28, height: 28, flexShrink: 0, borderRadius: 1.5, bgcolor: rank <= 3 ? "#111827" : "rgba(17,24,39,.78)", color: "white", display: "grid", placeItems: "center", fontWeight: 900 }}>
+            <Box sx={{ width: 28, height: 28, flexShrink: 0, borderRadius: 1.5, bgcolor: rank <= 3 ? "#F04452" : "rgba(17,24,39,.78)", color: "white", display: "grid", placeItems: "center", fontWeight: 900 }}>
               {rank}
             </Box>
           )}
@@ -276,7 +276,7 @@ export default function Home() {
 
   return (
     <Box sx={{ p: { xs: 2, md: 4 }, maxWidth: 1440, width: "100%", minWidth: 0, boxSizing: "border-box", overflowX: "hidden", mx: "auto" }}>
-      <Paper sx={{ p: { xs: 2.5, md: 4 }, mb: { xs: 3, md: 4 }, borderRadius: 4, color: "white", overflow: "hidden", position: "relative", background: "linear-gradient(120deg,var(--bojogae-deep) 0%,var(--bojogae-accent-ink) 100%)", boxShadow: "0 18px 50px rgba(155,69,50,.18)" }}>
+      <Paper sx={{ p: { xs: 2.5, md: 4 }, mb: { xs: 3, md: 4 }, borderRadius: 4, color: "white", overflow: "hidden", position: "relative", background: "linear-gradient(120deg,var(--bojogae-deep) 0%,var(--bojogae-accent-ink) 100%)", boxShadow: "0 18px 50px rgba(0,110,67,.18)" }}>
         <Box aria-hidden="true" sx={{ position: "absolute", width: 260, height: 260, borderRadius: "50%", bgcolor: "rgba(255,255,255,.09)", right: -70, top: -120 }} />
         <Box sx={{ position: "relative", maxWidth: 720 }}>
           <Chip icon={<AutoAwesomeRoundedIcon />} label="BOJOGAE AI" sx={{ mb: 2, color: "white", bgcolor: "rgba(255,255,255,.14)", "& .MuiChip-icon": { color: "#fef08a" } }} />

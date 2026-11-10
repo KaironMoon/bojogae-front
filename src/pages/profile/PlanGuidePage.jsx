@@ -51,8 +51,8 @@ export default function PlanGuidePage() {
               <Paper component="article" key={code} aria-labelledby={`plan-${code}`} variant="outlined" sx={{
                 p: { xs: 2.5, lg: 2.25 }, borderRadius: 3.5,
                 borderColor: current ? "var(--bojogae-accent-ink)" : "var(--bojogae-line)",
-                bgcolor: current ? "#fffcfa" : "background.paper",
-                boxShadow: current ? "0 8px 24px rgba(155,69,50,.10)" : undefined,
+                bgcolor: current ? "var(--bojogae-tint)" : "background.paper",
+                boxShadow: current ? "0 8px 24px rgba(3,199,90,.10)" : undefined,
               }}>
                 <Stack direction="row" alignItems="center" justifyContent="space-between" gap={1} sx={{ minHeight: 28 }}>
                   <Typography variant="h6" component="h2" id={`plan-${code}`} fontWeight={850} sx={{ fontSize: 18 }}>{plan.name}</Typography>
