@@ -56,9 +56,9 @@ function changeDescription(plan, target) {
   return `승인되면 다음 이용기간 시작일(${formatDate(plan.current_period_end)})부터 ${targetInfo.name} 월간 구독권(${targetInfo.price}/월)이 적용됩니다.`;
 }
 
-function LegacyPlanSection() {
-  const [plan, setPlan] = useState(null);
-  const [loading, setLoading] = useState(true);
+// eslint-disable-next-line react/prop-types
+function LegacyPlanSection({ initialPlan }) {
+  const [plan, setPlan] = useState(initialPlan);
   const [working, setWorking] = useState(false);
   const [error, setError] = useState("");
   const [target, setTarget] = useState(null);
@@ -69,20 +69,8 @@ function LegacyPlanSection() {
       setError("");
     } catch {
       setError("요금제 정보를 불러오지 못했습니다.");
-    } finally {
-      setLoading(false);
     }
   }, []);
-
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  useEffect(() => {
-    if (!loading && window.location.hash === "#plan") {
-      document.getElementById("plan")?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-  }, [loading]);
 
   const submit = async () => {
     setWorking(true);
@@ -111,13 +99,6 @@ function LegacyPlanSection() {
     }
   };
 
-  if (loading) {
-    return (
-      <Paper id="plan" elevation={0} sx={{ p: 3, mb: 3, border: "1px solid", borderColor: "divider", borderRadius: 3, textAlign: "center" }}>
-        <CircularProgress size={24} />
-      </Paper>
-    );
-  }
   if (!plan || plan.is_group_account) return null;
 
   const current = plan.plan_code;
@@ -208,11 +189,30 @@ function LegacyPlanSection() {
 
 // eslint-disable-next-line react/prop-types
 function PlanSection({ onChanged, onContactSaved }) {
-  const [config, setConfig] = useState(null);
+  const [data, setData] = useState(null);
   const [error, setError] = useState(false);
-  useEffect(() => { getPaymentConfig().then(setConfig).catch(() => setError(true)); }, []);
-  if (error) return <Alert severity="error">결제 설정을 불러오지 못했습니다. 새로고침해 주세요.</Alert>;
-  if (!config) return <CircularProgress size={24} />;
+  useEffect(() => {
+    let active = true;
+    Promise.all([getPaymentConfig(), getMyPlan()]).then(([config, plan]) => {
+      if (active) setData({ config, plan });
+    }).catch(() => { if (active) setError(true); });
+    return () => { active = false; };
+  }, []);
+  useEffect(() => {
+    if (data && window.location.hash === '#plan') document.getElementById('plan')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [data]);
+  if (error) return <Alert severity="error">구독 정보를 불러오지 못했습니다. 새로고침해 주세요.</Alert>;
+  if (!data) return <CircularProgress size={24} />;
+  const { config, plan } = data;
+  if (plan.is_manual_subscription) return (
+    <Paper id="plan" variant="outlined" sx={{ p: { xs: 2, md: 3 }, mb: 3, borderRadius: 3 }}>
+      <Stack spacing={1}>
+        <Typography variant="h6" fontWeight={800}>{planName(plan.plan_code)} · 수동 구독</Typography>
+        <Typography variant="body2">월 {plan.monthly_points.toLocaleString()}꼬막 · 현재 이용 주기 종료 {formatDate(plan.current_period_end)}</Typography>
+        <Typography variant="body2" color="text.secondary">월 꼬막은 매월 갱신됩니다. 구독 종료는 관리자에게 문의해 주세요.</Typography>
+      </Stack>
+    </Paper>
+  );
   if (config.requestedEnabled && !config.enabled) return <Alert severity="error">결제 연동 설정이 완료되지 않았습니다. 관리자에게 문의해 주세요.</Alert>;
   if (config.enabled && !config.eligible) return (
     <Paper id="plan" variant="outlined" sx={{ p: { xs: 2, md: 3 }, mb: 3, borderRadius: 3 }}>
@@ -226,6 +226,6 @@ function PlanSection({ onChanged, onContactSaved }) {
       </Stack>
     </Paper>
   );
-  return config.enabled ? <PaymentSection config={config} onChanged={onChanged} onContactSaved={onContactSaved} /> : <LegacyPlanSection />;
+  return config.enabled ? <PaymentSection config={config} onChanged={onChanged} onContactSaved={onContactSaved} /> : <LegacyPlanSection initialPlan={plan} />;
 }
 export default PlanSection;

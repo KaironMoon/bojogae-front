@@ -35,6 +35,14 @@ export async function getPointGrants(userId, page = 1, grantFilter = 'ACTIVE') {
   return (await apiCaller.get(`/api/v1/admin/users/${userId}/points/grants`, { page, grant_filter: grantFilter })).data;
 }
 
+export async function getManualSubscription(userId) {
+  return (await apiCaller.get(`/api/v1/admin/users/${userId}/manual-subscription`)).data;
+}
+
+export async function changeManualSubscription(userId, request) {
+  return (await apiCaller.post(`/api/v1/admin/users/${userId}/manual-subscription`, request)).data;
+}
+
 async function getUsers(status, page = 1, pageSize = 20, query = "", userId) {
   const response = await apiCaller.get("/api/v1/admin/users", {
     status: status || undefined,

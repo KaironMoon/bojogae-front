@@ -27,6 +27,8 @@ import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { getUsers, grantFreePoints, getPointGrants } from "@/services/auth-service";
+import { planName } from '@/constants/plans';
+import ManualSubscriptionDialog from './ManualSubscriptionDialog';
 import PointGrantsTable from './PointGrantsTable';
 
 
@@ -95,6 +97,7 @@ function PointsPage() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [grantTarget, setGrantTarget] = useState(null);
+  const [manualTarget, setManualTarget] = useState(null);
   const [grantDraft, setGrantDraft] = useState({ amount: "", expirationDate: defaultExpirationDate(), reason: "" });
 
   const load = useCallback(async (page = 1) => {
@@ -215,6 +218,7 @@ function PointsPage() {
                     <Typography variant="h6" fontWeight={750}>{user.name || user.display_name}</Typography>
                     <Chip label={user.status} size="small" color={user.status === "ACTIVE" ? "success" : user.status === "PENDING" ? "warning" : "default"} />
                     {user.role === "ADMIN" && <Chip label="ADMIN" size="small" color="primary" />}
+                    {user.manual_subscription_id && <Chip label={`${planName(user.plan_code)} 수동 구독`} size="small" color="primary" variant="outlined" />}
                   </Stack>
                   <Typography variant="body2" color="text.secondary">{user.email || "이메일 없음"}</Typography>
                   <Typography variant="body2" color="text.secondary">
@@ -233,6 +237,12 @@ function PointsPage() {
                   <Button variant="contained" startIcon={<AddCardRoundedIcon />} onClick={() => openGrant(user)}>
                     꼬막 지급
                   </Button>
+                  {(user.manual_subscription_id || (!user.group_id && user.role === 'USER' && user.status === 'ACTIVE')) && (
+                    <Button variant="outlined" onClick={() => {
+                      setMessage('');
+                      setManualTarget({ user, requestKey: idempotencyKey() });
+                    }}>{user.manual_subscription_id ? '수동 구독 종료' : '수동 구독 적용'}</Button>
+                  )}
                   <Button onClick={() => showDetails(user)}>꼬막 상세</Button>
                 </Stack>
               </Stack>
@@ -290,6 +300,12 @@ function PointsPage() {
           </Button>
         </DialogActions>
       </Dialog>
+      {manualTarget && <ManualSubscriptionDialog member={manualTarget.user} requestKey={manualTarget.requestKey}
+        onClose={() => setManualTarget(null)} onDone={outcome => {
+          setManualTarget(null);
+          setMessage(outcome.plan_code === 'FREE' ? '수동 구독을 종료했습니다.' : `${planName(outcome.plan_code)} 수동 구독을 적용했습니다.`);
+          load(result.page);
+        }} />}
       <Dialog open={Boolean(detailUser)} onClose={() => setDetailUser(null)} fullWidth maxWidth="lg">
         <DialogTitle>{detailUser?.display_name} · 꼬막 구성</DialogTitle>
         <DialogContent>

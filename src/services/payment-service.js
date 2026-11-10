@@ -63,6 +63,7 @@ export function paymentError(error) {
     portone_request_rejected:'결제 요청이 거절되었습니다. 결제 내역을 확인하거나 고객센터로 문의해 주세요.', billing_customer_missing:'등록된 결제자 정보가 부족합니다. 고객센터로 문의해 주세요.',
     subscription_retry_unavailable:'현재 상태에서는 등록된 카드로 재결제할 수 없습니다. 내역을 확인하거나 새 카드를 등록해 주세요.', billing_registration_required:'등록된 카드를 사용할 수 없습니다. 고객센터로 문의해 주세요.',
     active_subscription_required: '유료 구독 이용기간 중에 추가 충전할 수 있습니다.', subscription_already_exists: '구독이 이미 있습니다. 다음 결제부터 요금제를 변경해 주세요.',
+    manual_subscription_active: '수동 구독이 적용되어 있습니다. 구독 변경은 관리자에게 문의해 주세요.',
     subscription_not_available: '현재 구독 상태에서는 변경할 수 없습니다.', schedule_change_too_late: '다음 결제까지 1시간 미만 남았습니다. 고객센터로 문의해 주세요.',
     termination_refund_pending:'이전 구독 종료·환불을 처리 중입니다. 완료 후 다시 구독할 수 있습니다.',
     refund_review_not_found:'환불 검토 작업을 찾을 수 없습니다.', refund_review_unresolved:'예약 취소·환불·결제 상태 확인이 아직 완료되지 않았거나 검토 대상이 아닙니다.', invalid_refund:'환불 금액과 결제 내역을 다시 확인해 주세요.',
