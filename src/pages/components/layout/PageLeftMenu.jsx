@@ -1,5 +1,6 @@
 import {
   Box,
+  Button,
   Collapse,
   Divider,
   List,
@@ -10,6 +11,7 @@ import {
   Typography,
 } from "@mui/material";
 import AccountCircleOutlinedIcon from "@mui/icons-material/AccountCircleOutlined";
+import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import AnalyticsOutlinedIcon from "@mui/icons-material/AnalyticsOutlined";
 import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
@@ -29,7 +31,7 @@ import ContactPhoneOutlinedIcon from "@mui/icons-material/ContactPhoneOutlined";
 import HelpOutlineOutlinedIcon from "@mui/icons-material/HelpOutlineOutlined";
 import ChatBubbleOutlineRoundedIcon from "@mui/icons-material/ChatBubbleOutlineRounded";
 import { useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { planName } from "@/constants/plans";
 
 import { useAuth } from "@/auth/AuthContext";
@@ -38,7 +40,6 @@ import { useAuth } from "@/auth/AuthContext";
 const PRIMARY_MENU = [
   { label: "Home", path: "/home", icon: HomeOutlinedIcon },
   { label: "보험사 정보·링크", path: "/insurers", icon: ContactPhoneOutlinedIcon },
-  { label: "보고서 만들기", path: "/proposals", icon: DescriptionOutlinedIcon },
   { label: "요금 안내", path: "/plans", icon: InfoOutlinedIcon },
 ];
 
@@ -255,6 +256,16 @@ function PageLeftMenu({ onNavigate }) { // eslint-disable-line react/prop-types
       }}
     >
       <List sx={{ pt: 2, pb: 1 }}>
+        <ListItem disablePadding sx={{ px: 1.25, mb: 1.25 }}>
+          <Button component={Link} to="/proposals" onClick={onNavigate} aria-current={isActive("/proposals") ? "page" : undefined}
+            variant="contained" fullWidth disableElevation startIcon={<AddRoundedIcon />}
+            sx={{ justifyContent: "flex-start", minHeight: 46, px: 1.5, borderRadius: 1.5, fontSize: 14,
+              fontWeight: 800, bgcolor: "var(--bojogae-accent-ink)", color: "white",
+              "&:hover": { bgcolor: "var(--bojogae-deep)" },
+              "&.Mui-focusVisible": { outline: "2px solid var(--bojogae-accent-ink)", outlineOffset: 2 } }}>
+            보고서 만들기
+          </Button>
+        </ListItem>
         {PRIMARY_MENU.map(renderMenuItem)}
         {renderMenuGroup({ label: "보험금 청구", icon: DescriptionOutlinedIcon, items: CLAIM_MENU, open: claimsOpen, setOpen: setClaimsOpen, prefix: "/claims/" })}
         {renderMenuGroup({ label: "고객관리", icon: ContactPhoneOutlinedIcon, items: CUSTOMER_MENU, open: customersOpen, setOpen: setCustomersOpen, prefix: "/crm/customer-menu/" })}

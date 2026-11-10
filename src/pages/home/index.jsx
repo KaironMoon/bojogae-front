@@ -274,23 +274,27 @@ export default function Home() {
     getDashboard().then(setData).catch(() => setError("대시보드를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요."));
   }, []);
 
-  if (!data && !error) return <Box sx={{ p: { xs: 2, md: 4 }, maxWidth: 1440, mx: "auto" }}><Skeleton height={190} sx={{ borderRadius: 4 }} /><Stack alignItems="center" sx={{ mt: 5 }}><CircularProgress size={28} /></Stack></Box>;
-
   return (
     <Box sx={{ p: { xs: 2, md: 4 }, maxWidth: 1440, width: "100%", minWidth: 0, boxSizing: "border-box", overflowX: "hidden", mx: "auto" }}>
-      {error && <Alert severity="error">{error}</Alert>}
-      <CrmHomeSummary />
-      {data && <Stack spacing={{ xs: 3.5, md: 4.5 }}>
-        <Paper sx={{ p: { xs: 2.5, md: 4 }, borderRadius: 4, color: "white", overflow: "hidden", position: "relative", background: "linear-gradient(120deg,var(--bojogae-deep) 0%,var(--bojogae-accent-ink) 100%)", boxShadow: "0 18px 50px rgba(155,69,50,.18)" }}>
-          <Box sx={{ position: "absolute", width: 260, height: 260, borderRadius: "50%", bgcolor: "rgba(255,255,255,.09)", right: -70, top: -120 }} />
-          <Box sx={{ position: "relative", maxWidth: 720 }}>
-            <Chip icon={<AutoAwesomeRoundedIcon />} label="BOJOGAE AI" sx={{ mb: 2, color: "white", bgcolor: "rgba(255,255,255,.14)", "& .MuiChip-icon": { color: "#fef08a" } }} />
-            <Typography variant="h3" sx={{ fontSize: { xs: 28, md: 40 }, fontWeight: 900, letterSpacing: "-.04em", overflowWrap: "anywhere" }}>{user?.display_name || "고객"}님, 오늘은 어떤 보고서를 만들까요?</Typography>
-            <Typography sx={{ mt: 1.2, color: "rgba(255,255,255,.78)" }}>필요한 보고서를 선택하면 보조개가 빠르게 작업을 시작합니다.</Typography>
-            <Button component={Link} to="/proposals" variant="contained" size="large" endIcon={<ArrowForwardRoundedIcon />} sx={{ mt: 3, bgcolor: "white", color: "var(--bojogae-accent-ink)", fontWeight: 850, px: 2.6, "&:hover": { bgcolor: "var(--bojogae-tint)" } }}>보고서 만들기</Button>
-          </Box>
-        </Paper>
+      <Paper sx={{ p: { xs: 2.5, md: 4 }, mb: { xs: 3, md: 4 }, borderRadius: 4, color: "white", overflow: "hidden", position: "relative", background: "linear-gradient(120deg,var(--bojogae-deep) 0%,var(--bojogae-accent-ink) 100%)", boxShadow: "0 18px 50px rgba(155,69,50,.18)" }}>
+        <Box aria-hidden="true" sx={{ position: "absolute", width: 260, height: 260, borderRadius: "50%", bgcolor: "rgba(255,255,255,.09)", right: -70, top: -120 }} />
+        <Box sx={{ position: "relative", maxWidth: 720 }}>
+          <Chip icon={<AutoAwesomeRoundedIcon />} label="BOJOGAE AI" sx={{ mb: 2, color: "white", bgcolor: "rgba(255,255,255,.14)", "& .MuiChip-icon": { color: "#fef08a" } }} />
+          <Typography variant="h3" component="h1" sx={{ fontSize: { xs: 28, md: 40 }, fontWeight: 900, letterSpacing: "-.04em", wordBreak: "keep-all", overflowWrap: "anywhere" }}>{user?.display_name || "고객"}님, 오늘은 어떤 보고서를 만들까요?</Typography>
+          <Typography sx={{ mt: 1.2, color: "rgba(255,255,255,.87)", wordBreak: "keep-all" }}>버튼을 눌러 필요한 보고서 종류를 선택해 주세요.</Typography>
+          <Button component={Link} to="/proposals" variant="contained" size="large" endIcon={<ArrowForwardRoundedIcon />}
+            sx={{ mt: 2.5, width: { xs: "100%", sm: "auto" }, minHeight: 48, bgcolor: "white", color: "var(--bojogae-accent-ink)", fontWeight: 850, px: 2.6,
+              "&:hover": { bgcolor: "var(--bojogae-tint)" },
+              "&.Mui-focusVisible": { outline: "2px solid white", outlineOffset: 3 } }}>
+            보고서 만들기
+          </Button>
+        </Box>
+      </Paper>
 
+      {error && <Alert severity="error">{error}</Alert>}
+      {(data || error) && <CrmHomeSummary />}
+      {!data && !error && <Box><Skeleton height={190} sx={{ borderRadius: 4 }} /><Stack alignItems="center" sx={{ mt: 5 }}><CircularProgress size={28} /></Stack></Box>}
+      {data && <Stack spacing={{ xs: 3.5, md: 4.5 }}>
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "repeat(2,minmax(0,1fr))", lg: "repeat(4,minmax(0,1fr))" }, gap: 1.5 }}>
           <StatCard icon={<KkomakIcon size={32} />} label="보유 꼬막" value={data.summary.total_points} accent={brand.accentInk} />
           <StatCard icon={<BoltRoundedIcon />} label="진행 중" value={data.summary.active_reports} accent="#7c3aed" />
