@@ -5,7 +5,7 @@ import { useAuth } from '@/auth/AuthContext';
 import SignupProfileFields from "@/components/signup/SignupProfileFields";
 import GroupApplicationsPanel from "./GroupApplicationsPanel";
 import PointBalanceDetails from '@/pages/components/PointBalanceDetails';
-import { openGroup, addMember, bulkPoints, createGroup, decidePurchase, deleteMember, directPurchase, editMember, getGroup, groupErrorMessage, listGroups, requestPurchase, resetMemberPassword, setMonthlyPoints, setMaxMembers, setMemberStatus } from '@/services/group-service';
+import { openGroup, addMember, bulkPoints, closeGroup, createGroup, decidePurchase, deleteMember, directPurchase, editMember, getGroup, groupErrorMessage, listGroups, requestPurchase, resetMemberPassword, setMonthlyPoints, setMaxMembers, setMemberStatus } from '@/services/group-service';
 
 const time = (value) => new Date(value).toLocaleString('ko-KR');
 const purchaseStatus = { PENDING: '결제 확인 대기', APPROVED: '지급 완료', REJECTED: '거절' };
@@ -93,6 +93,10 @@ export default function GroupsPage() {
         const saved = await createGroup({ ...optionalFields(form), monthly_basic_points: Number(form.monthly_basic_points), max_members: toMaxMembers(form.max_members) });
         setModal(null); navigate(`${listPath}/${saved.group.id}`);
       } else if (type === 'open') { await openGroup(groupId, form); setModal(null); }
+      else if (type === 'close') {
+        await closeGroup(groupId, form);
+        setSelectedIds([]);
+      }
       else if (type === 'add') await addMember(groupId, optionalFields(form));
       else if (type === 'monthly') await setMonthlyPoints(groupId, Number(form.monthly_basic_points));
       else if (type === 'members-limit') await setMaxMembers(groupId, toMaxMembers(form.max_members));
@@ -113,7 +117,7 @@ export default function GroupsPage() {
       else if (type === 'decision') await decidePurchase(groupId, item.id, { ...form, payment_reference: form.action === 'APPROVE' ? form.payment_reference : null });
       setModal(null);
       if (type !== 'create') await refresh();
-    }, '처리했습니다.');
+    }, modal.type === 'close' ? '단체 이용을 종료했습니다.' : '처리했습니다.');
   };
   const field = (key, label, props = {}) => <TextField key={key} label={label} value={form[key] ?? ''} onChange={(e) => setForm((prev) => ({ ...prev, [key]: e.target.value }))} fullWidth {...props} />;
   const selectableMembers = detail?.members.filter((item) => item.group_role === 'MEMBER') || [];
@@ -122,6 +126,8 @@ export default function GroupsPage() {
   const selectedMembers = selectableMembers.filter((item) => selectedIds.includes(item.id));
   const allSelected = selectableMembers.length > 0 && selectedMembers.length === selectableMembers.length;
   const leader = detail?.members.find((item) => item.group_role === 'LEADER');
+  const closed = detail?.group.onboarding_status === 'CLOSED';
+  const pendingPurchases = detail?.purchases.some((item) => item.status === 'PENDING');
   return <Stack component="main" spacing={3} sx={{ p: { xs: 2, md: 4 }, maxWidth: 1440, width: '100%', mx: 'auto', boxSizing: 'border-box', minWidth: 0 }}>
     <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', sm: 'center' }} gap={1.5}><Typography variant="h4" fontWeight={800}>조직 관리</Typography>{admin && <Button variant="contained" disabled={busy} onClick={() => open('create')} sx={{ alignSelf: { xs: 'flex-start', sm: 'center' } }}>조직·리더 등록</Button>}</Stack>
     {!modal && error && <Alert severity="error">{error}</Alert>}
@@ -133,7 +139,7 @@ export default function GroupsPage() {
         <TableHead><TableRow><TableCell>조직명</TableCell><TableCell align="right">관리</TableCell></TableRow></TableHead>
         <TableBody>
           {groups.map((group) => <TableRow key={group.id} hover onClick={() => navigate(`${listPath}/${group.id}`)} sx={{ cursor: 'pointer' }}>
-            <TableCell><Button component={Link} to={`${listPath}/${group.id}`} onClick={(event) => event.stopPropagation()} sx={{ textAlign: 'left', justifyContent: 'flex-start' }}>{group.name}</Button>{group.onboarding_status === 'PENDING' && <Chip label="개통 대기 · 관리자 생성" size="small" />}</TableCell>
+            <TableCell><Button component={Link} to={`${listPath}/${group.id}`} onClick={(event) => event.stopPropagation()} sx={{ textAlign: 'left', justifyContent: 'flex-start' }}>{group.name}</Button>{group.onboarding_status === 'PENDING' && <Chip label="개통 대기 · 관리자 생성" size="small" />}{group.onboarding_status === 'CLOSED' && <Chip label="이용 종료" size="small" />}</TableCell>
             <TableCell align="right"><Button component={Link} to={`${listPath}/${group.id}`} onClick={(event) => event.stopPropagation()}>관리하기</Button></TableCell>
           </TableRow>)}
           {!groups.length && <TableRow><TableCell colSpan={2}>{listLoading ? '조직 목록을 불러오는 중…' : error ? '조직 목록을 불러오지 못했습니다.' : query ? '검색 결과가 없습니다.' : '등록된 조직이 없습니다.'}</TableCell></TableRow>}
@@ -143,13 +149,21 @@ export default function GroupsPage() {
     {groupId && <Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ xs: 'flex-start', sm: 'center' }} spacing={2}>
       {admin && <Button component={Link} to={listPath} disabled={busy}>조직 목록으로 돌아가기</Button>}
       <Typography variant="h6">{detail?.group.name || (error ? '조직을 불러오지 못했습니다.' : '조직을 불러오는 중…')}</Typography>
+      {admin && detail?.group.onboarding_status === 'ACTIVE' && <Button color="error" variant="outlined" disabled={busy || pendingPurchases} onClick={() => open('close')}>단체 이용 종료</Button>}
     </Stack>}
     {detail && <>
       {detail.group.onboarding_status === 'PENDING' && <Alert severity="info" action={admin && <Button onClick={() => open('open')}>결제 확인·개통</Button>}>관리자가 생성한 조직입니다. 결제 확인과 개통 전에는 로그인·구성원 등록·꼬막 지급이 제한됩니다.</Alert>}
+      {admin && !closed && pendingPurchases && <Alert severity="info">단체를 종료하려면 대기 중인 꼬막 구매 요청을 먼저 처리해 주세요.</Alert>}
+      {closed && <Alert severity="info">
+        단체 이용이 종료되었습니다. 기존 내역을 조회할 수 있습니다.
+        {detail.group.closure && <Typography variant="body2" sx={{ mt: 0.5, overflowWrap: 'anywhere' }}>
+          {time(detail.group.closure.created_at)} · 관리자 #{detail.group.closure.actor_id} · {detail.group.closure.note}
+        </Typography>}
+      </Alert>}
       {(detail.group.affiliation || detail.group.contact_name) && <Typography>GA: {detail.group.affiliation || '—'} · 지점: {detail.group.branch_name || '—'} · 담당자: {detail.group.contact_name || '—'} · 전화: {detail.group.contact_phone || '—'}</Typography>}
       {detail.group.opening_payment_reference && <Typography variant="body2">개통 결제 확인 번호: {detail.group.opening_payment_reference}</Typography>}
       <Paper sx={{ p: { xs: 2, sm: 3 }, minWidth: 0 }}><Stack spacing={2}>
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'flex-start', sm: 'center' }}><Typography>조직 기본 지급 꼬막: 1인당 매월 {detail.group.monthly_basic_points ?? 0}꼬막 · 개통일 기준 매월 지급·만료</Typography>{admin && <Button disabled={busy} onClick={() => open('monthly')} sx={{ flexShrink: 0 }}>월 지급량 설정</Button>}</Stack>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'flex-start', sm: 'center' }}><Typography>{closed ? '조직 기본 꼬막 지급 종료' : `조직 기본 지급 꼬막: 1인당 매월 ${detail.group.monthly_basic_points ?? 0}꼬막 · 개통일 기준 매월 지급·만료`}</Typography>{admin && !closed && <Button disabled={busy} onClick={() => open('monthly')} sx={{ flexShrink: 0 }}>월 지급량 설정</Button>}</Stack>
         <Typography variant="body2" color="text.secondary">지급 꼬막은 분배·회수 대상에서 제외됩니다. 구매 꼬막만 일괄 분배·회수할 수 있습니다.</Typography>
         <Stack direction="row" spacing={1} alignItems="center"><Typography fontWeight={700}>리더 꼬막: {leader?.balance.total_points?.toLocaleString() ?? '조회 불가'}{leader && '꼬막'}</Typography>{leader && <PointBalanceDetails balance={leader.balance} label="리더 잔여 꼬막 상세" />}</Stack>
         {!admin && <Button variant="outlined" disabled={busy} onClick={() => open('purchase')}>추가 꼬막 구매 요청</Button>}
@@ -159,28 +173,28 @@ export default function GroupsPage() {
           <Stack direction="row" alignItems="center" gap={1} flexWrap="wrap">
             <Typography variant="h6">구성원</Typography>
             <Typography variant="body2" color="text.secondary">{detail.group.max_members ? `${activeMemberCount}/${detail.group.max_members}명` : `${activeMemberCount}명 · 인원 제한 없음`}</Typography>
-            {admin && <Button size="small" disabled={busy} onClick={() => open('members-limit')}>인원 제한 설정</Button>}
+            {admin && !closed && <Button size="small" disabled={busy} onClick={() => open('members-limit')}>인원 제한 설정</Button>}
           </Stack>
-          <Button disabled={busy || memberLimitReached || detail.group.onboarding_status === 'PENDING'} onClick={() => open('add')} sx={{ flexShrink: 0 }}>구성원 등록</Button>
+          {!closed && <Button disabled={busy || memberLimitReached || detail.group.onboarding_status === 'PENDING'} onClick={() => open('add')} sx={{ flexShrink: 0 }}>구성원 등록</Button>}
         </Stack>
-        {memberLimitReached && <Alert severity="warning">인원수 제한({detail.group.max_members}명)에 도달했습니다. 새 구성원을 등록하려면 인원 제한을 늘리거나 기존 구성원을 정리해 주세요.</Alert>}
-        <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap><Typography>{selectedMembers.length}명 선택</Typography><Button variant="contained" disabled={busy || !selectedMembers.length || selectedMembers.some((item) => item.status !== 'ACTIVE')} onClick={() => open('give')}>일괄 지급</Button><Button variant="outlined" disabled={busy || !selectedMembers.length} onClick={() => open('reclaim')}>일괄 회수</Button></Stack>
-        <TableContainer sx={{ maxWidth: '100%' }}><Table size="small" sx={{ minWidth: 860 }}><TableHead><TableRow><TableCell padding="checkbox"><Checkbox inputProps={{ 'aria-label': '구성원 전체 선택' }} disabled={busy || !selectableMembers.length} checked={allSelected} indeterminate={selectedMembers.length > 0 && !allSelected} onChange={(e) => setSelectedIds(e.target.checked ? selectableMembers.map((item) => item.id) : [])} /></TableCell>{['사번' , '구분명', '이메일', '상태', '잔여 꼬막', '관리'].map((label) => <TableCell key={label} sx={{ whiteSpace: 'nowrap' }}>{label}</TableCell>)}</TableRow></TableHead>
+        {!closed && memberLimitReached && <Alert severity="warning">인원수 제한({detail.group.max_members}명)에 도달했습니다. 새 구성원을 등록하려면 인원 제한을 늘리거나 기존 구성원을 정리해 주세요.</Alert>}
+        {!closed && <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap><Typography>{selectedMembers.length}명 선택</Typography><Button variant="contained" disabled={busy || !selectedMembers.length || selectedMembers.some((item) => item.status !== 'ACTIVE')} onClick={() => open('give')}>일괄 지급</Button><Button variant="outlined" disabled={busy || !selectedMembers.length} onClick={() => open('reclaim')}>일괄 회수</Button></Stack>}
+        <TableContainer sx={{ maxWidth: '100%' }}><Table size="small" sx={{ minWidth: 860 }}><TableHead><TableRow><TableCell padding="checkbox">{!closed && <Checkbox inputProps={{ 'aria-label': '구성원 전체 선택' }} disabled={busy || !selectableMembers.length} checked={allSelected} indeterminate={selectedMembers.length > 0 && !allSelected} onChange={(e) => setSelectedIds(e.target.checked ? selectableMembers.map((item) => item.id) : [])} />}</TableCell>{['사번' , '구분명', '이메일', '상태', '잔여 꼬막', '관리'].map((label) => <TableCell key={label} sx={{ whiteSpace: 'nowrap' }}>{label}</TableCell>)}</TableRow></TableHead>
           <TableBody>{detail.members.map((item) => <TableRow key={item.id} selected={selectedIds.includes(item.id)}>
-            <TableCell padding="checkbox">{item.group_role === 'MEMBER' && <Checkbox inputProps={{ 'aria-label': `${item.employee_number} 선택` }} disabled={busy} checked={selectedIds.includes(item.id)} onChange={(e) => setSelectedIds((prev) => e.target.checked ? [...prev, item.id] : prev.filter((id) => id !== item.id))} />}</TableCell>
+            <TableCell padding="checkbox">{!closed && item.group_role === 'MEMBER' && <Checkbox inputProps={{ 'aria-label': `${item.employee_number} 선택` }} disabled={busy} checked={selectedIds.includes(item.id)} onChange={(e) => setSelectedIds((prev) => e.target.checked ? [...prev, item.id] : prev.filter((id) => id !== item.id))} />}</TableCell>
             <TableCell>{item.employee_number}{item.group_role === 'LEADER' && <Chip label="리더" size="small" sx={{ ml: 1 }} />}</TableCell>
             <TableCell>{item.display_name === item.employee_number ? '—' : item.display_name}</TableCell><TableCell>{item.email || '—'}</TableCell>
-            <TableCell>{item.status === 'PENDING' ? '개통 대기' : item.status === 'ACTIVE' ? '활성' : '비활성'}{item.must_change_password && <Typography variant="caption" display="block">비밀번호 변경 필요</Typography>}</TableCell>
+            <TableCell>{closed ? '이용 종료' : item.status === 'PENDING' ? '개통 대기' : item.status === 'ACTIVE' ? '활성' : '비활성'}{!closed && item.must_change_password && <Typography variant="caption" display="block">비밀번호 변경 필요</Typography>}</TableCell>
             <TableCell sx={{ whiteSpace: 'nowrap' }}>{item.balance.total_points.toLocaleString()}꼬막 <PointBalanceDetails balance={item.balance} label={`${item.employee_number} 잔여 꼬막 상세`} /></TableCell>
-            <TableCell><Stack direction="row" flexWrap="wrap">
+            <TableCell>{!closed && <Stack direction="row" flexWrap="wrap">
               <Button size="small" disabled={busy} onClick={() => open('edit', item)}>수정</Button>
               {(admin || item.group_role !== 'LEADER') && <Button size="small" disabled={busy} onClick={() => open('reset', item)}>비밀번호 초기화</Button>}
               {item.group_role === 'MEMBER' && <><Button size="small" color={item.status === 'ACTIVE' ? 'error' : 'primary'} disabled={busy} onClick={() => open('status', item)}>{item.status === 'ACTIVE' ? '비활성화' : '활성화'}</Button></>}
               {item.group_role === 'MEMBER' && !item.employee_number.startsWith('d_') && <Button size="small" color="error" disabled={busy} onClick={() => open('delete', item)}>삭제</Button>}
-            </Stack></TableCell>
+            </Stack>}</TableCell>
           </TableRow>)}</TableBody></Table></TableContainer>
       </Stack></Paper>
-      <Paper sx={{ p: { xs: 2, sm: 3 }, minWidth: 0 }}><Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} gap={1} sx={{ mb: 2 }}><Typography variant="h6">추가 꼬막 구매 내역</Typography>{admin && <Button variant="contained" disabled={busy || !leader || leader.status !== 'ACTIVE'} onClick={() => open('direct')}>추가 꼬막 직접 지급</Button>}</Stack>
+      <Paper sx={{ p: { xs: 2, sm: 3 }, minWidth: 0 }}><Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} gap={1} sx={{ mb: 2 }}><Typography variant="h6">추가 꼬막 구매 내역</Typography>{admin && !closed && <Button variant="contained" disabled={busy || !leader || leader.status !== 'ACTIVE'} onClick={() => open('direct')}>추가 꼬막 직접 지급</Button>}</Stack>
         <TableContainer sx={{ maxWidth: '100%' }}><Table size="small" sx={{ minWidth: 680 }}><TableHead><TableRow>{['요청일', '수량', '상태', '결제 확인 번호', '처리'].map((label) => <TableCell key={label} sx={{ whiteSpace: 'nowrap' }}>{label}</TableCell>)}</TableRow></TableHead><TableBody>
           {detail.purchases.map((item) => <TableRow key={item.id} id={`purchase-${item.id}`} selected={String(item.id) === highlightedPurchase}><TableCell>{time(item.created_at)}</TableCell><TableCell>{item.amount}꼬막</TableCell><TableCell>{purchaseStatus[item.status]}{item.is_direct && <Typography variant="caption" display="block">관리자 직접 지급</Typography>}</TableCell><TableCell>{item.payment_reference || '—'}</TableCell><TableCell>{admin && item.status === 'PENDING' && <Button disabled={busy} onClick={() => open('decision', item)}>결제 확인·처리</Button>}</TableCell></TableRow>)}
           {!detail.purchases.length && <TableRow><TableCell colSpan={5}>구매 요청이 없습니다.</TableCell></TableRow>}
@@ -192,7 +206,7 @@ export default function GroupsPage() {
       </TableBody></Table></TableContainer></Paper>
     </>}
     <Dialog open={!!modal} onClose={() => { if (!busy) setModal(null); }} fullWidth maxWidth="sm"><Stack component="form" onSubmit={submit}>
-      <DialogTitle>{{ open: '결제 확인 후 조직 개통', direct: '추가 꼬막 직접 지급', monthly: '조직 월 기본 지급 꼬막 설정', 'members-limit': '인원 제한 설정', create: '조직·리더 등록', add: '구성원 등록', edit: '계정 정보 수정', give: '일괄 지급', reclaim: '일괄 회수', purchase: '추가 꼬막 구매 요청', decision: '구매 요청 처리', reset: '비밀번호 초기화', status: '구성원 상태 변경', delete: '구성원 삭제' }[modal?.type]}</DialogTitle>
+      <DialogTitle>{{ open: '결제 확인 후 조직 개통', close: '단체 이용 종료', direct: '추가 꼬막 직접 지급', monthly: '조직 월 기본 지급 꼬막 설정', 'members-limit': '인원 제한 설정', create: '조직·리더 등록', add: '구성원 등록', edit: '계정 정보 수정', give: '일괄 지급', reclaim: '일괄 회수', purchase: '추가 꼬막 구매 요청', decision: '구매 요청 처리', reset: '비밀번호 초기화', status: '구성원 상태 변경', delete: '구성원 삭제' }[modal?.type]}</DialogTitle>
       <DialogContent><Stack spacing={2} sx={{ pt: 1 }}>
         {error && <Alert severity="error">{error}</Alert>}
         {modal?.type === 'create' && <>{field('monthly_basic_points', '조직 기본 지급 꼬막 (1인당 월 지급량)', { required: true, type: 'number', inputProps: { min: 1, max: 10000000 }, helperText: '리더 포함 활성 구성원에게 매월 지급되는 무료 꼬막입니다. 개통일 기준으로 매월 지급되며 다음 지급일에 만료됩니다.' })}</>}
@@ -203,6 +217,11 @@ export default function GroupsPage() {
           {!form.activate_immediately && <Typography variant="body2">개통 대기 상태로 생성합니다. 결제 확인 후 조직 상세에서 개통해 주세요.</Typography>}
         </>}
         {modal?.type === 'open' && <>{field('payment_reference', '결제 확인 번호', { required: true, inputProps: { maxLength: 100 } })}{field('note', '결제 확인 메모', { multiline: true, inputProps: { maxLength: 3000 } })}<Typography>실제 결제를 확인한 뒤 개통하세요. 조직 관리자 계정이 활성화되고 개통일 기준으로 월 기본 꼬막이 지급됩니다.</Typography></>}
+        {modal?.type === 'close' && <>
+          <Alert severity="warning">{detail.group.name}의 리더와 구성원 전체(활성 계정 {activeMemberCount}명)의 이용을 즉시 종료합니다. 기존 보고서, 구매 내역과 잔여 꼬막은 보존됩니다.</Alert>
+          {field('group_name', '조직명 확인', { required: true, helperText: '종료할 조직명을 그대로 입력해 주세요.', inputProps: { maxLength: 150 } })}
+          {field('reason', '종료 사유', { required: true, multiline: true, inputProps: { maxLength: 500 } })}
+        </>}
         {modal?.type === 'create' && field('max_members', '인원수 제한 (리더 포함, 선택)', { type: 'number', inputProps: { min: 1, max: 10000 }, helperText: '비워두면 인원수 제한이 없습니다.' })}
         {modal?.type === 'members-limit' && field('max_members', '인원수 제한 (리더 포함, 선택)', { type: 'number', inputProps: { min: 1, max: 10000 }, helperText: '비워두면 인원수 제한이 없습니다. 기존 인원은 유지되며, 초과 상태에서는 새 구성원만 등록할 수 없습니다.' })}
         {['create', 'add'].includes(modal?.type) && field('employee_number', modal?.type === 'create' ? '리더 사번' : '사번', { required: true, inputProps: { maxLength: 50 }, helperText: '기본 비밀번호는 사번과 동일하게 생성되며 첫 로그인 시 변경해야 합니다.' })}
@@ -228,7 +247,7 @@ export default function GroupsPage() {
         {modal?.type === 'delete' && <Typography>{modal.item.employee_number} 계정을 삭제합니다. 비활성화되어 로그인할 수 없게 되고, 미사용 구매 꼬막은 리더에게 자동 회수되며 기존 로그인은 종료됩니다. 해당 회원의 보고서·업로드 원본·공유 이미지·관련 첨부파일은 파기되며 복구할 수 없습니다. 결제·환불에 필요한 최소 식별 정보와 거래 기록만 법정 기간 동안 보관합니다. 사번 {modal.item.employee_number}와 등록된 이메일은 이후 다른 구성원 등록에 다시 사용할 수 있습니다.</Typography>}
         {modal?.type === 'status' && <Typography>{modal.item.employee_number} 계정을 {modal.item.status === 'ACTIVE' ? '비활성화합니다. 미사용 구매 꼬막만 리더에게 자동 회수되고 기존 로그인은 종료됩니다.' : '활성화합니다.'}</Typography>}
       </Stack></DialogContent>
-      <DialogActions><Button disabled={busy} onClick={() => setModal(null)}>취소</Button><Button type="submit" variant="contained" disabled={busy || (modal?.type === 'create' && ['checking', 'duplicate'].includes(groupCheckStatus))}>{busy ? '처리 중…' : '확인'}</Button></DialogActions>
+      <DialogActions><Button disabled={busy} onClick={() => setModal(null)}>취소</Button><Button type="submit" variant="contained" color={modal?.type === 'close' ? 'error' : 'primary'} disabled={busy || (modal?.type === 'create' && ['checking', 'duplicate'].includes(groupCheckStatus)) || (modal?.type === 'close' && (form.group_name?.trim() !== detail.group.name.trim() || !form.reason?.trim()))}>{busy ? '처리 중…' : modal?.type === 'close' ? '즉시 종료' : '확인'}</Button></DialogActions>
     </Stack></Dialog>
   </Stack>;
 }

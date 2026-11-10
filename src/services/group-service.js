@@ -23,6 +23,9 @@ const messages = {
   group_identity_duplicate: '같은 GA 소속·지점명의 조직이 이미 등록되어 있거나 신청 중입니다.',
   group_not_open: '결제 확인과 개통 전에는 이용할 수 없습니다. 관리자에게 문의해 주세요.',
   group_already_open: '이미 개통된 조직입니다.',
+  group_closed: '이용이 종료된 조직입니다.',
+  group_close_name_conflict: '확인한 조직명이 현재 조직명과 다릅니다. 조직 정보를 새로고침해 주세요.',
+  group_close_pending_purchase_conflict: '대기 중인 꼬막 구매 요청을 모두 처리한 뒤 종료해 주세요.',
   withdrawal_schema_required: '회원 자료 파기 설정이 준비되지 않았습니다. 043 SQL 적용을 확인해 주세요.',
   invalid_transfer_target: '지급 대상은 같은 조직의 활성 구성원이어야 합니다. 회수 대상을 다시 확인해 주세요.',
   group_schema_required: '조직 기능의 DB 변경 SQL을 먼저 적용해 주세요.',
@@ -55,3 +58,4 @@ export const getGroupIdentity = async (id) => (await api.get(`${base}/groups/${i
 export const directPurchase = async (id, data) => (await api.post(`${base}/admin/groups/${id}/purchases/direct`, data)).data;
 
 export const openGroup = async (id, data) => (await api.post(`${base}/admin/groups/${id}/open`, data)).data;
+export const closeGroup = async (id, data) => (await api.post(`${base}/admin/groups/${id}/close`, data)).data;
