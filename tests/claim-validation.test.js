@@ -68,6 +68,13 @@ test('사고일·계좌 등 최종 입력 오류는 해당 단계에서 차단�
   assert.ok(claimInputErrors({ ...valid, accident_date: '2099-01-01' }, 2, today).accident_date);
 });
 
+test('직접 입력할 보험사가 있을 때만 계좌 정보가 필요하다', () => {
+  const noBank = { ...valid, bank_name: '', account_number: '', account_holder: '' };
+  assert.deepEqual(claimInputErrors(noBank, 2, today, false), {});
+  const errors = claimInputErrors(noBank, 2, today, true);
+  assert.ok(errors.bank_name && errors.account_number && errors.account_holder);
+});
+
 test('비활성 수익자·설계사 입력은 서버로 보내지 않는다', () => {
   const p = { ...valid, beneficiary_phone: 'invalid', planner_phone: 'invalid' };
   const result = activeClaimPayload(p);

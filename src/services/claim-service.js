@@ -81,7 +81,9 @@ export async function downloadClaimDocument(requestId) {
 export async function downloadOriginalClaim(requestKey, insurerIds, claim, files) {
   for (const insurerId of insurerIds) {
     const form = new FormData();
-    form.append('payload', JSON.stringify({ request_key: requestKey, insurer_ids: [insurerId], claim, save_mode: 'FILE' }));
+    const automaticDebit = claim.automatic_debit_insurer_ids?.includes(insurerId);
+    form.append('payload', JSON.stringify({ request_key: requestKey, insurer_ids: [insurerId],
+      claim: { ...claim, automatic_debit_insurer_ids: automaticDebit ? [insurerId] : [] }, save_mode: 'FILE' }));
     files.forEach(file => form.append('files', file));
     const response = await apiCaller.post('/api/v1/claims/original-download', form,
       { responseType: 'blob', timeout: 300000 });

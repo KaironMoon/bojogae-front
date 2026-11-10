@@ -19,13 +19,16 @@ import { activeClaimPayload, claimInputErrors, claimErrorStep, claimNeedsGuardia
 const EMPTY = {
   attachment_rotations: [], insured_name: '', insured_id: '', insured_phone: '', insured_signature: '', beneficiary_same: true,
   beneficiary_name: '', beneficiary_id: '', beneficiary_phone: '', beneficiary_signature: '',
+  insured_address: '', insured_occupation: '', insured_work: '',
+  beneficiary_address: '', beneficiary_occupation: '', beneficiary_work: '',
   insured_guardian_name: '', insured_guardian_relationship: '', insured_guardian_phone: '',
   beneficiary_guardian_name: '', beneficiary_guardian_relationship: '', beneficiary_guardian_phone: '',
   insured_guardian_enabled: false, beneficiary_guardian_enabled: false,
   insured_guardian_signature: '', beneficiary_guardian_signature: '',
   notice_target: 'insured', planner_name: '', planner_phone: '', accident_type: '질병', accident_date: '',
-  accident_description: '', bank_name: '', account_number: '', account_holder: '', consent: false,
+  accident_description: '', automatic_debit_insurer_ids: [], bank_name: '', account_number: '', account_holder: '', consent: false,
 };
+const PARTY_DETAILS = [['address', '주소', 200], ['occupation', '직업', 60], ['work', '하는 일', 100]];
 const STEPS = ['보험사 선택', '인적사항·서명', '사고·계좌·첨부', 'PDF 확인'];
 const FIELD_GRID = {
   display: 'grid', gap: 2,
@@ -55,7 +58,31 @@ export default function ClaimsPage() {
   const [customerTarget, setCustomerTarget] = useState(null);
   const [customerNotice, setCustomerNotice] = useState('');
   const [partyRevision, setPartyRevision] = useState({ insured: 0, beneficiary: 0 });
-  const downloadOnlyInsurers = insurers.filter(item => selected.includes(item.id) && item.fax_enabled === false);
+  const selectedInsurers = insurers.filter(item => selected.includes(item.id));
+  const downloadOnlyInsurers = selectedInsurers.filter(item => item.fax_enabled === false);
+  const automaticDebitInsurers = selectedInsurers.filter(item => item.automatic_debit);
+  const automaticDebitIds = automaticDebitInsurers.filter(item => payload.automatic_debit_insurer_ids.includes(item.id)).map(item => item.id);
+  const manualAccountInsurers = selectedInsurers.filter(item => !automaticDebitIds.includes(item.id));
+  const requiresManualAccount = manualAccountInsurers.length > 0;
+  const profileFields = new Set(selectedInsurers.flatMap(item => item.profile_fields || []));
+  function usesPartyDetail(party, key) {
+    if (payload.beneficiary_same) {
+      return party === 'insured' && (profileFields.has(`insured_${key}`) || profileFields.has(`beneficiary_${key}`));
+    }
+    return profileFields.has(`${party}_${key}`);
+  }
+
+  function submissionClaim() {
+    const claim = activeClaimPayload(payload);
+    claim.automatic_debit_insurer_ids = automaticDebitIds;
+    for (const party of ['insured', 'beneficiary']) {
+      for (const [key] of PARTY_DETAILS) {
+        if (!usesPartyDetail(party, key)) claim[`${party}_${key}`] = '';
+      }
+    }
+    if (!requiresManualAccount) Object.assign(claim, { bank_name: '', account_number: '', account_holder: '' });
+    return claim;
+  }
   const faxMode = results[0]?.faxMode || 'DISABLED';
   const totalFaxPages = results.reduce((sum, result) => sum + result.pages, 0);
   const totalFaxCost = results.reduce((sum, result) => sum + (result.faxCost || 0), 0);
@@ -128,6 +155,7 @@ export default function ClaimsPage() {
       [`${party}_id`]: formatClaimInput(`${party}_id`, customer.resident_number),
       [`${party}_phone`]: formatClaimInput(`${party}_phone`, customer.phone),
       [`${party}_signature`]: '', [`${party}_guardian_enabled`]: false,
+      ...Object.fromEntries(PARTY_DETAILS.map(([key]) => [`${party}_${key}`, ''])),
       ...Object.fromEntries(['name', 'relationship', 'phone', 'signature'].map(key => [`${party}_guardian_${key}`, ''])),
       consent: false,
     };
@@ -144,7 +172,7 @@ export default function ClaimsPage() {
     return <TextField fullWidth size="small" name={key} label={label} value={payload[key]} disabled={busy}
       error={Boolean(fieldErrors[key])} helperText={fieldErrors[key]}
       onBlur={e => setFieldErrors(previous => ({ ...previous,
-        [key]: claimInputErrors({ ...payload, [key]: e.target.value })[key] }))}
+        [key]: claimInputErrors({ ...payload, [key]: e.target.value }, 2, new Date(), requiresManualAccount)[key] }))}
       onChange={e => {
         if (!formatted) { update(key, e.target.value); return; }
         const input = e.target;
@@ -156,6 +184,13 @@ export default function ClaimsPage() {
         });
       }} autoComplete="off" InputLabelProps={{ shrink: true }} {...options}
       {...(formatted ? { type: 'tel', inputProps: { ...options.inputProps, inputMode: 'numeric', maxLength: undefined } } : {})} />;
+  }
+  function partyDetails(party) {
+    const label = party === 'insured' ? '피보험자' : '수익자';
+    return PARTY_DETAILS.filter(([key]) => usesPartyDetail(party, key)).map(([key, title, maxLength]) =>
+      <Box key={key} sx={key === 'address' ? { gridColumn: '1 / -1' } : undefined}>
+        {field(`${party}_${key}`, `${label} ${title}`, { inputProps: { maxLength } })}
+      </Box>);
   }
   function guardianFields(party, label) {
     const automatic = claimNeedsGuardian(payload[`${party}_id`]);
@@ -185,7 +220,7 @@ export default function ClaimsPage() {
     setStep(step + 1);
   }
   function validate(stage) {
-    const errors = claimInputErrors(payload, stage);
+    const errors = claimInputErrors(payload, stage, new Date(), requiresManualAccount);
     setFieldErrors(errors);
     if (!Object.keys(errors).length) return true;
     setError(Object.values(errors)[0]);
@@ -199,11 +234,12 @@ export default function ClaimsPage() {
     invalidate(); setBusy(true);
     const controller = new AbortController(); pending.current = controller;
     const generated = []; const failures = [];
+    const claim = submissionClaim();
     for (const id of selected) {
       const company = insurers.find(item => item.id === id);
       setProgress(`${company.name} PDF 생성 중 (${generated.length + failures.length + 1}/${selected.length})`);
       try {
-        const result = await generateClaimPdf(id, activeClaimPayload(payload), files, controller.signal);
+        const result = await generateClaimPdf(id, claim, files, controller.signal);
         if (controller.signal.aborted) return;
         generated.push({ ...result, id, name: company.name });
       } catch (e) {
@@ -228,7 +264,7 @@ export default function ClaimsPage() {
     requestKey.current ||= { mode, key: crypto.randomUUID() };
     if (requestKey.current.mode !== mode) requestKey.current = { mode, key: crypto.randomUUID() };
     try {
-      const result = await saveClaimRequest(requestKey.current.key, selected, activeClaimPayload(payload), files, faxNumbers, mode, mode === 'FAX' ? { expected_fax_mode: faxMode, expected_fax_cost: faxMode === 'REAL' ? totalFaxCost : 0 } : {});
+      const result = await saveClaimRequest(requestKey.current.key, selected, submissionClaim(), files, faxNumbers, mode, mode === 'FAX' ? { expected_fax_mode: faxMode, expected_fax_cost: faxMode === 'REAL' ? totalFaxCost : 0 } : {});
       setSaved(result);
       return result;
     } catch (e) {
@@ -283,6 +319,8 @@ export default function ClaimsPage() {
                   <Typography variant="body2">{item.name}{item.admin_only ? ' · 관리자 테스트용' : ''}{item.fax_enabled === false ? ' · 다운로드 전용' : ''}</Typography></Stack>} control={<Checkbox checked={selected.includes(item.id)} disabled={busy}
                   onChange={event => { invalidate(); setSelected(previous => event.target.checked
                     ? [...previous, item.id] : previous.filter(id => id !== item.id));
+                    if (!event.target.checked) setPayload(previous => ({ ...previous,
+                      automatic_debit_insurer_ids: previous.automatic_debit_insurer_ids.filter(id => id !== item.id) }));
                     setFaxNumbers(previous => { const next = { ...previous }; delete next[item.id]; return next; }); }} />} />
               </Paper>
             </Grid>)}</Grid>
@@ -299,6 +337,7 @@ export default function ClaimsPage() {
             {field('insured_name', '이름', { required: true, inputProps: { maxLength: 40 } })}
             {field('insured_id', '주민등록번호', { required: true, placeholder: '앞 6자리-뒤 7자리', inputProps: { pattern: '[0-9]{6}-?[0-9]{7}', maxLength: 14 } })}
             {field('insured_phone', '휴대전화', { required: true, type: 'tel' })}
+            {partyDetails('insured')}
           </Box>
           <SignaturePad key={`insured-${partyRevision.insured}`} label="피보험자 서명" value={payload.insured_signature} disabled={busy} onChange={value => update('insured_signature', value)} />
           {claimNeedsGuardian(payload.insured_id) && <Typography variant="caption">만 14세 미만은 법정대리인 서명을 필수로 받습니다. 본인 서명은 가능한 경우에만 추가해 주세요.</Typography>}
@@ -311,6 +350,7 @@ export default function ClaimsPage() {
               {field('beneficiary_name', '수익자 이름', { required: true })}
               {field('beneficiary_id', '수익자 주민등록번호', { required: true, inputProps: { pattern: '[0-9]{6}-?[0-9]{7}', maxLength: 14 } })}
               {field('beneficiary_phone', '수익자 휴대전화', { required: true, type: 'tel' })}
+              {partyDetails('beneficiary')}
             </Box>
             {guardianFields('beneficiary', '수익자')}
             <SignaturePad key={`beneficiary-${partyRevision.beneficiary}`} label="수익자 서명" value={payload.beneficiary_signature} disabled={busy} onChange={value => update('beneficiary_signature', value)} />
@@ -329,11 +369,28 @@ export default function ClaimsPage() {
             {field('accident_date', '사고일 / 최초 진료일', { type: 'date', required: true, InputLabelProps: { shrink: true } })}
             {field('accident_description', '사고 경위', { multiline: true, minRows: 3, required: true, inputProps: { maxLength: 500 }, sx: { gridColumn: '1 / -1' } })}
           </Box>
-          <Box sx={FIELD_GRID}>
+          {automaticDebitInsurers.length > 0 && <Box>
+            <Typography fontWeight={700}>보험사별 지급 계좌</Typography>
+            <Typography variant="body2" color="text.secondary">보험사 양식의 조건에 맞는 기존 자동이체계좌를 확인하고 선택해 주세요.</Typography>
+            <Stack>
+              {automaticDebitInsurers.map(item => <Box key={item.id}>
+                <FormControlLabel
+                  label={`${item.name} · 자동이체계좌로 받기`}
+                  control={<Checkbox checked={automaticDebitIds.includes(item.id)} disabled={busy}
+                    onChange={event => update('automatic_debit_insurer_ids', event.target.checked
+                      ? [...automaticDebitIds, item.id] : automaticDebitIds.filter(id => id !== item.id))} />} />
+                {item.automatic_debit_note && <Typography display="block" variant="caption" color="text.secondary">{item.automatic_debit_note}</Typography>}
+              </Box>)}
+            </Stack>
+            {automaticDebitIds.length > 0 && requiresManualAccount && <Typography variant="body2" color="text.secondary">
+              직접 입력한 계좌는 {manualAccountInsurers.map(item => item.name).join(', ')}에만 반영됩니다.
+            </Typography>}
+          </Box>}
+          {requiresManualAccount && <Box sx={FIELD_GRID}>
             {field('bank_name', '은행명', { required: true })}
             {field('account_number', '계좌번호', { required: true, inputProps: { maxLength: 30 } })}
             {field('account_holder', '예금주', { required: true })}
-          </Box>
+          </Box>}
           <Divider />
           <Box><Typography fontWeight={700} sx={{ mb: 1 }}>청구 서류 첨부</Typography>
             <Button variant="outlined" component="label" disabled={busy}>PDF·사진 추가<input type="file" hidden multiple accept="application/pdf,image/png,image/jpeg,image/webp"
@@ -357,7 +414,7 @@ export default function ClaimsPage() {
                 setPayload(old => ({ ...old, attachment_rotations: files.map((_, i) => old.attachment_rotations[i] || []).filter((_, i) => i !== index) }));
               }} />
           </Box>
-          <Alert severity="warning">입력하지 않은 직업·주소 등의 칸은 비워 두며 일부 항목은 ‘자료첨부’로 표시됩니다. 생성 후 빠진 내용을 확인해 주세요.</Alert>
+          <Alert severity="warning">입력하지 않은 칸은 비워 두며 일부 항목은 ‘자료첨부’로 표시됩니다. 생성 후 보험사별 필수 항목이 채워졌는지 확인해 주세요.</Alert>
           <Box><Typography fontWeight={700}>보험사 양식·동의서 확인</Typography>
             <Stack direction="row" gap={1} flexWrap="wrap" sx={{ my: 1 }}>{selected.map(id => <Button key={id} size="small" href={claimTemplateUrl(id)} target="_blank" rel="noopener noreferrer">{insurers.find(i => i.id === id)?.name} 양식 보기</Button>)}</Stack>
             <FormControlLabel label="선택한 보험사의 필수 개인정보 동의서를 확인했으며, 서명자의 동의에 따라 PDF에 동의 표시와 서명을 반영합니다." control={<Checkbox checked={payload.consent} disabled={busy} onChange={e => update('consent', e.target.checked)} />} />

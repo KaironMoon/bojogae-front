@@ -70,7 +70,7 @@ export function validClaimPhone(value) {
   return /^(?:02[0-9]{7,8}|0[0-9]{9,10})$/.test(digits);
 }
 
-export function claimInputErrors(p, stage = 2, today = new Date()) {
+export function claimInputErrors(p, stage = 2, today = new Date(), requiresManualAccount = true) {
   const errors = {};
   const text = (key, label, max) => {
     const value = String(p[key] || '');
@@ -119,12 +119,14 @@ export function claimInputErrors(p, stage = 2, today = new Date()) {
       parsed.getDate() !== Number(date.slice(8, 10))) errors.accident_date = '사고일 / 최초 진료일을 올바르게 입력해 주세요.';
   else if (parsed > today) errors.accident_date = '사고일은 미래 날짜일 수 없습니다.';
   text('accident_description', '사고 경위', 500);
-  text('bank_name', '은행명', 30);
-  text('account_number', '계좌번호', 30);
-  if (!errors.account_number && (!/^[0-9 -]+$/.test(p.account_number) || !/[0-9]/.test(p.account_number))) {
-    errors.account_number = '계좌번호는 숫자와 구분기호만 입력해 주세요.';
+  if (requiresManualAccount) {
+    text('bank_name', '은행명', 30);
+    text('account_number', '계좌번호', 30);
+    if (!errors.account_number && (!/^[0-9 -]+$/.test(p.account_number) || !/[0-9]/.test(p.account_number))) {
+      errors.account_number = '계좌번호는 숫자와 구분기호만 입력해 주세요.';
+    }
+    text('account_holder', '예금주', 40);
   }
-  text('account_holder', '예금주', 40);
   if (!p.consent) errors.consent = '선택한 보험사의 필수 동의서를 확인해 주세요.';
   return errors;
 }

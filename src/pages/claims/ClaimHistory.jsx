@@ -157,7 +157,9 @@ export default function ClaimHistory({ onReuse, insurers = [] }) {
           <Typography>{detail.claim.insured_name} · {timestamp(detail.created_at)}</Typography>
           <Typography>사고 유형: {detail.claim.accident_type} · 사고일: {detail.claim.accident_date}</Typography>
           <Typography sx={{ whiteSpace: 'pre-wrap' }}>사고 경위: {detail.claim.accident_description}</Typography>
-          <Typography>지급 계좌: {detail.claim.bank_name} · 예금주 {detail.claim.account_holder}</Typography>
+          {detail.claim.bank_name && <Typography>직접 입력 계좌: {detail.claim.bank_name} · 예금주 {detail.claim.account_holder}</Typography>}
+          {detail.claim.automatic_debit_insurer_ids?.length > 0 && <Typography>자동이체계좌 요청: {detail.deliveries
+            .filter(d => detail.claim.automatic_debit_insurer_ids.includes(d.insurer_id)).map(d => d.insurer_name).join(', ')}</Typography>}
           <Typography variant="body2" color="text.secondary">주민번호는 앞 6자리와 뒤 첫 자리만 보관합니다. 당시 서명과 동의 표시는 보관 PDF에 유지하며, 새 청구서에 재사용하지 않습니다. 첨부서류는 원본 공유 만료 후에도 청구내역에 보관합니다. 첨부에 포함된 주민등록번호 등 개인정보는 자동 마스킹되지 않습니다.</Typography>
           <Divider />
           {detail.deliveries.map(d => <Stack key={d.id} direction="row" gap={1} alignItems="center" flexWrap="wrap">
