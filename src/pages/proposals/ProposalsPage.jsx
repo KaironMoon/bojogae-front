@@ -996,21 +996,21 @@ function ProposalsPage() {
   }
 
   return (
-    <Box ref={helpRootRef} sx={{ p: { xs: 1.5, sm: 2, md: 3, lg: 4 }, width: "100%", boxSizing: "border-box", overflowX: "hidden" }}>
-      <Box sx={{ mb: 2.5 }}>
+    <Box ref={helpRootRef} sx={{ p: { xs: 1.75, sm: 2.5, lg: 3.5 }, width: "100%", maxWidth: 1440, mx: "auto", boxSizing: "border-box", overflowX: "hidden" }}>
+      <Paper variant="outlined" sx={{ p: { xs: 2, sm: 2.5 }, mb: 2.5 }}>
         <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" gap={1}>
-          <Typography variant="h4" sx={{ fontSize: { xs: 26, sm: 30, md: 34 }, fontWeight: 850, letterSpacing: "-0.04em" }}>보고서 만들기</Typography>
+          <Typography variant="h4" component="h1" sx={{ fontSize: { xs: 20, sm: 24 }, fontWeight: 900, letterSpacing: "-0.025em" }}>보고서 만들기</Typography>
           <Stack direction="row" spacing={1}>
             <Chip icon={<KkomakIcon />} label={`보유 ${pointBalance.total_points.toLocaleString()}꼬막`} color="warning" variant="outlined" />
           </Stack>
         </Stack>
         <Stack direction="row" alignItems="center" flexWrap="wrap" gap={1} sx={{ mt: 0.5 }}>
-          <Typography color="text.secondary" sx={{ fontSize: { xs: 13, sm: 14 } }}>
+          <Typography color="text.secondary" sx={{ fontSize: 12, fontWeight: 500, lineHeight: 1.55 }}>
             문서 유형을 선택하고 필요한 자료를 입력하면, 선택한 프롬프트로 문서를 생성합니다.
           </Typography>
           <Button size="small" startIcon={<HelpOutlineRoundedIcon />} onClick={startHelp} sx={{ flexShrink: 0 }}>도움말 보기</Button>
         </Stack>
-      </Box>
+      </Paper>
 
       <Box sx={{ display: { xs: "none", md: "grid" }, gridTemplateColumns: "repeat(3, 1fr)", gap: 2, mb: 2 }}>
         {WORKFLOW_STEPS.map(({ eyebrow, title: stepTitle, description, icon: StepIcon, color, background, border }) => (
@@ -1045,13 +1045,17 @@ function ProposalsPage() {
 
       <Alert
         severity="info"
-        action={<Chip label="스마트 매칭" size="small" color="info" sx={{ fontWeight: 750 }} />}
+        action={<Chip label="스마트 매칭" size="small" color="info" sx={{
+          color: "white", background: "linear-gradient(135deg, #6B38FB, #4F46E5)", fontSize: 11, fontWeight: 900,
+        }} />}
         sx={{
           mb: 2,
           border: "1px solid #DDD1FF",
-          bgcolor: "#F3EEFF",
+          background: "linear-gradient(90deg, #F5F3FF, #ECFDF5, #FFFFFF)",
+          color: "text.primary",
           alignItems: "center",
-          fontSize: { xs: 12, sm: 14 },
+          fontSize: 12,
+          fontWeight: 700,
           "& .MuiAlert-action": { display: { xs: "none", sm: "flex" } },
         }}
       >
@@ -1512,7 +1516,7 @@ function ProposalsPage() {
             size="large"
             onClick={submit}
             disabled={working || !promptId || !filteredPromptOptions.length || pointBalance.total_points < selectedPointCost}
-            sx={{ ...reportHero, flexShrink: 0, py: 1.25, fontWeight: 850, borderRadius: "12px", gap: 1 }}>
+            sx={{ ...reportHero, flexShrink: 0, py: 1.5, fontSize: 16, fontWeight: 900, borderRadius: "16px", gap: 1 }}>
             <Box component="span" sx={reportHeroIcon}>
               {working ? <CircularProgress size={18} color="inherit" /> : <AutoAwesomeRoundedIcon sx={{ fontSize: 17 }} />}
             </Box>

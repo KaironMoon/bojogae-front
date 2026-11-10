@@ -6,7 +6,7 @@ export const reportHero = {
   overflow: "hidden",
   color: "#00100A",
   background: reportGradient,
-  boxShadow: "0 10px 24px -4px rgba(3, 199, 90, 0.38)",
+  boxShadow: "0 10px 24px -4px rgba(3, 199, 90, 0.38), 0 4px 10px -2px rgba(3, 199, 90, 0.2)",
   "&:hover": { background: reportGradient, filter: "brightness(1.06)" },
   "&.Mui-focusVisible": { outline: "2px solid #006E43", outlineOffset: 2 },
   "&::after": {
@@ -28,6 +28,6 @@ export const reportHeroIcon = {
 };
 
 export const reportHeroBadge = {
-  fontSize: 8, fontWeight: 850, letterSpacing: ".04em", lineHeight: 1.4,
+  fontSize: 9, fontWeight: 900, letterSpacing: ".04em", lineHeight: 1.4,
   px: 0.5, borderRadius: 0.75, bgcolor: "#FFFFFF90", whiteSpace: "nowrap",
 };

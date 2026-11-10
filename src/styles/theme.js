@@ -2,7 +2,8 @@ import { createTheme } from "@mui/material/styles";
 import { brand, brandCssVariables } from "./palette";
 
 const typography = {
-  fontFamily: 'Pretendard, Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+  fontFamily: "Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif",
+  allVariants: { letterSpacing: "-0.02em" },
   button: { textTransform: "none", fontWeight: 700 },
 };
 
@@ -66,6 +67,13 @@ export const lightTheme = createTheme({
   components: {
     MuiCssBaseline: {
       styleOverrides: {
+        "@font-face": {
+          fontFamily: "Pretendard",
+          fontStyle: "normal",
+          fontWeight: "45 920",
+          fontDisplay: "swap",
+          src: 'url("/fonts/PretendardVariable-1.3.9.woff2") format("woff2")',
+        },
         ":root": brandCssVariables,
         "::selection": { backgroundColor: brand.tintHover, color: brand.ink },
       },

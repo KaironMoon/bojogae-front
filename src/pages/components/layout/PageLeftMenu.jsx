@@ -280,9 +280,9 @@ function PageLeftMenu({ onNavigate }) { // eslint-disable-line react/prop-types
             variant="contained" fullWidth disableElevation
             sx={{ ...reportHero, justifyContent: "flex-start", minHeight: 54, px: 1.25, gap: 1, borderRadius: "12px" }}>
             <Box component="span" sx={reportHeroIcon}><AutoAwesomeRoundedIcon sx={{ fontSize: 17 }} /></Box>
-            <Box component="span" sx={{ display: "grid", justifyItems: "start", fontSize: 14, fontWeight: 850 }}>
-              보고서 만들기
+            <Box component="span" sx={{ display: "grid", justifyItems: "start", gap: 0.25, fontSize: 15, fontWeight: 900, letterSpacing: "-0.025em" }}>
               <Box component="span" aria-hidden="true" sx={reportHeroBadge}>CORE FEATURE</Box>
+              보고서 만들기
             </Box>
           </Button>
         </ListItem>
