@@ -41,7 +41,7 @@ export default function ClaimCustomerDialog({ label, onClose, onSelect }) {
       if (!controller.signal.aborted) setSelecting(false);
     }
   }
-  return <Dialog open fullWidth maxWidth="sm" onClose={onClose} aria-labelledby="claim-customer-title">
+  return <Dialog slotProps={{paper:{className:"claim-design claim-dialog"}}} open fullWidth maxWidth="sm" onClose={onClose} aria-labelledby="claim-customer-title">
     <DialogTitle id="claim-customer-title">{label} · 내 고객 불러오기</DialogTitle>
     <DialogContent>
       <Stack spacing={2} sx={{ pt: 1 }}>

@@ -1,3 +1,4 @@
+import SnippetStudio from "../pages/kakao-templates/SnippetStudio";
 import RefundCreatePage from "../pages/document-requests/RefundCreatePage";
 import SuggestionCreatePage from "../pages/document-requests/SuggestionCreatePage";
 import RequestHistoryPage from "../pages/document-requests/RequestHistoryPage";
@@ -49,13 +50,12 @@ import QnaPage from "../pages/help/QnaPage";
 import HelpContactPage from "../pages/help/HelpContactPage";
 import FaqPage from "../pages/help/FaqPage";
 import FaqsPage from "../pages/admin/FaqsPage";
-import KakaoTemplatesPage from "../pages/kakao-templates/KakaoTemplatesPage";
 
 const CustomersPage = lazy(() => import('../pages/crm/CrmPages').then((m) => ({ default: m.CustomersPage })));
 const CustomerDetailPage = lazy(() => import('../pages/crm/CrmPages').then((m) => ({ default: m.CustomerDetailPage })));
 const ContractsPage = lazy(() => import('../pages/crm/CrmPages').then((m) => ({ default: m.ContractsPage })));
 const ContractDetailPage = lazy(() => import('../pages/crm/CrmPages').then((m) => ({ default: m.ContractDetailPage })));
-const TasksPage = lazy(() => import('../pages/crm/CrmPages').then((m) => ({ default: m.TasksPage })));
+const TasksPage = lazy(() => import('../pages/crm/TaskStudio'));
 
 const ProductLayout = lazy(() => import("../pages/product/ProductLayout"));
 const ProductList = lazy(() => import("../pages/product"));
@@ -153,8 +153,8 @@ const router = createBrowserRouter([
           { path: '/crm/contracts', element: <Suspense fallback={<div role="status">불러오는 중…</div>}><ContractsPage /></Suspense> },
           { path: '/crm/contracts/:contractId', element: <Suspense fallback={<div role="status">불러오는 중…</div>}><ContractDetailPage /></Suspense> },
           { path: '/crm/tasks', element: <Suspense fallback={<div role="status">불러오는 중…</div>}><TasksPage /></Suspense> },
-          { path: "/kakao-message-templates/snippets", element: <KakaoTemplatesPage key="snippets" collection="snippets" label="상용구" /> },
-          { path: "/kakao-message-templates/signatures", element: <KakaoTemplatesPage key="signatures" collection="signatures" label="서명" /> },
+          { path: "/kakao-message-templates/snippets", element: <SnippetStudio key="snippets" /> },
+          { path: "/kakao-message-templates/signatures", element: <SnippetStudio key="signatures" collection="signatures" /> },
           { path: "/insurers", element: <InsurersPage /> },
           { path: "/claims", element: <Navigate to="/claims/new" replace /> },
           { path: "/claims/new", element: <ClaimsPage /> },

@@ -1,3 +1,5 @@
+import { CustomerField } from "./CustomerReference";
+import { customerDefaults } from "./customer-defaults";
 /* eslint-disable react/prop-types */
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -10,6 +12,7 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
+import ContractDesignIcon from "./ContractDesignIcon";
 import ContractParty from "./CrmContractParty";
 import { ContractReminderPreview } from "./CrmContractReminders";
 import { crmError, crmGet, crmPost } from "@/services/crm-service";
@@ -39,35 +42,6 @@ const pick = (value, defaults) =>
   Object.fromEntries(
     Object.entries(defaults).map(([k, v]) => [k, value?.[k] ?? v]),
   );
-const customerDefaults = {
-  name: "",
-  alias: "",
-  occupation: "",
-  resident_number: "",
-  resident_number_manual: false,
-  phone: "",
-  gender: "UNKNOWN",
-  birth_raw: "",
-  birth_date: null,
-  birth_calendar: "UNKNOWN",
-  birth_is_leap_month: false,
-  birth_century: null,
-  received_date: null,
-  received_raw: "",
-  source: "",
-  provider: "",
-  region: "",
-  location: emptyLocation(),
-  address_detail: "",
-  visit_note: "",
-  call_preference: "",
-  visit_preference: "",
-  premium_note: "",
-  memo: "",
-  tags: [],
-  stage: "UNCONTACTED",
-  do_not_contact: false,
-};
 export function CustomerForm({ value, onSave, onClose }) {
   const [data, setData] = useState(() => pick(value, customerDefaults));
   const state = useSave(onSave, onClose);
@@ -164,28 +138,23 @@ export function CustomerForm({ value, onSave, onClose }) {
   return (
     <Editor
       open
+      customerLayout
+      titleId=":rff:"
       title={value ? "고객정보 수정" : "고객 등록"}
       onClose={onClose}
       onSubmit={submit}
       {...state}
     >
-      <Stack direction={{ xs: "column", sm: "row" }} gap={2}>
-        <Field
-          label="고객명"
+      <section className="crm-customer-form-section"><h3><ContractDesignIcon name="id_card" />1. 기본 인적사항 및 보조개톡 연결<small>* 고객명 필수</small></h3>
+      <div className="crm-customer-form-grid">
+        <CustomerField
+          id=":rfg:" label="고객명" placeholder="실명 또는 식별 이름"
           value={data.name}
           onChange={(v) => set("name", v)}
           required
         />
-        <Field
-          label="연락처"
-          type="tel"
-          autoComplete="tel-national"
-          value={formatPhone(data.phone)}
-          onChange={(v) => set("phone", formatPhone(v))}
-        />
-      </Stack>
-      <Field
-        label="카톡대화명"
+<CustomerField
+        id=":rfi:" label={<>카톡대화명 <small className="customer-ref-kakao-hint">(보조개톡 자동매칭)</small></>} labelAside={`${data.alias?.length || 0} / 20자`}
         value={data.alias}
         onChange={(v) => set("alias", v)}
         inputProps={{ maxLength: 20 }}
@@ -193,7 +162,15 @@ export function CustomerForm({ value, onSave, onClose }) {
         helperText={aliasDuplicate ? "이미 사용 중인 카톡대화명입니다. 다른 대화명으로 수정해 주세요." : aliasCheckError || "카카오톡 대화명을 최대 20자로 입력해 주세요."}
         placeholder="김성춘 흥국화재 도봉"
       />
-      <Field label="직업" value={data.occupation} onChange={(v) => set("occupation", v)} inputProps={{ maxLength: 200 }} />
+      </div>
+      <div className="crm-customer-form-grid">        <CustomerField
+          id=":rfh:" label="연락처" placeholder="010-0000-0000 또는 숫자만"
+          type="tel"
+          autoComplete="tel-national"
+          value={formatPhone(data.phone)}
+          onChange={(v) => set("phone", formatPhone(v))}
+        />
+      <CustomerField id=":rfj:" label="직업" placeholder="예: 사무직, 간호사, 자영업 (상해급수 참고)" helperText="보장분석 및 리포트 직업급수 표기에 활용됩니다." value={data.occupation} onChange={(v) => set("occupation", v)} inputProps={{ maxLength: 200 }} /></div>
       {duplicates?.length > 0 && (
         <Alert severity="warning">
           같은 연락처 고객: {duplicates.map((v) => v.name).join(", ")}
@@ -208,28 +185,29 @@ export function CustomerForm({ value, onSave, onClose }) {
           />
         </Alert>
       )}
-      <Stack direction={{ xs: "column", sm: "row" }} gap={2}>
-        <Field
-          label="성별"
+      </section><section className="crm-customer-form-section"><h3><ContractDesignIcon name="cake" />2. 성별 · 생년월일 · 주민번호 7자리 자동 연동<small>생년월일·성별 입력 시 주민번호 자동 계산</small></h3>
+      <div className="crm-customer-form-grid crm-customer-form-three">
+        <CustomerField
+          id=":rfk:" label="성별"
           value={data.gender}
           options={{ UNKNOWN: "미확인", FEMALE: "여성", MALE: "남성" }}
           onChange={(v) => set("gender", v)}
         />
-        <Field
-          label="생년월일"
+        <CustomerField
+          id=":rfm:" label="생년월일"
           value={data.birth_raw || data.birth_date || ""}
           onChange={(v) => set("birth_raw", v)}
           placeholder="19850307 / 3월 7일 / 85년생"
           helperText="아는 만큼 입력하세요. 월·일까지 알면 생일 알림에 활용할 수 있습니다."
         />
-        <Field
-          label="양력·음력"
+        <CustomerField
+          id=":rfn:" label="양력·음력"
           value={data.birth_calendar}
           options={{ UNKNOWN: "미확인 (양력 기준)", SOLAR: "양력", LUNAR: "음력" }}
           onChange={(v) => set("birth_calendar", v)}
         />
-      </Stack>
-      {/^[0-9]{6}$/.test(data.birth_raw) && <Field
+      </div>
+      {/^[0-9]{6}$/.test(data.birth_raw) && <CustomerField
         label="출생 연도 확인 (선택)"
         value={data.birth_century ?? ""}
         options={{ "": "연도 미확인", 1900: "1900년대", 2000: "2000년대" }}
@@ -245,8 +223,8 @@ export function CustomerForm({ value, onSave, onClose }) {
         {data.birth_calendar === "LUNAR" && birthPreview.birth_date && ` · 양력 ${birthPreview.birth_date.replace(/([0-9]{4})-([0-9]{2})-([0-9]{2})/, "$1년 $2월 $3일")}`}
         {birthPreview.birth_reminder_eligible ? " · 생일 알림에 활용 가능" : " · 생일 알림용 월·일 미확인"}
       </Typography>}
-      <Field
-        label="주민번호 앞 6자리·뒤 첫 1자리"
+      <CustomerField
+        id=":rfp:" label="주민번호 앞 6자리·뒤 첫 1자리" inputAside="****** (뒷자리 미수집·보안처리)"
         value={data.resident_number_manual ? data.resident_number : birthPreview?.resident_number || ""}
         onChange={(v) => setData((old) => ({ ...old, resident_number: v, resident_number_manual: true }))}
         placeholder="850307-1"
@@ -258,37 +236,41 @@ export function CustomerForm({ value, onSave, onClose }) {
       {data.resident_number_manual && <Button onClick={() => setData((old) => ({ ...old, resident_number_manual: false, resident_number: "" }))}>
         생년월일·성별로 다시 자동 입력
       </Button>}
-      <LocationFields
+      </section><section className="crm-customer-form-section"><h3><ContractDesignIcon name="pin" />3. 방문 주소 · 위치 좌표 · 통화/방문 가능 시간</h3>
+      <LocationFields customerDesign addressId=":rfq:"
         value={data.location}
         onChange={(v) => set("location", v)}
       />
-      <Field
-        label="상세주소"
+      <div className="crm-customer-form-grid"><CustomerField
+        id=":rft:" label="상세주소"
         value={data.address_detail}
         onChange={(v) => set("address_detail", v)}
         placeholder="동·호수 등 상세주소"
         inputProps={{ maxLength: 500 }}
       />
-      <Field
-        label="방문 참고사항"
+      <CustomerField
+        id=":rfu:" label="방문 참고사항"
         value={data.visit_note}
         onChange={(v) => set("visit_note", v)}
-      />
-      <Stack direction={{ xs: "column", sm: "row" }} gap={2}>
+        placeholder="예: 1층 카페 미팅 선호, 주차 가능"
+      /></div>
+      <div className="crm-customer-form-grid">
         {[
           ["call_preference", "통화 가능 시간"],
           ["visit_preference", "방문 가능 시간"],
         ].map(([key, label]) => (
-          <Field
-            key={key}
+          <CustomerField
+            placeholder={key === "call_preference" ? "예: 평일 점심시간(12~1시) 또는 오후 6시 이후" : "예: 화·목 오후 2시~5시"}
+            key={key} id={key === "call_preference" ? ":rfv:" : ":rg0:"}
             label={label}
             value={data[key]}
             onChange={(v) => set(key, v)}
           />
         ))}
-      </Stack>
-      <Field
-        label="접수일"
+      </div>
+      </section><section className="crm-customer-form-section"><h3><ContractDesignIcon name="clipboard" />4. 접수·유입경로·상담단계·태그 및 메모<small>CRM 필터 연동</small></h3>
+      <div className="crm-customer-form-grid crm-customer-form-three"><CustomerField
+        id=":rg1:" label="접수일"
         value={receivedEditing
           ? data.received_raw || data.received_date || ""
           : receivedPreview?.received_display || data.received_raw || data.received_date || ""}
@@ -300,19 +282,21 @@ export function CustomerForm({ value, onSave, onClose }) {
         error={!!receivedError}
         inputProps={{ maxLength: 100 }}
       />
-      <Field
-        label="유입 경로"
+      <CustomerField
+        id=":rg2:" label="유입 경로"
         value={data.source}
+        placeholder="예: 현대홈쇼핑 DB, 기존고객 소개, 블로그"
         onChange={(v) => set("source", v)}
       />
-      <Field
-        label="상담 단계"
+      <CustomerField
+        id=":rg3:" label="상담 단계"
         value={data.stage}
         options={STAGES}
         onChange={(v) => set("stage", v)}
-      />
-      <Field
-        label="태그 (쉼표 구분)"
+      /></div>
+      <div className="crm-customer-form-grid"><CustomerField
+        placeholder="예: 현대홈쇼핑, 암보장보완, 가족결합"
+        id=":rg5:" label="태그 (쉼표 구분)"
         value={tagsText}
         onChange={(v) => {
           setTagsText(v);
@@ -325,13 +309,15 @@ export function CustomerForm({ value, onSave, onClose }) {
           );
         }}
       />
-      <Field
-        label="상담 참고 보험료 (실제 계약금액과 별도)"
+      <CustomerField
+        id=":rg6:" label="상담 참고 보험료 (실제 계약금액과 별도)"
         value={data.premium_note}
         onChange={(v) => set("premium_note", v)}
-      />
-      <Field
-        label="고객 메모"
+        placeholder="예: 월 25만원"
+      /></div>
+      <CustomerField
+        placeholder="가족력, 기왕증(고지사항), 리모델링 희망 담보 등 상담 메모를 자유롭게 기록하세요."
+        id=":rg7:" label="고객 메모"
         multiline
         minRows={3}
         value={data.memo}
@@ -346,6 +332,7 @@ export function CustomerForm({ value, onSave, onClose }) {
         }
         label="연락 중단 요청 (주변 고객 검색에서 제외)"
       />
+      </section>
     </Editor>
   );
 }
@@ -436,7 +423,7 @@ export function ContractForm({ value, customerId, onSave, onClose }) {
     >
       <Stack component="section" gap={1.5} className="crm-contract-form-section" aria-labelledby="crm-contract-base">
         <div className="crm-contract-section-heading">
-          <Typography component="h3" id="crm-contract-base">기본 계약 정보</Typography>
+          <Typography component="h3" id="crm-contract-base"><ContractDesignIcon name="shield_plain" />1. 등록 구분 및 보험 상품 기본 정보</Typography>
           <Field
             id=":rf2:" label="등록 구분"
             value={data.origin}
@@ -454,20 +441,24 @@ export function ContractForm({ value, customerId, onSave, onClose }) {
         </div>
         <div className="crm-contract-base-grid">
           <Stack direction="row" gap={1}>
-            <Field id=":rf4:" label="보험회사" value={data.insurer} onChange={(v) => set("insurer", v)} required />
-            <Button onClick={loadInsurers} variant="contained" aria-expanded={Boolean(insurers)} aria-controls="crm-insurer-picker"
-              sx={{ minWidth: 88, flexShrink: 0, bgcolor: "#121314", "&:hover": { bgcolor: "#273241" } }}>보험사 목록</Button>
+            <Field id=":rf4:" placeholder="우측 [보험사 목록]에서 선택하거나 직접 입력" label="보험회사" value={data.insurer} onChange={(v) => set("insurer", v)} required />
+            <Button className="crm-contract-insurer-button" onClick={loadInsurers} variant="contained" aria-expanded={Boolean(insurers)} aria-controls="crm-insurer-picker"
+              startIcon={<ContractDesignIcon name="building" />} sx={{ minWidth: 88, flexShrink: 0, bgcolor: "#121314", "&:hover": { bgcolor: "#273241" } }}>보험사 목록</Button>
           </Stack>
-          <Field id=":rf7:" label="보험 종류" value={data.category} onChange={(v) => set("category", v)} />
-          <Field id=":rf6:" label="상품명" value={data.product} onChange={(v) => set("product", v)} required />
-          <Field id=":rf8:" label="증권/설계번호 (미확인 시 비워두기)" value={data.policy_number} onChange={(v) => set("policy_number", v)} />
+          <Field id=":rf7:" placeholder="예: 종합건강보험, 간편건강보험, 암보험" label="보험 종류" value={data.category} onChange={(v) => set("category", v)} />
+          <Field id=":rf6:" placeholder="예: (무)KB 3.5.5 오! 슬기로운 간편실속종합건강보험" label="상품명" value={data.product} onChange={(v) => set("product", v)} required />
+          <Field id=":rf8:" placeholder="증권번호 또는 청약번호" label="증권/설계번호 (미확인 시 비워두기)" value={data.policy_number} onChange={(v) => set("policy_number", v)} />
         </div>
         {insurersError && <Alert severity="warning">{insurersError}</Alert>}
         <div id="crm-insurer-picker" hidden={!insurers}>
-          {insurers && <div className="crm-insurer-picker" aria-label="등록된 보험사">
-            {insurers.map(insurer => <Button key={insurer.id} size="small" variant="outlined"
-              aria-pressed={data.insurer === insurer.name}
-              onClick={() => { set("insurer", insurer.name); setInsurers(null); }}>{insurer.name}</Button>)}
+          {insurers && <div className="crm-insurer-palette">
+            <div><strong>🏢 {insurers.length}개 보험회사 빠른 선택 (클릭 시 자동 입력)</strong><Button onClick={() => setInsurers(null)}>닫기 ✕</Button></div>
+            {[["non_life", "손해보험 · 공제"], ["life", "생명보험"]].map(([kind, label]) => <section key={kind}>
+              <h4>{label}</h4><div className="crm-insurer-picker" aria-label={label}>
+                {insurers.filter(insurer => kind === "life" ? insurer.kind === "life" : insurer.kind !== "life").map(insurer => <Button key={insurer.id} size="small" variant="outlined"
+                  aria-pressed={data.insurer === insurer.name} onClick={() => { set("insurer", insurer.name); setInsurers(null); }}>{insurer.name}</Button>)}
+              </div>
+            </section>)}
             {!insurers.length && <Typography variant="body2" color="text.secondary">등록된 보험사가 없습니다.</Typography>}
           </div>}
         </div>
@@ -487,15 +478,8 @@ export function ContractForm({ value, customerId, onSave, onClose }) {
         )}
       </Stack>
       <Stack component="section" gap={1.5} className="crm-contract-form-section" aria-labelledby="crm-contract-parties">
-        <Typography component="h3" id="crm-contract-parties">계약 관계자</Typography>
-        <div className="crm-contract-party-grid">
-          {data.parties.map((p, i) => (
-            <ContractParty key={i} value={p} holder={holder} index={i} onChange={updateParty}
-              onRemove={data.parties.length > 1 ? () => set("parties", data.parties.filter((_, j) => i !== j)) : undefined} />
-          ))}
-        </div>
-        <Button
-          sx={{ alignSelf: "start" }}
+        <div className="crm-contract-section-heading"><Typography component="h3" id="crm-contract-parties"><ContractDesignIcon name="person" />2. 계약 관계자 (피보험자 생년월일로 생일 · 상령일 자동 계산)</Typography>        <Button
+          className="crm-contract-party-add" startIcon={<ContractDesignIcon name="user_plus" />}
           onClick={() =>
             set("parties", [
               ...data.parties,
@@ -504,14 +488,21 @@ export function ContractForm({ value, customerId, onSave, onClose }) {
           }
         >
           관계자 추가
-        </Button>
+        </Button></div>
+        <div className="crm-contract-party-grid">
+          {data.parties.map((p, i) => (
+            <ContractParty key={i} value={p} holder={holder} index={i} onChange={updateParty}
+              onRemove={data.parties.length > 1 ? () => set("parties", data.parties.filter((_, j) => i !== j)) : undefined} />
+          ))}
+        </div>
+
       </Stack>
       <Stack component="section" gap={1.5} className="crm-contract-form-section" aria-labelledby="crm-contract-period">
-        <Typography component="h3" id="crm-contract-period">계약 일자와 납입 정보</Typography>
+        <Typography component="h3" id="crm-contract-period"><ContractDesignIcon name="calendar_clock" />3. 계약 일자 및 고객 터치 알림일(면책종료 · 감액종료 · 상령일 · 생일) 자동 산출</Typography>
         <ContractReminderPreview establishmentDate={data.establishment_date} coverageStart={data.coverage_start} parties={data.parties} />
-        <Stack direction={{ xs: "column", sm: "row" }} gap={2}>
+        <div className="crm-contract-payment-grid">
           <Field
-            id=":rfu:" label={data.payment_cycle === "MONTHLY" ? "월 보험료 (원)" : "납입금액 (원)"}
+            id=":rfu:" placeholder="예: 149370" label={data.payment_cycle === "MONTHLY" ? "월 보험료 (원)" : "납입금액 (원)"}
             type="number"
             inputProps={{ min: 0, step: ".01" }}
             value={data.premium}
@@ -523,17 +514,16 @@ export function ContractForm({ value, customerId, onSave, onClose }) {
             options={CYCLES}
             onChange={(v) => set("payment_cycle", v)}
           />
-        </Stack>
-        <Stack direction={{ xs: "column", sm: "row" }} gap={2}>
+
           <Field
-            id=":rg1:" label="진행 상태"
+            id=":rg1:" label="진행 상태" SelectProps={{ displayEmpty: true }}
             disabled={!!value || data.origin === "EXISTING"}
             value={data.progress || ""}
             options={{ "": "해당 없음", ...PROGRESS }}
             onChange={(v) => set("progress", v || null)}
           />
           <Field
-            id=":rg3:" label="유지 상태"
+            id=":rg3:" label="유지 상태 (설계사 기록용)"
             disabled={
               !!value ||
               (data.origin === "NEW" && data.progress !== "ESTABLISHED")
@@ -542,8 +532,8 @@ export function ContractForm({ value, customerId, onSave, onClose }) {
             options={MAINTENANCE}
             onChange={(v) => set("maintenance", v)}
           />
-        </Stack>
-        <Box
+        </div>
+        <Box className="crm-contract-dates-grid"
           sx={{
             display: "grid",
             gridTemplateColumns: { xs: "1fr", sm: "repeat(3, minmax(0, 1fr))" },
@@ -552,14 +542,14 @@ export function ContractForm({ value, customerId, onSave, onClose }) {
         >
           {[
             ["application_date", "청약일"],
-            ["establishment_date", "계약 성립일"],
-            ["coverage_start", "보장 개시일"],
+            ["establishment_date", "계약 성립일 (감액기준)"],
+            ["coverage_start", "보장 개시일 (면책기준)"],
             ["coverage_end", "보장 종료일"],
             ["payment_end", "납입 종료일"],
             ["verified_date", "정보 확인일"],
           ].map(([key, label], index) => (
             <Field
-              key={key}
+              className={`crm-contract-date--${key}`} key={key}
               id={`:rg${(index + 5).toString(16)}:`} label={label}
               type="date"
               disabled={key === "establishment_date" && !!value}
@@ -568,7 +558,7 @@ export function ContractForm({ value, customerId, onSave, onClose }) {
             />
           ))}
         </Box>
-        <Field
+        <div className="crm-contract-period-grid"><Field
           id=":rgb:" label="납입기간"
           value={data.payment_period}
           onChange={(v) => set("payment_period", v)}
@@ -576,22 +566,33 @@ export function ContractForm({ value, customerId, onSave, onClose }) {
           inputProps={{ maxLength: 100 }}
         />
         <Field
-          id=":rgc:" label="납입·보장 기간 설명"
+          id=":rgc:" label="납입·보장 기간 설명 (면책·감액 특이사항 메모)" placeholder="예: 암 면책 90일 / 일반암·유사암 1년 50% 감액"
           value={data.period_note}
           onChange={(v) => set("period_note", v)}
         />
+        </div>
       </Stack>
       <Stack component="section" gap={1.5} className="crm-contract-form-section" aria-labelledby="crm-contract-coverage">
-        <Typography component="h3" id="crm-contract-coverage">보장 내용과 확인 정보</Typography>
+        <div className="crm-contract-section-heading crm-contract-coverage-heading"><Typography component="h3" id="crm-contract-coverage"><ContractDesignIcon name="document" />4. 주요 보장·가입금액·특약 요약 및 정보 출처</Typography>
+        <div className="crm-contract-coverage-tags" aria-label="보장 내용 빠른 입력">
+          {[
+            ["암진단(면책90일)", "일반암 3,000만(면책90일/감액1년)"],
+            ["비통치 1억", "비급여 암통합치료비 1억"],
+            ["2대진단(감액1년)", "뇌혈관·허혈성심장 각 2,000만(1년 50%감액)"],
+            ["치아(면책/감액)", "치아보철/크라운(면책90일/감액1~2년)"],
+          ].map(([label, text]) => <button type="button" key={label} onClick={() => set("coverage_note", [data.coverage_note, text].filter(Boolean).join(" · "))}>+ {label}</button>)}
+        </div>
+        </div>
         <Field
-          id=":rgd:" label="주요 보장·가입금액·특약 요약"
+          id=":rgd:" label="주요 보장·가입금액·특약 요약" placeholder="면책기간·감액기간 적용 담보 및 가입금액을 기록해 두면 종료 시점에 고객에게 안내하기 편리합니다."
           multiline
           minRows={3}
           value={data.coverage_note}
           onChange={(v) => set("coverage_note", v)}
         />
+        <div className="crm-contract-verification-row">
         <Field
-          id=":rge:" label="정보 출처"
+          id=":rge:" label="정보 출처" placeholder="예: 고객 전달 증권, 청약서 부본, 보장분석 리포트"
           value={data.information_source}
           onChange={(v) => set("information_source", v)}
         />
@@ -604,6 +605,7 @@ export function ContractForm({ value, customerId, onSave, onClose }) {
           }
           label="증권 등으로 확인한 정보"
         />
+        </div>
       </Stack>
     </Editor>
   );
@@ -664,6 +666,7 @@ export function TaskForm({
   contractId,
   location,
   initialReminder,
+  contractTaskLayout = false,
   onSave,
   onClose,
 }) {
@@ -689,6 +692,7 @@ export function TaskForm({
     <Editor
       open
       title={value ? "업무·일정 수정" : "업무·방문 일정 등록"}
+      contractTaskLayout={contractTaskLayout}
       onClose={onClose}
       onSubmit={() =>
         state.save({

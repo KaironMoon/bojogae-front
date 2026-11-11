@@ -1,0 +1,35 @@
+.pricing-design,.pricing-design *{box-sizing:border-box;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;}
+.pricing-design :where(*){border-width:0;border-style:solid}
+.pricing-design :where(h1,h2,h3,h4,h5,h6,p,dl,dd,ul,ol){margin:0}
+.pricing-design :where(h1,h2,h3,h4,h5,h6){font-size:inherit;font-weight:inherit}
+.pricing-design :where(button,input,textarea,select){font:inherit;letter-spacing:inherit;color:inherit}
+.pricing-design :where(button){cursor:pointer;background:transparent;padding:0}
+.pricing-design :where(input,select,textarea){padding:0;min-width:0}
+.pricing-design :where(a){color:inherit;text-decoration:none}
+.pricing-design :where(svg){display:block;flex-shrink:0}
+.pricing-design :where(img){display:block;max-width:100%}
+.pricing-design :where(ul,ol){padding:0;list-style:none}
+.pricing-design :where(table){border-collapse:collapse}
+.pricing-design [hidden]{display:none!important}
+.pricing-design{line-height:1.5}
+.pricing-design section[id]{scroll-margin-top:80px}
+.pricing-design button:disabled{opacity:.5;cursor:default}
+.pricing-design button:focus-visible,.pricing-design a:focus-visible{outline:2px solid #03c75a;outline-offset:3px}
+
+.pricing-design,.pricing-design *,.pricing-design *::after{--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;}
+.pricing-design h1,.pricing-design h2,.pricing-design h3{word-break:keep-all;overflow-wrap:break-word}
+.pricing-design .css-o5s4km article{min-width:0}
+.pricing-design .css-o5s4km article button{width:100%;min-height:44px}
+.pricing-design .css-o5s4km article button span{min-width:0}
+.pricing-design.pricing-dialog.MuiDialog-paper{max-width:448px;width:calc(100% - 24px);margin:12px;max-height:94dvh;padding:0;border:0;border-radius:24px;overflow:hidden;line-height:1.5;background:white}
+.pricing-design.pricing-dialog.group-dialog{max-width:512px}
+.pricing-design.pricing-dialog>div{display:flex;flex-direction:column;min-height:0;max-height:94dvh}
+.pricing-design.pricing-dialog>div>div:first-child{flex-shrink:0}
+.pricing-design.pricing-dialog>div>form,.pricing-design.pricing-dialog>div>div:nth-child(2){overflow:auto;min-height:0}
+.pricing-design .ns-hero-cta,.pricing-design .ns-plan-dark{color:#fff}
+.pricing-design button:disabled{opacity:.5;cursor:default}
+@media(max-width:639px){.pricing-design .pricing-dialog>div>div:first-child{padding:16px;gap:8px}.pricing-design #subModalClams{max-width:55%;text-align:right}.pricing-design .css-o5s4km article{padding:24px}}
+@media(prefers-reduced-motion:reduce){.pricing-design *,.pricing-design *::after{animation:none!important;transition:none!important}}
+.pricing-design .css-o5s4km article{container-type:inline-size}
+.pricing-design .css-o5s4km .css-q7gxgf{white-space:nowrap;font-size:clamp(24px,15cqi,30px)}
+.pricing-design .css-o5s4km .css-720qvj{flex-wrap:wrap}

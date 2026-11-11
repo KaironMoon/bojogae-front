@@ -1,0 +1,63 @@
+.insurer-design,.insurer-design *{box-sizing:border-box;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;}
+.insurer-design :where(h1,h2,h3,h4,h5,h6,p){margin:0}
+.insurer-design :where(div,span,a,button,input,textarea,select,article){border-style:solid;border-width:0}
+.insurer-design :where(button,input,textarea,select,code){font:inherit;letter-spacing:inherit}
+.insurer-design :where(button){cursor:pointer;background:none;padding:0}
+.insurer-design :where(input,select,textarea){min-width:0;padding:0}
+.insurer-design :where(button:disabled){opacity:.4;cursor:default}
+.insurer-design :where(svg){display:block;flex-shrink:0}
+.insurer-design [hidden]{display:none!important}
+.insurer-design.insurer-reference-page{min-height:100vh;line-height:1.5}
+
+.insurer-design :where(dl,dd,dt,ul){margin:0;padding:0;border-style:solid;border-width:0}
+.insurer-design :where(a){text-decoration:none;color:inherit}
+.insurer-design :where(table){border-collapse:collapse;width:100%}
+.insurer-design .reference-logo{width:112px;height:40px;border-radius:10px;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:#fff}
+.insurer-design .reference-logo svg{width:100%;height:100%}
+.insurer-design .reference-logo-large{width:172px;height:46px}
+.insurer-design .reference-logo-empty{border:1.5px dashed #cbd5e1;background:#f8fafc;text-align:center;font-size:10px;line-height:1.2;color:#64748b;font-weight:800}
+.insurer-design .sector-tab[aria-pressed=true]{background:#121314;color:#fff;border-color:#121314}
+.insurer-design .sector-tab:first-child[aria-pressed=false]{background:#f4f6f8;color:#4e5968}
+.insurer-design #viewBtnGrid[aria-pressed=false],.insurer-design #viewBtnTable[aria-pressed=false]{background:transparent;box-shadow:none;color:#8b95a1}
+.insurer-design #viewBtnGrid[aria-pressed=true],.insurer-design #viewBtnTable[aria-pressed=true]{background:#fff;color:#121314;box-shadow:0 1px 2px #0001}
+.insurer-design .reference-empty{padding:40px;text-align:center;font-size:13px;color:#8b95a1}
+.insurer-design [aria-disabled=true]{opacity:.55;cursor:default;flex-wrap:wrap}
+.insurer-design .insurer-unavailable{font-size:9px;white-space:nowrap;padding:0 3px}
+.insurer-design.insurer-reference-paper.MuiDialog-paper{padding:0;margin:16px;width:calc(100% - 32px);max-width:920px;max-height:94dvh;border:0;border-radius:24px;background:white;line-height:1.5;overflow:hidden}
+.insurer-design .insurer-reference-dialog>div{flex-shrink:0}
+.insurer-design .insurer-reference-dialog>.MuiDialogContent-root{flex-shrink:1;min-height:0}
+.insurer-design #modalHeaderBanner h2{font:inherit;letter-spacing:inherit}
+.insurer-design #modalFavBtn[aria-pressed=true] svg{fill:#fbbf24;color:#fcd34d}
+.insurer-design #modalHeaderBanner{flex-wrap:wrap}
+.insurer-design #modalHeaderBanner>div{margin-left:auto}
+.insurer-design #modalTop5ButtonsBar>span{min-height:42px}
+.insurer-design #modalContactsGrid button:disabled{opacity:1;cursor:default}
+.insurer-design #modalContactsGrid button:disabled p{color:#8b95a1}
+.insurer-design #initialFilterBar{flex-wrap:wrap}
+.insurer-design .reference-logo+div{min-width:0}
+.insurer-design #insurerTableContainer .reference-logo{width:90px}
+.insurer-design #modalClaimRulesList{padding-left:16px;list-style:disc}
+.insurer-design #modalAgentMemoInput{font:600 12px/1.5 Pretendard,sans-serif}
+.insurer-design button:focus-visible,.insurer-design a:focus-visible{outline:2px solid #03c75a;outline-offset:2px}
+@media(max-width:639px){.insurer-design.insurer-reference-paper.MuiDialog-paper{width:calc(100% - 16px);margin:8px}.insurer-design #insurerSearchInput{width:100%}.insurer-design #modalHeaderBanner>div{margin-left:0}.insurer-design #modalFooterPortalBtn,.insurer-design #modalFooterLcBtn{flex:1;min-width:0}.insurer-design .insurer-reference-dialog>div:last-child>div{flex-wrap:wrap;width:100%}}
+@media(prefers-reduced-motion:reduce){.insurer-design .ns-hero-cta::after{animation:none}}
+
+/* Match the reference breakpoints to the content width beside the sidebar. */
+.insurer-reference-page{container-type:inline-size}
+.insurer-design #insurerGridContainer{grid-template-columns:1fr}
+@container(min-width:720px){.insurer-design #insurerGridContainer{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@container(min-width:1050px){.insurer-design #insurerGridContainer{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@container(min-width:1350px){.insurer-design #insurerGridContainer{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.insurer-design #insurerGridContainer h3{white-space:normal;overflow:visible}
+
+/* Footer actions keep their reference appearance in the unavailable state. */
+.insurer-design #modalFooterLcBtn,.insurer-design #modalFooterPortalBtn{opacity:1;min-height:36px;color:#fff;line-height:1.5}
+.insurer-design #modalFooterLcBtn{background:#121314}
+.insurer-design #modalFooterPortalBtn{background:var(--hero-gradient)}
+.insurer-design #modalFooterLcBtn:disabled,.insurer-design #modalFooterPortalBtn:disabled{cursor:not-allowed;transform:none;filter:none}
+.insurer-design #modalFooterPortalBtn:disabled::after{animation:none;display:none}
+
+.insurer-design #insurerDetailFooter{position:relative;z-index:1;flex-shrink:0;background:#fff}
+.insurer-design #insurerDetailClose{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;min-width:60px;min-height:36px;padding:8px 16px;border:1px solid #d1d6db;border-radius:12px;background:#fff;color:#4e5968;font-size:12px;font-weight:800;white-space:nowrap}
+.insurer-design #insurerDetailClose:hover{background:#f4f6f8}
+@media(max-width:639px){.insurer-design #insurerDetailFooter>div{display:grid;grid-template-columns:auto minmax(0,1fr);width:100%}.insurer-design #insurerDetailClose{grid-column:1;grid-row:1 / 3;align-self:stretch}.insurer-design #modalFooterLcBtn,.insurer-design #modalFooterPortalBtn{grid-column:2;margin:0;justify-content:center;text-align:center}}

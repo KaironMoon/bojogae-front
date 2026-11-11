@@ -279,7 +279,7 @@ function PageLeftMenu({ onNavigate }) { // eslint-disable-line react/prop-types
         <ListItem disablePadding sx={{ px: 1.25, mb: 1.25 }}>
           <Button component={Link} to="/proposals" onClick={onNavigate} aria-current={isActive("/proposals") ? "page" : undefined}
             variant="contained" fullWidth disableElevation
-            sx={{ ...reportHero, justifyContent: "flex-start", minHeight: 68, px: 1.75, gap: 1.25, borderRadius: "16px" }}>
+            sx={{ ...reportHero, background: "linear-gradient(135deg, #03c75a 0%, #00a84b 50%, #008a60 100%)", "&:hover": { background: "linear-gradient(135deg, #03c75a 0%, #00a84b 50%, #008a60 100%)", filter: "brightness(1.06)" }, justifyContent: "flex-start", minHeight: 68, px: 1.75, gap: 1.25, borderRadius: "16px" }}>
             <Box component="span" sx={{ ...reportHeroIcon, width: 40, height: 40, borderRadius: "12px" }}><AutoAwesomeRoundedIcon sx={{ fontSize: 20 }} /></Box>
             <Box component="span" sx={{ display: "grid", justifyItems: "start", gap: 0.25, fontSize: 15, fontWeight: 900, letterSpacing: "-0.025em" }}>
               <Box component="span" aria-hidden="true" sx={reportHeroBadge}>CORE FEATURE</Box>

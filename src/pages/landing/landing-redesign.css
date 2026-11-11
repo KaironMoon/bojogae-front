@@ -115,6 +115,7 @@
 .home-cost-grid ul { display: grid; gap: 5px; list-style: none; padding: 0; margin: 8px 0 0; }
 .home-cost-grid li { display: flex; flex-wrap: wrap; gap: 5px 12px; justify-content: space-between; font-size: .84rem; }
 .home-cost-grid small { padding: 2px 5px; background: #d1efe0; border-radius: 5px; font-weight: 800; }
+.home-cost-annual { display: inline-block; padding: 4px 8px; border-radius: 6px; background: #d1efe0; font-size: .84rem; }
 .home-flow-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
 .home-flow-grid article { min-width: 0; border: 1px solid var(--home-line); border-radius: 16px; background: white; padding: 14px; }
 .home-flow-grid header { display: flex; align-items: center; gap: 8px; color: var(--home-green); font-size: .73rem; font-weight: 850; }
@@ -174,7 +175,7 @@
 .home-redesign .home-hero-band .secondary-cta { color: white; background: #ffffff16; border-color: #ffffff3f !important; }
 .home-redesign .home-hero-band .secondary-cta:hover { background: #ffffff24; }
 .home-redesign .home-hero-band .secondary-cta svg { color: #ff708b; }
-.home-showcase > header small { margin-left: auto; white-space: nowrap; padding: 3px 6px; border-radius: 6px; background: #1e4238; color: #a8ebca; font-size: .65rem; }
+.home-showcase > header small { margin-left: auto; padding: 3px 6px; border-radius: 6px; background: #1e4238; color: #a8ebca; font-size: .65rem; }
 .home-redesign .landing-header input:focus-visible, .home-hero-band :is(a, button):focus-visible { outline-color: #38c87e; }
 @media (max-width: 1150px) { .home-redesign .landing-header nav { display: none; } }
 @media (max-width: 1019px) { .home-hero-tags { justify-content: center; } }

@@ -48,9 +48,9 @@ export function Sector({ kind }) {
   return <span className={`insurer-sector insurer-sector--${kind}`}>{kindLabel[kind]}</span>;
 }
 
-export function FavoriteButton({ name, favorite, onToggle }) {
+export function FavoriteButton({ name, favorite, disabled, onToggle }) {
   return <IconButton className="insurer-favorite" aria-label={`${name} 즐겨찾기`} aria-pressed={favorite}
-    title={favorite ? "즐겨찾기 해제" : "즐겨찾기 추가"} onClick={onToggle}>
+    title={favorite ? "즐겨찾기 해제" : "즐겨찾기 추가"} disabled={disabled} onClick={onToggle}>
     {favorite ? <StarRoundedIcon /> : <StarBorderRoundedIcon />}
   </IconButton>;
 }
@@ -83,7 +83,7 @@ function ContactValue({ entry, onCopy }) {
   </button>;
 }
 
-export function InsurerCard({ insurer, favorite, onToggle, onOpen, onCopy }) {
+export function InsurerCard({ insurer, favorite, preferenceDisabled, onToggle, onOpen, onCopy }) {
   const portal = portalFor(insurer);
   const summary = insurer.card_payment.find(entry => entry.label === "구분");
   return <article className="insurer-card" style={{ "--insurer-ci": ciColor(insurer) }}>
@@ -99,7 +99,7 @@ export function InsurerCard({ insurer, favorite, onToggle, onOpen, onCopy }) {
           {insurer.kind !== "other" && <BrowserBadges browser={insurer.browser} />}
         </div>
       </div>
-      <FavoriteButton name={insurer.name} favorite={favorite} onToggle={onToggle} />
+      <FavoriteButton name={insurer.name} favorite={favorite} disabled={preferenceDisabled} onToggle={onToggle} />
     </div>
     <div className="insurer-card__contacts">
       {contactsFor(insurer).slice(0, 4).map(entry => <ContactValue key={entry.label} entry={entry} onCopy={onCopy} />)}
@@ -158,31 +158,37 @@ function CardPayment({ rows, onCopy }) {
 }
 
 function ClaimNotes({ insurer }) {
+  const tags = insurer.feature_tags || [];
+  const notes = insurer.claim_notes || [];
+  const claimLink = insurer.claim?.url ? insurer.claim : insurer.website;
   return <div className="insurer-detail__tile">
     <Typography component="h4">보험금 청구 세부 기준</Typography>
-    <div className="insurer-detail__chips">
-      {[insurer.claim_copy_limit, insurer.esign_cutoff_time, ...(insurer.feature_tags || [])].filter(Boolean).map((value, index) => (
-        <Chip key={index} size="small" label={value} />
-      ))}
-    </div>
+    <dl className="insurer-system__details">
+      <Info label="사본 청구 한도" value={insurer.claim_copy_limit || "보험사 공식 안내에서 확인해 주세요."} />
+      {insurer.esign_cutoff_time && <Info label="전자서명 접수 마감" value={insurer.esign_cutoff_time} />}
+      <Info label="주력 상품" value={tags.length ? <div className="insurer-detail__chips">
+        {tags.map((tag, index) => <Chip key={index} size="small" label={tag.startsWith("#") ? tag : `#${tag}`} />)}
+      </div> : "등록된 주력 상품이 없습니다."} />
+      <Info label="청구 유의사항" value={notes.length ? <ul>{notes.map((note, index) => <li key={index}>{note}</li>)}</ul>
+        : "필요 서류와 접수 기준은 보험사 공식 안내에서 확인해 주세요."} />
+      <Info label="실무 심사 팁" value={insurer.uw_tip || "등록된 심사 팁이 없습니다."} />
+    </dl>
     {insurer.notes.length > 0 && <dl className="insurer-system__details">
       {insurer.notes.map((entry, index) => <Info key={index} label={entry.label} value={entry.value} />)}
     </dl>}
-    {!!insurer.claim_notes?.length && <ul>{insurer.claim_notes.map((note, index) => <li key={index}>{note}</li>)}</ul>}
-    {insurer.uw_tip && <p className="insurer-uw-tip"><strong>실무 심사 팁</strong> {insurer.uw_tip}</p>}
-    {!insurer.claim_copy_limit && <p className="insurer-muted">사본 청구 한도는 보험사의 공식 청구 안내를 확인해 주세요.</p>}
+    {claimLink?.url && <OfficialLink link={claimLink} label={insurer.claim?.url ? "공식 청구 안내 확인" : "보험사 공식 홈페이지"} />}
   </div>;
 }
 
-function Memo({ value, onSave }) {
-  const [draft, setDraft] = useState(value);
+function Memo({ value, disabled, onSave }) {
+  const [draft, setDraft] = useState(null);
   return <div className="insurer-detail__tile">
     <Typography component="h4">내 지점 매니저·전산 코드 메모</Typography>
     <TextField fullWidth multiline minRows={3} maxRows={7} size="small" label="내 메모"
-      placeholder="담당자 연락처나 전산 사번을 적어 두세요." value={draft} onChange={event => setDraft(event.target.value)}
+      placeholder="담당자 연락처나 전산 사번을 적어 두세요." value={draft ?? value} disabled={disabled} onChange={event => setDraft(event.target.value)}
       slotProps={{ htmlInput: { maxLength: 1000 } }} sx={{ my: 1.5 }} />
-    <Button variant="contained" size="small" onClick={() => onSave(draft)} disabled={draft === value}>저장</Button>
-    <p className="insurer-muted">이 브라우저의 현재 계정에 저장됩니다.</p>
+    <Button variant="contained" size="small" onClick={() => onSave(draft)} disabled={disabled || draft === null || draft === value}>저장</Button>
+    <p className="insurer-muted">로그인한 계정에 저장됩니다.</p>
     <VideoLinks />
   </div>;
 }
@@ -218,7 +224,7 @@ function fullInformation(insurer, contacts, links, sources) {
   ].filter(Boolean).join("\n\n");
 }
 
-export function InsurerDetailDialog({ insurer, open, favorite, memo, onClose, onExited, onToggle, onSaveMemo, onCopy, notice, onDismissNotice }) {
+export function InsurerDetailDialog({ insurer, open, favorite, memo, preferenceDisabled, onClose, onExited, onToggle, onSaveMemo, onCopy, notice, onDismissNotice }) {
   const links = insurer ? linksFor(insurer) : [];
   const contacts = insurer ? contactsFor(insurer) : [];
   const sources = insurer ? sourcesFor(insurer) : [];
@@ -235,7 +241,7 @@ export function InsurerDetailDialog({ insurer, open, favorite, memo, onClose, on
         <Stack direction="row" alignItems="center" useFlexGap flexWrap="wrap" gap={0.5}>
           <Button size="small" variant="outlined" startIcon={<ContentCopyRoundedIcon />}
             onClick={() => onCopy(fullInformation(insurer, contacts, links, sources), "전체 정보")}>전체 정보 복사</Button>
-          <FavoriteButton name={insurer.name} favorite={favorite} onToggle={onToggle} />
+          <FavoriteButton name={insurer.name} favorite={favorite} disabled={preferenceDisabled} onToggle={onToggle} />
           <IconButton onClick={onClose} aria-label="상세 정보 닫기"><CloseRoundedIcon /></IconButton>
         </Stack>
       </header>
@@ -270,7 +276,7 @@ export function InsurerDetailDialog({ insurer, open, favorite, memo, onClose, on
           <Typography component="h3">청구 안내와 내 메모</Typography>
           <div className="insurer-detail__grid insurer-detail__grid--two">
             <ClaimNotes insurer={insurer} />
-            <Memo key={insurer.id} value={memo} onSave={onSaveMemo} />
+            <Memo key={insurer.id} value={memo} disabled={preferenceDisabled} onSave={onSaveMemo} />
           </div>
         </section>
         <Sources sources={sources} />

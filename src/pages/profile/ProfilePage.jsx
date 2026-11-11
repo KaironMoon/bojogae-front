@@ -1,19 +1,6 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import api from "@/services/api-caller";
-import {
-  Alert,
-  Box,
-  Button,
-  CircularProgress,
-  Paper,
-  Stack,
-  TextField,
-  Typography,
-} from "@mui/material";
-import SaveRoundedIcon from "@mui/icons-material/SaveRounded";
-import MarkEmailReadOutlinedIcon from "@mui/icons-material/MarkEmailReadOutlined";
-import NotificationsActiveRoundedIcon from "@mui/icons-material/NotificationsActiveRounded";
-import NotificationsOffRoundedIcon from "@mui/icons-material/NotificationsOffRounded";
+import { Alert, Box, CircularProgress, Dialog } from "@mui/material";
 import { useCallback, useEffect, useState } from "react";
 
 import { useAuth } from "@/auth/AuthContext";
@@ -26,13 +13,20 @@ import {
 import { requestOwnPasswordReset } from "@/services/group-service";
 import PlanSection from "@/pages/profile/PlanSection";
 import ReferralSection from "@/pages/profile/ReferralSection";
-import SignupProfileFields from "@/components/signup/SignupProfileFields";
-import NotificationPreferences from '@/pages/profile/NotificationPreferences';
 import {
   disableBrowserPush,
   enableBrowserPush,
   getBrowserPushState,
 } from "@/services/web-push-service";
+
+import ProfileReference from './design/ProfileReference';
+import EmailReference from './design/EmailReference';
+import PushReference from './design/PushReference';
+import ProfileIcon from './design/ProfileIcon';
+import { AccountWithdrawal, WithdrawalNotice } from './design/AccountWithdrawal';
+import './design/profile-utilities.css';
+import './design/profile-source.css';
+import './design/profile-integration.css';
 
 const emptyProfile = { email: "", name: "", nickname: "", phone: "", affiliation: "", branch_name: "" };
 
@@ -59,6 +53,13 @@ function ProfilePage() {
   const { user, refreshUser } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [billingRevision,setBillingRevision] = useState(0);
+  const [modal, setModal] = useState(null);
+  const [balance,setBalance] = useState(null);
+  const [gaOpen,setGaOpen] = useState(false);
+  const [gaOptions,setGaOptions] = useState([]);
+  const [gaError,setGaError] = useState(false);
+  const [gaIndex,setGaIndex] = useState(-1);
   const [profile, setProfile] = useState(emptyProfile);
   const [savedEmail, setSavedEmail] = useState("");
   const [pendingEmail, setPendingEmail] = useState("");
@@ -68,7 +69,7 @@ function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
-  const refreshBilling = useCallback(async () => { await refreshUser(); }, [refreshUser]);
+  const refreshBilling = useCallback(async () => { await refreshUser(); setBillingRevision(value => value + 1); }, [refreshUser]);
   const contactSaved = useCallback((updated) => {
     setProfile((value) => ({ ...value, name:updated.name || '', phone:updated.phone || '', email:updated.pending_email || updated.email || '' }));
     setSavedEmail(updated.email || '');
@@ -108,8 +109,29 @@ function ProfilePage() {
   useEffect(() => {
     getBrowserPushState()
       .then(setPushState)
-      .catch(() => setPushState({ supported: true, configured: false, permission: Notification.permission, subscribed: false }));
+      .catch(() => setPushState({ supported: true, configured: false, permission: typeof Notification === "undefined" ? "unsupported" : Notification.permission, subscribed: false }));
   }, []);
+
+  useEffect(() => {
+    let active = true;
+    api.get('/api/v1/points/me').then(({data}) => {if(active)setBalance(data.total_points);}).catch(() => {});
+    return () => {active=false;};
+  }, []);
+  useEffect(() => {
+    let active = true;
+    setGaOptions([]); setGaError(false); setGaIndex(-1);
+    const timer=setTimeout(() => {
+      if(!profile.affiliation.trim()) return;
+      api.get('/api/v1/ga-companies',{q:profile.affiliation.trim()}).then(({data}) => {
+        if(active)setGaOptions([...new Set(data.map(item => item.display_name))]);
+      }).catch(() => {if(active)setGaError(true);});
+    },250);
+    return () => {active=false;clearTimeout(timer);};
+  },[profile.affiliation]);
+  useEffect(() => {
+    const params=new URLSearchParams(location.search);
+    if (['paymentReturn','billingReturn','signupPlan','mobilpayIssue'].some(key => params.has(key))) setModal('billing');
+  },[location.search]);
 
   const updateField = (field) => (event) => {
     setProfile((value) => ({ ...value, [field]: event.target.value }));
@@ -122,7 +144,6 @@ function ProfilePage() {
   };
 
   const withdraw = async () => {
-    if (!window.confirm('계정을 즉시 탈퇴하고 로그인과 자동 갱신을 중단합니다. 업로드 원본·보고서·공유 이미지 등 자료는 파기되며 복구할 수 없습니다. 결제·환불에 필요한 최소 식별 정보와 거래 기록은 법정 기간 동안 보관합니다. 결제 후 7일 이내에 해당 결제로 제공된 이용량을 전혀 사용하지 않은 경우 전액 환불하며, 그 외에는 관계 법령에 따라 관리자 검토 후 결정됩니다. 탈퇴하시겠습니까?')) return;
     setSaving(true); setError("");
     try {
       await api.delete('/api/v1/users/me/account');
@@ -190,6 +211,7 @@ function ProfilePage() {
       setCode("");
       await refreshUser();
       setMessage("이메일이 변경되었습니다.");
+      setModal(null);
     } catch (requestError) {
       setError(requestErrorCode(requestError));
     } finally {
@@ -206,6 +228,7 @@ function ProfilePage() {
         ? await disableBrowserPush()
         : await enableBrowserPush(pushState?.publicKey);
       setPushState(next);
+      setModal(null);
       setPushMessage(next.subscribed ? "이 브라우저에서 알림을 받습니다." : "이 브라우저의 알림을 해제했습니다.");
     } catch (pushRequestError) {
       const code = pushRequestError.response?.data?.detail || pushRequestError.message;
@@ -236,118 +259,29 @@ function ProfilePage() {
 
   const emailChanged = profile.email.trim().toLowerCase() !== savedEmail.toLowerCase();
 
-  return (
-    <Box component="main" sx={{ p: { xs: 2, md: 4 }, maxWidth: 760 }}>
-      <Stack spacing={0.75} sx={{ mb: 3 }}>
-        <Typography variant="h4" component="h1" fontWeight={850}>내 정보</Typography>
-        <Typography color="text.secondary">
-          {savedEmail ? "이메일은 필수이며, 변경하려면 새 이메일 인증이 필요합니다." : "이메일을 등록하려면 새 이메일 인증이 필요합니다."}
-        </Typography>
-      </Stack>
-
-      <PlanSection onChanged={refreshBilling} onContactSaved={contactSaved} />
-      <ReferralSection key={savedEmail} />
-
-      <Paper elevation={0} sx={{ p: { xs: 2.5, md: 4 }, border: "1px solid", borderColor: "divider", borderRadius: 3 }}>
-        <Stack spacing={2.5}>
-          {message && <Alert severity="success">{message}</Alert>}
-          {error && (
-            <Alert severity="error">
-              {errorMessages[error] || (error === "profile_load_failed" ? "내 정보를 불러오지 못했습니다." : "내 정보를 저장하지 못했습니다.")}
-            </Alert>
-          )}
-
-          <SignupProfileFields
-            value={profile}
-            onChange={(next) => { setProfile(next); setMessage(""); setError(""); }}
-            disabled={saving}
-          />
-          <TextField label="닉네임 (선택)" value={profile.nickname} onChange={updateField("nickname")} inputProps={{ maxLength: 50 }} fullWidth disabled={saving} />
-
-          <Button variant="contained" size="large" startIcon={<SaveRoundedIcon />} onClick={saveProfile} disabled={saving || !profile.name.trim() || !profile.affiliation.trim() || !/^\+?[\d\s()-]{8,30}$/.test(profile.phone.trim())}>
-            정보 저장
-          </Button>
-
-          <Box sx={{ borderTop: "1px solid", borderColor: "divider", pt: 3 }}>
-            <Stack spacing={2} id="email-verification">
-              {pendingEmail && <Alert severity="warning">이메일 인증 안 됨 · {pendingEmail}. 아래 인증하기 버튼으로 인증을 완료해 주세요. 인증 전에는 기존 이메일이 유지됩니다.</Alert>}
-              <TextField
-                required
-                label="이메일"
-                type="email"
-                value={profile.email}
-                onChange={updateField("email")}
-                helperText={emailChanged ? (savedEmail ? "인증 전에는 기존 이메일이 유지됩니다." : "인증을 완료하면 이메일이 등록됩니다.") : (savedEmail ? "현재 인증된 이메일" : "등록된 이메일이 없습니다.")}
-                fullWidth
-              />
-              {user?.group_id && savedEmail && <Button variant="outlined" onClick={resetOwnPassword} disabled={saving}>등록 이메일로 비밀번호 재설정</Button>}
-              {emailChanged && (
-                <Button
-                  variant="outlined"
-                  size="large"
-                  startIcon={<MarkEmailReadOutlinedIcon />}
-                  onClick={sendEmailChange}
-                  disabled={saving || !profile.email}
-                >
-                  이메일 인증하기
-                </Button>
-              )}
-              {requestToken && (
-                <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
-                  <TextField
-                    label="6자리 인증번호"
-                    value={code}
-                    onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
-                    inputProps={{ maxLength: 6, inputMode: "numeric" }}
-                    fullWidth
-                  />
-                  <Button variant="contained" onClick={confirmEmailCode} disabled={saving || code.length !== 6} sx={{ minWidth: 150 }}>
-                    인증번호 확인
-                  </Button>
-                </Stack>
-              )}
-            </Stack>
-          </Box>
-        </Stack>
-      </Paper>
-
-      <Paper elevation={0} sx={{ p: { xs: 2.5, md: 3 }, mt: 3, border: "1px solid", borderColor: "divider", borderRadius: 3 }}>
-        <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ sm: "center" }} gap={2.5}>
-          <Stack direction="row" spacing={1.5} alignItems="flex-start">
-            <Box sx={{ width: 44, height: 44, flexShrink: 0, display: "grid", placeItems: "center", borderRadius: 2.5, color: pushState?.subscribed ? "success.main" : "text.secondary", bgcolor: pushState?.subscribed ? "#ecfdf5" : "#f3f4f6" }}>
-              {pushState?.subscribed ? <NotificationsActiveRoundedIcon /> : <NotificationsOffRoundedIcon />}
-            </Box>
-            <Box>
-              <Typography fontWeight={850}>브라우저 알림</Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.4 }}>
-                보고서 처리 결과, 결제 실패, 승인 요청과 답변을 이 브라우저로 알려드립니다.
-              </Typography>
-            </Box>
-          </Stack>
-          <Button
-            variant={pushState?.subscribed ? "outlined" : "contained"}
-            color={pushState?.subscribed ? "inherit" : "primary"}
-            onClick={changePushSubscription}
-            disabled={pushBusy || !pushState?.supported || !pushState?.configured || pushState?.permission === "denied"}
-            sx={{ flexShrink: 0 }}
-          >
-            {pushBusy ? "처리 중…" : pushState?.subscribed ? "알림 해제" : "알림 받기"}
-          </Button>
-        </Stack>
-        {pushMessage && <Alert severity="success" sx={{ mt: 2 }}>{pushMessage}</Alert>}
-        {pushError && <Alert severity="error" sx={{ mt: 2 }}>{pushError}</Alert>}
-        {pushState && !pushState.supported && <Alert severity="info" sx={{ mt: 2 }}>이 브라우저에서는 Web Push를 사용할 수 없습니다. HTTPS로 접속했는지도 확인해주세요.</Alert>}
-        {pushState?.supported && !pushState.configured && <Alert severity="warning" sx={{ mt: 2 }}>브라우저 알림 서버 설정이 아직 완료되지 않았습니다.</Alert>}
-        {pushState?.permission === "denied" && <Alert severity="warning" sx={{ mt: 2 }}>알림 권한이 차단되어 있습니다. 브라우저 사이트 설정에서 알림을 허용해주세요.</Alert>}
-        <NotificationPreferences key={pushState?.subscribed ? 'subscribed' : 'unsubscribed'} />
-      </Paper>
-      {user?.role === 'USER' && !user?.group_id && <Paper variant="outlined" sx={{ p:3, mt:3, borderRadius:3 }}>
-        <Typography variant="h6">회원 탈퇴</Typography>
-        <Typography variant="body2" sx={{ my:1 }}>즉시 계정을 닫고 자동 갱신을 중단합니다. 환불 권리와 정산에 필요한 거래 기록은 유지됩니다. 결제 후 7일 이내 해당 결제 이용량 미사용 시 전액 환불되며, 그 외에는 관계 법령에 따라 검토합니다. 구독만 해지하려면 위의 구독 해지를 이용해 주세요.</Typography>
-        <Button color="error" variant="outlined" disabled={saving} onClick={withdraw}>회원 탈퇴</Button>
-      </Paper>}
-    </Box>
-  );
+  const closeModal = () => { if (!saving && !pushBusy) setModal(null); };
+  const feedback = <>{message && <Alert severity="success">{message}</Alert>}{error && <Alert severity="error">{errorMessages[error] || (error === 'profile_load_failed' ? '내 정보를 불러오지 못했습니다.' : '요청을 처리하지 못했습니다. 다시 시도해 주세요.')}</Alert>}</>;
+  const pushFeedback = <>{pushMessage && <Alert severity="success">{pushMessage}</Alert>}{pushError && <Alert severity="error">{pushError}</Alert>}{pushState && !pushState.supported && <Alert severity="info">이 브라우저에서는 Web Push를 사용할 수 없습니다.</Alert>}{pushState?.supported && !pushState.configured && <Alert severity="warning">브라우저 알림 서버 설정이 아직 완료되지 않았습니다.</Alert>}{pushState?.permission === 'denied' && <Alert severity="warning">브라우저 사이트 설정에서 알림 권한을 허용해 주세요.</Alert>}</>;
+  const selectGa = value => {setProfile(p => ({...p,affiliation:value}));setGaOpen(false);setMessage('');setError('');};
+  const gaKeyDown = event => {
+    if(event.key === 'Escape')setGaOpen(false);
+    if(event.key === 'ArrowDown' || event.key === 'ArrowUp') {event.preventDefault();setGaOpen(true);setGaIndex(i=>Math.max(0,Math.min(gaOptions.length-1,i+(event.key==='ArrowDown'?1:-1))));}
+    if(event.key === 'Enter' && gaOpen && gaOptions[gaIndex]) {event.preventDefault();selectGa(gaOptions[gaIndex]);}
+  };
+  const vm = {user,profile,savedEmail,pendingEmail,saving,code,setCode,requestToken,emailChanged,
+    updateField,saveProfile,sendEmailChange,confirmEmailCode,resetOwnPassword,feedback,pushFeedback,
+    pushState,pushBusy,balance,billingRevision,modal,setModal,closeModal,navigate,gaOpen,setGaOpen,gaOptions,gaError,gaIndex,gaKeyDown,selectGa,
+    openBilling:()=>setModal('billing'), confirmPush:async()=>{await changePushSubscription();},
+    saveDisabled:saving || !profile.name.trim() || !profile.affiliation.trim() || !/^\+?[\d\s()-]{8,30}$/.test(profile.phone.trim()),
+    extraSections:<><ReferralSection key={savedEmail}/>{user?.role === 'USER' && !user?.group_id && <AccountWithdrawal onWithdraw={()=>{setError('');setMessage('');setModal('withdraw');}} onBilling={()=>setModal('billing')}/>}</>};
+  return <><div className="profile-design profile-page"><ProfileReference vm={vm}/></div>
+    <Dialog open={Boolean(modal)} onClose={closeModal} maxWidth={false} aria-label={{email:'새 이메일 주소 인증 및 변경',push:'브라우저 알림 설정',billing:'월간 구독권 · 결제수단 관리',withdraw:'회원 탈퇴 확인'}[modal]} slotProps={{paper:{className:`profile-design profile-modal ${modal === 'billing' ? 'profile-billing-modal' : ''}`}}}>
+      {modal === 'email' && <EmailReference vm={vm}/>}
+      {modal === 'push' && <PushReference vm={vm}/>}
+      {['billing','withdraw'].includes(modal) && <div className={`profile-dialog-shell ${modal === 'withdraw' ? 'profile-withdrawal-dialog' : ''}`}><header><div><ProfileIcon name={modal === 'billing' ? 'credit-card' : 'shield-alert'} className="w-4 h-4"/><h2>{modal === 'billing' ? '월간 구독권 · 결제수단 관리' : '회원 탈퇴 확인'}</h2></div><button type="button" aria-label="닫기" disabled={saving} onClick={closeModal}><ProfileIcon name="x"/></button></header><div className="profile-dialog-body">
+      {modal === 'billing' ? <PlanSection sectionId="profile-plan-management" onChanged={refreshBilling} onContactSaved={contactSaved}/> : <>{feedback}<WithdrawalNotice/><div className="profile-dialog-actions"><button type="button" disabled={saving} onClick={closeModal}>취소</button><button type="button" disabled={saving} className="profile-danger" onClick={withdraw}>회원 탈퇴</button></div></>}
+      </div></div>}
+    </Dialog>
+  </>;
 }
-
 export default ProfilePage;

@@ -1,3 +1,7 @@
+import { CustomerPopupHeader } from "./CustomerReference";
+import "./crm-customers.css";
+import "./customer-popup-reference.css";
+import Icon from "./ContractDesignIcon";
 /* eslint-disable react/prop-types */
 import { useRef, useState } from "react";
 import {
@@ -8,7 +12,6 @@ import {
   Dialog,
   DialogActions,
   DialogContent,
-  DialogTitle,
   FormControlLabel,
   Pagination,
   Stack,
@@ -60,6 +63,7 @@ function sampleValue(row, field) {
 }
 export default function CrmImport({ onClose, onDone }) {
   const fileInput = useRef(null);
+  const [expanded, setExpanded] = useState(false);
   const uploadInProgress = useRef(false);
   const [dragging, setDragging] = useState(false);
   const [sample, setSample] = useState(null);
@@ -199,10 +203,13 @@ export default function CrmImport({ onClose, onDone }) {
     }
   }
   return (
-    <Dialog open onClose={busy ? undefined : onClose} fullWidth maxWidth="md">
-      <DialogTitle>고객 자료 가져오기</DialogTitle>
+    <Dialog slotProps={{ paper: { className: `crm-customer-dialog crm-customer-import-dialog${!expanded && !job && !result ? " customer-ref-import-initial" : ""}` } }} open onClose={busy ? undefined : onClose} fullWidth maxWidth={expanded || job || result ? "md" : "sm"}>
+      <CustomerPopupHeader title="고객 자료 가져오기 (엑셀·CSV / 보조개톡 연동)" icon="sheet" busy={busy} onClose={onClose} />
       <DialogContent>
-        <Stack gap={2}>
+        {!job && !result && <div className="customer-popup-import-choices"><button type="button" disabled={busy} onClick={() => { setExpanded(true); fileInput.current?.click(); }} onDragOver={e => e.preventDefault()} onDrop={e => { setExpanded(true); dropFile(e); }}><Icon name="upload" /><strong>엑셀 · CSV 파일 업로드</strong><p>기존 GA 고객관리 엑셀 파일을 드래그하거나 클릭하여 일괄 등록</p></button><button type="button" disabled><Icon name="message" /><strong>PC 카카오톡 친구 가져오기</strong><p>카톡 대화명(예: 권수경 흥국생명 63 강서)을 자동 파싱하여 등록</p><small>준비중입니다</small></button></div>}
+        {!expanded && !job && !result && <div className="customer-ref-import-template"><span>표준 고객 업로드 양식이 필요하신가요?</span><a href={`${import.meta.env.BASE_URL}templates/bojogae-customer-import.xlsx`} download="보조개_고객업로드_표준양식.xlsx">양식 다운로드</a></div>}
+        {!expanded && !job && !result && <Button onClick={() => setExpanded(true)}>표 붙여넣기 · HTML · 이미지 가져오기</Button>}
+        <Stack gap={2} sx={{ display: expanded || job || result ? "flex" : "none" }}>
           {error && <Alert severity="error">{error}</Alert>}
           {result ? (
             <Alert severity="success">
@@ -502,11 +509,11 @@ export default function CrmImport({ onClose, onDone }) {
           )}
         </Stack>
       </DialogContent>
-      <DialogActions>
+      {(expanded || job || result) && <DialogActions>
         <Button disabled={busy} onClick={onClose}>
           {result ? "완료" : "닫기"}
         </Button>
-      </DialogActions>
+      </DialogActions>}
     </Dialog>
   );
 }

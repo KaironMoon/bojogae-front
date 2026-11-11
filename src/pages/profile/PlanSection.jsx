@@ -57,7 +57,7 @@ function changeDescription(plan, target) {
 }
 
 // eslint-disable-next-line react/prop-types
-function LegacyPlanSection({ initialPlan }) {
+function LegacyPlanSection({ initialPlan, sectionId }) {
   const [plan, setPlan] = useState(initialPlan);
   const [working, setWorking] = useState(false);
   const [error, setError] = useState("");
@@ -106,7 +106,7 @@ function LegacyPlanSection({ initialPlan }) {
   const pending = plan.pending_request;
 
   return (
-    <Paper id="plan" elevation={0} sx={{ p: { xs: 2.5, md: 3 }, mb: 3, border: "1px solid", borderColor: "divider", borderRadius: 3 }}>
+    <Paper id={sectionId} elevation={0} sx={{ p: { xs: 2.5, md: 3 }, mb: 3, border: "1px solid", borderColor: "divider", borderRadius: 3 }}>
       <Stack spacing={2}>
         <Stack direction="row" spacing={1.5} alignItems="center">
           <Box sx={{ width: 44, height: 44, display: "grid", placeItems: "center", borderRadius: 2.5, color: "primary.main", bgcolor: "var(--bojogae-tint)" }}>
@@ -169,7 +169,7 @@ function LegacyPlanSection({ initialPlan }) {
         )}
       </Stack>
 
-      <Dialog open={Boolean(target)} onClose={() => !working && setTarget(null)} maxWidth="xs" fullWidth>
+      <Dialog slotProps={{ paper: { className: "profile-payment-modal" } }} open={Boolean(target)} onClose={() => !working && setTarget(null)} maxWidth="xs" fullWidth>
         <DialogTitle fontWeight={800}>{target === "FREE" ? "요금제 해지 신청" : `${planName(target)} 요금제 신청`}</DialogTitle>
         <DialogContent>
           <Stack spacing={1.5}>
@@ -188,7 +188,7 @@ function LegacyPlanSection({ initialPlan }) {
 }
 
 // eslint-disable-next-line react/prop-types
-function PlanSection({ onChanged, onContactSaved }) {
+function PlanSection({ onChanged, onContactSaved, sectionId = "plan" }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState(false);
   useEffect(() => {
@@ -199,13 +199,13 @@ function PlanSection({ onChanged, onContactSaved }) {
     return () => { active = false; };
   }, []);
   useEffect(() => {
-    if (data && window.location.hash === '#plan') document.getElementById('plan')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, [data]);
+    if (data && window.location.hash === '#plan') document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [data, sectionId]);
   if (error) return <Alert severity="error">구독 정보를 불러오지 못했습니다. 새로고침해 주세요.</Alert>;
   if (!data) return <CircularProgress size={24} />;
   const { config, plan } = data;
   if (plan.is_manual_subscription) return (
-    <Paper id="plan" variant="outlined" sx={{ p: { xs: 2, md: 3 }, mb: 3, borderRadius: 3 }}>
+    <Paper id={sectionId} variant="outlined" sx={{ p: { xs: 2, md: 3 }, mb: 3, borderRadius: 3 }}>
       <Stack spacing={1}>
         <Typography variant="h6" fontWeight={800}>{planName(plan.plan_code)} · 수동 구독</Typography>
         <Typography variant="body2">월 {plan.monthly_points.toLocaleString()}꼬막 · 현재 이용 주기 종료 {formatDate(plan.current_period_end)}</Typography>
@@ -215,7 +215,7 @@ function PlanSection({ onChanged, onContactSaved }) {
   );
   if (config.requestedEnabled && !config.enabled) return <Alert severity="error">결제 연동 설정이 완료되지 않았습니다. 관리자에게 문의해 주세요.</Alert>;
   if (config.enabled && !config.eligible) return (
-    <Paper id="plan" variant="outlined" sx={{ p: { xs: 2, md: 3 }, mb: 3, borderRadius: 3 }}>
+    <Paper id={sectionId} variant="outlined" sx={{ p: { xs: 2, md: 3 }, mb: 3, borderRadius: 3 }}>
       <Stack spacing={2}>
         <Typography variant="h6" fontWeight={800}>월간 구독권</Typography>
         <Alert severity="info">
@@ -226,6 +226,6 @@ function PlanSection({ onChanged, onContactSaved }) {
       </Stack>
     </Paper>
   );
-  return config.enabled ? <PaymentSection config={config} onChanged={onChanged} onContactSaved={onContactSaved} /> : <LegacyPlanSection initialPlan={plan} />;
+  return config.enabled ? <PaymentSection sectionId={sectionId} config={config} onChanged={onChanged} onContactSaved={onContactSaved} /> : <LegacyPlanSection sectionId={sectionId} initialPlan={plan} />;
 }
 export default PlanSection;

@@ -9,6 +9,8 @@ export async function createGroupInquiry(values) {
     email: values.email.trim(),
     privacy_agreed: values.privacyAgreed,
     website: values.website || "",
+    headcount: (values.headcount || "").trim(),
+    message: (values.message || "").trim(),
   })).data;
 }
 

@@ -32,3 +32,25 @@ export function templateError(error) {
     default: return "요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.";
   }
 }
+
+export async function listStudioTemplates(collection, params = {}, signal) {
+  return (await api.get(`/api/v1/message-templates/studio/${collection}`, params, {signal})).data;
+}
+export async function saveStudioTemplate(collection, item, data) {
+  const url = `/api/v1/message-templates/studio/${collection}`;
+  return item.id
+    ? (await api.axiosInstance.patch(`${api.baseUrl}${url}/${item.id}`, data)).data
+    : (await api.post(url, data)).data;
+}
+export async function previewTemplate(payload, signal) {
+  return (await api.post('/api/v1/message-templates/studio/preview', payload, {signal})).data;
+}
+export async function allTemplateOptions(collection, signal) {
+  const items = []; let after = 0;
+  do {
+    const page = await listTemplates(collection, after, signal);
+    items.push(...page.items);
+    after = page.next_after;
+  } while (after !== null);
+  return items;
+}

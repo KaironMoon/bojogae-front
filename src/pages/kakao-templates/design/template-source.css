@@ -1,0 +1,118 @@
+
+        .template-design {
+            --primary-50: #ecfdf5;
+            --primary-100: #d1fae5;
+            --primary-200: #a7f3d0;
+            --primary-500: #03c75a;
+            --primary-600: #00b04e;
+            --primary-700: #00913f;
+
+            --sub-50: #f5f3ff;
+            --sub-100: #ede9fe;
+            --sub-200: #ddd6fe;
+            --sub-500: #6b38fb;
+            --sub-600: #5b21b6;
+
+            --amber-50: #fffbeb;
+            --amber-100: #fef3c7;
+            --amber-500: #f59e0b;
+            --amber-700: #92400e;
+
+            --accent-red: #f04452;
+
+            --bg-canvas: #f4f6f8;
+            --bg-surface: #ffffff;
+            --border-subtle: #e6eaee;
+            --border-strong: #d1d6db;
+            --text-strong: #121314;
+            --text-body: #4e5968;
+            --text-muted: #8b95a1;
+
+            --hero-gradient: linear-gradient(135deg, #03c75a 0%, #00a84b 50%, #008a60 100%);
+            --hero-shadow: 0 10px 22px -5px rgba(3, 199, 90, 0.35), 0 4px 10px -2px rgba(3, 199, 90, 0.18);
+        }
+
+        .template-design {
+            font-family: 'Pretendard', 'Malgun Gothic', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+            background-color: var(--bg-canvas);
+            color: var(--text-strong);
+            letter-spacing: -0.015em;
+            margin: 0;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .template-design ::-webkit-scrollbar { width: 6px; height: 6px; }
+        .template-design ::-webkit-scrollbar-track { background: transparent; }
+        .template-design ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+        .template-design ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        .template-design .ns-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: 16px;
+            box-shadow: 0 2px 8px rgba(18, 19, 20, 0.03);
+            transition: all 0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        .template-design .ns-hero-cta {
+            background: var(--hero-gradient);
+            box-shadow: var(--hero-shadow);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        .template-design .ns-hero-cta::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -120%;
+            width: 80%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.28), transparent);
+            transform: skewX(-20deg);
+            animation: templateShine 3.6s infinite;
+        }
+        @keyframes templateShine  {
+            0%  { left: -120%; }
+            25%  { left: 140%; }
+            100%  { left: 140%; }
+        }
+        .template-design .ns-hero-cta:hover:not(:disabled) {
+            transform: translateY(-1px);
+            filter: brightness(1.04);
+        }
+
+        .template-design .bg-primary { background-color: var(--primary-500); }
+        .template-design .bg-primary-soft { background-color: var(--primary-50); }
+        .template-design .text-primary { color: var(--primary-600); }
+        .template-design .border-primary { border-color: var(--primary-500); }
+        .template-design .bg-sub { background-color: var(--sub-500); }
+        .template-design .bg-sub-soft { background-color: var(--sub-50); }
+        .template-design .text-sub { color: var(--sub-600); }
+
+        .template-design /* 상용구 카드 폰트 찌그러짐 방지: Pretendard 산세리프 정체 + 줄간격 1.75 */
+        .bp-clean-text {
+            font-family: 'Pretendard', 'Malgun Gothic', sans-serif;
+            font-size: 13.5px;
+            line-height: 1.75;
+            letter-spacing: -0.01em;
+            color: #121314;
+            font-weight: 600;
+            white-space: pre-line;
+            word-break: keep-all;
+        }
+
+        .template-design .reg-input {
+            border: 1.5px solid #d1d6db;
+            border-radius: 12px;
+            background: #ffffff;
+            font-family: 'Pretendard', sans-serif;
+            line-height: 1.65;
+            transition: all 0.16s ease;
+        }
+        .template-design .reg-input:focus {
+            border-color: var(--primary-500);
+            box-shadow: 0 0 0 3px var(--primary-100);
+            outline: none;
+        }
+    

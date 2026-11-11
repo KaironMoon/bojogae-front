@@ -339,8 +339,8 @@ function LoginPage() {
           <Button
             color="inherit"
             size="small"
-            onClick={() => {
-              showLandingFromNowOn();
+            onClick={async () => {
+              try { await showLandingFromNowOn(); } catch { /* The landing page remains available when the preference API is offline. */ }
               navigate("/", { replace: true });
             }}
             sx={{ color: "text.secondary" }}

@@ -4,20 +4,20 @@ import { Alert, Box, Button, Chip, Paper, Stack, TextField, Typography } from '@
 import FaxNumberCopy from './FaxNumberCopy';
 import ClaimInsurerLogo from './ClaimInsurerLogo';
 
-export default function ClaimFaxDestinations({ insurers, numbers, onChange, disabled, readOnly = false, renderAction }) {
+export default function ClaimFaxDestinations({ insurers, numbers, onChange, disabled, readOnly = false, renderAction, onPreview }) {
   const feedbackPrefix = useId();
   const feedbackId = insurer => `${feedbackPrefix}-feedback-${insurer.id}`;
   function heading(insurer, label) {
     const phone = insurer.customer_center_phone;
     return <Box sx={{ display: 'grid', gap: 1.5, alignItems: 'center',
-      gridTemplateColumns: renderAction ? { xs: 'minmax(0, 1fr)', lg: 'minmax(0, 1fr) auto minmax(0, 1.5fr)' } : 'minmax(0, 1fr)' }}>
+      gridTemplateColumns: {xs:'minmax(0, 1fr)',sm:'minmax(0,1fr) auto'} }}>
       <Stack direction="row" gap={1} alignItems="center" flexWrap="wrap">
         <ClaimInsurerLogo insurer={insurer} /><Typography fontWeight={700}>{insurer.name}</Typography><Chip size="small" label={label} />
       </Stack>
       {phone ? <Button sx={{ justifySelf: 'start' }} size="small" href={`tel:${phone.replace(/[^0-9]/g, '')}`}>
         고객센터 {phone}
       </Button> : renderAction && <Typography variant="body2" color="text.secondary">등록된 고객센터 번호 없음</Typography>}
-      {renderAction && <Box sx={{ justifySelf: { xs: 'start', lg: 'end' }, minWidth: 0 }}>{renderAction(insurer, feedbackId(insurer))}</Box>}
+      {onPreview && <Button variant="outlined" onClick={()=>onPreview(insurer.id)}>미리보기 전환</Button>}
     </Box>;
   }
   return <Stack spacing={2} role="region" aria-label={renderAction ? '보험사별 다운로드·발송 안내' : '보험사별 발송 안내'}>
@@ -26,16 +26,17 @@ export default function ClaimFaxDestinations({ insurers, numbers, onChange, disa
       ? 'PDF를 다운로드해 직접 팩스로 보낼 때 아래 수신 정보를 확인해 주세요. 가상팩스 번호는 이번 청구에 유효한지 보험사에 확인해 주세요.'
       : '가상팩스를 사용하는 보험사는 보험사에서 발급받은 번호를 입력해 주세요.'}</Typography>}
     {insurers.map(insurer => {
-      if (insurer.fax_enabled === false) return <Paper key={insurer.id} variant="outlined" sx={{ p: 2 }}>
+      if (insurer.fax_enabled === false) return <Paper key={insurer.id} variant="outlined" className="claim-generated-card" sx={{ p: 2 }}>
         <Stack spacing={1.5}>
           {heading(insurer, '다운로드 전용')}
           <Typography variant="body2">{insurer.fax_disabled_reason || '팩스 발송을 지원하지 않습니다. 파일을 다운로드해 주세요.'}</Typography>
+          {renderAction && <Box className="claim-card-actions">{renderAction(insurer,feedbackId(insurer))}</Box>}
           {renderAction && <Box id={feedbackId(insurer)} sx={{ minWidth: 0, '&:empty': { display: 'none' } }} />}
         </Stack>
       </Paper>;
       const common = insurer.fax_numbers?.[0] || '';
       const custom = numbers[insurer.id] || '';
-      return <Paper key={insurer.id} variant="outlined" sx={{ p: 2 }}>
+      return <Paper key={insurer.id} variant="outlined" className="claim-generated-card" sx={{ p: 2 }}>
         <Stack spacing={1.5}>
           {heading(insurer, insurer.admin_only ? '관리자 테스트용' : insurer.use_virtual_fax ? '가상팩스' : '공용팩스')}
           {insurer.use_virtual_fax && !readOnly && <>
@@ -54,6 +55,7 @@ export default function ClaimFaxDestinations({ insurers, numbers, onChange, disa
             {custom || common ? <FaxNumberCopy number={custom || common} label={`${insurer.name} 팩스번호`} />
               : <Typography variant="body2">{insurer.admin_only ? '테스트 수신 팩스 번호를 입력해 주세요.' : '보험사에서 가상팩스 번호를 발급받아 주세요.'}</Typography>}
           </Stack>
+          {renderAction && <Box className="claim-card-actions">{renderAction(insurer,feedbackId(insurer))}</Box>}
           {renderAction && <Box id={feedbackId(insurer)} sx={{ minWidth: 0, '&:empty': { display: 'none' } }} />}
         </Stack>
       </Paper>;

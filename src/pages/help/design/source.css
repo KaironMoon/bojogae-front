@@ -1,0 +1,115 @@
+
+        .faq-design {
+            --primary-50: #ecfdf5;
+            --primary-100: #d1fae5;
+            --primary-200: #a7f3d0;
+            --primary-500: #03c75a;
+            --primary-600: #00b04e;
+            --primary-700: #00913f;
+
+            --sub-50: #f5f3ff;
+            --sub-100: #ede9fe;
+            --sub-500: #6b38fb;
+            --sub-600: #5b21b6;
+
+            --amber-50: #fffbeb;
+            --amber-100: #fef3c7;
+            --amber-500: #f59e0b;
+            --amber-700: #b45309;
+
+            --accent-red: #f04452;
+            --yt-red: #ff0033;
+
+            --bg-canvas: #f4f6f8;
+            --bg-surface: #ffffff;
+            --border-subtle: #e6eaee;
+            --border-strong: #d1d6db;
+            --text-strong: #121314;
+            --text-body: #4e5968;
+            --text-muted: #8b95a1;
+
+            --hero-gradient: linear-gradient(135deg, #03c75a 0%, #00a84b 50%, #008a60 100%);
+            --ai-gradient: linear-gradient(135deg, #6b38fb 0%, #4f46e5 100%);
+            --hero-shadow: 0 10px 22px -5px rgba(3, 199, 90, 0.35), 0 4px 10px -2px rgba(3, 199, 90, 0.18);
+        }
+
+        .faq-design {
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+            background-color: var(--bg-canvas);
+            color: var(--text-strong);
+            letter-spacing: -0.02em;
+            margin: 0;
+        }
+
+        .faq-design ::-webkit-scrollbar { width: 6px; height: 6px; }
+        .faq-design ::-webkit-scrollbar-track { background: transparent; }
+        .faq-design ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+        .faq-design ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        .faq-design .ns-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: 22px;
+            box-shadow: 0 2px 10px rgba(18, 19, 20, 0.03);
+            transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        .faq-design .ns-hero-cta {
+            background: var(--hero-gradient);
+            box-shadow: var(--hero-shadow);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        .faq-design .ns-hero-cta::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -120%;
+            width: 80%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.28), transparent);
+            transform: skewX(-20deg);
+            animation: nsShine 3.6s infinite;
+        }
+        @keyframes nsShine {
+            0% { left: -120%; }
+            25% { left: 140%; }
+            100% { left: 140%; }
+        }
+        .faq-design .ns-hero-cta:hover {
+            transform: translateY(-1px);
+            filter: brightness(1.04);
+        }
+
+        .faq-design .bg-primary { background-color: var(--primary-500); }
+        .faq-design .bg-primary-soft { background-color: var(--primary-50); }
+        .faq-design .text-primary { color: var(--primary-600); }
+        .faq-design .border-primary { border-color: var(--primary-500); }
+        .faq-design .bg-sub { background-color: var(--sub-500); }
+        .faq-design .bg-sub-soft { background-color: var(--sub-50); }
+        .faq-design .text-sub { color: var(--sub-600); }
+
+        .faq-design .yt-card {
+            transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.2s ease, border-color 0.2s ease;
+        }
+        .faq-design .yt-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 16px 32px -8px rgba(18, 19, 20, 0.14);
+            border-color: var(--primary-500);
+        }
+        .faq-design .yt-card:hover .yt-thumb-img {
+            transform: scale(1.04);
+        }
+        .faq-design .yt-card:hover .yt-play-overlay {
+            opacity: 1;
+        }
+
+        .faq-design .faq-accordion {
+            transition: border-color 0.18s ease, box-shadow 0.18s ease;
+        }
+        .faq-design .faq-accordion.Mui-expanded {
+            border-color: var(--primary-500) !important;
+            box-shadow: 0 8px 24px -6px rgba(3, 199, 90, 0.12);
+        }
+    

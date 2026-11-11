@@ -1,0 +1,49 @@
+.template-design,.template-design *{box-sizing:border-box;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;}
+.template-design :where(h1,h2,h3,h4,h5,h6,p){margin:0}
+.template-design :where(div,span,button,input,textarea,select,article){border-style:solid;border-width:0}
+.template-design :where(button,input,textarea,select,code){font:inherit;letter-spacing:inherit}
+.template-design :where(button){cursor:pointer;background:none;padding:0}
+.template-design :where(input,select,textarea){min-width:0;padding:0}
+.template-design :where(button:disabled){opacity:.4;cursor:default}
+.template-design :where(svg){display:block;flex-shrink:0}
+.template-design [hidden]{display:none!important}
+.template-design.template-page{min-height:100vh;line-height:1.5}
+.template-design .bp-clean-text{font:600 13.5px/1.75 Pretendard,'Malgun Gothic',sans-serif;letter-spacing:-.01em;white-space:pre-line;overflow-wrap:anywhere}
+.template-design .snippet-item{border:2px solid #e6eaee}
+.template-design .snippet-item.is-selected{border-color:#03c75a;background:rgb(236 253 245 / .2)}
+.template-design .snippet-item h2,.template-design .snippet-item button{overflow-wrap:anywhere;max-width:100%}
+.template-design .reg-input{border:1.5px solid #d1d6db}
+.template-design .reg-input:focus{border-color:#03c75a}
+.template-design.template-modal.MuiDialog-paper.MuiPaper-rounded{width:calc(100% - 32px);max-width:448px;margin:16px;border:0;border-radius:24px;box-shadow:none;background:#fff;line-height:1.5;max-height:92dvh;padding:0}
+.template-design.template-editor-modal.MuiDialog-paper.MuiPaper-rounded{max-width:768px;overflow:hidden}
+.template-design.template-guide-modal.MuiDialog-paper.MuiPaper-rounded{max-width:512px}
+.template-design.template-modal>div{flex-shrink:0}
+.template-design.template-editor-modal>form{min-height:0}
+.template-design.template-modal [id=':r10o:']{min-height:160px;resize:vertical}
+.template-design .template-feedback{margin-bottom:16px}
+.template-design .template-status{padding:20px;color:#8b95a1;font-size:12px}
+.template-design .template-more{display:block;margin:16px auto;padding:10px 24px;background:#fff;border:1px solid #e6eaee;border-radius:12px;font-size:12px;font-weight:800}
+.template-design .template-dialog-header{display:flex;align-items:center;gap:8px;background:#121314;color:#fff;padding:16px 24px}
+.template-dialog-header h2{flex:1;font-size:16px;font-weight:900}
+.template-dialog-header>svg{color:#fb7185}
+.template-dialog-header button{color:#94a3b8}
+.template-design .template-dialog-body{padding:24px;font-size:12px;line-height:1.75;overflow-wrap:anywhere}
+.template-dialog-body>p{margin-top:12px;color:#4e5968}
+.template-dialog-actions{display:flex;gap:8px;margin-top:24px}
+.template-dialog-actions>button{flex:1;padding:10px;border:1px solid #d1d6db;border-radius:12px;font-weight:800}
+.template-dialog-actions>.template-danger{background:#f04452;color:#fff;border-color:#f04452}
+.template-design button:focus-visible{outline:2px solid #03c75a;outline-offset:3px}
+.MuiModal-root:has(.template-modal)>.MuiBackdrop-root{background:rgb(0 0 0 / .6)}
+.template-design .lg\:col-span-7,.template-design .lg\:col-span-5{min-width:0}
+.template-design #modalTokenHintBadge,.template-design #modalChipPreviewTag{overflow-wrap:anywhere;max-width:100%}
+@media(max-width:639px){.template-design.template-modal.MuiDialog-paper{width:calc(100% - 16px);margin:8px}.template-editor-modal form>div:first-child>div>div>div{flex-wrap:wrap}.template-design #btBoilerplateDropdown,.template-design #btSigDropdown{width:0}.template-design #btResolvedFinalBox{overflow-wrap:anywhere}.template-design #simTargetBadge{white-space:nowrap}}
+@media(prefers-reduced-motion:reduce){.template-design .ns-hero-cta::after{animation:none}}
+.template-design .sig-clean-text{font:600 13.5px/1.75 Pretendard,'Malgun Gothic',sans-serif;letter-spacing:-.01em;white-space:pre-line;overflow-wrap:anywhere;color:#121314}
+.template-design.template-modal [id=':r10o:']{height:160px}
+.template-design #btSignatureSelect{min-width:0}
+.template-design #btSignatureSelect,.template-design #btBoilerplateSelect{max-width:100%;width:100%}
+.template-design #btSignatureSelect{white-space:nowrap}
+
+.template-design #sigCountBadge{white-space:nowrap;flex-shrink:0}
+.template-design #sigSearchInput{min-width:0}
+.template-design .ns-card.bg-gradient-to-r{background:linear-gradient(to right,#ecfdf5,#fff,#f5f3ff);border-color:#a7f3d0}

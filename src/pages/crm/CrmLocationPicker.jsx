@@ -6,7 +6,7 @@ import { hasLocation, loadNaver } from "./crm-utils";
 
 import { useSearchPins } from "./crm-map-pins";
 
-export default function CrmLocationPicker({ value, onSelect, onClose }) {
+export default function CrmLocationPicker({ value, onSelect, onClose, customerDesign = false }) {
   const initial = useRef(hasLocation(value) ? value : null);
   const pinPosition = useRef(initial.current);
   const element = useRef(null);
@@ -147,7 +147,7 @@ export default function CrmLocationPicker({ value, onSelect, onClose }) {
     }
   }
   return (
-    <Dialog open onClose={onClose} fullWidth maxWidth="md" aria-labelledby="crm-map-picker-title">
+    <Dialog slotProps={customerDesign ? { paper: { className: "crm-customer-dialog crm-customer-location-dialog" } } : undefined} open onClose={onClose} fullWidth maxWidth="md" aria-labelledby="crm-map-picker-title">
       <DialogTitle id="crm-map-picker-title">지도에서 위치 선택</DialogTitle>
       <DialogContent>
         <Stack gap={1.5} sx={{ pt: 1 }}>

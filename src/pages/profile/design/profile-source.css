@@ -1,0 +1,128 @@
+
+        .profile-design {
+            --primary-50: #ecfdf5;
+            --primary-100: #d1fae5;
+            --primary-200: #a7f3d0;
+            --primary-500: #03c75a;
+            --primary-600: #00b04e;
+            --primary-700: #00913f;
+
+            --sub-50: #f5f3ff;
+            --sub-100: #ede9fe;
+            --sub-500: #6b38fb;
+            --sub-600: #5b21b6;
+
+            --accent-red: #f04452;
+            --accent-amber: #f59e0b;
+
+            --bg-canvas: #f4f6f8;
+            --bg-surface: #ffffff;
+            --border-subtle: #e6eaee;
+            --border-strong: #d1d6db;
+            --text-strong: #121314;
+            --text-body: #4e5968;
+            --text-muted: #8b95a1;
+
+            --hero-gradient: linear-gradient(135deg, #03c75a 0%, #00a84b 50%, #008a60 100%);
+            --ai-gradient: linear-gradient(135deg, #6b38fb 0%, #4f46e5 100%);
+            --hero-shadow: 0 12px 26px -6px rgba(3, 199, 90, 0.35), 0 4px 10px -2px rgba(3, 199, 90, 0.18);
+        }
+
+        .profile-design {
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+            background-color: var(--bg-canvas);
+            color: var(--text-strong);
+            letter-spacing: -0.02em;
+            margin: 0;
+        }
+
+        .profile-design ::-webkit-scrollbar { width: 6px; height: 6px; }
+        .profile-design ::-webkit-scrollbar-track { background: transparent; }
+        .profile-design ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+        .profile-design ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        .profile-design .ns-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: 22px;
+            box-shadow: 0 2px 10px rgba(18, 19, 20, 0.03);
+            transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        .profile-design .ns-hero-cta {
+            background: var(--hero-gradient);
+            box-shadow: var(--hero-shadow);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        .profile-design .ns-hero-cta::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -120%;
+            width: 80%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.28), transparent);
+            transform: skewX(-20deg);
+            animation: profileShine 3.6s infinite;
+        }
+        @keyframes profileShine  {
+            0%  { left: -120%; }
+            25%  { left: 140%; }
+            100%  { left: 140%; }
+        }
+        .profile-design .ns-hero-cta:hover {
+            transform: translateY(-1px);
+            filter: brightness(1.04);
+        }
+
+        .profile-design .ns-input-box {
+            border: 1.5px solid var(--border-strong);
+            border-radius: 14px;
+            background: #ffffff;
+            transition: all 0.18s;
+        }
+        .profile-design .ns-input-box:focus-within {
+            border-color: var(--primary-500);
+            box-shadow: 0 0 0 3px var(--primary-100);
+        }
+
+        .profile-design /* 모던 iOS 스타일 스위치 (MUI Switch 대체 시각화) */
+        .ns-switch-track {
+            width: 44px;
+            height: 24px;
+            border-radius: 9999px;
+            background-color: #cbd5e1;
+            position: relative;
+            transition: background-color 0.2s;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        .profile-design .ns-switch-track.checked {
+            background-color: var(--primary-500);
+        }
+        .profile-design .ns-switch-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 9999px;
+            background-color: #ffffff;
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+        }
+        .profile-design .ns-switch-track.checked .ns-switch-thumb {
+            transform: translateX(20px);
+        }
+
+        .profile-design .bg-primary { background-color: var(--primary-500); }
+        .profile-design .bg-primary-soft { background-color: var(--primary-50); }
+        .profile-design .text-primary { color: var(--primary-600); }
+        .profile-design .border-primary { border-color: var(--primary-500); }
+        .profile-design .bg-sub { background-color: var(--sub-500); }
+        .profile-design .bg-sub-soft { background-color: var(--sub-50); }
+        .profile-design .text-sub { color: var(--sub-600); }
+        .profile-design .ai-pill-badge { background: var(--ai-gradient); }
+    

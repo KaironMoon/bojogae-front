@@ -69,7 +69,7 @@ export function HeroShowcase() {
   const sample = examples[tab];
   return <section className="home-showcase" aria-label="보조개 제안서 생성 미리보기">
     <header><span className="home-window-lights" aria-hidden="true"><i /><i /><i /></span>
-      <span>bojogae.net · AI 제안서 요약 생성기</span><small>시연 영상·샘플</small></header>
+      <span>bojogae.net · AI 제안서 요약 생성기</span><small>시연 화면 · AI 요약 엔진 정상 가동 중</small></header>
     <Tabs value={tab} onChange={(_, value) => setTab(value)} variant="scrollable" scrollButtons="auto"
       aria-label="제안서 미리보기 종류" className="home-showcase-tabs">
       {tabs.map((label, index) => <Tab key={label} label={label} id={`home-demo-tab-${index}`}
@@ -184,7 +184,11 @@ export function PowerSuites() {
 }
 
 export function CostComparison() {
-  const scenarios = [["BASIC", "96,000원", "80%"], ["STANDARD", "120,000원", "76%"], ["PRO", "161,000원", "70%"]];
+  const scenarios = [
+    ["BASIC", "96,000원", "80%", "77,000원"],
+    ["STANDARD", "120,000원", "76%", "91,000원"],
+    ["PRO", "161,000원", "70%", "112,000원"],
+  ];
   return <div className="home-cost-comparison">
     <h3>개별 구독 비용과 보조개 월 요금 비교</h3>
     <p>범용 AI, 보장분석, 고객관리 서비스를 각각 구독하는 상황을 가정한 예시입니다.</p>
@@ -193,8 +197,8 @@ export function CostComparison() {
         <dl><dt>범용 AI</dt><dd>월 29,000원</dd><dt>보장분석·청구</dt><dd>월 38,000~103,000원</dd><dt>고객관리·카톡 발송</dt><dd>월 29,000원</dd></dl>
         <strong>가정 합계 월 96,000~161,000원</strong>
       </div>
-      <div><h4>보조개 월 요금</h4><ul>
-        {scenarios.map(([code, separate, saving]) => <li key={code}><strong>{PLAN_INFO[code].name}</strong><span><s>{separate}</s> → <b>{PLAN_INFO[code].price}</b></span><small>약 {saving} 절감</small></li>)}
+      <div><h4>보조개 월 요금</h4><strong className="home-cost-annual">비교 예시 기준 연 최대 약 134만 원 절약</strong><ul>
+        {scenarios.map(([code, separate, saving, monthlySaving]) => <li key={code}><strong>{PLAN_INFO[code].name}</strong><span><s>{separate}</s> → <b>{PLAN_INFO[code].price}</b></span><small>약 {saving} 절감 · 월 {monthlySaving} 절약</small></li>)}
       </ul></div>
     </div>
   </div>;

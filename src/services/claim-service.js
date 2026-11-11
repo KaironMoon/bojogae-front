@@ -40,8 +40,8 @@ export async function saveClaimRequest(requestKey, insurerIds, claim, files, fax
   return (await apiCaller.post('/api/v1/claims/requests', form, { timeout: 300000 })).data;
 }
 
-export async function getClaimRequests(page = 1, signal) {
-  return (await apiCaller.get('/api/v1/claims/requests', { page }, { signal })).data;
+export async function getClaimRequests(page = 1, signal, filters = {}) {
+  return (await apiCaller.get('/api/v1/claims/requests', { page, ...filters }, { signal })).data;
 }
 
 export async function getClaimRequest(id, signal) {

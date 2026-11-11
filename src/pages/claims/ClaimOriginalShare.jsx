@@ -89,7 +89,7 @@ export default function ClaimOriginalShare({ result, requestId, deliveryId, expi
     {error && !expired && <Alert severity="error" sx={{ overflowWrap: 'anywhere' }}>{error}</Alert>}
   </>;
   const feedbackTarget = feedbackId && typeof document !== 'undefined' ? document.getElementById(feedbackId) : null;
-  return <Stack ref={anchor} spacing={1}>
+  return <><Stack ref={anchor} spacing={1}>
     {!expired && <Stack direction="row" gap={1} alignItems="center" flexWrap="wrap">
     <Button variant="outlined" startIcon={<ShareOutlinedIcon />} onClick={() => {
       if (mobile && !files?.length && error) { setError(''); setAttempt(value => value + 1); }
@@ -97,7 +97,7 @@ export default function ClaimOriginalShare({ result, requestId, deliveryId, expi
     }}
       disabled={disabled || sharing || (mobile && !files?.length && !error)} sx={{ alignSelf: 'flex-start' }}
       aria-label={`${result?.name || ''} 공유하기`.trim()}>
-      {mobile && !files?.length ? (error ? '공유 파일 다시 준비' : '공유 파일 준비 중…') : sharing ? '저장 중…' : '공유하기'}
+      {mobile && !files?.length ? (error ? '공유 파일 다시 준비' : '공유 파일 준비 중…') : sharing ? '저장 중…' : result ? '모바일 공유·팩스 (무료)' : '공유하기'}
     </Button>
     {!result && <Button variant="outlined" startIcon={<DownloadOutlinedIcon />}
       disabled={disabled || downloading || (!mobile && !files?.length && !error)}
@@ -123,6 +123,6 @@ export default function ClaimOriginalShare({ result, requestId, deliveryId, expi
     {mobile && files?.length > 1 && !expired && <Typography variant="caption" color="text.secondary">
       8MB 미만의 PDF {files.length}개로 나눴습니다. 공유하기를 누르면 모든 파일을 함께 전달합니다.
     </Typography>}
-    {(notice || error) && !expired && (feedbackTarget ? createPortal(feedback, feedbackTarget) : feedback)}
-  </Stack>;
+    {(notice || error) && !expired && !feedbackTarget && feedback}
+  </Stack>{(notice || error) && !expired && feedbackTarget && createPortal(feedback, feedbackTarget)}</>;
 }

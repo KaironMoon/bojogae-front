@@ -1,84 +1,85 @@
-import ExpiringPoints from '@/pages/components/ExpiringPoints';
-import { getPointBalance } from '@/services/proposal-service';
-import KkomakIcon from '@/pages/components/KkomakIcon';
-import PointBalanceDetails from '@/pages/components/PointBalanceDetails';
-import {
-  Alert, Box, CircularProgress, Pagination, Paper, Stack,
-  Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography,
-} from '@mui/material';
+import { Alert, Dialog, Pagination } from '@mui/material';
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import api from '@/services/api-caller';
 import { groupErrorMessage } from '@/services/group-service';
+import WalletReference from './kkomak/WalletReference';
+import BalanceReference from './kkomak/BalanceReference';
+import TransactionReference from './kkomak/TransactionReference';
+import { amount, date } from './kkomak/wallet-format';
+import './kkomak/wallet-utilities.css';
+import './kkomak/wallet-source.css';
+import './kkomak/wallet-integration.css';
 
-const date = (value) => new Date(value).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' });
+const emptyLedger = { items: [], page: 1, total: 0, total_pages: 0, category_counts: {} };
+const categories = { PLUS: '충전·지급', DOC: '문서생성', FAX: 'PC팩스', EXPIRE: '기간만료', OTHER: '기타' };
 
 export default function MyCoinsPage() {
   const [page, setPage] = useState(1);
+  const [category, setCategory] = useState('ALL');
+  const [query, setQuery] = useState('');
+  const [search, setSearch] = useState('');
   const [detail, setDetail] = useState(null);
-  const [balance, setBalance] = useState(null);
+  const [wallet, setWallet] = useState({});
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
+  const [balanceOpen, setBalanceOpen] = useState(false);
+  const [transaction, setTransaction] = useState(null);
 
   useEffect(() => {
+    const timer = setTimeout(() => { setPage(1); setSearch(query); }, 250);
+    return () => clearTimeout(timer);
+  }, [query]);
+  useEffect(() => {
     let active = true;
-    setError('');
-    setLoading(true);
-    setDetail(null);
-    setBalance(null);
-    Promise.all([api.get('/api/v1/points/me/ledger', { page }), getPointBalance()])
-      .then(([{ data }, currentBalance]) => { if (active) { setDetail(data); setBalance(currentBalance); } })
-      .catch((e) => { if (active) setError(groupErrorMessage(e)); })
+    setError(''); setLoading(true); setDetail(null);
+    api.get('/api/v1/points/me/ledger', { page, category, q: search })
+      .then(({ data }) => {
+        if (!active) return;
+        setDetail(data);
+        if (data.wallet) setWallet(data.wallet);
+        else setError('잔액 구성 정보를 불러오지 못했습니다. 서버 업데이트 상태를 확인해 주세요.');
+      })
+      .catch(e => { if (active) setError(groupErrorMessage(e)); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [page]);
+  }, [page, category, search]);
 
-  return <Box component="main" sx={{ p: { xs: 2, md: 4 }, maxWidth: 1280, mx: 'auto' }}>
-    <Paper sx={{ p: { xs: 2, sm: 3 } }}>
-      <Stack spacing={2}>
-        <Typography variant="h5" fontWeight={800}>내꼬막</Typography>
-        <Typography variant="body2" color="text.secondary">꼬막 증가·사용 내역과 합산 잔액을 확인할 수 있습니다. 잔여 꼬막의 구성은 사용 가능 꼬막 옆 상세에서 확인해 주세요. 예약 중인 꼬막은 사용 가능 잔액에서 제외됩니다.</Typography>
-        <Typography variant="body2"><Link to="/profile#plan">구독 관리</Link> · <Link to="/payment-history">결제·환불 내역</Link></Typography>
-        {error && <Alert severity="error">{error}</Alert>}
-        {loading && <Box role="status" aria-label="꼬막 내역 조회 중" sx={{ textAlign: 'center', py: 3 }}><CircularProgress size={28} /></Box>}
-        {detail && <>
-          <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
-            <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
-              <Typography fontWeight={800}>사용 가능 꼬막</Typography>
-              <KkomakIcon />
-              <Typography variant="h5" fontWeight={800} color="primary.main">{balance.total_points.toLocaleString()}꼬막</Typography>
-              <PointBalanceDetails balance={balance} />
-            </Stack>
-            <ExpiringPoints balance={balance} />
-          </Paper>
-          <Alert severity="info">개인 월 구독 꼬막은 결제 승인 후 지급되며 해당 구독 이용기간 종료 시 미사용분이 소멸하고 이월되지 않습니다. 업그레이드 추가 지급분도 같은 종료일에 소멸합니다. 무료체험은 가입 시 200꼬막을 한 번 지급하며 30일간 사용할 수 있습니다.</Alert>
-          {detail.items.some((item) => !Number.isFinite(item.balance_after)) && <Alert severity="warning">일부 거래의 잔여 꼬막을 불러오지 못했습니다. 잠시 후 다시 확인해 주세요.</Alert>}
-          <TableContainer sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
-            <Table size="small" sx={{ minWidth: 600 }} aria-label="꼬막 입출금 내역">
-              <TableHead sx={{ bgcolor: '#f8fafc' }}>
-                <TableRow>
-                  <TableCell sx={{ whiteSpace: 'nowrap', fontWeight: 750 }}>일시 (한국 시간)</TableCell>
-                  <TableCell sx={{ fontWeight: 750 }}>내역</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 750 }}>충전·지급</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 750 }}>사용·소진</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 750 }}>거래 후 잔여 꼬막</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {detail.items.map((item) => <TableRow key={item.id}>
-                  <TableCell sx={{ whiteSpace: 'nowrap' }}>{date(item.occurred_at)}</TableCell>
-                  <TableCell sx={{ overflowWrap: 'anywhere', whiteSpace: 'pre-wrap' }}>{item.description}</TableCell>
-                  <TableCell align="right" sx={{ whiteSpace: 'nowrap', color: 'success.dark', fontVariantNumeric: 'tabular-nums' }}>{item.credit ? `${item.credit.toLocaleString()}꼬막` : '—'}</TableCell>
-                  <TableCell align="right" sx={{ whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{item.debit ? `${item.debit.toLocaleString()}꼬막` : '—'}</TableCell>
-                  <TableCell align="right" sx={{ whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{Number.isFinite(item.balance_after) ? `${item.balance_after.toLocaleString()}꼬막` : '조회 불가'}</TableCell>
-                </TableRow>)}
-                {!detail.items.length && <TableRow><TableCell colSpan={5} align="center" sx={{ py: 4 }}>꼬막 입출금 내역이 없습니다.</TableCell></TableRow>}
-              </TableBody>
-            </Table>
-          </TableContainer>
-          {detail.total_pages > 1 && <Pagination count={detail.total_pages} page={page} onChange={(_, value) => setPage(value)} />}
-        </>}
-      </Stack>
-    </Paper>
-  </Box>;
+  async function exportLedger() {
+    setExporting(true); setError('');
+    try {
+      const { data } = await api.get('/api/v1/points/me/ledger/export', { category, q: search }, { responseType: 'blob' });
+      const url = URL.createObjectURL(data);
+      const anchor = document.createElement('a');
+      anchor.href = url; anchor.download = '보조개_꼬막_입출금내역.csv';
+      document.body.appendChild(anchor); anchor.click(); anchor.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (e) { setError(groupErrorMessage(e)); }
+    finally { setExporting(false); }
+  }
+
+  const rows = loading ? <tr><td colSpan={5} className="py-12 text-center text-[#8b95a1]" role="status">꼬막 내역 조회 중…</td></tr> : <>
+    {detail?.items.map(item => <tr key={item.id} className="MuiTableRow-root css-108w8ac tx-row-hover cursor-pointer" onClick={() => setTransaction(item)}>
+      <td className="py-3.5 px-4 whitespace-nowrap font-mono text-[#8b95a1]">{date(item.occurred_at)}</td>
+      <td className="py-3.5 px-4"><button type="button" className="wallet-transaction-trigger" onClick={event => { event.stopPropagation(); setTransaction(item); }} aria-label={`${item.description} 거래 상세`}><span className={`wallet-category wallet-category-${item.category}`}>{categories[item.category] || '기타'}</span><span>{item.description}</span></button></td>
+      <td className="py-3.5 px-4 text-right whitespace-nowrap font-black text-primary">{item.credit ? `+${amount(item.credit)}` : '—'}</td>
+      <td className={`py-3.5 px-4 text-right whitespace-nowrap font-extrabold ${item.category === 'EXPIRE' ? 'text-[#f04452]' : 'text-[#4e5968]'}`}>{item.debit ? `−${amount(item.debit)}` : '—'}</td>
+      <td className="py-3.5 px-4 text-right whitespace-nowrap"><span className="px-2.5 py-1 rounded-lg bg-[#f4f6f8] font-black text-[#121314]">{amount(item.balance_after)}</span></td>
+    </tr>)}
+    {!detail?.items.length && <tr><td colSpan={5} className="py-12 text-center text-[#8b95a1] font-bold">{error ? '꼬막 내역을 불러오지 못했습니다.' : '조건에 맞는 꼬막 거래 내역이 없습니다.'}</td></tr>}
+  </>;
+  return <div className="kkomak-design wallet-page" aria-busy={loading}>
+    {error && <Alert severity="error" className="wallet-status">{error}</Alert>}
+    {exporting && <p role="status" className="wallet-status">선택한 조건의 전체 거래 내역을 내보내는 중입니다.</p>}
+    <WalletReference wallet={wallet} detail={detail || emptyLedger} rows={rows}
+      pagination={<Pagination className="css-1xdhyk6 wallet-pagination" aria-label="pagination navigation" count={Math.max(1, detail?.total_pages || 1)} page={detail?.page || page} disabled={loading || !detail?.total_pages} onChange={(_, value) => setPage(value)} />}
+      category={category} query={query} onQuery={setQuery} onCategory={value => { setPage(1); setCategory(value); }}
+      onBalance={() => setBalanceOpen(true)} onExport={exportLedger} exporting={exporting || loading || !detail?.total} />
+    <Dialog open={balanceOpen} onClose={() => setBalanceOpen(false)} aria-label="잔여 꼬막 상세" maxWidth={false} slotProps={{paper:{className:'kkomak-design wallet-modal wallet-balance-modal'}}}>
+      <BalanceReference wallet={wallet} onClose={() => setBalanceOpen(false)} />
+    </Dialog>
+    <Dialog open={!!transaction} onClose={() => setTransaction(null)} aria-label="꼬막 거래 상세 내역" maxWidth={false} slotProps={{paper:{className:'kkomak-design wallet-modal wallet-transaction-modal'}}}>
+      {transaction && <TransactionReference transaction={transaction} onClose={() => setTransaction(null)} />}
+    </Dialog>
+  </div>;
 }

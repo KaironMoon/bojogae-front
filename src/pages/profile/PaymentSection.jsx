@@ -1,7 +1,8 @@
 /* eslint-disable react/prop-types */
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, Box, Button, Checkbox, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, Radio, RadioGroup, MenuItem, Paper, Stack, TextField, Typography } from '@mui/material';
+import { Alert, Box, Button, Checkbox, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, Radio, RadioGroup, Paper, Stack, TextField, Typography } from '@mui/material';
 import { Link } from 'react-router-dom';
+import ProfileIcon from './design/ProfileIcon';
 import { REFUND_NOTICE } from '@/constants/refund-policy';
 import { getMyProfile, savePaymentContact } from '@/services/profile-service';
 import { getPayments, getPaymentMethods, getTerminationPreview, createPaymentPopup, openBillingKey, completeMobilpayRegistration, paymentError, paymentPost } from '@/services/payment-service';
@@ -14,7 +15,7 @@ function checkResult(verified) {
   if (verified.status === 'FAILED') throw new Error('결제가 실패했습니다. 결제 내역을 확인해 주세요.');
   if (['REVIEW','CANCELED'].includes(verified.status)) throw new Error('결제 내역 확인이 필요합니다. 고객센터로 문의해 주세요.');
 }
-export default function PaymentSection({ config, onChanged, onContactSaved }) {
+export default function PaymentSection({ config, onChanged, onContactSaved, sectionId = "plan" }) {
   const [data, setData] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -179,7 +180,7 @@ export default function PaymentSection({ config, onChanged, onContactSaved }) {
       setMessage(verified.status === 'PAID' ? '결제가 확인되어 월간 구독이 시작되었습니다.' : '첫 결제 상태를 확인 중입니다. 결제내역을 확인해 주세요.');
     } catch (error) { popup?.close(); throw error; }
   };
-  return <><Paper id="plan" variant="outlined" sx={{ p:{ xs:2, md:3 }, mb:3, borderRadius:3 }}>
+  return <><Paper id={sectionId} variant="outlined" sx={{ p:{ xs:2, md:3 }, mb:3, borderRadius:3 }}>
     <Stack spacing={2}>
       <Stack direction="row" spacing={1} alignItems="center"><Typography variant="h6" fontWeight={800}>월간 구독권</Typography></Stack>
       <Typography variant="body2" color="text.secondary">보조개의 보험 제안서 분석·보고서 생성 기능을 이용하는 월간 구독 상품입니다.</Typography>
@@ -210,8 +211,8 @@ export default function PaymentSection({ config, onChanged, onContactSaved }) {
       <Button disabled={busy} onClick={() => perform(load)}>새로고침</Button>
     </Stack>
   </Paper>
-    <Dialog open={Boolean(dialog)} onClose={() => { if (!busy) setDialog(null); }} fullWidth maxWidth="sm" aria-labelledby="payment-dialog-title">
-      <DialogTitle id="payment-dialog-title">{dialog === 'cancel' ? '구독 해지' : dialog === 'change' ? '요금제 변경' : dialog === 'retry' ? '요금제 선택·첫 결제 재시도' : hasRegisteredCards ? '구독 시작' : '구독 시작·카드 등록'}</DialogTitle>
+    <Dialog slotProps={{ paper: { className: "profile-payment-modal" } }} open={Boolean(dialog)} onClose={() => { if (!busy) setDialog(null); }} fullWidth maxWidth="sm" aria-labelledby="payment-dialog-title">
+      <DialogTitle id="payment-dialog-title" className="profile-payment-title"><span><ProfileIcon name="credit-card"/>{dialog === 'cancel' ? '구독 해지' : dialog === 'change' ? '요금제 변경' : dialog === 'retry' ? '요금제 선택·첫 결제 재시도' : hasRegisteredCards ? '구독 시작' : '구독 시작·카드 등록'}</span><button type="button" aria-label="결제 팝업 닫기" disabled={busy} onClick={() => setDialog(null)}><ProfileIcon name="x"/></button></DialogTitle>
       <DialogContent dividers>
         <Stack spacing={2}>
           {error && <Alert severity="error">{error}</Alert>}
@@ -230,9 +231,14 @@ export default function PaymentSection({ config, onChanged, onContactSaved }) {
           </> : <>
           {dialog === 'change' ? <Alert severity="info">{upgrading ? '남은 이용기간의 요금 차액을 등록된 카드로 결제하면 즉시 업그레이드됩니다. 다음 결제일은 유지됩니다.' : '상위 요금제는 남은 기간의 차액 결제 후 즉시 적용되고, 하위 요금제는 다음 결제부터 적용됩니다. 기존 결제일과 등록된 카드는 유지됩니다.'}</Alert> : dialog === 'retry' ? <Alert severity="info">등록된 카드로 선택한 요금제의 첫 결제를 다시 요청합니다. 승인되면 이용기간이 시작되고 이후 매월 자동 결제됩니다.</Alert> : <Typography variant="body2">{dialog === 'subscribe' ? hasRegisteredCards ? '선택한 결제수단으로 첫 구독 결제를 진행합니다.' : `결제자 정보를 확인한 뒤 ${config.provider === 'MOBILPAY' ? 'KG파이낸셜' : 'KG이니시스'}에서 카드를 등록합니다. 등록 완료 후 선택한 요금제의 첫 결제를 진행합니다.` : `결제자 정보를 확인한 뒤 ${config.provider === 'MOBILPAY' ? 'KG파이낸셜' : 'KG이니시스'} 결제창으로 이동합니다.`}</Typography>}
           {dialog === 'change' && sub?.cancel_at_period_end && <Alert severity="warning">{upgrading ? '차액 결제가 승인되면 자동 갱신 해지를 철회하고 다음 결제일부터 새 요금제 전액으로 자동 결제를 재개합니다.' : '자동 갱신 해지를 철회하고 선택한 요금제로 다음 회차부터 자동 결제를 재개합니다.'}</Alert>}
-            <TextField select label="월간 구독권" value={plan} onChange={(e) => { setAccepted(false); setUpgradeQuote(null); setPlan(e.target.value); }} disabled={busy || quoteBusy} fullWidth sx={{ '& .MuiSelect-select': { whiteSpace:'normal' } }}>
-              {['BASIC','STANDARD','PRO'].map((code) => <MenuItem key={code} value={code} sx={{ whiteSpace:'normal' }}>{config.products[code].name} · {config.products[code].amount.toLocaleString()}원/월</MenuItem>)}
-            </TextField>
+            <div className="profile-plan-options" role="radiogroup" aria-label="월간 구독권">
+              {['BASIC','STANDARD','PRO'].filter(code => config.products[code]).map(code => <label key={code} className={`profile-plan-option ${plan === code ? 'is-selected' : ''}`}>
+                <input type="radio" name="profile-subscription-plan" value={code} checked={plan === code} disabled={busy || quoteBusy} onChange={() => {setAccepted(false);setUpgradeQuote(null);setPlan(code);}} />
+                <span className="profile-plan-option-name">{config.products[code].name}</span>
+                <span className="profile-plan-option-price">{config.products[code].amount.toLocaleString()}원<span>/월</span></span>
+                <span className="profile-plan-option-status">{plan === code ? '선택한 요금제' : '요금제 선택'}</span>
+              </label>)}
+            </div>
           <Alert severity="info"><Stack spacing={1}>
             <Typography variant="body2">{monthlyValidity}</Typography>
             <Typography variant="body2">{upgradeValidity}</Typography>

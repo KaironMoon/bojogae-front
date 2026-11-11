@@ -54,6 +54,7 @@ function prepare(item) {
 function payloadFor(draft) {
   const item = clone(draft);
   item.sort_order = Number(item.sort_order);
+  for (const key of ["claim_copy_limit", "esign_cutoff_time"]) item[key] = item[key]?.trim() || null;
   item.links.forEach(link => { if (!link.url?.trim()) link.url = null; });
   item.customer_service = item.customer_service.value.trim() ? item.customer_service : null;
   item.browser = item.browser.value.trim() ? item.browser : null;
@@ -132,6 +133,11 @@ export default function InsurersAdminPage() {
           {draft.logo && <Fields item={draft.logo} fields={sourceFields} disabled={working} onChange={value => update("logo", value)} />}
         </Stack>
         {draft.claim && <Stack spacing={1}><Typography variant="subtitle1">보험금 청구 안내</Typography><Fields item={draft.claim} fields={linkFields} disabled={working} onChange={value => update("claim", value)} /><Button onClick={() => update("claim", null)} disabled={working}>청구 안내 링크 제거</Button></Stack>}
+        <Stack spacing={1.5}>
+          <Typography component="h3" variant="subtitle1" fontWeight={750}>청구 한도 · 전자서명 마감 안내</Typography>
+          <Typography variant="body2" color="text.secondary">보험사에서 확인한 안내 문구를 입력하세요. 비워 두면 사용자 화면에 확인 필요 또는 준비 중으로 표시됩니다.</Typography>
+          <Fields item={draft} disabled={working} onChange={setDraft} fields={[["claim_copy_limit", "사본 청구 한도"], ["esign_cutoff_time", "전자서명 마감 시간 안내"]]} />
+        </Stack>
         <Rows title="업무 시스템" rows={draft.systems} disabled={working} fields={[["link.label", "시스템명"], ["link.url", "전산 주소", "url"], ...sourceFields.map(([path, label, type]) => [`link.${path}`, label, type]), ["browser.value", "시스템별 브라우저 안내"], ["security_program.value", "필수 프로그램"], ["login.value", "로그인·이용 권한"], ...["browser", "security_program", "login"].flatMap(key => sourceFields.map(([path, label, type]) => [`${key}.${path}`, `${key === "browser" ? "브라우저" : key === "login" ? "로그인" : "프로그램"} ${label}`, type]))]}
           makeRow={() => ({ link: { label: "업무 전산", url: "", ...evidence() }, browser: { value: "", icons: [], ...evidence() }, security_program: { value: "", ...evidence() }, login: { value: "", ...evidence() } })} onChange={value => update("systems", value)} />
         <Rows title="약관·청구양식·기타 링크" rows={draft.links} fields={linkFields} makeRow={() => ({ label: "", url: "", ...evidence() })} onChange={value => update("links", value)} disabled={working} />

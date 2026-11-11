@@ -55,10 +55,11 @@ export default function SignaturePad({ label, value, onChange, disabled }) {
     if (ref.current.hasPointerCapture(event.pointerId)) ref.current.releasePointerCapture(event.pointerId);
     if (moved.current) onChange(ref.current.toDataURL('image/png'));
   }
-  return <Box sx={{ width: '100%', maxWidth: 480 }}>
+  return <Box className="claim-signature-pad" sx={{ width: '100%', maxWidth: 480 }}>
     <Stack direction="row" justifyContent="space-between" alignItems="center">
       <Typography variant="body2" fontWeight={700}>{label}</Typography>
-      <Stack direction="row" spacing={1}>
+      <Stack direction="row" spacing={1} flexWrap="wrap">
+      <Button size="small" disabled title="자동 서명 생성은 준비 중입니다.">자동 서명 생성 · 준비중</Button>
       <Button component="label" size="small" disabled={disabled || uploading}>
         {uploading ? '이미지 처리 중…' : '서명 이미지 업로드'}
         <input type="file" hidden accept="image/png,image/jpeg,image/webp" aria-label={`${label} 이미지 업로드`}

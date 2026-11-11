@@ -1,27 +1,11 @@
-const SKIP_LANDING_KEY = "bojogae:skip-landing";
-
-function shouldSkipLanding() {
-  try {
-    return window.localStorage.getItem(SKIP_LANDING_KEY) === "true";
-  } catch {
-    return false;
-  }
+import apiCaller from '@/services/api-caller';
+// Anonymous navigation preference is managed by the server, without localStorage.
+export async function shouldSkipLanding() {
+  return (await apiCaller.get('/api/v1/auth/landing-preference')).data.skip_landing;
 }
-
-function skipLandingFromNowOn() {
-  try {
-    window.localStorage.setItem(SKIP_LANDING_KEY, "true");
-  } catch {
-    // 저장 불가 환경에서도 현재 로그인 이동은 계속한다.
-  }
+export async function skipLandingFromNowOn() {
+  await apiCaller.post('/api/v1/auth/landing-preference?skip=true', {});
 }
-
-function showLandingFromNowOn() {
-  try {
-    window.localStorage.removeItem(SKIP_LANDING_KEY);
-  } catch {
-    // 저장 불가 환경에서는 별도 복구가 필요 없다.
-  }
+export async function showLandingFromNowOn() {
+  await apiCaller.post('/api/v1/auth/landing-preference?skip=false', {});
 }
-
-export { shouldSkipLanding, showLandingFromNowOn, skipLandingFromNowOn };

@@ -65,6 +65,10 @@ class ApiCaller {
     });
   }
 
+  patch(url, data, config = {}) {
+    return this._axiosInstance.patch(getUrl(this.baseUrl, url), data, config);
+  }
+
   /**
    * HTTP DELETE
    * @param  {String} url

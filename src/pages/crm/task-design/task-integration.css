@@ -1,0 +1,34 @@
+.task-design,.task-design *{box-sizing:border-box;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;}
+.task-design :where(h1,h2,h3,h4,h5,h6,p){margin:0}
+.task-design :where(div,span,button,input,textarea,select,article){border-style:solid;border-width:0}
+.task-design :where(button,input,textarea,select,code){font:inherit;letter-spacing:inherit}
+.task-design :where(button){cursor:pointer;background:none;padding:0}
+.task-design :where(input,select,textarea){min-width:0;padding:0}
+.task-design :where(button:disabled){opacity:.4;cursor:default}
+.task-design :where(svg){display:block;flex-shrink:0}
+.task-design [hidden]{display:none!important}
+.task-design.task-page{min-height:100vh;line-height:1.5}
+
+.task-design.task-modal.MuiDialog-paper.MuiPaper-rounded{width:calc(100% - 32px);max-width:672px;margin:16px;border:0;border-radius:24px;box-shadow:none;background:#fff;line-height:1.5;max-height:92dvh;padding:0;overflow:hidden}
+.task-design.task-modal>form{min-height:0}
+.task-design.task-drawer.MuiDrawer-paper{width:min(576px,100%);border:0;padding:0;background:#fff;line-height:1.5}
+.task-design.task-confirm.MuiDialog-paper{border-radius:24px;border:0;padding:0;background:#fff;font-size:13px;line-height:1.6}
+.task-design.task-confirm>h2{padding:16px 24px;background:#121314;color:#fff;font-weight:900;font-size:16px}
+.task-design .reg-input{border:1.5px solid #d1d6db;font-size:12px;line-height:1.5}
+.task-design .task-filter-active{background:#121314!important;color:#fff!important;border-color:#121314!important}
+.task-design #typeBtn_ALL:not([aria-pressed="true"]),.task-design #evFilter_ALL:not([aria-pressed="true"]){background:#f4f6f8;color:#334155}
+.task-design [id^="scopeCard_"]{text-align:left}
+.task-design [id^="scopeCard_"][aria-pressed="true"]{border:2px solid #03c75a;background:#ecfdf5}
+.task-design #scopeCard_TODAY:not([aria-pressed="true"]){border:1px solid #e6eaee;background:#f8fafc}
+.task-design .task-location{padding:16px;border:1px solid #e6eaee;background:white;border-radius:16px;margin-top:16px}
+.task-design button:focus-visible{outline:2px solid #03c75a;outline-offset:2px}
+.task-design #quickInlineCustomer{max-width:250px}
+.task-design #quickInlineTitle{min-width:100px}
+.task-design textarea{resize:vertical}
+@media(max-width:767px){.task-design #quickInlineCustomer{max-width:100%}.task-design form:has(#quickInlineTitle){flex-wrap:wrap}.task-design #quickInlineTitle{flex-basis:100%}}
+@media(prefers-reduced-motion:reduce){.task-design .ns-hero-cta::after{animation:none}}
+
+.task-design .ns-card.bg-gradient-to-br{background:linear-gradient(135deg,#ecfdf5,#f8fafc,#f5f3ff);border-color:rgb(3 199 90 / .35)}
+.task-design .ns-card.border-2{border:2px solid rgb(3 199 90 / .4)}
+.task-design .task-pagination{display:flex;align-items:center;justify-content:center;gap:16px;padding:16px;font-size:12px;font-weight:800}
+.task-design .task-pagination button{padding:8px 16px;border:1px solid #d1d6db;border-radius:12px;background:#fff}

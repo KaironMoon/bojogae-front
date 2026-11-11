@@ -133,6 +133,8 @@ export default function GroupInquiriesPage() {
         <DialogContent>
           {selected && <Stack spacing={2.2} sx={{ pt: 1 }}>
             <Paper variant="outlined" sx={{ p: 2, borderRadius: 2.5 }}><Typography fontWeight={800}>{selected.organization_name}</Typography><Typography color="text.secondary" variant="body2" sx={{ mt: .5 }}>{selected.contact_name}</Typography><Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ mt: 2 }}><Stack direction="row" spacing={.7} alignItems="center"><PhoneOutlinedIcon fontSize="small" color="action" /><Typography variant="body2">{selected.phone}</Typography></Stack><Stack direction="row" spacing={.7} alignItems="center"><EmailOutlinedIcon fontSize="small" color="action" /><Typography variant="body2">{selected.email}</Typography></Stack></Stack></Paper>
+            <Typography variant="body2">도입 예정 인원: {selected.headcount || "미입력"}</Typography>
+            <Typography variant="body2" sx={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>문의사항: {selected.message || "미입력"}</Typography>
             <FormControl fullWidth><InputLabel>처리 상태</InputLabel><Select value={editStatus} label="처리 상태" onChange={event => setEditStatus(event.target.value)}><MenuItem value="PENDING">접수</MenuItem><MenuItem value="CONTACTED">연락 완료</MenuItem><MenuItem value="CLOSED">종료</MenuItem></Select></FormControl>
             <TextField label="관리자 메모" value={note} onChange={event => setNote(event.target.value)} multiline minRows={4} inputProps={{ maxLength: 2000 }} helperText={`${note.length}/2000`} />
           </Stack>}

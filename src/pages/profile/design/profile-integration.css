@@ -1,0 +1,114 @@
+/* Scoped preflight for the copied reference. */
+.profile-design,.profile-design *{box-sizing:border-box;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;}
+.profile-design :where(h1,h2,h3,h4,h5,h6,p){margin:0}
+.profile-design :where(div,span,button,input,section){border-width:0;border-style:solid}
+.profile-design :where(button,input){font-family:inherit;font-size:inherit;line-height:inherit;letter-spacing:inherit}
+.profile-design :where(button){cursor:pointer;background:none;padding:0}
+.profile-design :where(button:disabled){cursor:default;opacity:.5}
+.profile-design :where(input){min-width:0;padding:0}
+.profile-design :where(a){color:inherit;text-decoration:none}
+.profile-design :where(svg){display:block;flex-shrink:0}
+.profile-design [hidden]{display:none!important}
+.profile-design.profile-page{min-height:100vh;line-height:1.5}
+.profile-design .ns-card{border:1px solid #e6eaee;border-radius:22px}
+.profile-design .ns-card.bg-\[\#121314\]{background:#121314}
+.profile-design .ns-input-box{border:1.5px solid #d1d6db}
+.profile-design .ns-input-box:focus-within{border-color:#03c75a}
+.profile-design :where(button,a):focus-visible{outline:2px solid #03c75a;outline-offset:3px}
+.profile-design .ns-switch-track:has(input:focus-visible){outline:2px solid #03c75a;outline-offset:3px}
+.profile-design.profile-modal.MuiDialog-paper.MuiPaper-rounded{width:calc(100% - 32px);max-width:448px;margin:16px;padding:0;border:0;border-radius:24px;box-shadow:none;background:white;line-height:1.5;max-height:90dvh}
+.profile-design.profile-modal>div{flex-shrink:0}
+.profile-design.profile-modal.profile-billing-modal.MuiDialog-paper.MuiPaper-rounded{max-width:672px}
+.MuiModal-root:has(.profile-modal)>.MuiBackdrop-root{background:rgb(0 0 0 / .6)}
+.profile-dialog-shell{background:#fff;border:1px solid #e6eaee;border-radius:24px;overflow:hidden;width:100%}
+.profile-dialog-shell>header{padding:16px 24px;background:#121314;color:white;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.profile-dialog-shell>header>div{display:flex;align-items:center;gap:8px}
+.profile-dialog-shell>header h2{font-size:16px;font-weight:900}
+.profile-dialog-shell>header svg{color:#34d399}
+.profile-dialog-shell>header button svg{color:#94a3b8}
+.profile-dialog-body{padding:24px;font-size:12px}
+.profile-dialog-body>#profile-plan-management{border:0;padding:0;margin:0}
+.profile-dialog-actions{display:flex;gap:8px;margin-top:24px}
+.profile-dialog-actions>button{flex:1;padding:10px;border:1px solid #d1d6db;border-radius:12px;font-weight:800}
+.profile-dialog-actions>.profile-danger{background:#f04452;color:white;border-color:#f04452}
+.profile-design #referral{border:1px solid #e6eaee;border-radius:22px;margin:0}
+.profile-design #previewCardNamePhone{white-space:normal;overflow-wrap:anywhere}
+.profile-design #newEmailModalInput{width:0;min-width:0}
+.profile-design #notifMasterStatusBadge{white-space:nowrap}
+.profile-design #email-verification .ns-input-box{min-width:0}
+@media(max-width:639px){.profile-design #notifStatusIconBox{width:32px;height:32px}.profile-design #notifMasterStatusBadge{display:block}.profile-design .css-12zrezq+span{white-space:normal}.profile-design #previewCardNick{max-width:100px;overflow-wrap:anywhere}}
+@media(prefers-reduced-motion:reduce){.profile-design .ns-hero-cta::after{animation:none}}
+.profile-payment-modal.MuiDialog-paper.MuiPaper-rounded{border-radius:24px;border:1px solid #e6eaee;background:white;font-family:Pretendard,sans-serif}
+.profile-payment-modal .MuiDialogTitle-root{background:#121314;color:#fff;padding:16px 24px;font-size:16px;font-weight:900}
+.profile-payment-modal .MuiDialogContent-root{padding:24px;border-color:#e6eaee}
+.profile-payment-modal .MuiDialogActions-root{padding:16px 24px;gap:8px}
+.profile-payment-modal .MuiButton-root{border-radius:12px;font-size:12px;font-weight:800}
+.profile-payment-modal .MuiButton-contained{background:linear-gradient(135deg,#03c75a,#00a84b 50%,#008a60);color:white}
+.profile-payment-modal .MuiOutlinedInput-root{border-radius:14px}
+.profile-payment-modal .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline{border-color:#03c75a}
+.profile-design #notifMasterStatusBadge[data-enabled="false"],.profile-design #notifStatusIconBox[data-enabled="false"]{background:#f4f6f8;color:#8b95a1}
+.profile-dialog-body>#profile-plan-management .MuiTypography-h6{font-size:16px;font-weight:900}
+.profile-dialog-body>#profile-plan-management .MuiAlert-root{border-radius:16px;background:#f8fafc;border:1px solid #e6eaee;color:#4e5968;font-size:12px;font-weight:600}
+.profile-dialog-body>#profile-plan-management .MuiAlert-icon{color:#6b38fb}
+.profile-payment-modal .profile-plan-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.profile-payment-modal .profile-plan-option{position:relative;padding:16px;border:1px solid #e6eaee;border-radius:16px;background:#f8fafc;cursor:pointer;display:flex;flex-direction:column;gap:4px}
+.profile-payment-modal .profile-plan-option.is-selected{border:2px solid #03c75a;padding:15px;background:rgb(236 253 245 / .6)}
+.profile-payment-modal .profile-plan-option:has(input:focus-visible){outline:2px solid #03c75a;outline-offset:3px}
+.profile-payment-modal .profile-plan-option:has(input:disabled){cursor:default;opacity:.5}
+.profile-payment-modal .profile-plan-option input{position:absolute;opacity:0;width:1px;height:1px}
+.profile-payment-modal .profile-plan-option-name{font-size:14px;font-weight:900;color:#121314}
+.profile-payment-modal .profile-plan-option-price{font-size:20px;font-weight:900;color:#121314}
+.profile-payment-modal .profile-plan-option-price>span{font-size:11px;color:#8b95a1;font-weight:700;margin-left:4px}
+.profile-payment-modal .profile-plan-option-status{font-size:11px;color:#00b04e;font-weight:800}
+@media(max-width:599px){.profile-payment-modal .profile-plan-options{grid-template-columns:1fr}.profile-payment-modal.MuiDialog-paper{margin:16px;width:calc(100% - 32px)}.profile-payment-modal .MuiDialogContent-root{padding:20px}}
+.profile-payment-modal .profile-payment-title{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.profile-payment-title>span{display:flex;align-items:center;gap:8px}
+.profile-payment-title svg{color:#a78bfa}
+.profile-payment-title>button{border:0;padding:0;background:none;cursor:pointer}
+.profile-payment-title>button svg{color:#94a3b8}
+.profile-payment-modal .MuiButton-contained.Mui-disabled{color:#fff;opacity:.5}
+/* Account extras follow the same 22px cards, 14px inputs and compact typography. */
+.profile-design .profile-account-section{padding:24px;background:#fff;display:flex;flex-direction:column;gap:20px}
+.profile-design .profile-account-heading{display:flex;align-items:center;gap:10px;padding-bottom:16px;border-bottom:1px solid #f4f6f8}
+.profile-design .profile-account-heading h2{font-size:18px;line-height:1.5;font-weight:900;color:#121314}
+.profile-design .profile-account-heading p{font-size:12px;font-weight:600;color:#8b95a1;margin-top:2px}
+.profile-design .profile-account-icon{display:flex;align-items:center;justify-content:center;width:32px;height:32px;flex-shrink:0;border-radius:12px;background:#ecfdf5;color:#00b04e}
+.profile-design .profile-account-icon-danger{background:#fff1f2;color:#f04452}
+.profile-design .profile-referral-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;align-items:start}
+.profile-design .profile-account-panel{padding:20px;background:#f8fafc;border:1px solid #e6eaee;border-radius:16px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.profile-design .profile-panel-heading{display:flex;align-items:center;gap:8px;color:#00b04e;flex-wrap:wrap}
+.profile-design .profile-account-panel h3{font-size:14px;font-weight:900;color:#121314}
+.profile-design .profile-account-description{font-size:12px;line-height:1.7;font-weight:600;color:#4e5968;overflow-wrap:anywhere}
+.profile-design .profile-referral-email{display:flex;flex-direction:column;gap:4px;padding:14px;background:#fff;border:1px solid #e6eaee;border-radius:14px;min-width:0}
+.profile-design .profile-referral-email>span{font-size:11px;font-weight:700;color:#8b95a1}
+.profile-design .profile-referral-email>strong{font-size:14px;font-weight:900;color:#121314;overflow-wrap:anywhere}
+.profile-design .profile-account-field{display:flex;flex-direction:column;gap:6px}
+.profile-design .profile-account-field>label{font-size:12px;font-weight:900;color:#121314}
+.profile-design .profile-account-input{display:flex;align-items:center;gap:10px;padding:10px 14px;background:#fff}
+.profile-design .profile-account-input svg{color:#00b04e}
+.profile-design .profile-account-input input{width:100%;background:transparent;border:0;outline:0;font-size:14px;line-height:20px;font-weight:700;color:#121314}
+.profile-design .profile-account-field>p{font-size:11px;line-height:1.6;font-weight:600;color:#8b95a1}
+.profile-design .profile-account-button{display:flex;justify-content:center;align-items:center;gap:8px;padding:11px 16px;border-radius:12px;font-size:12px;line-height:18px;font-weight:900;flex-shrink:0}
+.profile-design .profile-account-secondary{border:1px solid #d1d6db;color:#4e5968;background:#fff}
+.profile-design .profile-account-secondary:hover:not(:disabled){border-color:#03c75a;color:#00b04e;background:#ecfdf5}
+.profile-design .profile-account-button.ns-hero-cta,.profile-design .profile-account-confirm{color:#fff}
+.profile-design .profile-account-note{display:flex;align-items:flex-start;gap:10px;padding:14px;border-radius:14px;background:#fffbeb;border:1px solid #fde68a;color:#92400e;font-size:12px;line-height:1.7;font-weight:600}
+.profile-design .profile-account-note svg{margin-top:2px}
+.profile-design .profile-account-note strong{display:block;font-weight:900;margin-bottom:4px}
+.profile-design .profile-account-note-neutral{background:#f8fafc;border-color:#e6eaee;color:#4e5968;align-items:center}
+.profile-design .profile-account-note-neutral>div{flex:1;min-width:0}
+.profile-design .profile-account-note-neutral>svg{color:#6b38fb}
+.profile-design .profile-account-note-danger{background:#fff1f2;border-color:#ffe4e6;color:#b42336}
+.profile-design .profile-account-badge{padding:3px 8px;border-radius:999px;background:#ecfdf5;color:#00b04e;font-size:10px;font-weight:900}
+.profile-design .profile-referral-complete{padding:16px;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:14px;color:#006e43;font-size:12px;line-height:1.8;overflow-wrap:anywhere}
+.profile-design .profile-referral-complete>strong{display:block;font-size:14px;margin-bottom:8px}
+.profile-design .profile-referral-complete>span{display:block;margin-top:8px;font-size:11px}
+.profile-design .profile-account-footer{display:flex;justify-content:flex-end;padding-top:14px;border-top:1px solid #f4f6f8}
+.profile-design .profile-account-footer a{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;color:#00b04e}
+.profile-design .profile-account-dialog-body,.profile-design .profile-withdrawal-content,.profile-design .profile-withdrawal-notice{display:flex;flex-direction:column;gap:16px}
+.profile-design .profile-account-dialog-body .profile-dialog-actions{margin-top:4px}
+.profile-design .profile-withdrawal-action{display:flex;align-items:center;justify-content:space-between;gap:24px}
+.profile-design .profile-account-danger-outline{background:#fff;border:1px solid #fecdd3;color:#f04452;white-space:nowrap}
+.profile-design .profile-account-danger-outline:hover{background:#fff1f2;border-color:#f04452}
+.profile-withdrawal-dialog>header>div svg{color:#fb7185}
+@media(max-width:639px){.profile-design .profile-referral-grid{grid-template-columns:1fr}.profile-design .profile-account-panel{padding:16px}.profile-design .profile-account-heading h2{font-size:16px}.profile-design .profile-account-note-neutral{flex-wrap:wrap}.profile-design .profile-account-note-neutral>.profile-account-button{width:100%}.profile-design .profile-withdrawal-action{align-items:stretch;flex-direction:column;gap:14px}.profile-design .profile-account-footer{justify-content:flex-start}}

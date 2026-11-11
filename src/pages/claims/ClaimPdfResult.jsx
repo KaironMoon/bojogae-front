@@ -49,14 +49,14 @@ export default function ClaimPdfResult({ result, disabled, saved, prepare, faxAc
       if (!controller.signal.aborted) setDownloading(false);
     }
   }
-  return <Stack spacing={1.5}>
+  return <Stack className="claim-result-actions" spacing={1.5}>
     <ClaimOriginalShare result={result} disabled={disabled} prepare={prepare}
       additionalActions={faxAction} feedbackId={feedbackId}
       expiresAt={saved?.original_expires_at} serverTime={saved?.server_time} />
     <Button variant="outlined" startIcon={<DownloadOutlinedIcon />} disabled={disabled || downloading}
       aria-label={`${result.name} PDF 다운로드`}
       sx={{ alignSelf: 'flex-start' }} onClick={download}>
-      {downloading ? '흑백 PDF 준비 중…' : 'PDF 다운로드'}
+      {downloading ? '흑백 PDF 준비 중…' : 'PC 다운로드 (무료)'}
     </Button>
     {error && <Alert severity="error">{error}</Alert>}
   </Stack>;

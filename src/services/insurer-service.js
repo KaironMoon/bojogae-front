@@ -4,6 +4,14 @@ export async function getInsurers(query, signal, kind = "all") {
   return (await apiCaller.get("/api/v1/insurers", { q: query, ...(kind !== "all" ? { kind } : {}) }, { signal })).data;
 }
 
+export async function getInsurerPreferences(signal) {
+  return (await apiCaller.get("/api/v1/insurers/preferences", {}, { signal })).data;
+}
+
+export async function saveInsurerPreference(insurerId, update) {
+  return (await apiCaller.patch(`/api/v1/insurers/preferences/${encodeURIComponent(insurerId)}`, update)).data;
+}
+
 export async function getAdminInsurers() {
   return (await apiCaller.get("/api/v1/admin/insurers")).data;
 }

@@ -1,4 +1,6 @@
+import { CustomerModal, CustomerField } from "./CustomerReference";
 /* eslint-disable react/prop-types, react-refresh/only-export-components */
+import ContractDesignIcon from "./ContractDesignIcon";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Alert,
@@ -21,8 +23,6 @@ import {
   Typography,
 } from "@mui/material";
 import { Link } from "react-router-dom";
-import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
-import NotificationsActiveOutlinedIcon from "@mui/icons-material/NotificationsActiveOutlined";
 import {
   crmGet,
   crmPost,
@@ -77,14 +77,14 @@ export function Page({ title, description, actions, headerClassName, badges, chi
       >
         <Box>
           {badges}
-          <Typography variant="h5" fontWeight={800}>
+          <div className="crm-page-title-line"><Typography variant="h5" fontWeight={800}>
             {title}
           </Typography>
           {description && (
             <Typography color="text.secondary" mt={0.5}>
               {description}
             </Typography>
-          )}
+          )}</div>
         </Box>
         <Stack direction="row" gap={1} flexWrap="wrap">
           {actions}
@@ -170,6 +170,8 @@ export function Editor({
   title,
   titleId,
   contractLayout = false,
+  contractTaskLayout = false,
+  customerLayout = false,
   open,
   onClose,
   onSubmit,
@@ -177,6 +179,7 @@ export function Editor({
   busy,
   error,
 }) {
+  if (customerLayout) return <CustomerModal open={open} title={title} titleId={titleId} onClose={onClose} onSubmit={onSubmit} busy={busy} error={error}>{children}</CustomerModal>;
   return (
     <Dialog
       open={open}
@@ -184,7 +187,7 @@ export function Editor({
       onClose={busy ? undefined : onClose}
       fullWidth
       maxWidth="md"
-      slotProps={contractLayout ? { paper: { className: "crm-contract-dialog" } } : undefined}
+      slotProps={contractLayout || contractTaskLayout ? { paper: { className: `crm-contract-dialog${contractTaskLayout ? " crm-contract-task-dialog" : ""}` } } : undefined}
     >
       <Box
         component="form"
@@ -193,13 +196,16 @@ export function Editor({
           onSubmit();
         }}
       >
-        {contractLayout ? <div className="crm-contract-dialog-header">
-          <span className="crm-contract-dialog-icon"><NotificationsActiveOutlinedIcon /></span>
+        {contractLayout || contractTaskLayout ? <div className="crm-contract-dialog-header">
+          <span className="crm-contract-dialog-icon"><ContractDesignIcon name="bell" /></span>
           <div>
-            <DialogTitle id={titleId} className="css-2o971p">{title}</DialogTitle>
-            <Typography variant="caption">계약일과 생년월일을 바탕으로 고객에게 연락할 참고일을 확인하세요.</Typography>
+            <div className="crm-contract-dialog-heading">
+              <DialogTitle id={titleId} className="css-2o971p">{title}</DialogTitle>
+              {contractLayout && <span>성립일·생년월일을 바탕으로 참고일 자동 산출</span>}
+            </div>
+            <Typography variant="caption">{contractTaskLayout ? "고객에게 연락할 날짜와 업무 내용을 확인해 주세요." : "계약일과 생년월일을 바탕으로 고객에게 연락할 참고일을 확인하세요."}</Typography>
           </div>
-          <IconButton aria-label="닫기" onClick={onClose} disabled={busy}><CloseRoundedIcon /></IconButton>
+          <IconButton aria-label="닫기" onClick={onClose} disabled={busy}><ContractDesignIcon name="close" /></IconButton>
         </div> : <DialogTitle id={titleId}>{title}</DialogTitle>}
         <DialogContent>
           <Stack gap={2} pt={1}>
@@ -208,6 +214,7 @@ export function Editor({
           </Stack>
         </DialogContent>
         <DialogActions>
+          {contractLayout && <span className="crm-contract-dialog-footer-note">💡 저장 시 상령일, 면책기간 종료일(90일), 감액기간 종료일(1~2년), 생일 참고일이 자동 계산됩니다.</span>}
           <Button disabled={busy} onClick={onClose}>
             취소
           </Button>
@@ -243,14 +250,15 @@ export const emptyLocation = () => ({
   lng: null,
   accuracy: "NONE",
 });
-export function LocationFields({ value, onChange }) {
+export function LocationFields({ value, onChange, addressId, customerDesign = false, compact = false }) {
   const [mapOpen, setMapOpen] = useState(false);
   const [pendingAddress, setPendingAddress] = useState(null);
+  const AddressField = customerDesign ? CustomerField : Field;
   return (
     <>
       <Stack direction={{ xs: "column", sm: "row" }} gap={1}>
-        <Field
-          label="주소"
+        <AddressField
+          id={addressId} label={compact ? undefined : "주소"} inputProps={compact ? { "aria-label": "주소" } : undefined} placeholder={compact ? "도로명 주소 입력 또는 우측 [빠른 주소 확정] 클릭" : customerDesign ? "우측 [주소 검색]을 누르거나 도로명 주소를 입력하세요" : undefined}
           value={value.address}
           onChange={(address) => {
             if (address === value.address) return;
@@ -260,17 +268,17 @@ export function LocationFields({ value, onChange }) {
               onChange({ ...emptyLocation(), address });
             }
           }}
-          helperText="주소 검색 시 좌표도 함께 저장합니다. 정확한 위치가 다르면 지도에서 핀을 움직여 주세요."
+          helperText={compact ? undefined : "주소 검색 시 좌표도 함께 저장합니다. 정확한 위치가 다르면 지도에서 핀을 움직여 주세요."}
         />
         <Button onClick={() => setMapOpen(true)} sx={{ minWidth: 100, alignSelf: { sm: "flex-start" }, height: 40 }}>
-          주소 검색
+          {customerDesign && !compact && <ContractDesignIcon name="search" />}{compact ? "📍 빠른 주소 확정" : "주소 검색"}
         </Button>
       </Stack>
-      {mapOpen && <CrmLocationPicker value={value} onClose={() => setMapOpen(false)} onSelect={(location) => {
+      {mapOpen && <CrmLocationPicker customerDesign={customerDesign} value={value} onClose={() => setMapOpen(false)} onSelect={(location) => {
         onChange(location);
         setMapOpen(false);
       }} />}
-      <Dialog open={pendingAddress !== null} onClose={() => setPendingAddress(null)} fullWidth maxWidth="xs" aria-labelledby="crm-address-edit-title">
+      <Dialog slotProps={customerDesign ? { paper: { className: "crm-customer-dialog crm-customer-location-dialog" } } : undefined} open={pendingAddress !== null} onClose={() => setPendingAddress(null)} fullWidth maxWidth="xs" aria-labelledby="crm-address-edit-title">
         <DialogTitle id="crm-address-edit-title">주소를 수정할까요?</DialogTitle>
         <DialogContent>주소를 수정하면 지정한 지도 위치가 해제됩니다.</DialogContent>
         <DialogActions>
@@ -291,6 +299,8 @@ export function CustomerPicker({
   allowEmpty = false,
   searchId,
   selectId,
+  compact = false,
+  disabled = false,
 }) {
   const [query, setQuery] = useState("");
   const [items, setItems] = useState([]);
@@ -307,16 +317,17 @@ export function CustomerPicker({
     }
   }
   return (
-    <Stack gap={1}>
+    <Stack gap={1} className="crm-customer-picker">
       <Stack direction="row" gap={1}>
-        <Field id={searchId} label={`${label} 검색`} value={query} onChange={setQuery} />
-        <Button onClick={search} sx={{ minWidth: 90 }}>
+        <Field id={searchId} label={compact ? undefined : `${label} 검색`} inputProps={{ "aria-label": `${label} 검색` }} placeholder={compact ? `${label} 검색` : undefined} disabled={disabled} value={query} onChange={setQuery} />
+        <Button onClick={search} disabled={disabled} sx={{ minWidth: 90 }}>
           검색
         </Button>
       </Stack>
       {error && <Alert severity="warning">{error}</Alert>}
       <Field
-        id={selectId} label={`${label} 선택`}
+        id={selectId} label={compact ? undefined : `${label} 선택`} disabled={disabled}
+        SelectProps={compact ? { native: false, displayEmpty: true, inputProps: { "aria-label": `${label} 선택` } } : undefined}
         value={value || ""}
         onChange={(v) => onChange(v ? Number(v) : null)}
         options={{
@@ -444,7 +455,7 @@ export function Attachments({ customerId, contractId, disabled = false }) {
     </Panel>
   );
 }
-export function Directions({ location, origin }) {
+export function Directions({ location, origin, label = "길찾기" }) {
   const [open, setOpen] = useState(false);
   const [webLink, setWebLink] = useState("");
   const [linkError, setLinkError] = useState("");
@@ -498,7 +509,7 @@ export function Directions({ location, origin }) {
   return (
     <>
       <Button size="small" disabled={!valid && !location?.address?.trim()} onClick={() => setOpen(true)}>
-        길찾기
+        {label}
       </Button>
       <Dialog
         open={open}

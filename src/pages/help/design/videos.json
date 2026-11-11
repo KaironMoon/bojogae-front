@@ -1,0 +1,182 @@
+[
+  {
+    "id": 1,
+    "num": "01",
+    "videoId": "bvClY68_mpI",
+    "title": "보조개의 보험금 청구 보조개 하나면 끝",
+    "duration": "2:49",
+    "views": 36,
+    "publishedAgo": "12일 전",
+    "badge": "보험금 청구 총정리",
+    "thumbUrl": "https://i.ytimg.com/vi/bvClY68_mpI/hq720.jpg",
+    "watchUrl": "https://youtu.be/bvClY68_mpI",
+    "relatedFaqId": 13,
+    "steps": [
+      "1. [보험금 청구 > 청구]에서 40개 손해·생명·공제 보험사 중 청구할 곳을 한 번에 복수 선택합니다.",
+      "2. 인적사항, 전자서명, 사고내용, 진단서/영수증 사진을 한 번만 올리면 각 보험사 공식 청구서 양식에 자동 기입됩니다.",
+      "3. PC 다이렉트 팩스 발송 또는 스마트폰 무료 공유까지 원스톱으로 끝나는 보조개만의 청구 혁신 기능입니다."
+    ]
+  },
+  {
+    "id": 2,
+    "num": "02",
+    "videoId": "-FSahEayni4",
+    "title": "보험금 청구 모바일 팩스로 무료 전송하기",
+    "duration": "2:55",
+    "views": 92,
+    "publishedAgo": "12일 전",
+    "badge": "★ 조회수 1위 · 모바일 무료",
+    "thumbUrl": "https://i.ytimg.com/vi/-FSahEayni4/hq720.jpg",
+    "watchUrl": "https://youtu.be/-FSahEayni4",
+    "relatedFaqId": 11,
+    "steps": [
+      "1. 청구서를 생성·저장한 후 1시간 이내에 스마트폰으로 보조개 [보험금 청구 > 청구내역]에 접속합니다.",
+      "2. 청구내역 카드에서 보험사 팩스번호를 원클릭 복사합니다.",
+      "3. [공유하기(8MB 미만 분할본)]를 눌러 스마트폰 '모바일팩스' 앱으로 전송하면 꼬막 차감 없이 0원(무료)으로 발송됩니다!"
+    ]
+  },
+  {
+    "id": 3,
+    "num": "03",
+    "videoId": "uXAGJpEYbXA",
+    "title": "여러 신규 보험들 1장 요약 보고서 생성",
+    "duration": "2:13",
+    "views": 43,
+    "publishedAgo": "13일 전",
+    "badge": "신규보험 1장 요약",
+    "thumbUrl": "https://i.ytimg.com/vi/uXAGJpEYbXA/hq720.jpg",
+    "watchUrl": "https://youtu.be/uXAGJpEYbXA",
+    "relatedFaqId": 1,
+    "steps": [
+      "1. 고객에게 함께 제안할 여러 건의 신규 가입제안서(예: 건강보험 + 운전자보험 + 화재보험) PDF를 업로드합니다.",
+      "2. 보조개 AI가 각 보험의 핵심 담보, 납입면제 조건, 합산 월 보험료를 단 1장의 시각적 리포트로 통합 요약합니다.",
+      "3. 복잡한 수십 장의 제안서 대신 1장 요약본으로 브리핑하여 계약 체결률을 극대화합니다."
+    ]
+  },
+  {
+    "id": 4,
+    "num": "04",
+    "videoId": "vSfzo202ik4",
+    "title": "청구 서류로 보험금 예상 수령액 계산 및 청구 가능 보험사 리스트 안내",
+    "duration": "2:46",
+    "views": 32,
+    "publishedAgo": "13일 전",
+    "badge": "예상 수령액 자동계산",
+    "thumbUrl": "https://i.ytimg.com/vi/vSfzo202ik4/hq720.jpg",
+    "watchUrl": "https://youtu.be/vSfzo202ik4",
+    "relatedFaqId": 14,
+    "steps": [
+      "1. 고객의 보장분석표 PDF와 병원 진료비 영수증·진단서·세부내역서를 함께 업로드합니다.",
+      "2. 가입된 보험사별 특약(실손, 1~5종 수술비, 질병수술비, 입원일당 등)과 대조하여 예상 수령액을 자동 계산합니다.",
+      "3. 청구 가능한 보험사 리스트와 예상 보험금 안내문을 고객 카톡으로 바로 전달할 수 있습니다."
+    ]
+  },
+  {
+    "id": 5,
+    "num": "05",
+    "videoId": "wkNfG7Eq6QI",
+    "title": "리모델링 보고서 생성",
+    "duration": "5:31",
+    "views": 11,
+    "publishedAgo": "13일 전",
+    "badge": "보장·보험료 전후비교",
+    "thumbUrl": "https://i.ytimg.com/vi/wkNfG7Eq6QI/hq720.jpg",
+    "watchUrl": "https://youtu.be/wkNfG7Eq6QI",
+    "relatedFaqId": 16,
+    "steps": [
+      "1. 기존 보장분석 PDF와 신규 제안서 PDF를 첨부하고, 정리(해지)할 보험이 있다면 입력합니다.",
+      "2. 리모델링 전/후 총 월납 보험료 변화와 항목별 누적 보장금액 증감 비교표가 자동으로 생성됩니다.",
+      "3. 해지할 보험을 입력하지 않으면 기존 계약을 모두 유지한 채 보완하는 모드로 정확히 작동합니다."
+    ]
+  },
+  {
+    "id": 6,
+    "num": "06",
+    "videoId": "Ij6LjBcz0TQ",
+    "title": "보험 가입제안서 요약 보고서 생성",
+    "duration": "2:05",
+    "views": 30,
+    "publishedAgo": "13일 전",
+    "badge": "제안서 핵심요약",
+    "thumbUrl": "https://i.ytimg.com/vi/Ij6LjBcz0TQ/hq720.jpg",
+    "watchUrl": "https://youtu.be/Ij6LjBcz0TQ",
+    "relatedFaqId": 3,
+    "steps": [
+      "1. 원수사 상품설명서 또는 가입설계서 PDF 1건을 드래그 앤 드롭으로 업로드합니다.",
+      "2. 어려운 보험 약관 용어를 고객이 직관적으로 이해할 수 있는 쉬운 설명과 핵심 카드뉴스 형태로 변환합니다.",
+      "3. 완료된 보고서는 [공유 링크] 또는 고화질 이미지로 저장해 카카오톡으로 즉시 전송할 수 있습니다."
+    ]
+  },
+  {
+    "id": 7,
+    "num": "07",
+    "videoId": "xLiUCLmdJuo",
+    "title": "보험사(상품) 비교 (2개 ~ 5개)",
+    "duration": "2:04",
+    "views": 14,
+    "publishedAgo": "13일 전",
+    "badge": "2~5개 보험사 비교",
+    "thumbUrl": "https://i.ytimg.com/vi/xLiUCLmdJuo/hq720.jpg",
+    "watchUrl": "https://youtu.be/xLiUCLmdJuo",
+    "relatedFaqId": 2,
+    "steps": [
+      "1. 비교하고 싶은 2개~5개 보험사의 가입제안서 PDF를 한 번에 업로드합니다.",
+      "2. 월 보험료, 납입면제 조건, 3대 진단비, 비급여 암/순환계 치료비, 장단점을 나란히 대조한 표를 생성합니다.",
+      "3. 왜 이 플랜이 가장 유리한지 설계사 추천 총평까지 자동으로 완성됩니다."
+    ]
+  },
+  {
+    "id": 8,
+    "num": "08",
+    "videoId": "22iWHQN5RTU",
+    "title": "건강e음 상세 진료기록을 이용한 고지사항 자동 추출",
+    "duration": "1:34",
+    "views": 20,
+    "publishedAgo": "13일 전",
+    "badge": "알릴의무 1분 확인",
+    "thumbUrl": "https://i.ytimg.com/vi/22iWHQN5RTU/hq720.jpg",
+    "watchUrl": "https://youtu.be/22iWHQN5RTU",
+    "relatedFaqId": 10,
+    "steps": [
+      "1. 건강e음 상세 진료기록 및 투약이력 파일을 첨부합니다.",
+      "2. 3개월 이내 진찰·투약, 1년 이내 추가검사, 5년 이내 입원·수술·7일 이상 치료·30일 이상 투약 여부를 자동 분류합니다.",
+      "3. 일반심사 및 간편심사(3.2.5 / 3.3.5 / 3.5.5) 고지 대상을 1분 만에 추출하여 고지위반 분쟁을 예방합니다."
+    ]
+  },
+  {
+    "id": 9,
+    "num": "09",
+    "videoId": "wKmUOAe5aEk",
+    "title": "보장분석 보고서 생성",
+    "duration": "1:48",
+    "views": 29,
+    "publishedAgo": "13일 전",
+    "badge": "AI 정밀 보장분석",
+    "thumbUrl": "https://i.ytimg.com/vi/wKmUOAe5aEk/hq720.jpg",
+    "watchUrl": "https://youtu.be/wKmUOAe5aEk",
+    "relatedFaqId": 4,
+    "steps": [
+      "1. 고객의 기존 보험 보장분석표 PDF를 업로드합니다.",
+      "2. 권장 보장 기준선 대비 고객님의 현재 보유 수준(충실/부족/미가입 공백)을 방사형 다이어그램과 표로 진단합니다.",
+      "3. 잘 가입된 우량 계약(1세대 실손 등)과 보완이 시급한 보장 공백을 명확히 구분해 브리핑할 수 있습니다."
+    ]
+  },
+  {
+    "id": 10,
+    "num": "10",
+    "videoId": "Rj5UliTZ88A",
+    "title": "건강e음 진료기록으로 미청구 보험금찾기",
+    "duration": "2:02",
+    "views": 43,
+    "publishedAgo": "13일 전",
+    "badge": "5년치 숨은 보험금 찾기",
+    "thumbUrl": "https://i.ytimg.com/vi/Rj5UliTZ88A/hq720.jpg",
+    "watchUrl": "https://youtu.be/Rj5UliTZ88A",
+    "relatedFaqId": 9,
+    "steps": [
+      "1. 보장분석표 PDF와 건강e음 5년치 진료·투약 기록 자료를 업로드합니다.",
+      "2. 과거 입원·수술·통원·약제비 이력 중 고객이 놓치고 청구하지 않은 미청구 보험금 항목을 자동 발굴합니다.",
+      "3. 숨은 보험금을 찾아드리면서 자연스럽게 보장 리모델링 상담으로 연결하는 최고의 오프닝 무기입니다."
+    ]
+  }
+]

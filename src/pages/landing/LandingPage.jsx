@@ -1,292 +1,189 @@
+import { useEffect, useState } from "react";
+import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
+import { Dialog, Alert } from "@mui/material";
 import {
-  Box,
-  Typography,
-} from "@mui/material";
-import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
-import AutoAwesomeRoundedIcon from "@mui/icons-material/AutoAwesomeRounded";
-import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
-import DescriptionRoundedIcon from "@mui/icons-material/DescriptionRounded";
-import ForumRoundedIcon from "@mui/icons-material/ForumRounded";
-import GroupsRoundedIcon from "@mui/icons-material/GroupsRounded";
-import PlayCircleOutlineRoundedIcon from "@mui/icons-material/PlayCircleOutlineRounded";
-import EventAvailableOutlinedIcon from "@mui/icons-material/EventAvailableOutlined";
-import FaxOutlinedIcon from "@mui/icons-material/FaxOutlined";
-import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
-import LockRoundedIcon from "@mui/icons-material/LockRounded";
-import SendRoundedIcon from "@mui/icons-material/SendRounded";
-import UploadFileRoundedIcon from "@mui/icons-material/UploadFileRounded";
-import { useEffect, useRef, useState } from "react";
-import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
-
-import { PLAN_DOCUMENT_ESTIMATES, PLAN_INFO, PLAN_USAGE_NOTE } from "@/constants/plans";
-import GroupInquiryDialog from "@/pages/components/GroupInquiryDialog";
-import BusinessInfo from "@/pages/components/layout/BusinessInfo";
-import { shouldSkipLanding, skipLandingFromNowOn } from "@/auth/landing-preference-storage";
-import "./landing.css";
-import "./landing-reveal.css";
-import "./landing-motion.css";
-import "./landing-original.css";
-import "./landing-preference.css";
-import "./landing-theme.css";
-import "./landing-redesign.css";
-import { ContactLink, CostComparison, FeatureShowcase, HeroShowcase, PowerSuites, ProposalVideoLink, VideoGallery } from "./LandingShowcase";
-
-
-const flowSteps = [
-  {
-    number: "01",
-    icon: UploadFileRoundedIcon,
-    eyebrow: "UPLOAD",
-    title: "수십 장의 제안서를\n그대로 올리세요",
-    description: "30~50페이지 원본 PDF를 다시 읽고 옮겨 적을 필요가 없습니다. 보조개가 제안서의 구조부터 파악합니다.",
-  },
-  {
-    number: "02",
-    icon: AutoAwesomeRoundedIcon,
-    eyebrow: "ANALYZE",
-    title: "설명해야 할 핵심만\nAI가 골라냅니다",
-    description: "암·뇌·심장 3대 진단비, 수술비, 보험료와 갱신 주기를 고객이 이해하기 쉬운 순서로 재구성합니다.",
-  },
-  {
-    number: "03",
-    icon: DescriptionRoundedIcon,
-    eyebrow: "BRIEF",
-    title: "고객 눈높이의\n한 장 브리핑으로",
-    description: "복잡한 담보표 대신 중요한 보장과 체크포인트가 또렷한 고객 맞춤형 요약 페이지가 완성됩니다.",
-  },
-  {
-    number: "04",
-    icon: SendRoundedIcon,
-    eyebrow: "CONNECT",
-    title: "카톡으로 보내고\n상담에 집중하세요",
-    description: "비대면으로 바로 공유하고, 고객의 질문과 상담에 집중하세요. 이해하기 쉬운 설명이 소개 계약으로 이어집니다.",
-  },
-];
-
-const reviews = [
-  {
-    before: "그동안 카톡으로 제안서 보내면 90%는 읽씹이었어요. 근데 보조개로 요약한 맞춤형 페이지를 딱 보내니까 ",
-    highlight: "‘팀장님, 이전 보험이랑 비교해서 보장이 훨씬 좋네요!’",
-    after: "라며 먼저 전화가 오더라고요. 거절했던 고객 4명을 비대면으로만 살려냈습니다.",
-    initials: "김영",
-    name: "김영우 설계사 (경력 4년차)",
-    detail: "대형 GA 리치앤코 소속",
-  },
-  {
-    before: "서류 요약하느라 매일 2시간씩 쓰던 시간을 완전히 상담과 DB 분석에 쏟고 있습니다. 무엇보다 ",
-    highlight: "고객이 이해를 잘하니까 계약 끝나고 본인 남편, 친동생 제안서도 봐달라고 소개",
-    after: "를 연달아 주셨어요. 월 29,000원은 계약 1건 수수료로도 수십 배 남습니다.",
-    initials: "이수",
-    name: "이수진 팀장 (MDRT 달성)",
-    detail: "생명/손해보험 교차 설계사",
-  },
-  {
-    before: "신인 설계사 시절에는 고객이 약관 질문하면 당황해서 말이 꼬였는데, 보조개 요약본에는 ",
-    highlight: "‘고객에게 말할 핵심 멘트와 체크포인트’",
-    after: "까지 짚어줘서 너무 든든합니다. 지점 전체 동료들에게도 무조건 쓰라고 추천하고 다녀요.",
-    initials: "박민",
-    name: "박민혁 지점장",
-    detail: "글로벌금융판매 지점 운영",
-  },
-];
-
-const plans = [
-  { ...PLAN_INFO.FREE, name: "1달 무료 체험", tag: "30일 무료체험", features: ["보험 제안서 분석·보고서 생성 체험", "카드 등록 없이 시작", "유료 전환은 직접 선택"] },
-  { ...PLAN_INFO.BASIC, tag: "가볍게 시작", features: ["보험 제안서 분석·보고서 생성", "쉬운 설명 자동 변환", "생성 보고서 아카이빙"] },
-  { ...PLAN_INFO.STANDARD, tag: "가장 선호", featured: true, features: ["보험 제안서 분석·보고서 생성", "쉬운 설명 자동 변환", "생성 보고서 아카이빙"] },
-  { ...PLAN_INFO.PRO, tag: "많이 사용하는 분께", features: ["보험 제안서 분석·보고서 생성", "쉬운 설명 자동 변환", "생성 보고서 아카이빙"] },
-  { name: "사무실 그룹", price: "별도 문의", priceUnit: "단체 할인", tag: "지점 · 본부 · GA", dark: true, features: ["사번 기반 그룹 로그인", "지점장 관리자 대시보드", "단체 맞춤형 운영 지원"] },
-];
-
-const faqs = [
-  ["어떤 보험사의 제안서든 요약이 가능한가요?", "국내 손해보험 및 생명보험사의 표준 상품설명서와 제안서 PDF를 지원합니다."],
-  ["고객 개인정보나 민감한 정보는 안전한가요?", "암호화 통신을 통해 분석하며, 제안서의 민감한 개인 식별 정보는 AI 학습용으로 영구 저장하지 않습니다."],
-  ["무료체험이 끝나면 자동으로 결제되나요?", "아닙니다. 카드 등록 없이 30일간 서비스를 체험할 수 있으며, 체험 종료 후 자동 결제되지 않습니다. 유료 전환은 직접 선택합니다."],
-  ["월간 구독권은 무엇인가요?", "월간 구독권은 보조개의 보험 제안서 분석·보고서 생성 기능을 이용하는 상품입니다. 요금제별 이용 한도가 적용되며, 구독은 매월 자동 갱신됩니다. 이용기간과 다음 결제일은 내정보에서, 이용 한도와 사용 내역은 별도 이용 내역 화면에서 확인할 수 있습니다."],
-  ["사무실 그룹(GA 지점 등) 단위로 도입하려면 어떻게 하나요?", "단체 문의를 남겨주시면 사번 기반 그룹 로그인과 단체 운영 방식에 맞춰 안내해 드립니다."],
-];
-
+  shouldSkipLanding,
+  skipLandingFromNowOn,
+} from "@/auth/landing-preference-storage";
+import {
+  createGroupInquiry,
+  groupInquiryError,
+} from "@/services/group-inquiry-service";
+import HomeReference from "./design/HomeReference";
+import WeaponCard from "./design/WeaponCard";
+import VideoCard from "./design/VideoCard";
+import VideoReference from "./design/VideoReference";
+import SampleReference from "./design/SampleReference";
+import InquiryReference from "./design/InquiryReference";
+import SummarySample from "./design/SummarySample";
+import CompareSample from "./design/CompareSample";
+import RemodelSample from "./design/RemodelSample";
+import weapons from "./design/weapons.json";
+import videos from "./design/videos.json";
+import "./design/source.css";
+import "./design/utilities.css";
+import "./design/integration.css";
+const empty = {
+  organizationName: "",
+  headcount: "",
+  contactName: "",
+  phone: "",
+  email: "",
+  message: "",
+  privacyAgreed: false,
+  website: "",
+};
 export default function LandingPage() {
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const [inquiryOpen, setInquiryOpen] = useState(false);
-  const [openFaq, setOpenFaq] = useState(0);
-  const pageRef = useRef(null);
-  const authRedirect = searchParams.get("error") || searchParams.get("passwordChanged");
-
+  const navigate = useNavigate(),
+    [params] = useSearchParams();
+  const [tab, setTab] = useState("video"),
+    [modal, setModal] = useState(null),
+    [video, setVideo] = useState(videos[5]),
+    [sample, setSample] = useState("summary"),
+    [values, setValues] = useState(empty),
+    [busy, setBusy] = useState(false),
+    [feedback, setFeedback] = useState(null),
+    [skip, setSkip] = useState(false),
+    [preferenceBusy, setPreferenceBusy] = useState(true);
   useEffect(() => {
-    const elements = pageRef.current?.querySelectorAll("[data-reveal]") || [];
-    if (!window.IntersectionObserver || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      elements.forEach(element => { element.dataset.revealed = "true"; });
-      return undefined;
-    }
-    pageRef.current?.classList.add("reveal-ready");
-    const observer = new IntersectionObserver(entries => {
-      entries.forEach(entry => { if (entry.isIntersecting) entry.target.dataset.revealed = "true"; });
-    }, { threshold: 0.13 });
-    elements.forEach(element => observer.observe(element));
-    return () => observer.disconnect();
-  }, []);
-
-  useEffect(() => {
-    const page = pageRef.current;
-    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (!page || reducedMotion) return undefined;
-
-    const heroProduct = page.querySelector(".hero-product");
-    const finalCta = page.querySelector(".final-cta");
-    let frame = 0;
-
-    const updateScrollMotion = () => {
-      frame = 0;
-      if (heroProduct) {
-        const heroRect = heroProduct.getBoundingClientRect();
-        heroProduct.style.setProperty("--scroll-lift", `${Math.max(-24, Math.min(24, -heroRect.top * 0.045))}px`);
-      }
-      if (finalCta) {
-        const ctaRect = finalCta.getBoundingClientRect();
-        finalCta.style.setProperty("--cta-drift", `${Math.max(-50, Math.min(50, (window.innerHeight - ctaRect.top) * 0.06))}px`);
-      }
-    };
-    const requestScrollMotion = () => {
-      if (!frame) frame = window.requestAnimationFrame(updateScrollMotion);
-    };
-
-    const pointerFine = window.matchMedia("(pointer: fine)").matches;
-    const tilt = (event) => {
-      if (!heroProduct || !pointerFine) return;
-      const rect = heroProduct.getBoundingClientRect();
-      const x = (event.clientX - rect.left) / rect.width - 0.5;
-      const y = (event.clientY - rect.top) / rect.height - 0.5;
-      heroProduct.style.setProperty("--tilt-x", `${-y * 5}deg`);
-      heroProduct.style.setProperty("--tilt-y", `${x * 7}deg`);
-    };
-    const resetTilt = () => {
-      heroProduct?.style.setProperty("--tilt-x", "0deg");
-      heroProduct?.style.setProperty("--tilt-y", "0deg");
-    };
-
-    window.addEventListener("scroll", requestScrollMotion, { passive: true });
-    window.addEventListener("resize", requestScrollMotion);
-    heroProduct?.addEventListener("pointermove", tilt);
-    heroProduct?.addEventListener("pointerleave", resetTilt);
-    updateScrollMotion();
-
+    let live = true;
+    Promise.resolve(shouldSkipLanding())
+      .then((v) => {
+        if (live) setSkip(v);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (live) setPreferenceBusy(false);
+      });
     return () => {
-      window.removeEventListener("scroll", requestScrollMotion);
-      window.removeEventListener("resize", requestScrollMotion);
-      heroProduct?.removeEventListener("pointermove", tilt);
-      heroProduct?.removeEventListener("pointerleave", resetTilt);
-      if (frame) window.cancelAnimationFrame(frame);
+      live = false;
     };
   }, []);
-
-  if (authRedirect) return <Navigate to={`/login?${searchParams.toString()}`} replace />;
-  if (shouldSkipLanding()) return <Navigate to="/login" replace />;
-  const goLogin = (method = "personal", plan) => navigate(plan ? `/login?method=${method}&plan=${plan}` : `/login?method=${method}`);
-  const skipLanding = () => {
-    skipLandingFromNowOn();
-    navigate("/login", { replace: true });
+  const close = () => {
+    if (!busy) setModal(null);
   };
-
+  const login = (mode, plan) =>
+    navigate(
+      mode === "trial"
+        ? "/login?method=personal&plan=FREE"
+        : `/login?method=${mode}${plan ? `&plan=${plan}` : ""}`,
+    );
+  const vm = {
+    tab,
+    setTab,
+    video,
+    values,
+    busy,
+    preferenceBusy,
+    feedback,
+    close,
+    login,
+    openVideo: (id) => {
+      setVideo(videos.find((v) => v.id === id) || videos[5]);
+      setModal("video");
+    },
+    openSample: (key) => {
+      setSample(key);
+      setModal("sample");
+    },
+    openInquiry: () => {
+      setValues(empty);
+      setFeedback(null);
+      setModal("inquiry");
+    },
+    update: (key, value) => setValues((v) => ({ ...v, [key]: value })),
+    skipLanding: async () => {
+      setPreferenceBusy(true);
+      try {
+        await skipLandingFromNowOn();
+        navigate("/login", { replace: true });
+      } catch {
+        setFeedback(
+          <Alert severity="error">
+            로그인 화면 설정을 저장하지 못했습니다.
+          </Alert>,
+        );
+      } finally {
+        setPreferenceBusy(false);
+      }
+    },
+    submit: async (e) => {
+      e.preventDefault();
+      setBusy(true);
+      setFeedback(null);
+      try {
+        await createGroupInquiry(values);
+        setModal("complete");
+      } catch (error) {
+        setFeedback(<Alert severity="error">{groupInquiryError(error)}</Alert>);
+      } finally {
+        setBusy(false);
+      }
+    },
+    sampleBody:
+      sample === "summary" ? (
+        <SummarySample />
+      ) : sample === "compare" ? (
+        <CompareSample />
+      ) : (
+        <RemodelSample />
+      ),
+    sampleTitle:
+      sample === "summary"
+        ? "가입제안서 1장 요약 샘플"
+        : sample === "compare"
+          ? "3사 보험 상세 비교 샘플"
+          : "보험 리모델링 전/후 진단 샘플",
+  };
+  vm.weapons = weapons.map((w) => <WeaponCard key={w.num} w={w} vm={vm} />);
+  vm.videos = videos.map((v) => <VideoCard key={v.id} v={v} vm={vm} />);
+  if (params.get("error") || params.get("passwordChanged"))
+    return <Navigate to={`/login?${params.toString()}`} replace />;
+  if (skip) return <Navigate to="/login" replace />;
   return (
-    <Box ref={pageRef} id="top" className="landing-page home-redesign">
-      <header className="landing-header">
-        <a className="brand home-brand" href="#top" aria-label="보조개 홈"><img src="/bojogae-icon.png" alt="" width="42" height="42" /><span>BOJOGAE<small>보조개AI 개인비서</small></span></a>
-        <nav aria-label="랜딩페이지 메뉴"><a href="#features">핵심 기능</a><a href="#demo-preview" className="home-nav-video">시연 영상</a><a href="#power-suites">보조개톡·청구·CRM</a><a href="#benefits">도입 효과</a><a href="#reviews">설계사 후기</a><a href="#pricing">요금 안내</a></nav>
-        <div className="header-actions"><label className="home-login-preference"><input type="checkbox" onChange={skipLanding} />다음부터 로그인 화면으로</label><button className="pill-button" aria-label="기존 회원 로그인" onClick={() => navigate("/login")}>로그인 <ArrowForwardRoundedIcon /></button><button className="home-button home-button--primary home-header-trial" onClick={() => goLogin("personal", "FREE")}>무료 체험</button></div>
-      </header>
-
-      <main>
-        <section className="home-hero-band">
-          <div className="hero-orb orb-one" aria-hidden="true" /><div className="hero-orb orb-two" aria-hidden="true" />
-          <div className="hero-section">
-          <div className="hero-copy" data-reveal>
-            <div className="eyebrow-pill"><span /> 수십 장의 복잡한 보험 제안서, 1~2분 만에 고객 맞춤 리포트로</div>
-            <h1><span>복잡한 제안서는 <em>보조개 AI</em>에게 맡기고,</span><span>설계사님은 <strong>상담과 계약</strong>에만 집중하세요.</span></h1>
-            <p>제안서 PDF를 올리면 AI가 보장과 보험료를 정리합니다. 고객이 읽기 쉬운 한 장 요약을 만들고, 비교부터 청구와 사후관리까지 이어가세요.</p>
-            <ul className="home-hero-tags" aria-label="주요 기능">
-              <li><DescriptionRoundedIcon />제안서 1장 요약·비교</li>
-              <li><SearchRoundedIcon />건강e음 미청구·고지 추출</li>
-              <li><FaxOutlinedIcon />청구서·모바일팩스</li>
-              <li><ForumRoundedIcon />보조개톡 자동 발송</li>
-              <li><EventAvailableOutlinedIcon />상령일·면책·감액·생일</li>
-            </ul>
-            <div className="hero-actions">
-              <button className="primary-cta" onClick={() => goLogin("personal", "FREE")}>1달 무료 체험 시작하기 (20회 무료) <ArrowForwardRoundedIcon /></button>
-              <ProposalVideoLink className="secondary-cta"><PlayCircleOutlineRoundedIcon />제안서 만들기 영상</ProposalVideoLink>
-            </div>
-            <div className="hero-trust"><span><CheckRoundedIcon /> 카드 등록 없음</span><span><CheckRoundedIcon /> 20회 무료</span><span><LockRoundedIcon /> 최초 30일 한정</span></div>
+    <>
+      <div className="landing-design">
+        {!modal && feedback}
+        <HomeReference vm={vm} />
+      </div>
+      <Dialog
+        open={!!modal}
+        onClose={close}
+        maxWidth={false}
+        aria-label={
+          modal === "inquiry"
+            ? "단체 도입 문의"
+            : modal === "video"
+              ? "시연 영상"
+              : modal === "sample"
+                ? "리포트 샘플"
+                : "문의 접수 완료"
+        }
+        slotProps={{
+          paper: {
+            className: `landing-design landing-dialog ${modal === "inquiry" ? "group-dialog" : ""}`,
+          },
+        }}
+      >
+        {modal === "video" ? (
+          <VideoReference vm={vm} />
+        ) : modal === "sample" ? (
+          <SampleReference vm={vm} />
+        ) : modal === "inquiry" ? (
+          <InquiryReference vm={vm} />
+        ) : modal === "complete" ? (
+          <div className="p-6 space-y-4">
+            <h2 className="text-xl font-black">문의가 접수되었습니다</h2>
+            <p>담당자가 확인 후 연락드리겠습니다.</p>
+            <button
+              className="px-4 py-2 rounded-xl border border-[#d1d6db]"
+              onClick={close}
+            >
+              닫기
+            </button>
           </div>
-          <div className="hero-product" data-reveal><HeroShowcase /></div>
-          </div>
-        </section>
-
-        <section id="flow" className="home-block" aria-labelledby="home-flow-title">
-          <div className="home-section-heading">
-            <h2 id="home-flow-title">올리고, 정리하고, 상담에 활용하세요</h2>
-            <p>보험 제안서가 고객에게 바로 보여줄 한 장으로 바뀌는 과정입니다.</p>
-          </div>
-          <div className="home-flow-grid">
-            {flowSteps.map(({ number, icon: Icon, eyebrow, title, description }) => (
-              <article key={number}><header><Icon aria-hidden="true" /><span>{number} · {eyebrow}</span></header>
-                <h3>{title.replace("\n", " ")}</h3><p>{description}</p>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        <FeatureShowcase />
-        <VideoGallery />
-        <PowerSuites />
-        <section id="benefits" className="original-benefit-section">
-          <div className="original-section-heading" data-reveal><span>WHY BOJOGAE?</span><h2>왜 잘 팔리는 설계사는 <em>‘보조개’</em>를 쓸까요?</h2><p>수많은 보장 내용과 깨알 같은 글씨로 가득한 설계서는 고객을 망설이게 합니다.<br />보조개는 설계사의 시간 비용을 없애고, 고객에게는 “당장 계약하고 싶은 확신”을 선물합니다.</p></div>
-          <div className="before-after-grid">
-            <article className="comparison-card before-card" data-reveal><span className="comparison-label">기존의 힘든 영업 방식</span><h3><i>×</i> 보조개를 쓰기 전</h3><ul><li><b>야근을 부르는 제안서 작업</b><p>고객 1명을 위해 30~50장짜리 설계서를 뜯어보며 PPT로 재가공하느라 밤 11시 퇴근.</p></li><li><b>비대면 상담의 허탈한 거절</b><p>PDF 전체를 카톡으로 보내면 고객은 “내용이 너무 어려워서 나중에 볼게요”라며 연락 두절.</p></li><li><b>단발성 계약에 그침</b><p>설계 내용이 와닿지 않아 계약 후 지인 소개나 가족 추가 계약으로 이어지지 않음.</p></li></ul></article>
-            <article className="comparison-card after-card" data-reveal><span className="comparison-label">보조개 도입 후 실적 혁신</span><h3><i>✓</i> 보조개와 함께한 후</h3><ul><li><b>상담 준비 1~2분 컷</b><p>업로드 후 핵심 요약, 기존 계약 대비 개선점, 추천 플랜이 알기 쉬운 맞춤 페이지로 자동 생성.</p></li><li><b>거절했던 가망고객 재성약</b><p>스마트폰에서 쉽게 읽히는 맞춤형 페이지로 “이해하기 너무 쉽다”며 상담 신청 역주행.</p></li><li><b>고객 감동이 부르는 소개</b><p>고객이 가족과 지인에게 그대로 공유하면서 새로운 소개 계약으로 자연스럽게 연결.</p></li></ul></article>
-          </div>
-          <div className="original-feature-grid">
-            <article data-reveal><div className="original-feature-icon blue"><AutoAwesomeRoundedIcon /></div><h3>AI 초고속 핵심 요약</h3><p>암·뇌·심장 3대 진단비, 수술비, 특약 갱신 주기를 AI가 스캔해 설계사가 설명하기 편한 순서대로 재배열합니다.</p></article>
-            <article data-reveal><div className="original-feature-icon indigo"><ForumRoundedIcon /></div><h3>비대면 카톡 발송 최적화</h3><p>모바일 화면에 최적화된 리포트를 생성하여 전화나 대면 만남을 꺼리던 고객과도 비대면 상담을 이어갈 수 있습니다.</p></article>
-            <article data-reveal><div className="original-feature-icon green"><GroupsRoundedIcon /></div><h3>소개 전환율 극대화</h3><p>고객이 가족이나 지인에게 “이 설계사가 정리해 준 거 봐봐”라며 링크나 이미지를 그대로 전달할 수 있습니다.</p></article>
-          </div>
-        </section>
-
-        <section id="reviews" className="review-section">
-          <div className="section-heading light" data-reveal><span>REAL REVIEWS</span><h2>“보조개 도입 후 상담의 질과<br />통장 잔고가 달라졌습니다”</h2><p>현직 설계사님들이 직접 경험하고 남겨주신 솔직한 평가입니다.</p></div>
-          <div className="review-grid">{reviews.map(review => <article key={review.name} data-reveal><div className="review-rating">★★★★★ <span>평점 5.0</span></div><p>“{review.before}<strong>{review.highlight}</strong>{review.after}”</p><footer><span className="review-avatar">{review.initials}</span><div><b>{review.name}</b><small>{review.detail}</small></div></footer></article>)}</div>
-        </section>
-
-        <section id="pricing" className="pricing-section">
-          <div className="section-heading" data-reveal><span>PRICING PLAN</span><h2>부담 없는 요금, 압도적인 가성비</h2><p>보조개 월간 구독권으로 보험 제안서 분석·보고서 생성 기능을 이용하세요.<br />요금제별 이용 한도가 적용됩니다. 30일 무료체험 후 유료 전환은 직접 선택합니다.</p></div>
-          <CostComparison />
-          <div className="pricing-grid">
-            {plans.map(plan => (
-              <article key={plan.name} className={`${plan.featured ? "featured" : ""} ${plan.dark ? "dark" : ""} ${plan.comingSoon ? "coming-soon" : ""}`} data-reveal>
-                <span className="plan-tag">{plan.tag}</span>
-                <h3>{plan.name}</h3>
-                <div className="plan-price"><strong>{plan.price}</strong><small>/ {plan.priceUnit}</small></div>
-                <ul>
-                  {plan.code && <li><CheckRoundedIcon /><strong>{PLAN_DOCUMENT_ESTIMATES[plan.code]}</strong></li>}
-                  {plan.features.map(feature => <li key={feature}><CheckRoundedIcon />{feature}</li>)}
-                </ul>
-                <button disabled={plan.comingSoon} onClick={() => plan.dark ? setInquiryOpen(true) : goLogin("personal", plan.code)}>
-                  {plan.comingSoon ? "출시 준비 중" : plan.dark ? "단체 도입 문의" : plan.code === "FREE" ? "무료로 시작" : `${plan.name} 가입 신청`}
-                  {!plan.comingSoon && <ArrowForwardRoundedIcon />}
-                </button>
-              </article>
-            ))}
-          </div>
-          <Typography variant="body2" color="text.secondary" align="center" sx={{ mt: 3 }}>{PLAN_USAGE_NOTE}</Typography>
-        </section>
-
-        <section className="faq-section"><div className="faq-heading" data-reveal><span>FAQ</span><h2>자주 묻는 질문</h2><p>보조개 서비스 이용에 관해 궁금한 점을 확인하세요.</p></div><div className="faq-list">{faqs.map(([question, answer], index) => <article key={question} className={openFaq === index ? "open" : ""} data-reveal><button onClick={() => setOpenFaq(openFaq === index ? -1 : index)} aria-expanded={openFaq === index}><span>{question}</span><i>+</i></button><div><p>{answer}</p></div></article>)}</div></section>
-
-        <section className="final-cta" data-reveal><div><span>YOUR NEXT PROPOSAL</span><h2>다음 제안서는<br />보조개와 시작하세요.</h2><p>정리는 AI에게 맡기고, 설계사님은 고객의 마음에 집중하세요.</p></div><div className="final-actions"><button onClick={() => goLogin("personal", "FREE")}>1달 무료 체험 시작 (20회 제공) <ArrowForwardRoundedIcon /></button><button className="outline" onClick={() => setInquiryOpen(true)}>단체 도입 문의</button></div></section>
-      </main>
-
-      <footer className="landing-footer"><a className="brand footer-brand home-brand" href="#top"><img src="/bojogae-icon.png" alt="" width="42" height="42" /><span>BOJOGAE<small>보조개AI 개인비서</small></span></a><div><button onClick={() => goLogin("group")}>단체 로그인</button><button onClick={() => goLogin()}>개인 로그인</button><a href="#pricing">이용 요금</a><Link to="/terms">서비스이용약관</Link><Link to="/privacy">개인정보처리방침</Link><ContactLink /></div><BusinessInfo /><p>© 2026 BOJOGAE. All rights reserved.</p></footer>
-      <GroupInquiryDialog open={inquiryOpen} onClose={() => setInquiryOpen(false)} />
-    </Box>
+        ) : null}
+      </Dialog>
+    </>
   );
 }

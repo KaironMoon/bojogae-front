@@ -1,0 +1,49 @@
+/* Scoped preflight needed by the copied Tailwind markup. No application theme changes. */
+.kkomak-design,.kkomak-design * { box-sizing:border-box; }
+.kkomak-design :where(h1,h2,h3,h4,h5,p,ul) { margin:0; }
+.kkomak-design :where(button,input) { font-family:inherit; font-size:inherit; line-height:inherit; letter-spacing:inherit; }
+.kkomak-design :where(button,a,input,th,td,div,span) { border-style:solid; border-width:0; }
+.kkomak-design :where(button) { cursor:pointer; background:none; }
+.kkomak-design :where(button:disabled) { cursor:default; opacity:.5; }
+.kkomak-design :where(a) { text-decoration:none; color:inherit; }
+.kkomak-design :where(svg,img) { display:block; vertical-align:middle; flex-shrink:0; }
+.kkomak-design [hidden] { display:none!important; }
+.wallet-page { min-height:100%; background:#f4f6f8; }
+.kkomak-design .wallet-status { margin:16px 32px 0; }
+.kkomak-design .wallet-transaction-trigger { display:flex; align-items:center; gap:8px; width:100%; text-align:left; font-size:12px; font-weight:700; color:#121314; padding:0; white-space:pre-wrap; overflow-wrap:anywhere; }
+.kkomak-design .wallet-category { display:inline-block; flex-shrink:0; font-size:10px; padding:2px 6px; border-radius:6px; background:#f1f5f9; color:#475569; font-weight:900; }
+.kkomak-design .wallet-category-PLUS { background:#ecfdf5; color:#00b04e; }
+.kkomak-design .wallet-category-FAX { background:#f5f3ff; color:#5b21b6; }
+.kkomak-design .wallet-category-EXPIRE { background:#fff1f2; color:#f04452; }
+.kkomak-design .wallet-pagination .MuiPaginationItem-root { font-family:inherit; font-size:12px; font-weight:800; min-width:32px; height:32px; border:1px solid #e6eaee; border-radius:10px; background:#fff; color:#4e5968; }
+.kkomak-design .wallet-pagination .Mui-selected { background:#03c75a; border-color:#03c75a; color:white; }
+.kkomak-design.wallet-modal { padding:0; background:#fff; border-radius:24px; margin:16px; max-height:90vh; width:calc(100% - 32px); }
+.kkomak-design.wallet-balance-modal { max-width:512px; }
+.kkomak-design.wallet-transaction-modal { max-width:448px; }
+.wallet-modal>div>div:first-child { position:sticky; top:0; z-index:1; }
+.MuiModal-root:has(.wallet-modal)>.MuiBackdrop-root { background:rgb(0 0 0 / .6); }
+.kkomak-design button:focus-visible,.kkomak-design a:focus-visible { outline:2px solid #03c75a; outline-offset:3px; }
+
+@media(max-width:639px) { .kkomak-design .wallet-transaction-trigger { min-width:220px; }.kkomak-design table { min-width:760px; } }
+@media(prefers-reduced-motion:reduce) { .kkomak-design .ns-hero-cta::after { animation:none; } }
+.kkomak-design,.kkomak-design * { --tw-translate-x:0; --tw-translate-y:0; --tw-rotate:0; --tw-skew-x:0; --tw-skew-y:0; --tw-scale-x:1; --tw-scale-y:1; --tw-ring-offset-shadow:0 0 #0000; --tw-ring-shadow:0 0 #0000; --tw-shadow:0 0 #0000; --tw-gradient-from-position: ; --tw-gradient-via-position: ; --tw-gradient-to-position: ; }
+
+.kkomak-design .css-fwbcl7 { border:2px solid rgb(3 199 90 / .3); }
+.kkomak-design.wallet-page { min-height:100vh; }
+
+.kkomak-design.wallet-modal .text-right>.text-base { white-space:nowrap; }
+.kkomak-design.wallet-modal .bg-sub.text-white { white-space:nowrap; }
+
+/* The reference supplies its own border and shadow; the MUI paper is only a host. */
+.kkomak-design.wallet-transaction-modal.MuiDialog-paper.MuiPaper-rounded {
+  border:0;
+  border-radius:24px;
+  box-shadow:none;
+  line-height:1.5;
+}
+.kkomak-design.wallet-transaction-modal > .wallet-transaction-content {
+  flex-shrink:0;
+}
+.kkomak-design.wallet-transaction-modal .wallet-transaction-close {
+  padding:0;
+}

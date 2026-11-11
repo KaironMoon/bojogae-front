@@ -1,13 +1,14 @@
 import { Box, Typography, Link } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import { Link as RouterLink } from "react-router-dom";
+import { Link as RouterLink, useLocation } from "react-router-dom";
 import BusinessInfo from "./BusinessInfo";
 
 function PageFooter() {
   const theme = useTheme();
+  const contractPage = useLocation().pathname === "/crm/contracts";
 
   return (
-    <Box
+    <Box className={contractPage ? "crm-contract-page-footer" : undefined}
       sx={{
         py: 2,
         px: { xs: 2, sm: 3 },

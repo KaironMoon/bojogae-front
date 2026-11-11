@@ -1,0 +1,1 @@
+module.exports={content:[__dirname+'/*.jsx',__dirname+'/../FaqPage.jsx'],important:'.faq-design',corePlugins:{preflight:false},theme:{extend:{colors:{primary:'#03c75a',sub:'#6b38fb','primary-soft':'#ecfdf5','sub-soft':'#f5f3ff'}}}};

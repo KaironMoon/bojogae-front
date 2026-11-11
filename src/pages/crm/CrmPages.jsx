@@ -1,4 +1,8 @@
+import { CustomerWorkspace, CustomerField } from "./CustomerReference";
+import CustomerBatchGroups from "./CrmCustomerBatchGroups";
 /* eslint-disable react/prop-types */
+import { CustomerDesignRow, CustomerDesignDrawer, CustomerConsultationTimeline, CustomerContractPreview } from "./CrmCustomerDesign";
+import ContractDesignIcon from "./ContractDesignIcon";
 import { useState } from "react";
 import {
   Alert,
@@ -20,8 +24,7 @@ import {
   ToggleButtonGroup,
 } from "@mui/material";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import NoteAddOutlinedIcon from "@mui/icons-material/NoteAddOutlined";
-import { crmPost, crmPut, crmError } from "@/services/crm-service";
+import { crmGet, crmPost, crmPut, crmError } from "@/services/crm-service";
 import {
   useCrm,
   Page,
@@ -58,7 +61,7 @@ import {
 import CrmMap from "./CrmMap";
 import CrmImport from "./CrmImport";
 import CrmCustomerGroups from "./CrmCustomerGroups";
-import { ContractListEntry, ContractReminderDetails, ContractReminderFilters } from "./CrmContractReminders";
+import { ContractListEntry, ContractReminderDetails, ContractReminderDrawer, ContractReminderFilters } from "./CrmContractReminders";
 
 function Archive({ kind, value, onClose, onDone }) {
   const [error, setError] = useState("");
@@ -118,7 +121,7 @@ function BulkCustomerArchive({ customers, onClose, onDone }) {
     }
   }
   return (
-    <Dialog open onClose={busy ? undefined : onClose} fullWidth maxWidth="xs">
+    <Dialog slotProps={{ paper: { className: "crm-customer-dialog crm-customer-archive-dialog" } }} open onClose={busy ? undefined : onClose} fullWidth maxWidth="xs">
       <DialogTitle>선택한 고객 {customers.length}명을 보관할까요?</DialogTitle>
       <DialogContent>
         <Stack gap={1}>
@@ -135,10 +138,15 @@ function BulkCustomerArchive({ customers, onClose, onDone }) {
   );
 }
 export function CustomersPage() {
+  const [density, setDensity] = useState("rows");
+  const [detail, setDetail] = useState(null);
+  const [groupId, setGroupId] = useState("");
+  const groups = useCrm("/customer-groups");
   const [q, setQ] = useState("");
   const [search, setSearch] = useState("");
   const [stage, setStage] = useState("");
   const [archived, setArchived] = useState(false);
+  const [allCustomers, setAllCustomers] = useState(false);
   const [missing, setMissing] = useState(false);
   const [unconfirmed, setUnconfirmed] = useState(false);
   const [tag, setTag] = useState("");
@@ -153,6 +161,9 @@ export function CustomersPage() {
   const [groupTargets, setGroupTargets] = useState(null);
   const resource = useCrm("/customers", {
     q: search,
+    group_id: groupId || undefined,
+    include_archived: allCustomers,
+    page_size: 30,
     stage,
     archived,
     missing_location: missing,
@@ -162,7 +173,7 @@ export function CustomersPage() {
     page,
   });
   const navigate = useNavigate();
-  const selectionScope = JSON.stringify([search, stage, archived, missing, unconfirmed, tag, hasContract, page, view]);
+  const selectionScope = JSON.stringify([search, stage, archived, missing, unconfirmed, tag, hasContract, page, view, groupId, allCustomers]);
   const selectable = archived ? [] : (resource.data?.items || []).filter((customer) => !customer.archived);
   const selected = !resource.loading && !resource.error && selection.data === resource.data && selection.scope === selectionScope
     ? selectable.filter((customer) => selection.ids.includes(customer.id)) : [];
@@ -170,163 +181,56 @@ export function CustomersPage() {
     setSelection({ data: resource.data, scope: selectionScope, ids });
   }
   return (
-    <Page
+    <div className="crm-customers-workspace"><CustomerWorkspace
+      headerClassName="crm-customers-header"
+      badges={<div className="crm-customer-header-badges"><span>SMART CRM & GROUP WORKSPACE</span><span>보조개톡 · 보장분석 · 방문일정 실시간 연동</span></div>}
       title="내고객"
-      description="상담부터 보험·방문까지, 고객의 업무를 한곳에서 관리합니다."
+      description="상담부터 보험·방문까지, 고객의 업무를 한곳에서 관리합니다. (고객명 또는 우측 [상세] 버튼을 누르면 상세 워크스페이스가 열립니다)"
       actions={
         <>
-          {view === "list" && <Button onClick={() => setGroupTargets([])}>고객 그룹 관리</Button>}
-          <Button onClick={() => setImportOpen(true)}>자료 가져오기</Button>
-          <Button variant="contained" onClick={() => setForm(true)}>
+          <Button className="crm-customer-group-button" startIcon={<ContractDesignIcon name="folder" />} onClick={() => setGroupTargets([])}>고객 그룹 관리 <span className="crm-customer-group-count">{groups.data?.items.length ?? "—"}</span></Button>
+          <Button className="crm-customer-import-button" startIcon={<ContractDesignIcon name="sheet" />} onClick={() => setImportOpen(true)}>자료 가져오기</Button>
+          <Button className="crm-customer-primary" startIcon={<ContractDesignIcon name="user_plus" />} variant="contained" onClick={() => setForm(true)}>
             고객 등록
           </Button>
         </>
       }
     >
-      <Tabs value={view} onChange={(_, v) => { selectCustomers([]); setView(v); }} sx={{ mb: 2 }}>
-        <Tab value="list" label="내고객 목록" />
-        <Tab value="map" label="주변 고객 지도" />
-      </Tabs>
+      <section className="crm-customer-switches">
+        <div><Tabs value={view} onChange={(_, v) => { selectCustomers([]); setView(v); }}><Tab value="list" icon={<ContractDesignIcon name="rows" />} iconPosition="start" label="내고객 목록" /><Tab value="map" icon={<ContractDesignIcon name="pin" />} iconPosition="start" label="주변 고객 지도" /></Tabs>
+        <div className="crm-customer-density"><span>화면 표시 밀도:</span><ToggleButtonGroup exclusive size="small" value={density} onChange={(_, v) => { if (v) setDensity(v); }}><ToggleButton value="rows"><ContractDesignIcon name="rows" />초슬림 행(최대노출)</ToggleButton><ToggleButton value="cards"><ContractDesignIcon name="grid" />2열 컴팩트 카드</ToggleButton></ToggleButtonGroup></div></div>
+        <div className="crm-customer-group-pills"><Button aria-pressed={!groupId} onClick={() => { setGroupId(""); setPage(1); }}>전체 고객</Button>{groups.data?.items.map(g => <Button key={g.id} aria-pressed={groupId === g.id} onClick={() => { setGroupId(g.id); setView("list"); setPage(1); }}>{g.name} {g.customer_count}명</Button>)}<Button onClick={() => setGroupTargets([])}>+ 새 그룹 만들기 · 편집</Button></div>
+        {groups.error && <Alert severity="warning">{groups.error}</Alert>}
+      </section>
       {view === "map" ? (
-        <CrmMap />
+        <section className="crm-customer-map"><header><div><span>LOCATION CRM</span><h3>주변 고객 지도 & 방문 동선</h3><p>주소가 등록된 고객(연락 중단 제외)의 위치를 지도에서 확인하고 원클릭 길찾기를 실행합니다.</p></div><Button onClick={() => setView("list")}>← 내고객 목록으로 돌아가기</Button></header><CrmMap /></section>
       ) : (
         <>
-          <Panel>
-            <Box
-              component="form"
-              onSubmit={(e) => {
-                e.preventDefault();
-                setSearch(q);
-                setPage(1);
-              }}
-            >
-              <Stack direction={{ xs: "column", md: "row" }} gap={1}>
-                <Field
-                  label="이름·카톡대화명·연락처·주소·메모 검색"
-                  value={q}
-                  onChange={setQ}
-                />
-                <Button type="submit">검색</Button>
-                <Field
-                  label="상담 단계"
-                  value={stage}
-                  options={{ "": "전체", ...STAGES }}
-                  onChange={(v) => {
-                    setStage(v);
-                    setPage(1);
-                  }}
-                />
-                <Field
-                  label="보기"
-                  value={archived ? "ARCHIVED" : missing ? "MISSING" : unconfirmed ? "UNCONFIRMED" : "ACTIVE"}
-                  options={{
-                    ACTIVE: "관리 고객",
-                    ARCHIVED: "보관 고객",
-                    MISSING: "위치 미등록",
-                    UNCONFIRMED: "미확정 주소만 보기",
-                  }}
-                  onChange={(v) => {
-                    setArchived(v === "ARCHIVED");
-                    setMissing(v === "MISSING");
-                    setUnconfirmed(v === "UNCONFIRMED");
-                    setPage(1);
-                  }}
-                />
-              </Stack>
-              <Stack direction="row" gap={1} mt={2}>
-                <Field
-                  label="태그"
-                  value={tag}
-                  onChange={(v) => {
-                    setTag(v);
-                    setPage(1);
-                  }}
-                />
-                <Field
-                  label="계약 보유"
-                  value={hasContract}
-                  options={{ "": "전체", true: "보유", false: "미보유" }}
-                  onChange={(v) => {
-                    setHasContract(v);
-                    setPage(1);
-                  }}
-                />
-              </Stack>
+          <Panel className="crm-customer-filters">
+            <Box component="form" className="crm-customer-filter-grid" onSubmit={e => { e.preventDefault(); setSearch(q); setPage(1); }}>
+              <div className="crm-customer-search"><ContractDesignIcon name="search" /><CustomerField id=":r1ea:" inputProps={{ "aria-label": "이름·카톡대화명·연락처·주소·메모 검색" }} placeholder="이름·카톡대화명·연락처·주소·메모 검색" value={q} onChange={setQ} /><Button type="submit">검색</Button></div>
+              <CustomerField id=":r1ec:" inputProps={{ "aria-label": "상담 단계" }} SelectProps={{ displayEmpty: true }} value={stage} options={{ "": "상담 단계: 전체", ...STAGES }} onChange={v => { setStage(v); setPage(1); }} />
+              <CustomerField id=":r1ee:" inputProps={{ "aria-label": "보기" }} value={allCustomers ? "ALL" : archived ? "ARCHIVED" : missing ? "MISSING" : unconfirmed ? "UNCONFIRMED" : "ACTIVE"} options={{ ACTIVE: "보기: 관리 고객", ARCHIVED: "보관된 고객", ALL: "전체 고객", MISSING: "위치 미등록", UNCONFIRMED: "미확정 주소만 보기" }} onChange={v => { setAllCustomers(v === "ALL"); setArchived(v === "ARCHIVED"); setMissing(v === "MISSING"); setUnconfirmed(v === "UNCONFIRMED"); setPage(1); }} />
+              <CustomerField id=":r1eg:" inputProps={{ "aria-label": "태그" }} placeholder="#태그 (예: 현대홈쇼핑, 지점장)" value={tag} onChange={v => { setTag(v); setPage(1); }} />
+              <CustomerField id=":r1eh:" inputProps={{ "aria-label": "계약 보유" }} SelectProps={{ displayEmpty: true }} value={hasContract} options={{ "": "계약 보유: 전체", true: "계약 보유 (1건 이상)", false: "미보유 (0건)" }} onChange={v => { setHasContract(v); setPage(1); }} />
             </Box>
           </Panel>
           <State resource={resource} />
           {archiveNotice && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setArchiveNotice("")}>{archiveNotice}</Alert>}
-          <Typography variant="body2" color="text.secondary" mb={1}>
-            총 {resource.data?.total || 0}명
-          </Typography>
-          {!archived && (
-            <Stack direction="row" flexWrap="wrap" alignItems="center" gap={1} mb={1}>
-              <FormControlLabel label="현재 페이지 전체 선택" control={<Checkbox
-                disabled={resource.loading || !!resource.error || !selectable.length}
-                checked={selected.length > 0 && selected.length === selectable.length}
-                indeterminate={selected.length > 0 && selected.length < selectable.length}
-                onChange={(event) => selectCustomers(event.target.checked ? selectable.map((customer) => customer.id) : [])}
-              />} />
-              <Typography variant="body2">선택 {selected.length}명</Typography>
-              <Button variant="outlined" disabled={!selected.length} onClick={() => setGroupTargets(selected)}>선택 고객 그룹에 추가</Button>
-              <Button variant="outlined" disabled={!selected.length || resource.loading} onClick={() => { setArchiveNotice(""); setArchiveTargets(selected); }}>선택 고객 보관</Button>
-              {selected.length > 0 && <Button onClick={() => selectCustomers([])}>선택 해제</Button>}
-            </Stack>
-          )}
-          {resource.data?.items.map((c) => (
-            <Panel key={c.id}>
-              <Stack
-                direction={{ xs: "column", sm: "row" }}
-                justifyContent="space-between"
-                gap={1}
-              >
-                <Box>
-                  <Stack direction="row" gap={1} alignItems="center">
-                    {!archived && <Checkbox
-                      size="small"
-                      inputProps={{ "aria-label": `${c.name} 고객 선택` }}
-                      disabled={resource.loading || !!resource.error || c.archived}
-                      checked={selected.some((customer) => customer.id === c.id)}
-                      onChange={(event) => selectCustomers(event.target.checked ? [...selected.map((customer) => customer.id), c.id] : selected.filter((customer) => customer.id !== c.id).map((customer) => customer.id))}
-                    />}
-                    <CustomerLink id={c.id} name={c.alias ? `${c.name} (${c.alias})` : c.name} />
-                    <Chip size="small" label={STAGES[c.stage]} />
-                    {c.do_not_contact && (
-                      <Chip size="small" color="warning" label="연락 중단" />
-                    )}
-                  </Stack>
-                  <Typography variant="body2">
-                    {c.phone || "연락처 미등록"} ·{" "}
-                    {c.location.address || "주소 미등록"}
-                    {c.address_resolution?.status === "UNRESOLVED" && <Chip size="small" color="warning" label="미확정 주소" sx={{ ml: 1 }} />}
-                    {["PENDING", "PROCESSING"].includes(c.address_resolution?.status) && <Chip size="small" label="주소 확인 대기·진행" sx={{ ml: 1 }} />}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    최근 상담 {dateTime(c.last_contact_at)} · 계약{" "}
-                    {c.contract_count}건 (유지 {c.active_contract_count || 0}건)
-                  </Typography>
-                  {c.next_task && (
-                    <Typography
-                      variant="body2"
-                      color={
-                        c.next_task.is_overdue ? "error" : "text.secondary"
-                      }
-                    >
-                      다음 업무: {c.next_task.due_date} {c.next_task.title}
-                    </Typography>
-                  )}
-                </Box>
-                <Stack direction="row" alignItems="center">
-                  <Button component={Link} to={`/crm/customers/${c.id}`}>
-                    상세
-                  </Button>
-                  <Directions location={c.location} />
-                </Stack>
-              </Stack>
-            </Panel>
-          ))}
+          <div className="crm-customer-batch">
+            <div className="customer-ref-selection">
+              {!archived && <FormControlLabel label="현재 페이지 전체 선택" control={<Checkbox size="small" disabled={resource.loading || !!resource.error || !selectable.length} checked={selected.length > 0 && selected.length === selectable.length} indeterminate={selected.length > 0 && selected.length < selectable.length} onChange={e => selectCustomers(e.target.checked ? selectable.map(c => c.id) : [])} />} />}
+              <p>총 <strong>{resource.data?.total || 0}</strong>명 <small>(현재 페이지 표시 {resource.data?.items.length || 0}명)</small></p>
+              <span>선택 {selected.length}명</span>
+            </div>
+            {!archived && <div className="customer-ref-batch-actions"><Button startIcon={<ContractDesignIcon name="folder" />} variant="outlined" disabled={!selected.length} onClick={() => setGroupTargets(selected)}>선택 고객 그룹에 추가</Button><Button startIcon={<ContractDesignIcon name="archive" />} variant="outlined" disabled={!selected.length || resource.loading} onClick={() => { setArchiveNotice(""); setArchiveTargets(selected); }}>선택 고객 보관</Button>{selected.length > 0 && <Button onClick={() => selectCustomers([])}>선택 해제</Button>}</div>}
+          </div>
+          <div className={`crm-customer-list crm-customer-list--${density}`}>
+            {density === "rows" && <div className="crm-customer-list-head"><span>고객명 (카톡대화명 · 메모)</span><span>상담단계 · 그룹</span><span>연락처 · 주소 상태</span><span>최근 상담 · 보유계약</span><span>업무액션</span></div>}
+            {resource.data?.items.map(c => <CustomerDesignRow key={c.id} customer={c} onDetails={() => setDetail(c)} checked={selected.some(item => item.id === c.id)} onCheck={!archived && !c.archived ? checked => selectCustomers(checked ? [...selected.map(item => item.id), c.id] : selected.filter(item => item.id !== c.id).map(item => item.id)) : undefined} />)}
+          </div>
           {resource.data && !resource.data.items.length && <Empty />}
-          <Pages data={resource.data} onChange={setPage} />
+          <div className="crm-customer-pagination"><span>전체 {resource.data?.total || 0}명 중 {resource.data?.page_start ?? "—"} - {resource.data?.page_end ?? "—"}번째 고객 표시 (페이지당 30명 고밀도 뷰)</span><Pages data={resource.data} onChange={setPage} /></div>
         </>
       )}
       {form && (
@@ -344,15 +248,20 @@ export function CustomersPage() {
           onDone={resource.reload}
         />
       )}
-      {groupTargets && <CrmCustomerGroups selectedCustomers={groupTargets} onClose={() => setGroupTargets(null)} />}
+      {groupTargets?.length > 0 && <CustomerBatchGroups customers={groupTargets} onClose={() => { setGroupTargets(null); groups.reload(); resource.reload(); }} />}
+      {groupTargets?.length === 0 && <CrmCustomerGroups onFilter={id => { setGroupId(id); setView("list"); setPage(1); setGroupTargets(null); groups.reload(); }} selectedCustomers={groupTargets} onClose={() => { setGroupTargets(null); groups.reload(); resource.reload(); }} />}
       {archiveTargets && <BulkCustomerArchive customers={archiveTargets} onClose={() => setArchiveTargets(null)} onDone={(count) => {
         setArchiveTargets(null);
+        setDetail(null);
         selectCustomers([]);
         setArchiveNotice(`${count}명의 고객을 보관했습니다.`);
         if (page > 1 && count === resource.data?.items.length) setPage(page - 1);
         else resource.reload();
       }} />}
-    </Page>
+      <CustomerDesignDrawer customer={detail} onClose={() => { setDetail(null); resource.reload(); groups.reload(); }} onSaved={() => { setDetail(null); resource.reload(); groups.reload(); }} onArchive={() => setArchiveTargets([detail])}
+        onPrevious={resource.data?.items.indexOf(detail) > 0 ? () => setDetail(resource.data.items[resource.data.items.indexOf(detail) - 1]) : undefined}
+        onNext={detail && resource.data?.items.indexOf(detail) < resource.data?.items.length - 1 ? () => setDetail(resource.data.items[resource.data.items.indexOf(detail) + 1]) : undefined} />
+    </CustomerWorkspace></div>
   );
 }
 function ContractCard({ contract: c }) {
@@ -472,7 +381,8 @@ export function CustomerDetailPage() {
   const [task, setTask] = useState(null);
   return (
     <Page
-      title={c?.name || "고객 상세"}
+      headerClassName="crm-customer-detail-header"
+      title={c ? `${c.name}${c.alias ? ` (${c.alias})` : ""}` : "고객 상세"}
       actions={
         <>
           <Button component={Link} to="/crm/customers">
@@ -505,9 +415,7 @@ export function CustomerDetailPage() {
               {c.do_not_contact && (
                 <Chip color="warning" label="연락 중단 요청" />
               )}
-              {c.tags.map((t) => (
-                <Chip key={t} label={t} size="small" />
-              ))}
+              {c.groups?.map(group => <Chip key={group.id} label={group.name} size="small" sx={{ color: "#5b21b6", bgcolor: "#f5f3ff" }} />)}
             </Stack>
             <Typography mt={2}>{c.phone || "연락처 미등록"}</Typography>
             <Typography>
@@ -518,7 +426,7 @@ export function CustomerDetailPage() {
             <Typography variant="caption">
               {ACCURACY[c.location.accuracy]}
             </Typography>
-            <Stack direction="row" gap={1} mt={1}>
+            <Stack className="crm-customer-detail-actions" direction="row" gap={1} mt={1} flexWrap="wrap">
               {c.phone && <Button href={`tel:${c.phone}`}>전화</Button>}
               <Directions location={c.location} />
               <Button
@@ -545,6 +453,7 @@ export function CustomerDetailPage() {
             </Stack>
           </Panel>
           <Tabs
+            className="crm-customer-detail-tabs"
             value={tab}
             onChange={(_, v) => setTab(v)}
             variant="scrollable"
@@ -561,6 +470,17 @@ export function CustomerDetailPage() {
           </Tabs>
           {tab === "summary" && (
             <>
+              <Panel>
+                <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1}>
+                  <Typography fontWeight={700}>최근 상담 내역</Typography>
+                  <Button onClick={() => setTab("consultations")}>전체 보기</Button>
+                </Stack>
+                <CustomerConsultationTimeline items={(c.consultations || []).slice(0, 5)} />
+              </Panel>
+              <Panel>
+                <Typography fontWeight={700} mb={1}>보유 보험 계약 ({c.contracts.total}건)</Typography>
+                <CustomerContractPreview contracts={c.contracts} customerId={c.id} />
+              </Panel>
               <Panel>
                 <Typography fontWeight={700}>보험료 요약</Typography>
                 <Typography variant="h6" mt={1}>
@@ -710,6 +630,45 @@ export function CustomerDetailPage() {
     </Page>
   );
 }
+function ContractBatchDialog({ action, contracts, reminder, onClose, onDone }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const archive = action === "archive";
+  async function submit() {
+    setBusy(true);
+    setError("");
+    try {
+      const result = await crmPost(archive ? "/contracts/bulk-archive" : "/contracts/bulk-schedule", {
+        contracts: contracts.map(({ id, version }) => ({ id, version })),
+        ...(archive ? { confirmed: true } : { reminder }),
+      });
+      onDone(result);
+    } catch (e) {
+      setError(crmError(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+  return <Dialog open onClose={busy ? undefined : onClose} aria-labelledby="crm-contract-batch-title" fullWidth maxWidth="xs" slotProps={{ paper: { className: `crm-contract-batch-dialog crm-contract-batch-dialog--${action}` } }}>
+    <DialogTitle id="crm-contract-batch-title"><ContractDesignIcon name={archive ? "archive" : "calendar"} />선택한 계약 {contracts.length}건 {archive ? "보관" : "알림 등록"}</DialogTitle>
+    <DialogContent>
+      {error && <Alert severity="error" sx={{ mb: 1 }}>{error}</Alert>}
+      <Typography variant="body2">{archive
+        ? "선택한 계약을 기본 목록에서 제외합니다. 보관 계약 목록에서 다시 확인할 수 있습니다."
+        : "오늘 이후의 참고일을 연결된 고객의 할 일·방문 일정에 등록합니다. 알림 종류를 선택한 상태라면 해당 종류만 등록합니다."}</Typography>
+      <Box component="ul" sx={{ pl: 2.5, mb: 0, maxHeight: 180, overflowY: "auto" }}>
+        {contracts.map(contract => <li key={contract.id}>{contract.insurer} · {contract.product}</li>)}
+      </Box>
+    </DialogContent>
+    <DialogActions>
+      <Button onClick={onClose} disabled={busy}>취소</Button>
+      <Button onClick={submit} variant="contained" color={archive ? "error" : "primary"} disabled={busy}>
+        {archive ? "보관하기" : "일정 등록하기"}
+      </Button>
+    </DialogActions>
+  </Dialog>;
+}
+
 export function ContractsPage() {
   const [q, setQ] = useState("");
   const [search, setSearch] = useState("");
@@ -720,10 +679,15 @@ export function ContractsPage() {
   const [view, setView] = useState("rows");
   const [reminder, setReminder] = useState("");
   const [schedule, setSchedule] = useState(null);
+  const [detailContract, setDetailContract] = useState(null);
+  const [editContract, setEditContract] = useState(null);
   const [origin, setOrigin] = useState("");
   const [progress, setProgress] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [selection, setSelection] = useState(null);
+  const [batch, setBatch] = useState(null);
+  const [batchNotice, setBatchNotice] = useState("");
   const customerId = new URLSearchParams(window.location.search).get(
     "customer_id",
   );
@@ -734,13 +698,42 @@ export function ContractsPage() {
     progress,
     date_from: dateFrom || undefined,
     date_to: dateTo || undefined,
-    archived,
+    archived: archived === "all" ? undefined : archived,
+    include_archived: archived === "all" || undefined,
     customer_id: customerId || undefined,
     page,
     include_reminders: true,
     reminder: reminder || undefined,
   });
   const navigate = useNavigate();
+  const scope = JSON.stringify([search, status, origin, progress, dateFrom, dateTo, archived, customerId, page, reminder]);
+  const selectable = archived !== "true" && !resource.loading && !resource.error
+    ? (resource.data?.items || []).filter(contract => !contract.archived) : [];
+  const selected = selection?.data === resource.data && selection?.scope === scope
+    ? selectable.filter(contract => selection.ids.includes(contract.id)) : [];
+  const allSelected = selectable.length > 0 && selected.length === selectable.length;
+  const pageContracts = resource.data?.items || [];
+  const detailIndex = detailContract ? pageContracts.findIndex(contract => contract.id === detailContract.id) : -1;
+  function select(ids) {
+    setSelection({ data: resource.data, scope, ids });
+  }
+  function batchDone(result) {
+    if (batch.action === "archive") {
+      setBatchNotice(`계약 ${result.count}건을 보관했습니다.`);
+      setDetailContract(null);
+      const remainingPages = Math.max(1, Math.ceil((resource.data.total - result.count) / resource.data.page_size));
+      if (page > remainingPages) setPage(remainingPages);
+      else resource.reload();
+    } else {
+      setBatchNotice([
+        `일정 ${result.created}건을 등록했습니다.`,
+        result.duplicates ? `이미 등록된 일정 ${result.duplicates}건.` : "",
+        result.skipped_contracts ? `등록할 일정이 없거나 고객 연결이 없는 계약 ${result.skipped_contracts}건.` : "",
+      ].filter(Boolean).join(" "));
+    }
+    setSelection(null);
+    setBatch(null);
+  }
   function scheduleFor(contract) {
     const parties = contract.parties || [];
     const linked = parties.find(party => party.role === "INSURED" && party.customer_id)
@@ -756,112 +749,90 @@ export function ContractsPage() {
       title="내계약"
       headerClassName="crm-contracts-header css-1r40e5"
       badges={<Stack direction="row" gap={0.75} flexWrap="wrap" mb={0.5}>
-        <Chip size="small" label="고객관리 · 계약" className="crm-contracts-badge" />
-        <Chip size="small" label="고객 연락 참고일" className="crm-contracts-badge crm-contracts-badge--violet" />
+        <Chip size="small" label="SMART TOUCH & MILESTONE TRACKER" className="crm-contracts-badge" />
+        <Chip size="small" label="상령일 · 면책기간 종료(90일) · 감액기간 종료(1~2년) · 생일 참고일" className="crm-contracts-badge crm-contracts-badge--violet" />
       </Stack>}
-      description="기존 가입 보험과 신규 진행 계약을 함께 관리하고, 고객에게 연락할 참고일을 확인하세요."
+      description={<>기존 가입 보험과 신규 진행 계약을 함께 관리합니다. <strong>계약일·생년월일을 바탕으로 고객 연락 참고일을 계산합니다.</strong></>}
       actions={
-        <Button variant="contained" className="css-15diaom" startIcon={<NoteAddOutlinedIcon />} onClick={() => setForm(true)}>
+        <Button variant="contained" className="css-15diaom crm-contract-primary" startIcon={<ContractDesignIcon name="file" />} onClick={() => setForm(true)}>
           보험 계약 등록
         </Button>
       }
     >
       <ContractReminderFilters selected={reminder} counts={resource.data?.reminder_counts} loading={resource.loading}
         onChange={value => { setReminder(value); setPage(1); }}
-        viewControl={<ToggleButtonGroup exclusive size="small" value={view} aria-label="계약 보기 방식"
-          onChange={(_, value) => { if (value) setView(value); }}>
-          <ToggleButton value="rows">목록 보기</ToggleButton>
-          <ToggleButton value="cards">카드 보기</ToggleButton>
-        </ToggleButtonGroup>} />
+        viewControl={<div className="crm-contract-view-control"><span>화면 표시 밀도</span>
+          <ToggleButtonGroup exclusive size="small" value={view} aria-label="계약 보기 방식"
+            onChange={(_, value) => { if (value) setView(value); }}>
+            <ToggleButton value="rows"><ContractDesignIcon name="rows" />초슬림 행(내고객형)</ToggleButton>
+            <ToggleButton value="cards"><ContractDesignIcon name="grid" />2열 컴팩트 카드</ToggleButton>
+          </ToggleButtonGroup>
+        </div>} />
       <Panel className="crm-contracts-filters css-cj0pfk">
-        <Stack
-          component="form"
-          onSubmit={(e) => {
-            e.preventDefault();
-            setSearch(q);
-            setPage(1);
-          }}
-          direction={{ xs: "column", sm: "row" }}
-          gap={1}
-        >
-          <Field
-            id=":rbl:" label="보험회사·상품명·증권/설계번호 검색"
-            value={q}
-            onChange={setQ}
-          />
-          <Button type="submit" variant="contained">검색</Button>
-          <Field
-            id=":rbn:" label="유지 상태"
-            value={status}
-            options={{ "": "전체", ...MAINTENANCE }}
-            onChange={(v) => {
-              setStatus(v);
-              setPage(1);
-            }}
-          />
-          <Field
-            id=":rbp:" label="보기"
-            value={archived}
-            options={{ false: "관리 계약", true: "보관 계약" }}
-            onChange={(v) => {
-              setArchived(v);
-              setPage(1);
-            }}
-          />
-        </Stack>
-        <Stack direction={{ xs: "column", sm: "row" }} gap={1} mt={2}>
-          <Field
-            id=":rbr:" label="등록 구분"
-            value={origin}
-            options={{
-              "": "전체",
-              EXISTING: "기존 가입 보험",
-              NEW: "신규 진행 계약",
-            }}
-            onChange={(v) => {
-              setOrigin(v);
-              setPage(1);
-            }}
-          />
-          <Field
-            id=":rbt:" label="가입 진행"
-            value={progress}
-            options={{ "": "전체", ...PROGRESS }}
-            onChange={(v) => {
-              setProgress(v);
-              setPage(1);
-            }}
-          />
-          <Field
-            id=":rbv:" label="성립일 시작"
-            type="date"
-            value={dateFrom}
-            onChange={(v) => {
-              setDateFrom(v);
-              setPage(1);
-            }}
-          />
-          <Field
-            id=":rc0:" label="성립일 종료"
-            type="date"
-            value={dateTo}
-            onChange={(v) => {
-              setDateTo(v);
-              setPage(1);
-            }}
-          />
-        </Stack>
+        <form className="crm-contract-search-row css-pyv44k" onSubmit={event => {
+          event.preventDefault(); setSearch(q); setPage(1);
+        }}>
+          <div className="crm-contract-search">
+            <label className="crm-contract-sr-only" htmlFor=":rbl:">보험회사·상품명·증권번호·계약자/피보험자 검색</label>
+            <ContractDesignIcon name="search" />
+            <input id=":rbl:" value={q} onChange={event => setQ(event.target.value)} placeholder="보험회사·상품명·증권번호·계약자/피보험자 성함 검색" />
+            <button type="submit">검색</button>
+          </div>
+          <select id=":rbn:" aria-label="유지 상태" value={status} onChange={event => { setStatus(event.target.value); setPage(1); }}>
+            {Object.entries({ "": "유지 상태(설계사 메모): 전체", ...MAINTENANCE }).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+          </select>
+          <select id=":rbp:" aria-label="보기" value={archived} onChange={event => { setArchived(event.target.value); setPage(1); }}>
+            <option value="false">보기: 관리 계약</option><option value="true">보기: 보관 계약</option><option value="all">보기: 전체 계약</option>
+          </select>
+        </form>
+        <div className="crm-contract-filter-row css-94s6u9">
+          <select id=":rbr:" aria-label="등록 구분" value={origin} onChange={event => { setOrigin(event.target.value); setPage(1); }}>
+            <option value="">등록 구분: 전체</option><option value="EXISTING">기존 가입 보험</option><option value="NEW">신규 진행 계약</option>
+          </select>
+          <select id=":rbt:" aria-label="가입 진행" value={progress} onChange={event => { setProgress(event.target.value); setPage(1); }}>
+            {Object.entries({ "": "가입 진행: 전체", ...PROGRESS }).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+          </select>
+          <div className="crm-contract-date-filter"><label htmlFor=":rbv:">성립일 시작</label><input id=":rbv:" type="date" value={dateFrom} onChange={event => { setDateFrom(event.target.value); setPage(1); }} /></div>
+          <div className="crm-contract-date-filter"><label htmlFor=":rc0:">성립일 종료</label><input id=":rc0:" type="date" value={dateTo} onChange={event => { setDateTo(event.target.value); setPage(1); }} /></div>
+        </div>
       </Panel>
       <State resource={resource} />
-      <Typography className="crm-contracts-count css-kqdt2x" variant="body2" role="status">총 {resource.data?.total || 0}건</Typography>
+      <div className="crm-contract-batch-bar" role="group" aria-label="계약 일괄 작업">
+        <div>
+          <FormControlLabel className="crm-contract-batch-select" label="현재 페이지 전체 선택" control={
+            <Checkbox size="small" checked={allSelected} indeterminate={selected.length > 0 && !allSelected}
+              disabled={!selectable.length} onChange={event => select(event.target.checked ? selectable.map(contract => contract.id) : [])} />
+          } />
+          <span className="crm-contract-batch-divider" aria-hidden="true">|</span><Typography className="crm-contracts-count css-kqdt2x" variant="body2" role="status">총 <strong>{resource.data?.total || 0}</strong>건</Typography>
+          <span className="crm-contract-batch-count">선택 {selected.length}건</span>
+        </div>
+        <div>
+          <Button variant="outlined" size="small" className="crm-contract-batch-schedule" disabled={!selected.length}
+            startIcon={<ContractDesignIcon name="calendar" />} onClick={() => setBatch({ action: "schedule", contracts: selected, reminder })}>선택 계약 [할 일·방문 일정]에 알림 등록</Button>
+          <Button variant="outlined" size="small" className="crm-contract-batch-coming" disabled startIcon={<ContractDesignIcon name="message" />}>보조개톡 안부·종료안내 발송 <span>준비중</span></Button>
+          <Button variant="outlined" size="small" className="crm-contract-batch-archive" disabled={!selected.length}
+            startIcon={<ContractDesignIcon name="archive" />} onClick={() => setBatch({ action: "archive", contracts: selected })}>선택 계약 보관</Button>
+        </div>
+      </div>
+      {batchNotice && <Alert severity="info" onClose={() => setBatchNotice("")} sx={{ mb: 1 }}>{batchNotice}</Alert>}
+      <section className="crm-contract-list-panel" aria-label="계약 목록">
       {view === "rows" && resource.data?.items.length > 0 && <div className="crm-contract-column-labels" aria-hidden="true">
         <span>보험사 · 상품명 · 증권번호</span><span>피보험자 · 생일 · 상령일</span><span>성립일 · 월 보험료</span><span>면책·감액 참고일</span><span>상세 · 일정 관리</span>
       </div>}
       <div className={`crm-contract-entries crm-contract-entries--${view}`}>
         {resource.data?.items.map(contract => <ContractListEntry key={contract.id} contract={contract} selected={reminder}
-          onSchedule={() => scheduleFor(contract)} />)}
+          checked={selected.some(item => item.id === contract.id)}
+          onCheck={selectable.includes(contract) ? checked => select(checked
+            ? [...selected.map(item => item.id), contract.id] : selected.filter(item => item.id !== contract.id).map(item => item.id)) : undefined}
+          onDetails={() => setDetailContract(contract)} onSchedule={() => scheduleFor(contract)} />)}
       </div>
-      {resource.data && !resource.data.total && <Empty />}
+      {resource.data && !resource.data.total && <div className="crm-contract-empty">
+        <span className="crm-contract-empty-icon"><ContractDesignIcon name="bell" /></span>
+        <p className="css-uz2gxn">등록된 항목이 없습니다.</p>
+        <p>계약 성립일과 피보험자 생년월일을 등록하면 상령일, 면책·감액기간 종료, 생일 참고일을 확인할 수 있습니다.</p>
+        <Button className="crm-contract-primary" variant="contained" startIcon={<ContractDesignIcon name="file" />} onClick={() => setForm(true)}>보험 계약 등록하기</Button>
+      </div>}
+      </section>
       <Pages data={resource.data} onChange={setPage} />
       {form && (
         <ContractForm
@@ -873,9 +844,22 @@ export function ContractsPage() {
           }}
         />
       )}
-      {schedule && <TaskForm customerId={schedule.customerId} contractId={schedule.contract.id}
+      {schedule && <TaskForm contractTaskLayout customerId={schedule.customerId} contractId={schedule.contract.id}
         initialReminder={schedule.event} onClose={() => setSchedule(null)}
         onSave={data => crmPost("/tasks", data)} />}
+      {editContract && <ContractForm value={editContract} onClose={() => setEditContract(null)} onSave={async data => {
+        await crmPut(`/contracts/${editContract.id}`, data);
+        setDetailContract(null);
+        resource.reload();
+      }} />}
+      <ContractReminderDrawer contract={detailContract} onSaved={() => { setDetailContract(null); setBatchNotice("계약 변경사항을 저장했습니다."); resource.reload(); }} onEdit={async () => {
+        try { setEditContract(await crmGet(`/contracts/${detailContract.id}`)); }
+        catch (error) { setBatchNotice(crmError(error)); }
+      }} onArchive={() => setBatch({ action: "archive", contracts: [detailContract] })} onClose={() => setDetailContract(null)}
+        onPrevious={detailIndex > 0 ? () => setDetailContract(pageContracts[detailIndex - 1]) : undefined}
+        onNext={detailIndex >= 0 && detailIndex < pageContracts.length - 1 ? () => setDetailContract(pageContracts[detailIndex + 1]) : undefined}
+        onSchedule={() => setBatch({ action: "schedule", contracts: [detailContract], reminder: "" })} />
+      {batch && <ContractBatchDialog {...batch} onClose={() => setBatch(null)} onDone={batchDone} />}
     </Page></div>
   );
 }

@@ -1,0 +1,124 @@
+
+        .claim-design {
+            --primary-50: #ecfdf5;
+            --primary-100: #d1fae5;
+            --primary-200: #a7f3d0;
+            --primary-500: #03c75a;
+            --primary-600: #00b04e;
+            --primary-700: #00913f;
+
+            --sub-50: #f5f3ff;
+            --sub-100: #ede9fe;
+            --sub-500: #6b38fb;
+            --sub-600: #5b21b6;
+
+            --accent-red: #f04452;
+            --accent-amber: #f59e0b;
+
+            --bg-canvas: #f4f6f8;
+            --bg-surface: #ffffff;
+            --border-subtle: #e6eaee;
+            --border-strong: #d1d6db;
+            --text-strong: #121314;
+            --text-body: #4e5968;
+            --text-muted: #8b95a1;
+
+            --hero-gradient: linear-gradient(135deg, #03c75a 0%, #00a84b 50%, #008a60 100%);
+            --ai-gradient: linear-gradient(135deg, #6b38fb 0%, #4f46e5 100%);
+            --hero-shadow: 0 12px 26px -6px rgba(3, 199, 90, 0.36), 0 4px 10px -2px rgba(3, 199, 90, 0.2);
+        }
+
+        .claim-design {
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+            background-color: var(--bg-canvas);
+            color: var(--text-strong);
+            letter-spacing: -0.02em;
+            margin: 0;
+        }
+
+        .claim-design ::-webkit-scrollbar { width: 6px; height: 6px; }
+        .claim-design ::-webkit-scrollbar-track { background: transparent; }
+        .claim-design ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+        .claim-design ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        .claim-design .ns-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: 20px;
+            box-shadow: 0 2px 10px rgba(18, 19, 20, 0.03);
+            transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        .claim-design .ns-hero-cta {
+            background: var(--hero-gradient);
+            box-shadow: var(--hero-shadow);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        .claim-design .ns-hero-cta::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -120%;
+            width: 80%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.28), transparent);
+            transform: skewX(-20deg);
+            animation: nsShine 3.6s infinite;
+        }
+        @keyframes nsShine {
+            0% { left: -120%; }
+            25% { left: 140%; }
+            100% { left: 140%; }
+        }
+        .claim-design .ns-hero-cta:hover {
+            transform: translateY(-1px);
+            filter: brightness(1.04);
+        }
+
+        .claim-design .ns-search-bar {
+            border: 2px solid var(--primary-500);
+            background: #ffffff;
+            transition: all 0.2s;
+        }
+        .claim-design .ns-search-bar:focus-within {
+            box-shadow: 0 0 0 4px var(--primary-100);
+        }
+
+        /* ★ 보험사 로고 영역 빈 슬롯(LOGO AREA) 규격: 원본 svg.css-1gpwhzn 비율 준수 ★ */
+        .claim-design .claim-logo-placeholder {
+            width: 88px;
+            height: 36px;
+            border-radius: 8px;
+            border: 1.5px dashed #cbd5e1;
+            background: #f8fafc;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: all 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+        .claim-design .insurer-card-selected .claim-logo-placeholder {
+            border-color: #03c75a;
+            background: #ffffff;
+        }
+
+        /* 선택된 보험사 상단 트레이 (최대 2줄 스크롤) */
+        .claim-design .selected-insurer-tray {
+            max-height: 64px;
+            overflow-y: auto;
+        }
+
+        .claim-design .bg-primary { background-color: var(--primary-500); }
+        .claim-design .bg-primary-soft { background-color: var(--primary-50); }
+        .claim-design .text-primary { color: var(--primary-600); }
+        .claim-design .border-primary { border-color: var(--primary-500); }
+        .claim-design .bg-sub { background-color: var(--sub-500); }
+        .claim-design .bg-sub-soft { background-color: var(--sub-50); }
+        .claim-design .text-sub { color: var(--sub-600); }
+        .claim-design .ai-pill-badge { background: var(--ai-gradient); }
+    
