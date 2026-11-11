@@ -1,0 +1,131 @@
+.insurer-directory, .insurer-detail {
+  --insurer-green: #03c75a;
+  --insurer-green-ink: #08743d;
+  --insurer-ink: #121314;
+  --insurer-muted: #526070;
+  --insurer-line: #e6eaee;
+  color: var(--insurer-ink);
+  overflow-wrap: anywhere;
+  word-break: keep-all;
+}
+.insurer-directory { background: #f4f6f8; min-height: 100%; padding: clamp(16px, 2.4vw, 32px); }
+.insurer-directory__workspace { max-width: 1440px; min-width: 0; margin: auto; display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+.insurer-surface { background: white; border: 1px solid var(--insurer-line); border-radius: 18px; }
+.insurer-hero { display: flex; flex-wrap: wrap; gap: 18px; align-items: center; justify-content: space-between; padding: clamp(16px, 2.8vw, 30px); background: linear-gradient(115deg, white 50%, #edfff5); }
+.insurer-hero__badges { display: flex; flex-wrap: wrap; gap: 6px; }
+.insurer-hero__badges .MuiChip-root { background: #e8f9ef; color: var(--insurer-green-ink); font-weight: 800; }
+.insurer-hero__badges .MuiChip-root + .MuiChip-root { background: #f0ebff; color: #5b21b6; }
+.insurer-hero h1 { font-size: clamp(24px, 2.5vw, 34px); font-weight: 900; letter-spacing: -.04em; margin-top: 9px; }
+.insurer-hero p, .insurer-result-count { margin: 5px 0 0; color: var(--insurer-muted); font-size: .875rem; }
+.insurer-institutions, .insurer-grid { display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr); }
+.insurer-institution { color: inherit; text-decoration: none; display: grid; gap: 4px; padding: 14px; min-width: 0; }
+.insurer-institution:hover, .insurer-institution:focus-visible { border-color: var(--insurer-green); }
+.insurer-institution > div { display: flex; align-items: center; justify-content: space-between; color: var(--insurer-green-ink); margin-bottom: 4px; }
+.insurer-institution > div span { background: #ecfdf5; border-radius: 7px; padding: 3px 7px; font-weight: 850; font-size: .75rem; }
+.insurer-institution > div svg { font-size: 18px; }
+.insurer-institution strong { font-size: .92rem; }
+.insurer-institution small { color: var(--insurer-muted); }
+.insurer-filters { padding: 10px clamp(10px, 2vw, 20px) 16px; min-width: 0; }
+.insurer-filters .MuiTabs-root { border-bottom: 1px solid var(--insurer-line); }
+.insurer-filters .MuiTab-root { font-weight: 750; white-space: nowrap; }
+.insurer-filters .MuiTab-root svg { font-size: 18px; color: #b45309; }
+.insurer-filters__search { display: flex; flex-wrap: wrap; gap: 10px; margin: 13px 0; }
+.insurer-filters__search .MuiTextField-root { flex: 1 1 260px; }
+.insurer-filters__search .MuiOutlinedInput-root { border-radius: 999px; }
+.insurer-filters__search .MuiOutlinedInput-notchedOutline { border: 2px solid var(--insurer-green); }
+.insurer-filters__search .MuiToggleButton-root { gap: 5px; font-weight: 750; white-space: nowrap; }
+.insurer-filters__search .MuiToggleButton-root svg { font-size: 18px; }
+.insurer-filters__initials { display: flex; flex-wrap: wrap; gap: 5px; }
+.insurer-filters__initials button { border: 1px solid var(--insurer-line); background: #f8fafc; color: #37475a; border-radius: 8px; min-width: 36px; min-height: 36px; padding: 4px 8px; font: inherit; font-size: .85rem; font-weight: 750; cursor: pointer; }
+.insurer-filters__initials button[aria-pressed="true"] { border-color: var(--insurer-green); background: #d7f8e5; color: var(--insurer-green-ink); }
+.insurer-result-count { margin: 0 0 9px; }
+.insurer-empty { min-height: 120px; padding: 16px; display: flex; align-items: center; justify-content: center; gap: 12px; color: var(--insurer-muted); }
+
+.insurer-card { display: flex; flex-direction: column; gap: 9px; border: 1px solid var(--insurer-line); border-top: 6px solid var(--insurer-ci); border-radius: 18px; min-width: 0; padding: 13px; background: white; transition: transform .18s, box-shadow .18s; }
+@media (hover: hover) {
+  .insurer-card:hover { transform: translateY(-2px); border-color: var(--insurer-green); border-top-color: var(--insurer-ci); box-shadow: 0 8px 24px #1b283412; }
+}
+.insurer-card__heading, .insurer-card__name, .insurer-card__system { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.insurer-card__heading { justify-content: space-between; }
+.insurer-card__name h2 { font-weight: 850; font-size: 1rem; }
+.insurer-card__system { min-height: 24px; font-size: .78rem; color: var(--insurer-muted); }
+.insurer-card__system .MuiChip-root, .insurer-detail .MuiChip-root { height: 24px; }
+.insurer-sector { display: inline-flex; align-items: center; width: fit-content; background: #e8f9ef; color: #08743d; padding: 3px 7px; border-radius: 999px; font-weight: 800; font-size: .7rem; }
+.insurer-sector--life { background: #f0ebff; color: #5b21b6; }
+.insurer-sector--other { background: #fff3d9; color: #85440a; }
+.insurer-favorite.MuiIconButton-root { color: #a75008; }
+.insurer-logo-slot { display: grid; place-items: center; width: 112px; height: 40px; max-width: 100%; flex: none; overflow: hidden; }
+.insurer-logo-slot--large { width: 172px; height: 46px; }
+.insurer-logo-slot svg { width: 100%; height: 100%; }
+.insurer-logo-slot--empty { border: 1.5px dashed #cbd5e1; background: #f8fafc; border-radius: 10px; text-align: center; font-size: .64rem; color: var(--insurer-muted); line-height: 1.2; }
+.insurer-card__contacts { display: grid; gap: 2px; background: #f7f9fb; border-radius: 12px; padding: 6px; }
+.insurer-contact { display: grid; align-items: center; gap: 3px 6px; grid-template-columns: minmax(0, 1fr) auto 13px; text-align: left; color: #526070; min-width: 0; min-height: 32px; border: 0; background: transparent; border-radius: 7px; padding: 5px; font: inherit; font-size: .73rem; }
+button.insurer-contact { cursor: pointer; }
+button.insurer-contact:hover { background: #e8f9ef; }
+.insurer-contact strong { color: var(--insurer-ink); font-weight: 800; white-space: pre-line; }
+.insurer-contact svg { font-size: 13px; }
+.insurer-card__contacts > :nth-child(3) strong, .insurer-detail__contacts > :nth-child(3) strong { color: #5b21b6; }
+.insurer-card__contacts > :nth-child(4) strong, .insurer-detail__contacts > :nth-child(4) strong { color: #92400e; }
+.insurer-card__payment { font-size: .73rem; padding: 4px 5px; border-top: 1px solid var(--insurer-line); color: #526070; }
+.insurer-card__payment span { color: #92400e; font-weight: 850; }
+.insurer-card__links, .insurer-card__actions { display: grid; gap: 5px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.insurer-card__links .MuiButton-root { font-size: .68rem; min-height: 31px; padding: 3px; }
+.insurer-card__links > :nth-child(3) { color: #5b21b6; border-color: #d3c6f4; }
+.insurer-card__actions { margin-top: auto; }
+.insurer-card__actions .MuiButton-root { min-height: 40px; font-weight: 800; padding-inline: 4px; }
+.insurer-card .MuiButton-endIcon, .insurer-detail .MuiButton-endIcon { margin-left: 4px; }
+.insurer-card__actions .MuiButton-contained:not(.Mui-disabled), .insurer-detail .MuiButton-contained:not(.Mui-disabled) { background: #08743d; color: white; }
+.insurer-table { max-width: 100%; background: white; border: 1px solid var(--insurer-line); border-radius: 18px; }
+.insurer-table table { min-width: 740px; }
+.insurer-table thead { background: #eaf7ef; }
+.insurer-table thead th { font-weight: 850; white-space: nowrap; }
+.insurer-table__name, .insurer-table__name > div + div { display: flex; gap: 6px; align-items: center; }
+.insurer-table__name > div + div { flex-wrap: wrap; }
+.insurer-table .insurer-logo-slot { width: 76px; }
+
+.insurer-detail.MuiDialog-paper { border-radius: 19px; background: #f4f6f8; }
+.insurer-detail__header { background: linear-gradient(112deg, color-mix(in srgb, var(--insurer-ci) 18%, white), white 83%); border-top: 6px solid var(--insurer-ci); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 12px clamp(12px, 2.5vw, 24px); }
+.insurer-detail__header > div:first-child { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.insurer-detail__header .MuiDialogTitle-root { padding: 0; font-weight: 900; letter-spacing: -.025em; }
+.insurer-detail__content.MuiDialogContent-root { display: grid; gap: 12px; padding: clamp(9px, 2vw, 20px); }
+.insurer-detail__section, .insurer-detail .insurer-detail__sources { border: 1px solid var(--insurer-line); border-radius: 14px; background: white; min-width: 0; padding: 13px; }
+.insurer-detail .insurer-detail__sources { padding: 0; }
+.insurer-detail .insurer-detail__sources::before { display: none; }
+.insurer-detail__section-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.insurer-detail h3, .insurer-detail h4 { font-size: .95rem; font-weight: 850; }
+.insurer-detail__grid, .insurer-detail__official { display: grid; gap: 8px; margin: 8px 0; grid-template-columns: minmax(0, 1fr); }
+.insurer-detail__official { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.insurer-detail__official .MuiButton-root { min-height: 40px; padding: 4px; }
+.insurer-detail__tile, .insurer-detail__contacts .insurer-contact { background: #f8fafc; border: 1px solid var(--insurer-line); border-radius: 10px; min-width: 0; padding: 10px; font-size: .82rem; }
+.insurer-detail__contacts .insurer-contact { grid-template-columns: minmax(0, 1fr) 13px; align-content: start; }
+.insurer-detail__contacts .insurer-contact > span { grid-column: 1 / -1; }
+.insurer-detail__contacts .insurer-contact strong { font-size: .91rem; }
+.insurer-detail__tile p { margin: 7px 0; }
+.insurer-detail__tile dd, .insurer-system__details dd { margin: 3px 0 0; white-space: pre-line; }
+.insurer-detail__tile dt, .insurer-system__details dt { font-weight: 800; color: #37475a; }
+.insurer-system__details { margin: 8px 0 0; display: grid; gap: 8px; }
+.insurer-detail__chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.insurer-detail__chips .MuiChip-root { max-width: 100%; }
+.insurer-uw-tip { border-radius: 8px; background: #ecfdf5; padding: 7px; }
+.insurer-muted { color: var(--insurer-muted); font-size: .78rem; }
+@media (min-width: 360px) {
+  .insurer-institutions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (min-width: 520px) {
+  .insurer-detail__grid--two, .insurer-detail__grid--four { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (min-width: 690px) {
+  .insurer-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .insurer-detail__official { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .insurer-detail__grid--four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+@media (min-width: 1040px) {
+  .insurer-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .insurer-institutions { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+}
+@media (min-width: 1450px) {
+  .insurer-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .insurer-card, .insurer-card:hover { transition: none; transform: none; }
+}

@@ -108,14 +108,20 @@ export default function PaymentSection({ config, onChanged, onContactSaved }) {
   };
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const selected = params.get('signupPlan');
+    const fromSignup = params.has('signupPlan');
+    const selected = params.get('signupPlan') || params.get('choosePlan');
     if (!data || signupHandled.current || !['BASIC','STANDARD','PRO'].includes(selected)) return;
     signupHandled.current = true;
     signupPlan.current = selected;
     setPlan(selected);
     params.delete('signupPlan');
+    params.delete('choosePlan');
     window.history.replaceState(null, '', `${window.location.pathname}${params.size ? `?${params}` : ''}#plan`);
-    if (active) { setMessage('이미 구독 중입니다. 요금제를 바꾸려면 요금제 변경을 이용해 주세요.'); return; }
+    if (active) {
+      if (fromSignup) setMessage('이미 구독 중입니다. 요금제를 바꾸려면 요금제 변경을 이용해 주세요.');
+      else setDialog('change');
+      return;
+    }
     setBusy(true); setError(''); setAccepted(false); setSaveContact(false);
     Promise.all([getMyProfile(), getPaymentMethods()]).then(([profile, methods]) => {
       setSavedMethod(methods.cards.find((card) => card.selected && card.status === 'ACTIVE') || null);
@@ -124,7 +130,7 @@ export default function PaymentSection({ config, onChanged, onContactSaved }) {
       setCustomer({ fullName:profile.name || '', phoneNumber:profile.phone || '', email:profile.pending_email || profile.email || '' });
       if (canRetry) retryKey.current = crypto.randomUUID();
       setDialog(canRetry ? 'retry' : 'subscribe');
-      setMessage('가입이 완료되었습니다. 선택한 요금제의 결제를 완료하면 유료 이용이 시작됩니다.');
+      if (fromSignup) setMessage('가입이 완료되었습니다. 선택한 요금제의 결제를 완료하면 유료 이용이 시작됩니다.');
     }).catch((e) => setError(paymentError(e)))
       .finally(() => setBusy(false));
   }, [data, active, canRetry]);

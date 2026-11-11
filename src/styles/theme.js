@@ -83,8 +83,14 @@ export const lightTheme = createTheme({
       styleOverrides: {
         root: { borderRadius: 10 },
         containedPrimary: {
-          color: brand.ink,
-          "&:hover": { backgroundColor: brand.accentHover },
+          "--variant-containedColor": "#ffffff",
+          "--variant-containedBg": brand.accentInk,
+          "&:hover": { "--variant-containedBg": brand.deep },
+        },
+        containedSuccess: {
+          "--variant-containedColor": "#ffffff",
+          "--variant-containedBg": "#007842",
+          "&:hover": { "--variant-containedBg": brand.deep },
         },
         textPrimary: { color: brand.accentInk },
         outlinedPrimary: {
