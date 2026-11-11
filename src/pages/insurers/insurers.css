@@ -129,3 +129,99 @@ button.insurer-contact:hover { background: #e8f9ef; }
 @media (prefers-reduced-motion: reduce) {
   .insurer-card, .insurer-card:hover { transition: none; transform: none; }
 }
+
+.insurer-hero { background: #fff; padding: clamp(14px, 1.8vw, 24px); }
+.insurer-hero__title { display: flex; flex-wrap: wrap; gap: 3px 12px; align-items: baseline; }
+.insurer-hero h1 { font-size: clamp(22px, 2.2vw, 29px); }
+.insurer-hero__title p { font-size: .8rem; }
+.insurer-directory .insurer-video-link--1, .insurer-detail .insurer-video-link--1 { color: #85420d; background: #fff8e8; border-color: #f4d286; }
+.insurer-directory .insurer-video-link--2, .insurer-detail .insurer-video-link--2 { color: #5b21b6; background: #f5f0ff; border-color: #e0d0fa; }
+.insurer-institution { grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 6px; padding: 9px; box-shadow: 0 3px 10px #14263b08; }
+.insurer-institution .insurer-institution__label { display: grid; gap: 2px; margin: 0; color: inherit; }
+.insurer-institution__label strong { font-size: .79rem; }
+.insurer-institution__label small { font-size: .7rem; }
+.insurer-institution__icon { width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center; background: #e9f8f0; color: #006e43; }
+.insurer-institution--2 .insurer-institution__icon { background: #f2edfc; color: #5b21b6; }
+.insurer-institution--3 .insurer-institution__icon { background: #fff6e4; color: #9a5209; }
+.insurer-institution--4 .insurer-institution__icon { background: #eaf5fb; color: #1e5a7e; }
+.insurer-institution--5 .insurer-institution__icon { background: #fff0f3; color: #a12650; }
+.insurer-institution__icon svg { font-size: 19px; }
+.insurer-institution__external.MuiSvgIcon-root { font-size: 13px; color: #526070; }
+
+.insurer-filters__top { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; align-items: center; }
+.insurer-filters .MuiTabs-root { min-height: 36px; border-bottom: 0; }
+.insurer-filters .MuiTabs-indicator { display: none; }
+.insurer-filters .MuiTabs-flexContainer { gap: 4px; }
+.insurer-filters .MuiTab-root { min-width: 0; min-height: 32px; padding: 4px 8px; font-size: .75rem; background: #f1f3f5; color: #415066; border-radius: 9px; }
+.insurer-filters .MuiTab-root.insurer-filters__favorites { background: #fff8e6; color: #85420d; }
+.insurer-filters .MuiTab-root.Mui-selected { background: #121314; color: white; }
+.insurer-filters .MuiTab-root.Mui-selected svg { color: white; }
+.insurer-filters__tab-label { display: inline-flex; align-items: center; gap: 3px; }
+.insurer-filters__tab-count { border-radius: 999px; background: #8391a32b; padding: 0 4px; }
+.insurer-filters__search { margin: 0; gap: 5px; }
+.insurer-filters__search .MuiTextField-root { flex: 1 1 210px; }
+.insurer-filters__search .MuiOutlinedInput-root { border-radius: 10px; font-size: .8rem; }
+.insurer-filters__search .MuiToggleButtonGroup-root { background: #f1f3f5; border-radius: 9px; }
+.insurer-filters__search .MuiToggleButton-root { font-size: .73rem; padding: 5px 7px; }
+.insurer-filters__search .MuiToggleButton-root.Mui-selected { background: white; }
+.insurer-filters__bottom { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 9px; padding-top: 8px; border-top: 1px solid var(--insurer-line); }
+.insurer-filters__bottom .insurer-result-count { margin: 0; font-size: .75rem; font-weight: 750; }
+.insurer-filters__initials button { min-width: 28px; min-height: 29px; font-size: .76rem; }
+.insurer-filters__initials button[aria-pressed="true"] { background: #006e43; border-color: #006e43; color: white; }
+
+.insurer-card { box-shadow: 0 4px 13px #1b28340b; }
+.insurer-card__heading { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: start; gap: 6px; }
+.insurer-card__heading .insurer-logo-slot { width: clamp(64px, 6vw, 102px); border: 1px solid #eef1f4; border-radius: 9px; background: #fbfcfe; }
+.insurer-card__heading .insurer-logo-slot--empty { border: 1.5px dashed #cbd5e1; }
+.insurer-card__identity { min-width: 0; }
+.insurer-card__name h2 { font-size: .88rem; line-height: 1.25; }
+.insurer-card__system { align-items: center; gap: 4px; font-size: .71rem; }
+.insurer-card__system > span { overflow-wrap: anywhere; }
+.insurer-card__system .MuiChip-root { height: 19px; font-size: .66rem; }
+.insurer-card__heading .insurer-favorite.MuiIconButton-root { padding: 4px; border: 1px solid #e1e7ed; border-radius: 8px; }
+.insurer-card__heading .insurer-favorite.MuiIconButton-root[aria-pressed="true"] { background: #fff7df; border-color: #f1d38a; }
+.insurer-card__heading .insurer-favorite svg { font-size: 18px; }
+.insurer-card__contacts { border: 1px solid #e1e7ed; }
+.insurer-card__links .MuiButton-root { border-color: transparent; border-radius: 7px; background: #f0f3f6; color: #384558; font-weight: 800; }
+.insurer-card__links .MuiButton-root:nth-child(2) { background: #e8f8ef; color: #006e43; }
+.insurer-card__links .MuiButton-root:nth-child(3) { background: #f2edfc; color: #5b21b6; }
+.insurer-card__links .MuiButton-root:nth-child(4) { background: #fff6e4; color: #85420d; }
+.insurer-card__links .MuiButton-root.Mui-disabled { color: #677583; background: #f1f3f5; }
+.insurer-card__actions { grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); }
+.insurer-card__actions .MuiButton-outlined { background: #f1f3f5; border-color: transparent; color: #121314; }
+.insurer-card__payment { display: flex; justify-content: space-between; gap: 6px; }
+.insurer-card__payment span { flex: none; }
+
+.insurer-detail__header { background: linear-gradient(135deg, color-mix(in srgb, var(--insurer-ci) 60%, #121314), #121314); color: white; border-top: 0; padding-block: 15px; }
+.insurer-detail__header .insurer-sector { background: #ffffff20; color: white; border: 1px solid #ffffff4d; }
+.insurer-detail__header .MuiButton-outlined { background: white; border-color: transparent; color: #121314; }
+.insurer-detail__header .MuiIconButton-root { color: white; background: #ffffff18; border-radius: 9px; }
+.insurer-detail__header .insurer-favorite[aria-pressed="true"] { color: #ffda80; }
+.insurer-detail__official .MuiButton-root:not(.Mui-disabled) { background: #f5faf8; border-color: #d7e9de; }
+.insurer-detail__contacts .insurer-contact:nth-child(3) { background: #f5f0ff; border-color: #e4d7f9; }
+.insurer-detail__contacts .insurer-contact:nth-child(4) { background: #fff8e8; border-color: #f3dfa8; }
+.insurer-detail__footer { display: flex; justify-content: space-between; flex-wrap: wrap; align-items: center; gap: 6px; padding: 9px clamp(9px, 2vw, 20px); background: white; border-top: 1px solid var(--insurer-line); }
+.insurer-detail__footer > div { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
+.insurer-detail .insurer-detail__lc-link.MuiButton-contained:not(.Mui-disabled) { background: #121314; }
+@media (min-width: 1040px) {
+  .insurer-filters__top { grid-template-columns: minmax(0, 1fr) minmax(0, .9fr); }
+}
+@media (min-width: 1320px) {
+  .insurer-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+.insurer-detail .insurer-detail__official { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.insurer-detail .insurer-detail__official .MuiButton-root { width: 100%; justify-self: stretch; }
+.insurer-card__heading { min-height: 53px; }
+.insurer-card__heading .insurer-logo-slot { width: clamp(64px, 5.25vw, 92px); }
+.insurer-card__system > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.insurer-card__contacts .insurer-contact { min-height: 28px; }
+.insurer-card__links .MuiButton-endIcon svg { font-size: 12px; }
+.insurer-card__links .MuiButton-endIcon { margin-left: 2px; }
+@media (min-width: 360px) {
+  .insurer-card__links { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 3px; }
+  .insurer-card__links .MuiButton-root { min-height: 25px; padding: 2px; font-size: .64rem; }
+}
+@media (min-width: 690px) {
+  .insurer-detail .insurer-detail__official { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+}

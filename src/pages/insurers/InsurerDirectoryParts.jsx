@@ -4,6 +4,8 @@ import {
   Accordion, AccordionDetails, AccordionSummary, Alert, Button, Chip, Dialog, DialogContent, DialogTitle,
   IconButton, Link, Snackbar, Stack, TextField, Typography,
 } from "@mui/material";
+import { Link as RouterLink } from "react-router-dom";
+import FlagOutlinedIcon from "@mui/icons-material/FlagOutlined";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
 import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
@@ -55,15 +57,16 @@ export function FavoriteButton({ name, favorite, onToggle }) {
 
 export function VideoLinks() {
   return <Stack direction="row" useFlexGap flexWrap="wrap" gap={1}>
-    {videos.map(([label, url]) => (
-      <Button key={url} href={url} {...external} variant="outlined" size="small" startIcon={<SmartDisplayOutlinedIcon />}
+    {videos.map(([label, url], index) => (
+      <Button key={url} href={url} {...external} className={`insurer-video-link insurer-video-link--${index + 1}`}
+        variant="outlined" size="small" startIcon={<SmartDisplayOutlinedIcon />}
         aria-label={`${label} (새 창)`}>{label}</Button>
     ))}
   </Stack>;
 }
 
-function OfficialLink({ link, label, variant = "outlined" }) {
-  return <Button href={link?.url || undefined} {...(link?.url ? external : {})} disabled={!link?.url}
+function OfficialLink({ link, label, className, variant = "outlined" }) {
+  return <Button className={className} href={link?.url || undefined} {...(link?.url ? external : {})} disabled={!link?.url}
     variant={variant} size="small" endIcon={link?.url ? <OpenInNewOutlinedIcon /> : null}
     aria-label={`${label || link.label} (${link?.url ? "새 창" : "주소 미확인"})`}>
     {label || link.label}
@@ -86,15 +89,17 @@ export function InsurerCard({ insurer, favorite, onToggle, onOpen, onCopy }) {
   return <article className="insurer-card" style={{ "--insurer-ci": ciColor(insurer) }}>
     <div className="insurer-card__heading">
       <InsurerLogo insurer={insurer} />
+      <div className="insurer-card__identity">
+        <div className="insurer-card__name">
+          <Typography component="h2">{insurer.name}</Typography>
+          <Sector kind={insurer.kind} />
+        </div>
+        <div className="insurer-card__system">
+          {portal && <span title={portal.link.label}>{portal.link.label}</span>}
+          {insurer.kind !== "other" && <BrowserBadges browser={insurer.browser} />}
+        </div>
+      </div>
       <FavoriteButton name={insurer.name} favorite={favorite} onToggle={onToggle} />
-    </div>
-    <div className="insurer-card__name">
-      <Typography component="h2">{insurer.name}</Typography>
-      <Sector kind={insurer.kind} />
-    </div>
-    <div className="insurer-card__system">
-      {portal && <span>{portal.link.label}</span>}
-      {insurer.kind !== "other" && <BrowserBadges browser={insurer.browser} />}
     </div>
     <div className="insurer-card__contacts">
       {contactsFor(insurer).slice(0, 4).map(entry => <ContactValue key={entry.label} entry={entry} onCopy={onCopy} />)}
@@ -217,6 +222,8 @@ export function InsurerDetailDialog({ insurer, open, favorite, memo, onClose, on
   const links = insurer ? linksFor(insurer) : [];
   const contacts = insurer ? contactsFor(insurer) : [];
   const sources = insurer ? sourcesFor(insurer) : [];
+  const portal = insurer ? portalFor(insurer) : null;
+  const lcPortal = insurer?.systems.find(system => /\bLC\b|전속/i.test(system.link.label));
   return <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth aria-labelledby="insurer-detail-title"
     slotProps={{ transition: { onExited }, paper: { className: "insurer-detail", sx: { maxWidth: 920, m: { xs: 1, sm: 3 }, width: { xs: "calc(100% - 16px)", sm: "calc(100% - 48px)" } } } }}>
     {insurer && <>
@@ -268,6 +275,14 @@ export function InsurerDetailDialog({ insurer, open, favorite, memo, onClose, on
         </section>
         <Sources sources={sources} />
       </DialogContent>
+      <footer className="insurer-detail__footer">
+        <Button component={RouterLink} to="/help/contact" size="small" startIcon={<FlagOutlinedIcon />}>정보 오류 수정 문의</Button>
+        <div>
+          <Button onClick={onClose} size="small" variant="outlined">닫기</Button>
+          {lcPortal && <OfficialLink link={lcPortal.link} label="LC 전용 포털" className="insurer-detail__lc-link" variant="contained" />}
+          {portal && <OfficialLink link={portal.link} label={/GA|교차/i.test(portal.link.label) ? "GA/교차 전용 포털 바로가기" : "설계사 전산 바로가기"} variant="contained" />}
+        </div>
+      </footer>
       {notice && <Snackbar key={notice.message} open autoHideDuration={2700}
         onClose={(_, reason) => reason !== "clickaway" && onDismissNotice()}>
         <Alert severity={notice.severity} variant="filled" onClose={onDismissNotice}>{notice.message}</Alert>

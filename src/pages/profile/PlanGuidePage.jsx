@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Box, Button, Chip, Paper, Stack, Typography } from "@mui/material";
 import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
 import AutoAwesomeRoundedIcon from "@mui/icons-material/AutoAwesomeRounded";
+import CalculateOutlinedIcon from "@mui/icons-material/CalculateOutlined";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 import DescriptionRoundedIcon from "@mui/icons-material/DescriptionRounded";
 import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
@@ -19,14 +20,14 @@ import GroupInquiryDialog from "@/pages/components/GroupInquiryDialog";
 import "./plan-guide.css";
 
 const personalFeatures = [
-  "보험 제안서 분석·보고서 생성", "쉬운 설명 자동 변환과 보고서 보관", "모바일 웹팩스 발송·보조개톡 무료",
+  "보험 제안서 분석·보고서 생성", "쉬운 설명 자동 변환", "생성 보고서 보관", "모바일 웹팩스 발송·보조개톡 무료",
 ];
 const planDetails = {
   FREE: { badge: "첫 시작 체험", aside: "카드 등록 불필요", features: ["보험 제안서 분석·보고서 생성 체험", "모바일 웹팩스 발송·보조개톡 무료", PLAN_INFO.FREE.summary] },
   BASIC: { badge: "가볍게 시작", aside: "1건당 약 633원", features: personalFeatures },
-  STANDARD: { badge: "상담과 분석을 꾸준히", aside: "1건당 약 580원", features: personalFeatures },
-  PRO: { badge: "많이 사용하는 분께", aside: "1건당 약 490원", features: [...personalFeatures, "대량 고객 상담·리모델링에 적합"] },
-  GROUP: { name: "사무실 그룹", price: "별도 문의", priceUnit: "단체 할인", badge: "지점·본부·GA", estimate: "인원과 운영 방식에 맞춘 이용 조건", features: ["사번 기반 그룹 로그인", "지점장 관리자 대시보드", "단체 맞춤형 운영 지원"] },
+  STANDARD: { badge: "꾸준한 이용", aside: "1건당 약 580원", features: personalFeatures },
+  PRO: { badge: "사용량이 많은 분", aside: "1건당 약 490원", features: [...personalFeatures, "대량 고객 상담·리모델링에 적합"] },
+  GROUP: { name: "사무실 그룹", price: "별도 문의", priceUnit: "단체 할인", badge: "지점·본부·GA", aside: "단체 맞춤 요금", description: "GA 지점·본부 통합 운영 플랜", estimate: "인원과 운영 방식에 맞춘 이용 조건", features: ["사번 기반 그룹 로그인", "지점장 관리자 대시보드", "단체 맞춤형 운영 지원"] },
 };
 
 const features = [
@@ -48,13 +49,15 @@ function PlanCard({ code, user, isPersonalMember, onInquiry }) {
       className={`plan-guide__card plan-guide__card--${code.toLowerCase()}`}>
       <div className="plan-guide__card-top">
         <Chip size="small" label={plan.badge} className="plan-guide__plan-badge" />
-        {code === "STANDARD" && <span className="plan-guide__recommendation">추천</span>}
+        {plan.aside && <span>{plan.aside}</span>}
       </div>
+      {code === "STANDARD" && <span className="plan-guide__recommendation">추천 요금제</span>}
       <Typography id={`plan-${code}`} component="h2" className="plan-guide__card-title">{plan.name}</Typography>
+      <p className="plan-guide__description">{plan.description || plan.summary}</p>
       <p className="plan-guide__price"><strong>{plan.price}</strong><span> / {plan.priceUnit}</span></p>
       <div className="plan-guide__estimate">
         <strong>{plan.estimate || PLAN_DOCUMENT_ESTIMATES[code]}</strong>
-        {plan.aside && <span>{plan.aside}</span>}
+        <span>{code === "GROUP" ? "소속 인원과 운영 환경에 맞춰 안내" : code === "FREE" ? "가입일부터 30일간 이용" : "월간 기본 이용량 기준"}</span>
       </div>
       <ul className="plan-guide__checklist">
         {plan.features.map(feature => <li key={feature}><CheckRoundedIcon aria-hidden="true" />{feature}</li>)}
@@ -86,18 +89,22 @@ export default function PlanGuidePage() {
               <Chip size="small" icon={<AutoAwesomeRoundedIcon />} label="모든 플랜 8대 실무 기능" className="plan-guide__violet-chip" />
             </Stack>
             <Typography className="css-bbwd96" component="h1">요금 안내</Typography>
-            <p>보험 제안서 분석과 보고서 생성에 맞는 요금제를 찾아보세요. 모든 요금제에서 모바일 웹팩스 무료 발송과 보조개톡을 이용할 수 있습니다.</p>
+            <p>보험 제안서 분석과 보고서 생성에 맞는 요금제를 찾아보세요.</p>
+            <p><strong>모든 요금제에서 8대 실무 기능, 모바일 웹팩스 무료 발송, 보조개톡을 이용할 수 있습니다.</strong></p>
           </div>
           <div className="plan-guide__hero-facts">
-            <div><DescriptionRoundedIcon /><strong>AI 보고서 · PC 웹팩스</strong><span>보고서 생성과 PC 직접 발송에는 이용 기준이 적용됩니다.</span></div>
-            <div><ForumOutlinedIcon /><strong>모바일 웹팩스 · 보조개톡</strong><span>전 회원 무료</span></div>
+            <div><span>AI 보고서 · PC 웹팩스 <DescriptionRoundedIcon /></span><strong>요금제별 문서 생성</strong><small>PC 웹팩스 직접 발송은 유료</small></div>
+            <div><span>회원 공통 무료 혜택 <ForumOutlinedIcon /></span><strong>모바일팩스 · 보조개톡</strong><small>모바일 웹팩스 연동 발송 무료</small></div>
           </div>
         </Paper>
 
         <section aria-labelledby="plan-selection-title">
-          <div className="plan-guide__section-heading">
-            <Typography component="h2" id="plan-selection-title">나에게 맞는 요금제 선택</Typography>
-            <p>월간 문서 생성 예상 횟수와 이용료를 비교해 보세요.</p>
+          <div className="plan-guide__section-heading plan-guide__selection-heading">
+            <div>
+              <Typography component="h2" id="plan-selection-title">나에게 맞는 요금제 선택</Typography>
+              <p>내 구독 관리에서 요금제를 변경하거나 해지할 수 있습니다.</p>
+            </div>
+            <span className="plan-guide__count-summary"><CalculateOutlinedIcon />월 예상 생성 · 베이직 30번 · 스탠다드 50번 · 프로 100번</span>
           </div>
           <Box className="plan-guide__plans css-o5s4km">
             {[...SIGNUP_PLAN_CODES, "GROUP"].map(code => (
@@ -129,6 +136,7 @@ export default function PlanGuidePage() {
 
         <Paper component="section" aria-labelledby="plan-comparison-title" variant="outlined" className="plan-guide__surface">
           <div className="plan-guide__section-heading">
+            <span className="plan-guide__comparison-label">구독료 비교</span>
             <Typography component="h2" id="plan-comparison-title">서비스를 따로 구독할 때와 비교</Typography>
             <p>범용 AI, 보장분석, 고객관리 서비스를 각각 구독하는 경우를 가정한 예시입니다.</p>
           </div>
@@ -136,12 +144,15 @@ export default function PlanGuidePage() {
             <div>
               <Typography component="h3">기존 서비스 3종 개별 구독</Typography>
               <dl><dt>범용 AI</dt><dd>월 29,000원</dd><dt>보장분석·비교</dt><dd>월 38,000~103,000원</dd><dt>고객관리·카톡 발송</dt><dd>월 29,000원</dd></dl>
-              <strong>합계 월 96,000~161,000원</strong>
+              <strong className="plan-guide__comparison-total">가정 합계 월 96,000~161,000원</strong>
             </div>
+            <ArrowForwardRoundedIcon className="plan-guide__comparison-arrow" aria-hidden="true" />
             <div>
               <Typography component="h3">보조개 올인원 구독</Typography>
-              <dl><dt>베이직</dt><dd>월 {PLAN_INFO.BASIC.price}</dd><dt>프로</dt><dd>월 {PLAN_INFO.PRO.price}</dd></dl>
-              <strong>예시 기준 월 비용 약 70~80% 절감</strong>
+              <ul>
+                <li><span><strong>베이직</strong><small>96,000원 → {PLAN_INFO.BASIC.price}</small></span><b>약 80% 절감</b></li>
+                <li><span><strong>프로</strong><small>161,000원 → {PLAN_INFO.PRO.price}</small></span><b>약 70% 절감</b></li>
+              </ul>
             </div>
           </div>
         </Paper>

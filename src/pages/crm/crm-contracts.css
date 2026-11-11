@@ -1,0 +1,117 @@
+.crm-contracts-workspace { background: #f4f6f8; min-height: 100%; }
+.crm-reminder-section { padding: clamp(12px, 2vw, 20px); background: white; border: 1px solid #e6eaee; border-radius: 18px; margin-bottom: 15px; }
+.crm-reminder-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-block: 10px; }
+.crm-reminder-filter {
+  display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 5px 7px;
+  padding: clamp(8px, 1vw, 14px); text-align: start; border: 1px solid #dce6e4; border-radius: 13px; cursor: pointer;
+  font: inherit; background: #ecf9f1; color: #075a3e; overflow-wrap: anywhere;
+}
+.crm-reminder-filter--reduction { background: #f4efff; color: #54298d; border-color: #e3d5fa; }
+.crm-reminder-filter--insurance_age { background: #fff8e6; color: #784207; border-color: #f5dfaa; }
+.crm-reminder-filter--birthday { background: #fff0f3; color: #942348; }
+.crm-reminder-filter[aria-pressed="true"] { border-color: currentColor; box-shadow: inset 0 0 0 1px currentColor; }
+.crm-reminder-filter:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+.crm-reminder-filter svg { font-size: 18px; }
+.crm-reminder-filter strong { font-size: .88rem; }
+.crm-reminder-filter span { grid-column: 1 / -1; font-size: .73rem; }
+.crm-reminder-filter b { grid-column: 1 / -1; font-size: 1.32rem; }
+.crm-contracts-workspace .crm-contracts-filters { padding: 14px; }
+.crm-contract-entries { display: grid; gap: 8px; }
+.crm-contract-entries .crm-contract-entry {
+  min-width: 0; padding: 12px; display: grid; align-items: start; gap: 8px 14px; border-radius: 14px; overflow-wrap: anywhere;
+}
+.crm-contract-entry .MuiChip-root { margin-top: 5px; }
+.crm-contract-entry-actions { display: flex; gap: 3px; flex-wrap: wrap; }
+.crm-reminder-events { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px; }
+.crm-reminder-events li { display: inline-flex; flex-wrap: wrap; gap: 3px 7px; padding: 4px 7px; border-radius: 6px; font-size: .73rem; color: #075a3e; background: #e7f5ee; }
+.crm-reminder-events .crm-reminder-event--reduction { background: #f4efff; color: #54298d; }
+.crm-reminder-events .crm-reminder-event--insurance_age { background: #fff8e6; color: #784207; }
+.crm-reminder-events .crm-reminder-event--birthday { background: #fff0f3; color: #942348; }
+.crm-reminder-events time { font-weight: 800; white-space: nowrap; }
+.crm-reminder-preview { border-radius: 14px; background: #152436; color: #fff; padding: 12px; overflow-wrap: anywhere; }
+.crm-reminder-preview p, .crm-reminder-preview .MuiTypography-caption { margin: 6px 0 0; color: #d1deeb; }
+.crm-reminder-preview .crm-reminder-events { margin-block: 8px; }
+#crm-contract-reminder-details + .crm-reminder-events { margin-block: 8px; }
+@media (min-width: 740px) {
+  .crm-reminder-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .crm-contract-entries--cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .crm-contract-entries--rows .crm-contract-entry { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (min-width: 1080px) {
+  .crm-contract-entries--rows .crm-contract-entry {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr) minmax(0, 2fr) minmax(0, 3fr) minmax(0, 2fr);
+  }
+}
+.crm-contracts-workspace .crm-contracts-header {
+  margin-bottom: 15px; padding: clamp(12px, 2vw, 20px); align-items: flex-start;
+  background: white; border: 1px solid #e6eaee; border-radius: 18px;
+}
+.crm-contracts-header .MuiTypography-h5 { color: #121314; font-weight: 900; }
+.crm-contracts-header .crm-contracts-badge { background: #e8f8ef; color: #006e43; font-weight: 850; }
+.crm-contracts-header .crm-contracts-badge--violet { background: #f1ebfc; color: #552e91; }
+.crm-reminder-toolbar {
+  display: flex; justify-content: space-between; flex-wrap: wrap; align-items: center; gap: 8px;
+  padding-block: 8px 6px; border-top: 1px solid #e6eaee;
+}
+.crm-reminder-toolbar > div:first-child { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
+.crm-reminder-toolbar [role="group"] > button:not(.MuiToggleButton-root) {
+  border: 0; padding: 5px 7px; border-radius: 7px; background: #f4f6f8; color: #3e4d60; font: inherit; font-size: .75rem; font-weight: 800; cursor: pointer;
+}
+.crm-reminder-toolbar [role="group"] > button[aria-pressed="true"]:not(.MuiToggleButton-root) { background: #121314; color: white; }
+.crm-reminder-toolbar .MuiToggleButton-root.Mui-selected { background: #006e43; color: white; }
+.crm-contracts-workspace .crm-contracts-count {
+  padding: 9px 14px; border: 1px solid #e6eaee; border-radius: 10px; background: #fff; margin-bottom: 8px; font-weight: 800;
+}
+.crm-contract-column-labels { display: none; }
+.crm-contract-dialog .MuiDialogContent-root { background: #f8fafc; padding-block: 12px; }
+.crm-contract-dialog .MuiDialogActions-root { background: #fff; border-top: 1px solid #e6eaee; padding: 10px 16px; }
+.crm-contract-dialog > form { display: flex; flex-direction: column; min-height: 0; }
+.crm-contract-dialog-header { display: flex; align-items: center; flex: none; gap: 9px; padding: 12px 15px; color: white; background: #121314; }
+.crm-contract-dialog-header > div { flex: 1; min-width: 0; }
+.crm-contract-dialog-header .MuiDialogTitle-root { color: white; font-weight: 900; padding: 0; font-size: 1.08rem; }
+.crm-contract-dialog-header .MuiTypography-caption { color: #ced6e1; }
+.crm-contract-dialog-header .MuiIconButton-root { color: #fff; }
+.crm-contract-dialog-icon { display: grid; place-items: center; flex: none; width: 34px; height: 34px; border-radius: 10px; background: #006e43; color: white; }
+.crm-contract-dialog-icon svg { font-size: 19px; }
+.crm-contract-form-section { min-width: 0; padding: 12px; background: #fff; border: 1px solid #e6eaee; border-radius: 12px; }
+.crm-contract-form-section > h3 { padding-bottom: 7px; border-bottom: 1px solid #eef1f4; font-size: .93rem; font-weight: 850; }
+.crm-contract-form-section .crm-reminder-preview h3 { font-size: .89rem; }
+.crm-contract-party-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 9px; }
+.crm-contract-party { min-width: 0; background: #f7fbf9; }
+.crm-contract-party:nth-child(2n) { background: #faf7fd; }
+@media (min-width: 740px) {
+  .crm-contract-party-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .crm-contracts-workspace .crm-contracts-header { align-items: center; }
+}
+@media (min-width: 1080px) {
+  .crm-contract-column-labels {
+    display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr) minmax(0, 2fr) minmax(0, 3fr) minmax(0, 2fr);
+    gap: 14px; padding: 7px 12px; color: #4e5968; background: #edf1f4; font-weight: 850; font-size: .75rem; border-radius: 9px; margin-bottom: 6px;
+  }
+}
+
+.crm-contract-form-section > [hidden] { display: none; }
+.crm-insurer-picker {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 106px), 1fr)); gap: 5px;
+  max-height: 190px; overflow: auto; padding: 8px; border: 1px solid #dce8e3; border-radius: 9px; background: #f5fbf8;
+}
+.crm-insurer-picker .MuiButton-root { overflow-wrap: anywhere; font-size: .72rem; padding-inline: 4px; }
+
+@media (min-width: 1080px) {
+  .crm-reminder-filter { grid-template-columns: minmax(0, 1fr) 32px; gap: 3px 8px; }
+  .crm-reminder-filter svg { grid-column: 2; grid-row: 1 / 4; width: 32px; height: 32px; padding: 7px; border-radius: 9px; background: currentColor; fill: white; }
+  .crm-reminder-filter :is(strong, span, b) { grid-column: 1; }
+  .crm-reminder-filter strong { grid-row: 1; }
+  .crm-reminder-filter span { grid-row: 2; }
+  .crm-reminder-filter b { grid-row: 3; }
+}
+.crm-contract-section-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding-bottom: 8px; border-bottom: 1px solid #eef1f4; }
+.crm-contract-section-heading h3 { font-size: .93rem; font-weight: 850; }
+.crm-contract-section-heading .MuiTextField-root { width: min(100%, 170px); }
+.crm-contract-base-grid, .crm-contract-party-identity { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+@media (min-width: 740px) {
+  .crm-contract-base-grid { grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); }
+  .crm-contract-party-identity { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .crm-contract-party-identity .MuiInputBase-input { padding-inline: 8px; font-size: .81rem; }
+  .crm-contract-party-identity .MuiInputLabel-root { font-size: .8rem; }
+}

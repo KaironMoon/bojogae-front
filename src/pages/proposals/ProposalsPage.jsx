@@ -1052,7 +1052,7 @@ function ProposalsPage() {
                 borderRadius: "16px",
                 display: "grid",
                 placeItems: "center",
-                color: index === 0 ? "#00100A" : color,
+                color: index === 0 ? "white" : color,
                 bgcolor: background,
                 border: `1px solid ${border}`,
                 flexShrink: 0,
@@ -1300,7 +1300,7 @@ function ProposalsPage() {
                       <Stack direction="row" justifyContent="space-between" alignItems="flex-start" gap={0.75}>
                         <Stack direction="row" alignItems="center" gap={0.75} sx={{ minWidth: 0 }}>
                         <Chip label={`${index + 1}순위`} size="small"
-                          sx={{ ...(index < 3 && { bgcolor: "#F04452", color: "#381017" }), height: 22, fontSize: 10, fontWeight: 850, borderRadius: "5px", flexShrink: 0 }} />
+                          sx={{ ...(index < 3 && { bgcolor: "#F04452", color: "white" }), height: 22, fontSize: 10, fontWeight: 850, borderRadius: "5px", flexShrink: 0 }} />
                           <Tooltip title={option.is_default_favorite
                             ? option.is_favorite ? "기본 즐겨찾기에서 제외" : "기본 즐겨찾기에 다시 추가"
                             : option.is_favorite ? "즐겨찾기 해제" : "즐겨찾기 등록"}>

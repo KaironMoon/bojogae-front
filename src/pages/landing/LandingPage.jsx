@@ -8,10 +8,12 @@ import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 import DescriptionRoundedIcon from "@mui/icons-material/DescriptionRounded";
 import ForumRoundedIcon from "@mui/icons-material/ForumRounded";
 import GroupsRoundedIcon from "@mui/icons-material/GroupsRounded";
-import KeyboardArrowDownRoundedIcon from "@mui/icons-material/KeyboardArrowDownRounded";
+import PlayCircleOutlineRoundedIcon from "@mui/icons-material/PlayCircleOutlineRounded";
+import EventAvailableOutlinedIcon from "@mui/icons-material/EventAvailableOutlined";
+import FaxOutlinedIcon from "@mui/icons-material/FaxOutlined";
+import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import LockRoundedIcon from "@mui/icons-material/LockRounded";
 import SendRoundedIcon from "@mui/icons-material/SendRounded";
-import TaskAltRoundedIcon from "@mui/icons-material/TaskAltRounded";
 import UploadFileRoundedIcon from "@mui/icons-material/UploadFileRounded";
 import { useEffect, useRef, useState } from "react";
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
@@ -26,6 +28,8 @@ import "./landing-motion.css";
 import "./landing-original.css";
 import "./landing-preference.css";
 import "./landing-theme.css";
+import "./landing-redesign.css";
+import { ContactLink, CostComparison, FeatureShowcase, HeroShowcase, PowerSuites, ProposalVideoLink, VideoGallery } from "./LandingShowcase";
 
 
 const flowSteps = [
@@ -35,7 +39,6 @@ const flowSteps = [
     eyebrow: "UPLOAD",
     title: "수십 장의 제안서를\n그대로 올리세요",
     description: "30~50페이지 원본 PDF를 다시 읽고 옮겨 적을 필요가 없습니다. 보조개가 제안서의 구조부터 파악합니다.",
-    visual: "upload",
   },
   {
     number: "02",
@@ -43,15 +46,13 @@ const flowSteps = [
     eyebrow: "ANALYZE",
     title: "설명해야 할 핵심만\nAI가 골라냅니다",
     description: "암·뇌·심장 3대 진단비, 수술비, 보험료와 갱신 주기를 고객이 이해하기 쉬운 순서로 재구성합니다.",
-    visual: "analyze",
   },
   {
     number: "03",
     icon: DescriptionRoundedIcon,
     eyebrow: "BRIEF",
     title: "고객 눈높이의\n한 장 브리핑으로",
-    description: "복잡한 담보표 대신 중요한 보장과 체크포인트이 또렷한 고객 맞춤형 요약 페이지가 완성됩니다.",
-    visual: "brief",
+    description: "복잡한 담보표 대신 중요한 보장과 체크포인트가 또렷한 고객 맞춤형 요약 페이지가 완성됩니다.",
   },
   {
     number: "04",
@@ -59,7 +60,6 @@ const flowSteps = [
     eyebrow: "CONNECT",
     title: "카톡으로 보내고\n상담에 집중하세요",
     description: "비대면으로 바로 공유하고, 고객의 질문과 상담에 집중하세요. 이해하기 쉬운 설명이 소개 계약으로 이어집니다.",
-    visual: "share",
   },
 ];
 
@@ -106,42 +106,6 @@ const faqs = [
   ["사무실 그룹(GA 지점 등) 단위로 도입하려면 어떻게 하나요?", "단체 문의를 남겨주시면 사번 기반 그룹 로그인과 단체 운영 방식에 맞춰 안내해 드립니다."],
 ];
 
-const landingVideoUrl = import.meta.env.VITE_LANDING_VIDEO_URL
-  || "https://assets.mixkit.co/videos/preview/mixkit-software-developer-working-on-code-screen-close-up-1728-large.mp4";
-
-function ProductVisual({ type }) { // eslint-disable-line react/prop-types
-  if (type === "upload") return (
-    <div className="flow-visual upload-visual">
-      <div className="file-sheet back" /><div className="file-sheet middle" />
-      <div className="file-sheet front"><span>PDF</span><strong>고객 맞춤 제안서</strong><small>42 pages</small></div>
-      <div className="upload-drop"><UploadFileRoundedIcon /><span>분석 준비 완료</span></div>
-    </div>
-  );
-  if (type === "analyze") return (
-    <div className="flow-visual analyze-visual">
-      <div className="scan-line" />
-      {["3대 진단비", "수술비", "갱신 주기", "월 보험료"].map((item, index) => (
-        <div className="analysis-row" key={item}><span>{item}</span><i style={{ width: `${88 - index * 12}%` }} /></div>
-      ))}
-      <div className="ai-chip"><AutoAwesomeRoundedIcon /> AI 핵심 분석 중</div>
-    </div>
-  );
-  if (type === "brief") return (
-    <div className="flow-visual brief-visual">
-      <div className="brief-header"><span>고객님을 위한 보장 브리핑</span><i /></div>
-      <div className="brief-score"><strong>든든해요</strong><span>핵심 보장 균형</span></div>
-      <div className="brief-bars"><i /><i /><i /></div>
-      <div className="brief-note"><CheckRoundedIcon /> 꼭 확인할 내용까지 한눈에</div>
-    </div>
-  );
-  return (
-    <div className="flow-visual share-visual">
-      <div className="phone-frame"><div className="phone-notch" /><div className="chat-bubble">고객님 제안서에서<br />꼭 보실 내용만 정리했어요.</div><div className="chat-card"><TaskAltRoundedIcon /><span>맞춤 보장 브리핑</span></div></div>
-      <div className="sent-badge"><SendRoundedIcon /> 전송 완료</div>
-    </div>
-  );
-}
-
 export default function LandingPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -169,33 +133,12 @@ export default function LandingPage() {
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (!page || reducedMotion) return undefined;
 
-    const flow = page.querySelector(".flow-section");
-    const steps = [...page.querySelectorAll(".flow-step")];
     const heroProduct = page.querySelector(".hero-product");
     const finalCta = page.querySelector(".final-cta");
     let frame = 0;
 
     const updateScrollMotion = () => {
       frame = 0;
-      if (flow) {
-        const rect = flow.getBoundingClientRect();
-        const travel = Math.max(rect.height - window.innerHeight * 0.45, 1);
-        const progress = Math.min(1, Math.max(0, (window.innerHeight * 0.55 - rect.top) / travel));
-        flow.style.setProperty("--flow-progress", String(progress));
-      }
-
-      let activeStep = null;
-      let nearestDistance = Number.POSITIVE_INFINITY;
-      steps.forEach(step => {
-        const rect = step.getBoundingClientRect();
-        const distance = Math.abs(rect.top + rect.height / 2 - window.innerHeight * 0.52);
-        if (distance < nearestDistance && rect.bottom > 0 && rect.top < window.innerHeight) {
-          activeStep = step;
-          nearestDistance = distance;
-        }
-      });
-      steps.forEach(step => { step.dataset.active = step === activeStep ? "true" : "false"; });
-
       if (heroProduct) {
         const heroRect = heroProduct.getBoundingClientRect();
         heroProduct.style.setProperty("--scroll-lift", `${Math.max(-24, Math.min(24, -heroRect.top * 0.045))}px`);
@@ -238,35 +181,6 @@ export default function LandingPage() {
     };
   }, []);
 
-  useEffect(() => {
-    const counters = [...(pageRef.current?.querySelectorAll("[data-count]") || [])];
-    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (!window.IntersectionObserver || reducedMotion) return undefined;
-    const observer = new IntersectionObserver(entries => {
-      entries.forEach(entry => {
-        if (!entry.isIntersecting || entry.target.dataset.counted) return;
-        entry.target.dataset.counted = "true";
-        const target = Number(entry.target.dataset.count);
-        const decimals = Number(entry.target.dataset.decimals || 0);
-        const start = performance.now();
-        const duration = 1250;
-        const tick = (now) => {
-          const elapsed = Math.min(1, (now - start) / duration);
-          const eased = 1 - Math.pow(1 - elapsed, 4);
-          entry.target.textContent = (target * eased).toLocaleString("ko-KR", {
-            minimumFractionDigits: decimals,
-            maximumFractionDigits: decimals,
-          });
-          if (elapsed < 1) window.requestAnimationFrame(tick);
-        };
-        window.requestAnimationFrame(tick);
-        observer.unobserve(entry.target);
-      });
-    }, { threshold: 0.6 });
-    counters.forEach(counter => observer.observe(counter));
-    return () => observer.disconnect();
-  }, []);
-
   if (authRedirect) return <Navigate to={`/login?${searchParams.toString()}`} replace />;
   if (shouldSkipLanding()) return <Navigate to="/login" replace />;
   const goLogin = (method = "personal", plan) => navigate(plan ? `/login?method=${method}&plan=${plan}` : `/login?method=${method}`);
@@ -276,73 +190,62 @@ export default function LandingPage() {
   };
 
   return (
-    <Box ref={pageRef} className="landing-page">
+    <Box ref={pageRef} id="top" className="landing-page home-redesign">
       <header className="landing-header">
-        <a className="brand" href="#top" aria-label="보조개 홈"><span className="brand-mark landing-brand-mark"><span className="brand-full">BOJOGAE</span><span className="brand-mobile">B</span></span><span>보조개<small>AI 개인비서</small></span></a>
-        <nav aria-label="랜딩페이지 메뉴"><a href="#features">핵심 기능</a><a href="#demo-preview">시연 영상</a><a href="#benefits">도입 효과</a><a href="#reviews">설계사 후기</a><a href="#pricing">요금 안내</a></nav>
-        <div className="header-actions"><button className="skip-landing-button" onClick={skipLanding}>다음부터 로그인 화면으로</button><button className="pill-button" aria-label="기존 회원 로그인" onClick={() => navigate("/login")}>로그인 <ArrowForwardRoundedIcon /></button></div>
+        <a className="brand home-brand" href="#top" aria-label="보조개 홈"><img src="/bojogae-icon.png" alt="" width="42" height="42" /><span>BOJOGAE<small>보조개AI 개인비서</small></span></a>
+        <nav aria-label="랜딩페이지 메뉴"><a href="#features">핵심 기능</a><a href="#demo-preview" className="home-nav-video">시연 영상</a><a href="#power-suites">보조개톡·청구·CRM</a><a href="#benefits">도입 효과</a><a href="#reviews">설계사 후기</a><a href="#pricing">요금 안내</a></nav>
+        <div className="header-actions"><label className="home-login-preference"><input type="checkbox" onChange={skipLanding} />다음부터 로그인 화면으로</label><button className="pill-button" aria-label="기존 회원 로그인" onClick={() => navigate("/login")}>로그인 <ArrowForwardRoundedIcon /></button><button className="home-button home-button--primary home-header-trial" onClick={() => goLogin("personal", "FREE")}>무료 체험</button></div>
       </header>
 
-      <main id="top">
-        <section className="hero-section">
-          <div className="hero-orb orb-one" /><div className="hero-orb orb-two" />
+      <main>
+        <section className="home-hero-band">
+          <div className="hero-orb orb-one" aria-hidden="true" /><div className="hero-orb orb-two" aria-hidden="true" />
+          <div className="hero-section">
           <div className="hero-copy" data-reveal>
             <div className="eyebrow-pill"><span /> 수십 장의 복잡한 보험 제안서, 1~2분 만에 고객 맞춤 리포트로</div>
-            <h1>복잡한 제안서는 <em>보조개 AI</em>에게 맡기고,<br />설계사님은 <strong>상담과 계약</strong>에만 집중하세요.</h1>
-            <p>어려운 약관과 복잡한 담보 표에 지친 고객의 마음을 엽니다. AI가 핵심만 짚어낸 <b>고객 맞춤형 요약 페이지</b>로 비대면 상담 거절률은 낮추고, 자발적인 소개 계약을 만들어냅니다.</p>
-            <div className="hero-actions"><button className="primary-cta" onClick={() => goLogin("personal", "FREE")}>1달 무료 체험 시작하기 (20회 무료) <ArrowForwardRoundedIcon /></button><a className="secondary-cta" href="#demo-preview">작동 영상 및 데모 보기 <KeyboardArrowDownRoundedIcon /></a></div>
+            <h1><span>복잡한 제안서는 <em>보조개 AI</em>에게 맡기고,</span><span>설계사님은 <strong>상담과 계약</strong>에만 집중하세요.</span></h1>
+            <p>제안서 PDF를 올리면 AI가 보장과 보험료를 정리합니다. 고객이 읽기 쉬운 한 장 요약을 만들고, 비교부터 청구와 사후관리까지 이어가세요.</p>
+            <ul className="home-hero-tags" aria-label="주요 기능">
+              <li><DescriptionRoundedIcon />제안서 1장 요약·비교</li>
+              <li><SearchRoundedIcon />건강e음 미청구·고지 추출</li>
+              <li><FaxOutlinedIcon />청구서·모바일팩스</li>
+              <li><ForumRoundedIcon />보조개톡 자동 발송</li>
+              <li><EventAvailableOutlinedIcon />상령일·면책·감액·생일</li>
+            </ul>
+            <div className="hero-actions">
+              <button className="primary-cta" onClick={() => goLogin("personal", "FREE")}>1달 무료 체험 시작하기 (20회 무료) <ArrowForwardRoundedIcon /></button>
+              <ProposalVideoLink className="secondary-cta"><PlayCircleOutlineRoundedIcon />제안서 만들기 영상</ProposalVideoLink>
+            </div>
             <div className="hero-trust"><span><CheckRoundedIcon /> 카드 등록 없음</span><span><CheckRoundedIcon /> 20회 무료</span><span><LockRoundedIcon /> 최초 30일 한정</span></div>
           </div>
-          <div id="demo-preview" className="hero-product demo-window" data-reveal>
-            <div className="demo-window-bar"><span className="traffic-lights"><i /><i /><i /></span><span>bojogae.net · AI 제안서 요약 생성기</span><b><i /> AI 요약 엔진 정상 가동 중</b></div>
-            <div className="demo-video-wrap">
-              <video controls playsInline preload="metadata" poster="https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=1200&q=80">
-                <source src={landingVideoUrl} type="video/mp4" />
-                사용 중인 브라우저가 비디오 태그를 지원하지 않습니다.
-              </video>
-              <div className="demo-video-badge"><b>1~2분 완성</b><span>제안서 PDF 업로드부터 맞춤 요약 페이지 완성까지</span></div>
-            </div>
-            <div className="demo-steps">
-              <div><b>1</b><span><strong>제안서 파일 업로드</strong><small>30~50페이지 원본 PDF</small></span></div>
-              <div><b>2</b><span><strong>AI 자동 분석</strong><small>핵심 보장과 보험료 추출</small></span></div>
-              <div><b>3</b><span><strong>맞춤 페이지 완성</strong><small>카카오톡 상담에 바로 활용</small></span></div>
-            </div>
-          </div>
-          <a href="#proof" className="scroll-cue"><span>SCROLL TO EXPLORE</span><i /></a>
-        </section>
-
-        <section id="proof" className="proof-section" aria-label="서비스 이용 지표">
-          <div className="proof-heading" data-reveal><span>PROVEN BY TOP AGENTS</span><h2>현직 보험설계사님들이 이미 보조개와 함께 뛰고 있습니다</h2></div>
-          <div className="proof-grid">
-            <article data-reveal><strong className="blue"><span data-count="3850">3,850</span><sup>+</sup></strong><b>누적 활성 설계사 회원</b><small>전국 대형 GA 및 원수사</small></article>
-            <article data-reveal><strong><span data-count="54200">54,200</span><sup>+</sup></strong><b>생성된 AI 요약 브리핑</b><small>매일 1,200건 이상 생성</small></article>
-            <article data-reveal><strong className="blue"><span data-count="85">85</span><sup>% ↓</sup></strong><b>제안서 준비 시간 단축</b><small>평균 40분 → 단 3분</small></article>
-            <article data-reveal><strong className="amber"><span data-count="4.9" data-decimals="1">4.9</span><sup>/ 5.0</sup></strong><b>설계사 실사용 만족도</b><small>소개 계약 창출율 +42%</small></article>
+          <div className="hero-product" data-reveal><HeroShowcase /></div>
           </div>
         </section>
 
-        <div className="capability-marquee" aria-hidden="true"><div className="marquee-track">{["PDF UPLOAD", "AI ANALYSIS", "CUSTOMER BRIEF", "MOBILE SHARE", "MORE CONVERSATION", "PDF UPLOAD", "AI ANALYSIS", "CUSTOMER BRIEF", "MOBILE SHARE", "MORE CONVERSATION"].map((item, index) => <span key={`${item}-${index}`}><i />{item}</span>)}</div></div>
-
-        <section id="flow" className="flow-section">
-          <div className="section-heading" data-reveal><span>ONE SIMPLE FLOW</span><h2>올리고, 이해하고,<br />마음을 움직이세요.</h2><p>보조개가 복잡한 문서를 고객과의 대화로 바꾸는 과정입니다.</p></div>
-          <div className="flow-list">
-            <div className="flow-line" aria-hidden="true"><i /></div>
-            {flowSteps.map(step => { const Icon = step.icon; return (
-              <article className="flow-step" key={step.number} data-step={step.number} data-reveal>
-                <div className="flow-copy"><span className="step-number">{step.number}</span><div className="step-icon"><Icon /></div><small>{step.eyebrow}</small><h3>{step.title.split("\n").map((line, index) => <span key={line}>{line}{index === 0 && <br />}</span>)}</h3><p>{step.description}</p></div>
-                <ProductVisual type={step.visual} />
+        <section id="flow" className="home-block" aria-labelledby="home-flow-title">
+          <div className="home-section-heading">
+            <h2 id="home-flow-title">올리고, 정리하고, 상담에 활용하세요</h2>
+            <p>보험 제안서가 고객에게 바로 보여줄 한 장으로 바뀌는 과정입니다.</p>
+          </div>
+          <div className="home-flow-grid">
+            {flowSteps.map(({ number, icon: Icon, eyebrow, title, description }) => (
+              <article key={number}><header><Icon aria-hidden="true" /><span>{number} · {eyebrow}</span></header>
+                <h3>{title.replace("\n", " ")}</h3><p>{description}</p>
               </article>
-            ); })}
+            ))}
           </div>
         </section>
 
-        <section id="features" className="original-benefit-section">
+        <FeatureShowcase />
+        <VideoGallery />
+        <PowerSuites />
+        <section id="benefits" className="original-benefit-section">
           <div className="original-section-heading" data-reveal><span>WHY BOJOGAE?</span><h2>왜 잘 팔리는 설계사는 <em>‘보조개’</em>를 쓸까요?</h2><p>수많은 보장 내용과 깨알 같은 글씨로 가득한 설계서는 고객을 망설이게 합니다.<br />보조개는 설계사의 시간 비용을 없애고, 고객에게는 “당장 계약하고 싶은 확신”을 선물합니다.</p></div>
           <div className="before-after-grid">
             <article className="comparison-card before-card" data-reveal><span className="comparison-label">기존의 힘든 영업 방식</span><h3><i>×</i> 보조개를 쓰기 전</h3><ul><li><b>야근을 부르는 제안서 작업</b><p>고객 1명을 위해 30~50장짜리 설계서를 뜯어보며 PPT로 재가공하느라 밤 11시 퇴근.</p></li><li><b>비대면 상담의 허탈한 거절</b><p>PDF 전체를 카톡으로 보내면 고객은 “내용이 너무 어려워서 나중에 볼게요”라며 연락 두절.</p></li><li><b>단발성 계약에 그침</b><p>설계 내용이 와닿지 않아 계약 후 지인 소개나 가족 추가 계약으로 이어지지 않음.</p></li></ul></article>
             <article className="comparison-card after-card" data-reveal><span className="comparison-label">보조개 도입 후 실적 혁신</span><h3><i>✓</i> 보조개와 함께한 후</h3><ul><li><b>상담 준비 1~2분 컷</b><p>업로드 후 핵심 요약, 기존 계약 대비 개선점, 추천 플랜이 알기 쉬운 맞춤 페이지로 자동 생성.</p></li><li><b>거절했던 가망고객 재성약</b><p>스마트폰에서 쉽게 읽히는 맞춤형 페이지로 “이해하기 너무 쉽다”며 상담 신청 역주행.</p></li><li><b>고객 감동이 부르는 소개</b><p>고객이 가족과 지인에게 그대로 공유하면서 새로운 소개 계약으로 자연스럽게 연결.</p></li></ul></article>
           </div>
-          <div id="benefits" className="original-feature-grid">
+          <div className="original-feature-grid">
             <article data-reveal><div className="original-feature-icon blue"><AutoAwesomeRoundedIcon /></div><h3>AI 초고속 핵심 요약</h3><p>암·뇌·심장 3대 진단비, 수술비, 특약 갱신 주기를 AI가 스캔해 설계사가 설명하기 편한 순서대로 재배열합니다.</p></article>
             <article data-reveal><div className="original-feature-icon indigo"><ForumRoundedIcon /></div><h3>비대면 카톡 발송 최적화</h3><p>모바일 화면에 최적화된 리포트를 생성하여 전화나 대면 만남을 꺼리던 고객과도 비대면 상담을 이어갈 수 있습니다.</p></article>
             <article data-reveal><div className="original-feature-icon green"><GroupsRoundedIcon /></div><h3>소개 전환율 극대화</h3><p>고객이 가족이나 지인에게 “이 설계사가 정리해 준 거 봐봐”라며 링크나 이미지를 그대로 전달할 수 있습니다.</p></article>
@@ -355,7 +258,8 @@ export default function LandingPage() {
         </section>
 
         <section id="pricing" className="pricing-section">
-          <div className="section-heading" data-reveal><span>PRICING PLAN</span><h2>부담 없는 요금으로<br />나만의 AI 영업 비서를 두세요</h2><p>보조개 월간 구독권으로 보험 제안서 분석·보고서 생성 기능을 이용하세요.<br />요금제별 이용 한도가 적용됩니다. 30일 무료체험 후 유료 전환은 직접 선택합니다.</p></div>
+          <div className="section-heading" data-reveal><span>PRICING PLAN</span><h2>부담 없는 요금, 압도적인 가성비</h2><p>보조개 월간 구독권으로 보험 제안서 분석·보고서 생성 기능을 이용하세요.<br />요금제별 이용 한도가 적용됩니다. 30일 무료체험 후 유료 전환은 직접 선택합니다.</p></div>
+          <CostComparison />
           <div className="pricing-grid">
             {plans.map(plan => (
               <article key={plan.name} className={`${plan.featured ? "featured" : ""} ${plan.dark ? "dark" : ""} ${plan.comingSoon ? "coming-soon" : ""}`} data-reveal>
@@ -381,7 +285,7 @@ export default function LandingPage() {
         <section className="final-cta" data-reveal><div><span>YOUR NEXT PROPOSAL</span><h2>다음 제안서는<br />보조개와 시작하세요.</h2><p>정리는 AI에게 맡기고, 설계사님은 고객의 마음에 집중하세요.</p></div><div className="final-actions"><button onClick={() => goLogin("personal", "FREE")}>1달 무료 체험 시작 (20회 제공) <ArrowForwardRoundedIcon /></button><button className="outline" onClick={() => setInquiryOpen(true)}>단체 도입 문의</button></div></section>
       </main>
 
-      <footer className="landing-footer"><a className="brand footer-brand" href="#top"><span className="brand-mark">B</span><span>보조개<small>보험설계사를 조력하는 AI 개인비서</small></span></a><div><button onClick={() => goLogin("group")}>단체 로그인</button><button onClick={() => goLogin()}>개인 로그인</button><a href="#pricing">이용 요금</a><Link to="/terms">서비스이용약관</Link><Link to="/privacy">개인정보처리방침</Link></div><BusinessInfo /><p>© 2026 BOJOGAE. All rights reserved.</p></footer>
+      <footer className="landing-footer"><a className="brand footer-brand home-brand" href="#top"><img src="/bojogae-icon.png" alt="" width="42" height="42" /><span>BOJOGAE<small>보조개AI 개인비서</small></span></a><div><button onClick={() => goLogin("group")}>단체 로그인</button><button onClick={() => goLogin()}>개인 로그인</button><a href="#pricing">이용 요금</a><Link to="/terms">서비스이용약관</Link><Link to="/privacy">개인정보처리방침</Link><ContactLink /></div><BusinessInfo /><p>© 2026 BOJOGAE. All rights reserved.</p></footer>
       <GroupInquiryDialog open={inquiryOpen} onClose={() => setInquiryOpen(false)} />
     </Box>
   );

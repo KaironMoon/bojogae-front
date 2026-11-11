@@ -4,6 +4,11 @@ import {
   Alert, Button, Chip, CircularProgress, InputAdornment, Snackbar, Tab, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, Tabs, TextField, ToggleButton, ToggleButtonGroup, Typography,
 } from "@mui/material";
+import AccountBalanceOutlinedIcon from "@mui/icons-material/AccountBalanceOutlined";
+import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
+import HealthAndSafetyOutlinedIcon from "@mui/icons-material/HealthAndSafetyOutlined";
+import MedicalServicesOutlinedIcon from "@mui/icons-material/MedicalServicesOutlined";
+import ManageSearchRoundedIcon from "@mui/icons-material/ManageSearchRounded";
 import AppsRoundedIcon from "@mui/icons-material/AppsRounded";
 import FormatListBulletedRoundedIcon from "@mui/icons-material/FormatListBulletedRounded";
 import OpenInNewOutlinedIcon from "@mui/icons-material/OpenInNewOutlined";
@@ -15,6 +20,11 @@ import { getInsurers } from "@/services/insurer-service";
 import { FavoriteButton, InsurerCard, InsurerDetailDialog, InsurerLogo, Sector, VideoLinks } from "./InsurerDirectoryParts";
 import { categories, contactsFor, external, initialFilters, initialFor, institutions, portalFor } from "./insurer-directory";
 import "./insurers.css";
+
+const institutionIcons = [
+  HealthAndSafetyOutlinedIcon, MedicalServicesOutlinedIcon, ManageSearchRoundedIcon,
+  AccountBalanceOutlinedIcon, FactCheckOutlinedIcon,
+];
 
 function readPreferences(key) {
   try {
@@ -141,41 +151,59 @@ function DirectoryWorkspace({ storageKey }) {
             <Chip size="small" label="INSURER PORTAL & HELPDESK" />
             <Chip size="small" label="생명·손해·공제 통합" />
           </div>
-          <Typography className="css-j405rk" component="h1" variant="h5">보험사 정보·링크</Typography>
-          <p>보험사·공제기관의 업무 링크와 연락처, 청구서류, 카드납 정보를 확인하세요.</p>
+          <div className="insurer-hero__title">
+            <Typography className="css-j405rk" component="h1" variant="h5">보험사 정보·링크</Typography>
+            <p>설계사 전산 · 콜센터 · 청구 팩스 · 카드납 · 약관을 한곳에서 확인하세요.</p>
+          </div>
         </div>
         <VideoLinks />
       </header>
 
       <section className="insurer-institutions" aria-label="외부 기관 바로가기">
-        {institutions.map(([name, description, url], index) => (
-          <a key={url} href={url} {...external} className="insurer-surface insurer-institution">
-            <div><span aria-hidden="true">{String(index + 1).padStart(2, "0")}</span><OpenInNewOutlinedIcon aria-label="새 창" /></div>
-            <strong>{name}</strong><small>{description}</small>
-          </a>
-        ))}
+        {institutions.map(([name, description, url], index) => {
+          const Icon = institutionIcons[index];
+          return <a key={url} href={url} {...external} className={`insurer-surface insurer-institution insurer-institution--${index + 1}`}
+            aria-label={`${name}, ${description} (새 창)`}>
+            <span className="insurer-institution__icon"><Icon aria-hidden="true" /></span>
+            <div className="insurer-institution__label"><strong>{name}</strong><small>{description}</small></div>
+            <OpenInNewOutlinedIcon className="insurer-institution__external" aria-hidden="true" />
+          </a>;
+        })}
       </section>
 
       <section className="insurer-surface insurer-filters" aria-label="보험사 검색과 필터">
-        <Tabs value={kind} onChange={(_, value) => setKind(value)} aria-label="보험사 분류" variant="scrollable" scrollButtons="auto">
-          {categories.map(category => <Tab key={category.value} value={category.value}
-            id={`insurer-tab-${category.value}`} aria-controls={`insurer-panel-${category.value}`}
-            icon={category.value === "favorites" ? <StarRoundedIcon /> : undefined} iconPosition="start"
-            label={`${category.label}${!loading && !error && directory ? ` (${counts[category.value] || 0})` : ""}`} />)}
-        </Tabs>
-        <div className="insurer-filters__search">
-          <TextField value={query} onChange={event => setQuery(event.target.value)} fullWidth size="small"
-            placeholder="보험사명, 전산명, 전화번호로 검색"
-            slotProps={{ htmlInput: { maxLength: 100, "aria-label": "보험사명, 전산명, 전화번호 검색" },
-              input: { startAdornment: <InputAdornment position="start"><SearchRoundedIcon /></InputAdornment> } }} />
-          <ToggleButtonGroup exclusive value={view} onChange={(_, value) => value && setView(value)} size="small" aria-label="보기 방식">
-            <ToggleButton value="card"><AppsRoundedIcon />카드뷰</ToggleButton>
-            <ToggleButton value="table"><FormatListBulletedRoundedIcon />일람표</ToggleButton>
-          </ToggleButtonGroup>
+        <div className="insurer-filters__top">
+          <Tabs value={kind} onChange={(_, value) => setKind(value)} aria-label="보험사 분류" variant="scrollable" scrollButtons="auto">
+            {categories.map(category => {
+              const count = !loading && !error && directory ? counts[category.value] || 0 : null;
+              return <Tab key={category.value} value={category.value}
+                id={`insurer-tab-${category.value}`} aria-controls={`insurer-panel-${category.value}`}
+                aria-label={count === null ? category.label : `${category.label} (${count})`}
+                className={category.value === "favorites" ? "insurer-filters__favorites" : undefined}
+                label={<span className="insurer-filters__tab-label">
+                  {category.value === "favorites" && <StarRoundedIcon aria-hidden="true" />}
+                  {category.label}
+                  {count !== null && <span className="insurer-filters__tab-count">{count}</span>}
+                </span>} />;
+            })}
+          </Tabs>
+          <div className="insurer-filters__search">
+            <TextField value={query} onChange={event => setQuery(event.target.value)} fullWidth size="small"
+              placeholder="보험사명, 전산명, 전화번호로 검색"
+              slotProps={{ htmlInput: { maxLength: 100, "aria-label": "보험사명, 전산명, 전화번호 검색" },
+                input: { startAdornment: <InputAdornment position="start"><SearchRoundedIcon /></InputAdornment> } }} />
+            <ToggleButtonGroup exclusive value={view} onChange={(_, value) => value && setView(value)} size="small" aria-label="보기 방식">
+              <ToggleButton value="card"><AppsRoundedIcon />카드뷰</ToggleButton>
+              <ToggleButton value="table"><FormatListBulletedRoundedIcon />일람표</ToggleButton>
+            </ToggleButtonGroup>
+          </div>
         </div>
-        <div className="insurer-filters__initials" role="group" aria-label="보험사 초성">
-          {["", ...initialFilters].map(letter => <button key={letter} type="button"
-            aria-pressed={initial === letter} onClick={() => setInitial(letter)}>{letter || "전체"}</button>)}
+        <div className="insurer-filters__bottom">
+          <div className="insurer-filters__initials" role="group" aria-label="보험사 초성">
+            {["", ...initialFilters].map(letter => <button key={letter} type="button"
+              aria-pressed={initial === letter} onClick={() => setInitial(letter)}>{letter || "전체"}</button>)}
+          </div>
+          {!loading && !error && <p className="insurer-result-count" role="status">{visible.length}개 기관</p>}
         </div>
       </section>
 
@@ -183,7 +211,6 @@ function DirectoryWorkspace({ storageKey }) {
         {loading ? <div role="status" className="insurer-empty"><CircularProgress size={22} /> 보험사 정보를 불러오는 중입니다.</div>
           : error ? <Alert severity="error" action={<Button color="inherit" onClick={() => setRetry(value => value + 1)}>다시 시도</Button>}>보험사 정보를 불러오지 못했습니다.</Alert>
           : <>
-            <p className="insurer-result-count" role="status">{visible.length}개 기관</p>
             {!visible.length ? <div className="insurer-surface insurer-empty">
               {kind === "favorites" && !query.trim() && !initial ? "즐겨찾기한 보험사가 없습니다." : "검색 조건에 맞는 보험사가 없습니다."}
             </div> : view === "card" ? <div className="insurer-grid">

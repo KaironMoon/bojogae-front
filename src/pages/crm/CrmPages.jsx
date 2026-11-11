@@ -16,8 +16,11 @@ import {
   Tab,
   Tabs,
   Typography,
+  ToggleButton,
+  ToggleButtonGroup,
 } from "@mui/material";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import NoteAddOutlinedIcon from "@mui/icons-material/NoteAddOutlined";
 import { crmPost, crmPut, crmError } from "@/services/crm-service";
 import {
   useCrm,
@@ -55,6 +58,7 @@ import {
 import CrmMap from "./CrmMap";
 import CrmImport from "./CrmImport";
 import CrmCustomerGroups from "./CrmCustomerGroups";
+import { ContractListEntry, ContractReminderDetails, ContractReminderFilters } from "./CrmContractReminders";
 
 function Archive({ kind, value, onClose, onDone }) {
   const [error, setError] = useState("");
@@ -713,6 +717,9 @@ export function ContractsPage() {
   const [archived, setArchived] = useState("false");
   const [page, setPage] = useState(1);
   const [form, setForm] = useState(false);
+  const [view, setView] = useState("rows");
+  const [reminder, setReminder] = useState("");
+  const [schedule, setSchedule] = useState(null);
   const [origin, setOrigin] = useState("");
   const [progress, setProgress] = useState("");
   const [dateFrom, setDateFrom] = useState("");
@@ -730,19 +737,43 @@ export function ContractsPage() {
     archived,
     customer_id: customerId || undefined,
     page,
+    include_reminders: true,
+    reminder: reminder || undefined,
   });
   const navigate = useNavigate();
+  function scheduleFor(contract) {
+    const parties = contract.parties || [];
+    const linked = parties.find(party => party.role === "INSURED" && party.customer_id)
+      || parties.find(party => party.customer_id);
+    if (!linked || contract.archived) return;
+    const event = contract.reminders?.find(item => (
+      item.date >= resource.data.reminder_today && (!reminder || item.kind === reminder)
+    ));
+    setSchedule({ contract, customerId: event?.customer_id || linked.customer_id, event });
+  }
   return (
-    <Page
+    <div className="crm-contracts-workspace"><Page
       title="내계약"
-      description="기존 가입 보험과 신규 진행 계약을 함께 관리합니다."
+      headerClassName="crm-contracts-header css-1r40e5"
+      badges={<Stack direction="row" gap={0.75} flexWrap="wrap" mb={0.5}>
+        <Chip size="small" label="고객관리 · 계약" className="crm-contracts-badge" />
+        <Chip size="small" label="고객 연락 참고일" className="crm-contracts-badge crm-contracts-badge--violet" />
+      </Stack>}
+      description="기존 가입 보험과 신규 진행 계약을 함께 관리하고, 고객에게 연락할 참고일을 확인하세요."
       actions={
-        <Button variant="contained" onClick={() => setForm(true)}>
+        <Button variant="contained" className="css-15diaom" startIcon={<NoteAddOutlinedIcon />} onClick={() => setForm(true)}>
           보험 계약 등록
         </Button>
       }
     >
-      <Panel>
+      <ContractReminderFilters selected={reminder} counts={resource.data?.reminder_counts} loading={resource.loading}
+        onChange={value => { setReminder(value); setPage(1); }}
+        viewControl={<ToggleButtonGroup exclusive size="small" value={view} aria-label="계약 보기 방식"
+          onChange={(_, value) => { if (value) setView(value); }}>
+          <ToggleButton value="rows">목록 보기</ToggleButton>
+          <ToggleButton value="cards">카드 보기</ToggleButton>
+        </ToggleButtonGroup>} />
+      <Panel className="crm-contracts-filters css-cj0pfk">
         <Stack
           component="form"
           onSubmit={(e) => {
@@ -754,13 +785,13 @@ export function ContractsPage() {
           gap={1}
         >
           <Field
-            label="보험회사·상품명·증권/설계번호 검색"
+            id=":rbl:" label="보험회사·상품명·증권/설계번호 검색"
             value={q}
             onChange={setQ}
           />
-          <Button type="submit">검색</Button>
+          <Button type="submit" variant="contained">검색</Button>
           <Field
-            label="유지 상태"
+            id=":rbn:" label="유지 상태"
             value={status}
             options={{ "": "전체", ...MAINTENANCE }}
             onChange={(v) => {
@@ -769,7 +800,7 @@ export function ContractsPage() {
             }}
           />
           <Field
-            label="보기"
+            id=":rbp:" label="보기"
             value={archived}
             options={{ false: "관리 계약", true: "보관 계약" }}
             onChange={(v) => {
@@ -780,7 +811,7 @@ export function ContractsPage() {
         </Stack>
         <Stack direction={{ xs: "column", sm: "row" }} gap={1} mt={2}>
           <Field
-            label="등록 구분"
+            id=":rbr:" label="등록 구분"
             value={origin}
             options={{
               "": "전체",
@@ -793,7 +824,7 @@ export function ContractsPage() {
             }}
           />
           <Field
-            label="가입 진행"
+            id=":rbt:" label="가입 진행"
             value={progress}
             options={{ "": "전체", ...PROGRESS }}
             onChange={(v) => {
@@ -802,7 +833,7 @@ export function ContractsPage() {
             }}
           />
           <Field
-            label="성립일 시작"
+            id=":rbv:" label="성립일 시작"
             type="date"
             value={dateFrom}
             onChange={(v) => {
@@ -811,7 +842,7 @@ export function ContractsPage() {
             }}
           />
           <Field
-            label="성립일 종료"
+            id=":rc0:" label="성립일 종료"
             type="date"
             value={dateTo}
             onChange={(v) => {
@@ -822,12 +853,14 @@ export function ContractsPage() {
         </Stack>
       </Panel>
       <State resource={resource} />
-      <Typography variant="body2" mb={2}>
-        총 {resource.data?.total || 0}건
-      </Typography>
-      {resource.data?.items.map((c) => (
-        <ContractCard key={c.id} contract={c} />
-      ))}
+      <Typography className="crm-contracts-count css-kqdt2x" variant="body2" role="status">총 {resource.data?.total || 0}건</Typography>
+      {view === "rows" && resource.data?.items.length > 0 && <div className="crm-contract-column-labels" aria-hidden="true">
+        <span>보험사 · 상품명 · 증권번호</span><span>피보험자 · 생일 · 상령일</span><span>성립일 · 월 보험료</span><span>면책·감액 참고일</span><span>상세 · 일정 관리</span>
+      </div>}
+      <div className={`crm-contract-entries crm-contract-entries--${view}`}>
+        {resource.data?.items.map(contract => <ContractListEntry key={contract.id} contract={contract} selected={reminder}
+          onSchedule={() => scheduleFor(contract)} />)}
+      </div>
       {resource.data && !resource.data.total && <Empty />}
       <Pages data={resource.data} onChange={setPage} />
       {form && (
@@ -840,7 +873,10 @@ export function ContractsPage() {
           }}
         />
       )}
-    </Page>
+      {schedule && <TaskForm customerId={schedule.customerId} contractId={schedule.contract.id}
+        initialReminder={schedule.event} onClose={() => setSchedule(null)}
+        onSave={data => crmPost("/tasks", data)} />}
+    </Page></div>
   );
 }
 export function ContractDetailPage() {
@@ -877,6 +913,7 @@ export function ContractDetailPage() {
       {c && (
         <>
           <ContractCard contract={c} />
+          <ContractReminderDetails events={c.reminders} />
           {c.archived && <Alert severity="info">보관된 계약입니다.</Alert>}
           <Panel>
             <Typography fontWeight={700}>계약 관계자</Typography>

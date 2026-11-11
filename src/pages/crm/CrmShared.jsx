@@ -12,6 +12,7 @@ import {
   DialogContent,
   DialogTitle,
   FormControlLabel,
+  IconButton,
   MenuItem,
   Pagination,
   Paper,
@@ -20,6 +21,8 @@ import {
   Typography,
 } from "@mui/material";
 import { Link } from "react-router-dom";
+import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
+import NotificationsActiveOutlinedIcon from "@mui/icons-material/NotificationsActiveOutlined";
 import {
   crmGet,
   crmPost,
@@ -62,16 +65,18 @@ export function useCrm(path, params = {}) {
   }, [path, reload]);
   return { data, error, loading, reload };
 }
-export function Page({ title, description, actions, children }) {
+export function Page({ title, description, actions, headerClassName, badges, children }) {
   return (
     <Box sx={{ p: { xs: 1.5, md: 3 }, maxWidth: 1400, mx: "auto" }}>
       <Stack
+        className={headerClassName}
         direction={{ xs: "column", sm: "row" }}
         justifyContent="space-between"
         gap={2}
         mb={3}
       >
         <Box>
+          {badges}
           <Typography variant="h5" fontWeight={800}>
             {title}
           </Typography>
@@ -163,6 +168,8 @@ export function Field({
 }
 export function Editor({
   title,
+  titleId,
+  contractLayout = false,
   open,
   onClose,
   onSubmit,
@@ -173,9 +180,11 @@ export function Editor({
   return (
     <Dialog
       open={open}
+      aria-labelledby={titleId}
       onClose={busy ? undefined : onClose}
       fullWidth
       maxWidth="md"
+      slotProps={contractLayout ? { paper: { className: "crm-contract-dialog" } } : undefined}
     >
       <Box
         component="form"
@@ -184,7 +193,14 @@ export function Editor({
           onSubmit();
         }}
       >
-        <DialogTitle>{title}</DialogTitle>
+        {contractLayout ? <div className="crm-contract-dialog-header">
+          <span className="crm-contract-dialog-icon"><NotificationsActiveOutlinedIcon /></span>
+          <div>
+            <DialogTitle id={titleId} className="css-2o971p">{title}</DialogTitle>
+            <Typography variant="caption">계약일과 생년월일을 바탕으로 고객에게 연락할 참고일을 확인하세요.</Typography>
+          </div>
+          <IconButton aria-label="닫기" onClick={onClose} disabled={busy}><CloseRoundedIcon /></IconButton>
+        </div> : <DialogTitle id={titleId}>{title}</DialogTitle>}
         <DialogContent>
           <Stack gap={2} pt={1}>
             {error && <Alert severity="error">{error}</Alert>}
@@ -273,6 +289,8 @@ export function CustomerPicker({
   onChange,
   label = "고객",
   allowEmpty = false,
+  searchId,
+  selectId,
 }) {
   const [query, setQuery] = useState("");
   const [items, setItems] = useState([]);
@@ -291,14 +309,14 @@ export function CustomerPicker({
   return (
     <Stack gap={1}>
       <Stack direction="row" gap={1}>
-        <Field label={`${label} 검색`} value={query} onChange={setQuery} />
+        <Field id={searchId} label={`${label} 검색`} value={query} onChange={setQuery} />
         <Button onClick={search} sx={{ minWidth: 90 }}>
           검색
         </Button>
       </Stack>
       {error && <Alert severity="warning">{error}</Alert>}
       <Field
-        label={`${label} 선택`}
+        id={selectId} label={`${label} 선택`}
         value={value || ""}
         onChange={(v) => onChange(v ? Number(v) : null)}
         options={{

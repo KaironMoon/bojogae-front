@@ -5,6 +5,11 @@ import { crmError, crmGet } from "@/services/crm-service";
 import { CustomerPicker, Field } from "./CrmShared";
 import { formatPhone } from "./crm-utils";
 
+const defaultFieldIds = [
+  { role: ":rf9:", search: ":rfb:", select: ":rfd:", name: ":rff:", resident: ":rfg:", phone: ":rfh:" },
+  { role: ":rfj:", search: ":rfl:", select: ":rfn:", name: ":rfp:", resident: ":rfq:", phone: ":rfr:" },
+];
+
 export default function ContractParty({ value, holder, index, onChange, onRemove }) {
   const { customer_id, details_confirmed, same_as_holder } = value;
   const [loading, setLoading] = useState(false);
@@ -25,31 +30,34 @@ export default function ContractParty({ value, holder, index, onChange, onRemove
     });
     return () => { active = false; };
   }, [customer_id, details_confirmed, same_as_holder, index, onChange, retry]);
+  const fieldIds = defaultFieldIds[index] || {};
   const displayed = same_as_holder && holder ? holder : value;
   const disabled = loading || same_as_holder;
   const edit = (key, v) => onChange(index, { [key]: v, details_confirmed: true });
   return (
-    <Box sx={{ p: 2, border: "1px solid #ddd", borderRadius: 2 }}>
+    <Box className="crm-contract-party" sx={{ p: 1.5, border: "1px solid #dfe8e4", borderRadius: 2 }}>
       <Stack gap={1}>
-        <Field label="역할" value={value.role} options={{ HOLDER: "계약자", INSURED: "피보험자" }}
+        <Field id={fieldIds.role} label="역할" value={value.role} options={{ HOLDER: "계약자", INSURED: "피보험자" }}
           onChange={(role) => onChange(index, { role, same_as_holder: false })} />
         {value.role === "INSURED" && <FormControlLabel
           label="계약자와 동일"
           control={<Checkbox checked={!!same_as_holder} disabled={!holder}
             onChange={(e) => onChange(index, { same_as_holder: e.target.checked })} />}
         />}
-        {!same_as_holder && <CustomerPicker label={value.role === "HOLDER" ? "계약자 고객" : "피보험자 고객"}
+        {!same_as_holder && <CustomerPicker searchId={fieldIds.search} selectId={fieldIds.select} label={value.role === "HOLDER" ? "계약자 고객" : "피보험자 고객"}
           value={customer_id} allowEmpty onChange={(id) => onChange(index, {
             customer_id: id, name: "", phone: "", resident_number: "", details_confirmed: false,
           })} />}
         {loading && <Alert severity="info">고객 정보를 불러오는 중입니다.</Alert>}
         {error && <Alert severity="warning">{error}<Button onClick={() => setRetry((v) => v + 1)}>다시 불러오기</Button></Alert>}
-        <Field label="성함" value={displayed.name || ""} disabled={disabled}
-          onChange={(v) => edit("name", v)} inputProps={{ maxLength: 100 }} />
-        <Field label="주민번호 앞 7자리" value={displayed.resident_number || ""} disabled={disabled}
-          onChange={(v) => edit("resident_number", v)} placeholder="760503-1" inputProps={{ maxLength: 8 }} />
-        <Field label="연락처" type="tel" value={formatPhone(displayed.phone || "")} disabled={disabled}
-          onChange={(v) => edit("phone", formatPhone(v))} />
+        <div className="crm-contract-party-identity">
+          <Field id={fieldIds.name} label="성함" value={displayed.name || ""} disabled={disabled}
+            onChange={(v) => edit("name", v)} inputProps={{ maxLength: 100 }} />
+          <Field id={fieldIds.resident} label="주민번호 앞 7자리" value={displayed.resident_number || ""} disabled={disabled}
+            onChange={(v) => edit("resident_number", v)} placeholder="760503-1" inputProps={{ maxLength: 8 }} />
+          <Field id={fieldIds.phone} label="연락처" type="tel" value={formatPhone(displayed.phone || "")} disabled={disabled}
+            onChange={(v) => edit("phone", formatPhone(v))} />
+        </div>
         {!same_as_holder && <Alert severity="info">고객 정보를 불러온 뒤 수정해도 고객관리 원본은 변경되지 않습니다.</Alert>}
         {onRemove && <Button onClick={onRemove}>관계자 제거</Button>}
       </Stack>

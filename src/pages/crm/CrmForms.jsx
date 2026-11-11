@@ -11,6 +11,7 @@ import {
   Typography,
 } from "@mui/material";
 import ContractParty from "./CrmContractParty";
+import { ContractReminderPreview } from "./CrmContractReminders";
 import { crmError, crmGet, crmPost } from "@/services/crm-service";
 import {
   Field,
@@ -382,7 +383,8 @@ export function ContractForm({ value, customerId, onSave, onClose }) {
   const state = useSave(onSave, onClose);
   const [duplicates, setDuplicates] = useState(null);
   const [confirmed, setConfirmed] = useState(false);
-  const [insurerOptions, setInsurerOptions] = useState({});
+  const [insurers, setInsurers] = useState(null);
+  const [insurersError, setInsurersError] = useState("");
   const set = (key, v) => {
     setData((old) => ({ ...old, [key]: v }));
     if (["policy_number", "insurer"].includes(key)) {
@@ -398,14 +400,16 @@ export function ContractForm({ value, customerId, onSave, onClose }) {
   }, []);
   const holder = data.parties.find((party) => party.role === "HOLDER");
   async function loadInsurers() {
-    const { default: api } = await import("@/services/api-caller");
+    if (insurers) {
+      setInsurers(null);
+      return;
+    }
+    setInsurersError("");
     try {
-      const result = (await api.get("/api/v1/insurers")).data;
-      setInsurerOptions(
-        Object.fromEntries(result.items.map((r) => [r.name, r.name])),
-      );
+      const { default: api } = await import("@/services/api-caller");
+      setInsurers((await api.get("/api/v1/insurers")).data.items);
     } catch {
-      setInsurerOptions({});
+      setInsurersError("보험사 목록을 불러오지 못했습니다.");
     }
   }
   async function submit() {
@@ -424,182 +428,183 @@ export function ContractForm({ value, customerId, onSave, onClose }) {
     <Editor
       open
       title={value ? "계약정보 수정" : "보험 계약 등록"}
+      titleId=":rf1:"
+      contractLayout
       onClose={onClose}
       onSubmit={submit}
       {...state}
     >
-      <Field
-        label="등록 구분"
-        value={data.origin}
-        disabled={!!value}
-        options={{ EXISTING: "기존 가입 보험", NEW: "신규 진행 계약" }}
-        onChange={(origin) =>
-          setData({
-            ...data,
-            origin,
-            progress: origin === "NEW" ? "DRAFT" : null,
-            maintenance: "UNKNOWN",
-          })
-        }
-      />
-      <Stack direction="row" gap={1}>
-        <Field
-          label="보험회사"
-          value={data.insurer}
-          onChange={(v) => set("insurer", v)}
-          required
-        />
-        <Button onClick={loadInsurers} sx={{ minWidth: 100 }}>
-          보험사 목록
+      <Stack component="section" gap={1.5} className="crm-contract-form-section" aria-labelledby="crm-contract-base">
+        <div className="crm-contract-section-heading">
+          <Typography component="h3" id="crm-contract-base">기본 계약 정보</Typography>
+          <Field
+            id=":rf2:" label="등록 구분"
+            value={data.origin}
+            disabled={!!value}
+            options={{ EXISTING: "기존 가입 보험", NEW: "신규 진행 계약" }}
+            onChange={(origin) =>
+              setData({
+                ...data,
+                origin,
+                progress: origin === "NEW" ? "DRAFT" : null,
+                maintenance: "UNKNOWN",
+              })
+            }
+          />
+        </div>
+        <div className="crm-contract-base-grid">
+          <Stack direction="row" gap={1}>
+            <Field id=":rf4:" label="보험회사" value={data.insurer} onChange={(v) => set("insurer", v)} required />
+            <Button onClick={loadInsurers} variant="contained" aria-expanded={Boolean(insurers)} aria-controls="crm-insurer-picker"
+              sx={{ minWidth: 88, flexShrink: 0, bgcolor: "#121314", "&:hover": { bgcolor: "#273241" } }}>보험사 목록</Button>
+          </Stack>
+          <Field id=":rf7:" label="보험 종류" value={data.category} onChange={(v) => set("category", v)} />
+          <Field id=":rf6:" label="상품명" value={data.product} onChange={(v) => set("product", v)} required />
+          <Field id=":rf8:" label="증권/설계번호 (미확인 시 비워두기)" value={data.policy_number} onChange={(v) => set("policy_number", v)} />
+        </div>
+        {insurersError && <Alert severity="warning">{insurersError}</Alert>}
+        <div id="crm-insurer-picker" hidden={!insurers}>
+          {insurers && <div className="crm-insurer-picker" aria-label="등록된 보험사">
+            {insurers.map(insurer => <Button key={insurer.id} size="small" variant="outlined"
+              aria-pressed={data.insurer === insurer.name}
+              onClick={() => { set("insurer", insurer.name); setInsurers(null); }}>{insurer.name}</Button>)}
+            {!insurers.length && <Typography variant="body2" color="text.secondary">등록된 보험사가 없습니다.</Typography>}
+          </div>}
+        </div>
+        {duplicates?.length > 0 && (
+          <Alert severity="warning">
+            동일 보험사·증권번호 계약이 있습니다.
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={confirmed}
+                  onChange={(e) => setConfirmed(e.target.checked)}
+                />
+              }
+              label="확인 후 별도 계약으로 등록합니다"
+            />
+          </Alert>
+        )}
+      </Stack>
+      <Stack component="section" gap={1.5} className="crm-contract-form-section" aria-labelledby="crm-contract-parties">
+        <Typography component="h3" id="crm-contract-parties">계약 관계자</Typography>
+        <div className="crm-contract-party-grid">
+          {data.parties.map((p, i) => (
+            <ContractParty key={i} value={p} holder={holder} index={i} onChange={updateParty}
+              onRemove={data.parties.length > 1 ? () => set("parties", data.parties.filter((_, j) => i !== j)) : undefined} />
+          ))}
+        </div>
+        <Button
+          sx={{ alignSelf: "start" }}
+          onClick={() =>
+            set("parties", [
+              ...data.parties,
+              { role: "INSURED", customer_id: null, name: "" },
+            ])
+          }
+        >
+          관계자 추가
         </Button>
       </Stack>
-      {Object.keys(insurerOptions).length > 0 && (
-        <Field
-          label="등록 보험사에서 선택"
-          value={insurerOptions[data.insurer] ? data.insurer : ""}
-          options={{ "": "선택하세요", ...insurerOptions }}
-          onChange={(v) => set("insurer", v)}
-        />
-      )}
-      <Stack direction={{ xs: "column", sm: "row" }} gap={2}>
-        <Field
-          label="상품명"
-          value={data.product}
-          onChange={(v) => set("product", v)}
-          required
-        />
-        <Field
-          label="보험 종류"
-          value={data.category}
-          onChange={(v) => set("category", v)}
-        />
-      </Stack>
-      <Field
-        label="증권/설계번호 (미확인 시 비워두기)"
-        value={data.policy_number}
-        onChange={(v) => set("policy_number", v)}
-      />
-      {duplicates?.length > 0 && (
-        <Alert severity="warning">
-          동일 보험사·증권번호 계약이 있습니다.
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={confirmed}
-                onChange={(e) => setConfirmed(e.target.checked)}
-              />
-            }
-            label="확인 후 별도 계약으로 등록합니다"
-          />
-        </Alert>
-      )}
-      <Typography fontWeight={700}>계약 관계자</Typography>
-      {data.parties.map((p, i) => (
-        <ContractParty key={i} value={p} holder={holder} index={i} onChange={updateParty}
-          onRemove={data.parties.length > 1 ? () => set("parties", data.parties.filter((_, j) => i !== j)) : undefined} />
-      ))}
-      <Button
-        onClick={() =>
-          set("parties", [
-            ...data.parties,
-            { role: "INSURED", customer_id: null, name: "" },
-          ])
-        }
-      >
-        관계자 추가
-      </Button>
-      <Stack direction={{ xs: "column", sm: "row" }} gap={2}>
-        <Field
-          label={data.payment_cycle === "MONTHLY" ? "월 보험료 (원)" : "납입금액 (원)"}
-          type="number"
-          inputProps={{ min: 0, step: ".01" }}
-          value={data.premium}
-          onChange={(v) => set("premium", v === "" ? null : v)}
-        />
-        <Field
-          label="납입 주기"
-          value={data.payment_cycle}
-          options={CYCLES}
-          onChange={(v) => set("payment_cycle", v)}
-        />
-      </Stack>
-      <Stack direction={{ xs: "column", sm: "row" }} gap={2}>
-        <Field
-          label="진행 상태"
-          disabled={!!value || data.origin === "EXISTING"}
-          value={data.progress || ""}
-          options={{ "": "해당 없음", ...PROGRESS }}
-          onChange={(v) => set("progress", v || null)}
-        />
-        <Field
-          label="유지 상태"
-          disabled={
-            !!value ||
-            (data.origin === "NEW" && data.progress !== "ESTABLISHED")
-          }
-          value={data.maintenance}
-          options={MAINTENANCE}
-          onChange={(v) => set("maintenance", v)}
-        />
-      </Stack>
-      <Box
-        sx={{
-          display: "grid",
-          gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
-          gap: 2,
-        }}
-      >
-        {[
-          ["application_date", "청약일"],
-          ["establishment_date", "계약 성립일"],
-          ["coverage_start", "보장 개시일"],
-          ["coverage_end", "보장 종료일"],
-          ["payment_end", "납입 종료일"],
-          ["verified_date", "정보 확인일"],
-        ].map(([key, label]) => (
+      <Stack component="section" gap={1.5} className="crm-contract-form-section" aria-labelledby="crm-contract-period">
+        <Typography component="h3" id="crm-contract-period">계약 일자와 납입 정보</Typography>
+        <ContractReminderPreview establishmentDate={data.establishment_date} coverageStart={data.coverage_start} parties={data.parties} />
+        <Stack direction={{ xs: "column", sm: "row" }} gap={2}>
           <Field
-            key={key}
-            label={label}
-            type="date"
-            disabled={key === "establishment_date" && !!value}
-            value={data[key]}
-            onChange={(v) => set(key, v || null)}
+            id=":rfu:" label={data.payment_cycle === "MONTHLY" ? "월 보험료 (원)" : "납입금액 (원)"}
+            type="number"
+            inputProps={{ min: 0, step: ".01" }}
+            value={data.premium}
+            onChange={(v) => set("premium", v === "" ? null : v)}
           />
-        ))}
-      </Box>
-      <Field
-        label="납입기간"
-        value={data.payment_period}
-        onChange={(v) => set("payment_period", v)}
-        placeholder="20년 / 60세납 / 일시납"
-        inputProps={{ maxLength: 100 }}
-      />
-      <Field
-        label="납입·보장 기간 설명"
-        value={data.period_note}
-        onChange={(v) => set("period_note", v)}
-      />
-      <Field
-        label="주요 보장·가입금액·특약 요약"
-        multiline
-        minRows={3}
-        value={data.coverage_note}
-        onChange={(v) => set("coverage_note", v)}
-      />
-      <Field
-        label="정보 출처"
-        value={data.information_source}
-        onChange={(v) => set("information_source", v)}
-      />
-      <FormControlLabel
-        control={
-          <Checkbox
-            checked={data.verified}
-            onChange={(e) => set("verified", e.target.checked)}
+          <Field
+            id=":rfv:" label="납입 주기"
+            value={data.payment_cycle}
+            options={CYCLES}
+            onChange={(v) => set("payment_cycle", v)}
           />
-        }
-        label="증권 등으로 확인한 정보"
-      />
+        </Stack>
+        <Stack direction={{ xs: "column", sm: "row" }} gap={2}>
+          <Field
+            id=":rg1:" label="진행 상태"
+            disabled={!!value || data.origin === "EXISTING"}
+            value={data.progress || ""}
+            options={{ "": "해당 없음", ...PROGRESS }}
+            onChange={(v) => set("progress", v || null)}
+          />
+          <Field
+            id=":rg3:" label="유지 상태"
+            disabled={
+              !!value ||
+              (data.origin === "NEW" && data.progress !== "ESTABLISHED")
+            }
+            value={data.maintenance}
+            options={MAINTENANCE}
+            onChange={(v) => set("maintenance", v)}
+          />
+        </Stack>
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: { xs: "1fr", sm: "repeat(3, minmax(0, 1fr))" },
+            gap: 2,
+          }}
+        >
+          {[
+            ["application_date", "청약일"],
+            ["establishment_date", "계약 성립일"],
+            ["coverage_start", "보장 개시일"],
+            ["coverage_end", "보장 종료일"],
+            ["payment_end", "납입 종료일"],
+            ["verified_date", "정보 확인일"],
+          ].map(([key, label], index) => (
+            <Field
+              key={key}
+              id={`:rg${(index + 5).toString(16)}:`} label={label}
+              type="date"
+              disabled={key === "establishment_date" && !!value}
+              value={data[key]}
+              onChange={(v) => set(key, v || null)}
+            />
+          ))}
+        </Box>
+        <Field
+          id=":rgb:" label="납입기간"
+          value={data.payment_period}
+          onChange={(v) => set("payment_period", v)}
+          placeholder="20년 / 60세납 / 일시납"
+          inputProps={{ maxLength: 100 }}
+        />
+        <Field
+          id=":rgc:" label="납입·보장 기간 설명"
+          value={data.period_note}
+          onChange={(v) => set("period_note", v)}
+        />
+      </Stack>
+      <Stack component="section" gap={1.5} className="crm-contract-form-section" aria-labelledby="crm-contract-coverage">
+        <Typography component="h3" id="crm-contract-coverage">보장 내용과 확인 정보</Typography>
+        <Field
+          id=":rgd:" label="주요 보장·가입금액·특약 요약"
+          multiline
+          minRows={3}
+          value={data.coverage_note}
+          onChange={(v) => set("coverage_note", v)}
+        />
+        <Field
+          id=":rge:" label="정보 출처"
+          value={data.information_source}
+          onChange={(v) => set("information_source", v)}
+        />
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={data.verified}
+              onChange={(e) => set("verified", e.target.checked)}
+            />
+          }
+          label="증권 등으로 확인한 정보"
+        />
+      </Stack>
     </Editor>
   );
 }
@@ -658,6 +663,7 @@ export function TaskForm({
   customerId,
   contractId,
   location,
+  initialReminder,
   onSave,
   onClose,
 }) {
@@ -666,9 +672,9 @@ export function TaskForm({
       customer_id: customerId || null,
       contract_id: contractId || null,
       kind: location ? "VISIT" : "CALL",
-      title: "",
+      title: initialReminder ? `${initialReminder.label} 안내` : "",
       note: "",
-      due_date: today(),
+      due_date: initialReminder?.date || today(),
       due_at: null,
       status: "PENDING",
       location: location || emptyLocation(),
