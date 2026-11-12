@@ -4,7 +4,6 @@ Run a separate Vite server: pnpm dev --host 127.0.0.1 --port 3317 --strictPort
 import json
 import os
 import sys
-from copy import deepcopy
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -73,10 +72,6 @@ def handle(route):
     elif path == 'crm/nearby-customers': body = {**collection([{**CUSTOMER, 'search_location': LOCATION, 'distance_km': .3, 'task_id': None}]), 'distance_type': 'STRAIGHT_LINE'}
     elif path == 'insurers': body = {'items': [{'id': 'test', 'name': '테스트 보험사'}]}
     elif path == 'crm/summary': body = {'customers': 1, 'contracts': 1, 'today': collection([TASK]), 'overdue': collection([])}
-    elif path == 'crm/imports':
-        body = {'id': 5, 'status': 'PREVIEW', 'rows': [{'raw': {'고객명': '가져오기 고객'},
-            'customer': {**deepcopy(CUSTOMER), 'name': f'가져오기 고객{i}'}, 'errors': [], 'duplicates': [], 'original': {}, 'index': i} for i in range(5000)]}
-    elif path == 'crm/imports/5/commit': body = {'count': len(request.post_data_json['indices']), 'items': []}
     elif request.method in ('POST', 'PUT'): body = {'id': 7, **(request.post_data_json or {})}
     route.fulfill(status=status, content_type='application/json', body=json.dumps(body), headers=headers)
 
@@ -205,20 +200,10 @@ with sync_playwright() as p:
     assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth')
     page.screenshot(path=str(OUT / 'nearby-mobile.png'), full_page=True)
     page.goto(BASE + '/crm/customers')
-    page.get_by_role('button', name='자료 가져오기', exact=True).click()
-    imports = page.get_by_role('dialog', name='고객 자료 가져오기')
-    imports.get_by_label('원본 내용 붙여넣기', exact=True).fill('고객명\t연락처\n가져오기 고객\t01000000000')
-    imports.get_by_role('button', name='미리보기').click()
-    expect(imports.get_by_text('총 5000행 · 선택 0행', exact=True)).to_be_visible()
-    assert imports.get_by_role('button', name='내용 수정', exact=True).count() == 50
-    imports.get_by_role('button', name='Go to page 2').click()
-    imports.get_by_label('등록 가능한 행 모두 선택', exact=True).check()
-    imports.get_by_label('선택한 고객 정보·중복 여부·미확인 항목을 검토했습니다', exact=True).check()
-    imports.get_by_role('button', name='선택 고객 등록', exact=True).click()
-    imports.get_by_text('5000명의 고객을 등록했습니다.', exact=True).wait_for()
+    expect(page.get_by_role('button', name='고객 등록', exact=True)).to_be_visible()
+    expect(page.get_by_role('button', name='자료 가져오기', exact=True)).to_have_count(0)
     assert not errors, errors
     assert not external, external
     assert any(path == 'crm/customers/1' for path, _ in writes)
-    assert any(path == 'crm/imports/5/commit' for path, _ in writes)
     print(json.dumps({'page_errors': errors, 'external_requests': external, 'writes': len(writes), 'screenshots': str(OUT)}, ensure_ascii=False))
     browser.close()

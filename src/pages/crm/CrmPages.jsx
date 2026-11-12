@@ -128,7 +128,6 @@ export function CustomersPage() {
   const [page, setPage] = useState(1);
   const [view, setView] = useState("list");
   const [form, setForm] = useState(false);
-  const [importOpen, setImportOpen] = useState(false);
   const [selection, setSelection] = useState({ data: null, scope: "", ids: [] });
   const [actionNotice, setActionNotice] = useState("");
   const [groupTargets, setGroupTargets] = useState(null);
@@ -145,13 +144,19 @@ export function CustomersPage() {
     ...(hasContract !== "" ? { has_contract: hasContract } : {}),
     page,
   });
-  const navigate = useNavigate();
   const selectionScope = JSON.stringify([search, stage, archived, missing, unconfirmed, tag, hasContract, page, view, groupId, allCustomers, pageSize]);
   const selectable = resource.data?.items || [];
   const selected = !resource.loading && !resource.error && selection.data === resource.data && selection.scope === selectionScope
     ? selectable.filter((customer) => selection.ids.includes(customer.id)) : [];
   function selectCustomers(ids) {
     setSelection({ data: resource.data, scope: selectionScope, ids });
+  }
+  function finishRegistration(count) {
+    setForm(false);
+    setView("list");
+    setPage(1);
+    setActionNotice(`${count}명의 고객을 등록했습니다.`);
+    resource.reload();
   }
   return (
     <div className="crm-customers-workspace"><CustomerWorkspace
@@ -162,7 +167,6 @@ export function CustomersPage() {
       actions={
         <>
           <Button className="crm-customer-group-button" startIcon={<ContractDesignIcon name="folder" />} onClick={() => setGroupTargets([])}>고객 그룹 관리 <span className="crm-customer-group-count">{groups.data?.items.length ?? "—"}</span></Button>
-          <Button className="crm-customer-import-button" startIcon={<ContractDesignIcon name="sheet" />} onClick={() => setImportOpen(true)}>자료 가져오기</Button>
           <Button className="crm-customer-primary" startIcon={<ContractDesignIcon name="user_plus" />} variant="contained" onClick={() => setForm(true)}>
             고객 등록
           </Button>
@@ -207,18 +211,16 @@ export function CustomersPage() {
         </>
       )}
       {form && (
-        <CustomerForm
-          onClose={() => setForm(false)}
-          onSave={async (data) => {
-            const result = await crmPost("/customers", data);
-            navigate(`/crm/customers/${result.id}`);
-          }}
-        />
-      )}
-      {importOpen && (
         <CrmImport
-          onClose={() => setImportOpen(false)}
-          onDone={resource.reload}
+          onClose={() => setForm(false)}
+          onDone={finishRegistration}
+          renderRegistration={(spreadsheet) => (
+            <CustomerForm open={spreadsheet.open} spreadsheet={spreadsheet} onClose={() => setForm(false)}
+              onSave={async (data) => {
+                await crmPost("/customers", data);
+                finishRegistration(1);
+              }} />
+          )}
         />
       )}
       {groupTargets?.length > 0 && <CustomerBatchGroups customers={groupTargets} onClose={() => { setGroupTargets(null); groups.reload(); resource.reload(); }} />}

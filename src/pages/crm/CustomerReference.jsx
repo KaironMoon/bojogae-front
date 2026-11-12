@@ -31,21 +31,21 @@ export function CustomerWorkspace({ title, description, badges, actions, childre
   </div>;
 }
 
-export function CustomerModal({ open, title, titleId, onClose, onSubmit, busy, error, children }) {
+export function CustomerModal({ open, title, titleId, description, onClose, onSubmit, busy, error, footer, children }) {
   return <Dialog open={open} onClose={busy ? undefined : onClose} aria-labelledby={titleId} fullWidth maxWidth={false} slotProps={{ paper: { className: "crm-customer-dialog customer-ref-register" } }}>
-    <form onSubmit={event => { event.preventDefault(); if (!busy) onSubmit(); }}>
+    <form onSubmit={event => { event.preventDefault(); if (!busy) onSubmit?.(); }}>
       <header className="customer-ref-modal-header">
         <span className="customer-ref-modal-icon"><Icon name="user_plus" /></span>
-        <div className="customer-ref-modal-heading"><div><h2 id={titleId}>{title}</h2><span className={title === "고객 등록" ? "customer-ref-ai-badge" : undefined}>{title === "고객 등록" ? "✨ AI 텍스트·이미지 자동 파싱 탑재" : "생년월일·성별 → 주민번호 7자리 자동완성"}</span></div><p>{title === "고객 등록" ? "상단 AI 입력창에 카톡 대화·메모 텍스트나 명함·스크린샷 이미지를 올리면 고객정보가 자동 입력됩니다." : "카톡대화명과 주소를 입력하면 보조개톡 및 주변 고객 지도와 연동됩니다."}</p></div>
+        <div className="customer-ref-modal-heading"><div><h2 id={titleId}>{title}</h2>{!description && <span className={title === "고객 등록" ? "customer-ref-ai-badge" : undefined}>{title === "고객 등록" ? "✨ AI 텍스트·이미지 자동 파싱 탑재" : "생년월일·성별 → 주민번호 7자리 자동완성"}</span>}</div><p>{description ?? (title === "고객 등록" ? "상단 AI 입력창에 카톡 대화·메모 텍스트나 명함·스크린샷 이미지를 올리면 고객정보가 자동 입력됩니다." : "카톡대화명과 주소를 입력하면 보조개톡 및 주변 고객 지도와 연동됩니다.")}</p></div>
         <button className="customer-ref-close" type="button" disabled={busy} onClick={onClose} aria-label="닫기"><Icon name="close" /></button>
       </header>
       <div className="customer-ref-modal-body">{error && <p className="customer-ref-error" role="alert">{error}</p>}{children}</div>
-      <footer className="customer-ref-modal-footer"><span>💡 등록 후에도 고객 상세 화면에서 언제든 수정할 수 있습니다.</span><button type="button" disabled={busy} onClick={onClose}>취소</button><button type="submit" className="customer-ref-primary" disabled={busy}>{busy ? "저장 중…" : "저장"}</button></footer>
+      <footer className="customer-ref-modal-footer">{footer ?? <><span>💡 등록 후에도 고객 상세 화면에서 언제든 수정할 수 있습니다.</span><button type="button" disabled={busy} onClick={onClose}>취소</button><button type="submit" className="customer-ref-primary" disabled={busy}>{busy ? "저장 중…" : "저장"}</button></>}</footer>
     </form>
   </Dialog>;
 }
 
 // Header structure from the group/import/batch dialogs in the HTML reference.
-export function CustomerPopupHeader({ title, icon, description, onClose, busy, badge = false }) {
-  return <header className="customer-popup-header"><div><span className={badge ? "customer-popup-header-badge" : "customer-popup-header-icon"}><Icon name={icon} /></span><div><h2>{title}</h2>{description && <p>{description}</p>}</div></div><button type="button" aria-label={`${title} 닫기`} disabled={busy} onClick={onClose}><Icon name="close" /></button></header>;
+export function CustomerPopupHeader({ id, title, icon, description, onClose, busy, badge = false }) {
+  return <header className="customer-popup-header"><div><span className={badge ? "customer-popup-header-badge" : "customer-popup-header-icon"}><Icon name={icon} /></span><div><h2 id={id}>{title}</h2>{description && <p>{description}</p>}</div></div><button type="button" aria-label={`${title} 닫기`} disabled={busy} onClick={onClose}><Icon name="close" /></button></header>;
 }

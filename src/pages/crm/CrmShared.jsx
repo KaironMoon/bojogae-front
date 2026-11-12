@@ -1,4 +1,4 @@
-import { CustomerModal, CustomerField } from "./CustomerReference";
+import { CustomerField } from "./CustomerReference";
 /* eslint-disable react/prop-types, react-refresh/only-export-components */
 import ContractDesignIcon from "./ContractDesignIcon";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -171,7 +171,6 @@ export function Editor({
   titleId,
   contractLayout = false,
   contractTaskLayout = false,
-  customerLayout = false,
   open,
   onClose,
   onSubmit,
@@ -179,7 +178,6 @@ export function Editor({
   busy,
   error,
 }) {
-  if (customerLayout) return <CustomerModal open={open} title={title} titleId={titleId} onClose={onClose} onSubmit={onSubmit} busy={busy} error={error}>{children}</CustomerModal>;
   return (
     <Dialog
       open={open}

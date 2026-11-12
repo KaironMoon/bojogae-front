@@ -68,6 +68,8 @@ const errors = {
   crm_import_invalid_headers: "제목 행과 열 구성을 확인해 주세요. 최대 30열까지 가져올 수 있습니다.",
   crm_import_duplicate_mapping: "여러 열을 같은 저장 항목에 연결할 수 없습니다. 하나를 선택하고 나머지는 가져오지 않음으로 설정해 주세요.",
   crm_import_invalid_mapping: "저장 항목 연결을 확인해 주세요.",
+  crm_import_invalid_transform: "값 처리 함수를 적용할 수 없습니다. 항목 연결에서 함수 적용을 해제해 주세요.",
+  crm_import_row_needs_review: "변환에 실패한 고객이 포함되어 있습니다. 해당 고객의 정보를 수정하거나 등록 선택을 해제해 주세요.",
   crm_import_formula_unsupported: "엑셀 수식은 가져올 수 없습니다. 수식 결과를 값으로 붙여넣은 뒤 올려 주세요.",
   crm_import_html_unsupported:
     "지원하는 고객 데이터 형식이 없습니다. 표를 탭 구분 텍스트로 붙여넣어 주세요.",
@@ -79,11 +81,15 @@ const errors = {
   crm_import_extraction_invalid: "추출된 표의 열 구성이 올바르지 않습니다. 원본을 확인하거나 CSV로 변환해 올려 주세요.",
   crm_import_row_limit: "한 번에 1~5,000행을 가져올 수 있습니다.",
 };
+export const residentNumberHelp = "주민번호는 앞 6자리 또는 앞 6자리와 뒤 첫 1자리를 입력해 주세요. 예: 850307-1";
+
 export function crmError(error) {
   const detail = error.response?.data?.detail;
   if (Array.isArray(detail))
     return detail
-      .map((v) => `${v.loc?.slice(1).join(".")}: ${v.msg}`)
+      .map((v) => v.type === "string_pattern_mismatch" && v.loc?.at(-1) === "resident_number"
+        ? residentNumberHelp
+        : `${v.loc?.slice(1).join(".")}: ${v.msg}`)
       .join(" / ");
   return (
     errors[detail] ||

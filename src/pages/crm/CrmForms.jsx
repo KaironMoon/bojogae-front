@@ -1,5 +1,5 @@
 import CustomerAiFill from "./CustomerAiFill";
-import { CustomerField } from "./CustomerReference";
+import { CustomerField, CustomerModal } from "./CustomerReference";
 import { customerDefaults } from "./customer-defaults";
 /* eslint-disable react/prop-types */
 import { useCallback, useEffect, useState } from "react";
@@ -16,7 +16,7 @@ import {
 import ContractDesignIcon from "./ContractDesignIcon";
 import ContractParty from "./CrmContractParty";
 import { ContractReminderPreview } from "./CrmContractReminders";
-import { crmError, crmGet, crmPost } from "@/services/crm-service";
+import { crmError, crmGet, crmPost, residentNumberHelp } from "@/services/crm-service";
 import {
   Field,
   Editor,
@@ -43,9 +43,10 @@ const pick = (value, defaults) =>
   Object.fromEntries(
     Object.entries(defaults).map(([k, v]) => [k, value?.[k] ?? v]),
   );
-export function CustomerForm({ value, onSave, onClose }) {
+export function CustomerForm({ open = true, value, onSave, onClose, spreadsheet, importReview }) {
   const [aiBusy,setAiBusy]=useState(false);
-  const [data, setData] = useState(() => pick(value, customerDefaults));
+  const [initial] = useState(() => pick(value, customerDefaults));
+  const [data, setData] = useState(initial);
   const state = useSave(onSave, onClose);
   const [duplicates, setDuplicates] = useState(null);
   const [confirmed, setConfirmed] = useState(false);
@@ -71,6 +72,29 @@ export function CustomerForm({ value, onSave, onClose }) {
     return () => { active = false; clearTimeout(timer); };
   }, [alias, customerId]);
   const [tagsText, setTagsText] = useState((value?.tags || []).join(", "));
+  const [aiApplication, setAiApplication] = useState(null);
+  useEffect(() => {
+    if (!aiApplication) return;
+    const { fields, resolve } = aiApplication;
+    const applied = Object.keys(fields).filter((key) => {
+      if (key === "resident_number_manual") return false;
+      if (key === "tags") return Array.isArray(fields.tags) && fields.tags.length > 0 && tagsText === fields.tags.join(", ");
+      if (key === "location") return Boolean(fields.location?.address) && data.location?.address === fields.location.address;
+      if (key === "resident_number" && !data.resident_number_manual) return false;
+      return Object.hasOwn(customerDefaults, key) && Boolean(fields[key]) && Object.is(data[key], fields[key]);
+    });
+    resolve(applied);
+    setAiApplication(null);
+  }, [aiApplication, data, tagsText]);
+
+  function applyAiFields(fields) {
+    const changes = Object.fromEntries(Object.entries(fields).filter(([key]) => Object.hasOwn(customerDefaults, key)));
+    if (Array.isArray(changes.tags)) setTagsText(changes.tags.join(", "));
+    setData((old) => ({ ...old, ...changes }));
+    setDuplicates(null);
+    setConfirmed(false);
+    return new Promise((resolve) => setAiApplication({ fields, resolve }));
+  }
   const [birthPreview, setBirthPreview] = useState(null);
   const [birthError, setBirthError] = useState("");
   const [receivedPreview, setReceivedPreview] = useState(null);
@@ -125,7 +149,7 @@ export function CustomerForm({ value, onSave, onClose }) {
     }
   };
   async function submit() {
-    if (aiBusy) return;
+    if (aiBusy || spreadsheet?.busy) return;
     if (aliasDuplicate) return;
     if (!value && !confirmed) {
       try {
@@ -138,20 +162,23 @@ export function CustomerForm({ value, onSave, onClose }) {
     }
     state.save({ ...data, ...(value ? { version: value.version } : {}) });
   }
+  const draft = data !== initial ? data : null;
+  const invalidResidentNumber = data.resident_number_manual
+    && !/^(?:[0-9]{6}-?[0-9]?)?$/.test(data.resident_number.trim());
   return (
-    <Editor
-      open
-      customerLayout
+    <CustomerModal
+      open={open}
       titleId=":rff:"
-      title={value ? "고객정보 수정" : "고객 등록"}
+      title={importReview ? "고객 등록 · 엑셀 검토" : value ? "고객정보 수정" : "고객 등록"}
+      description={importReview ? "가져온 고객 정보를 한 명씩 확인하고 수정할 수 있습니다." : undefined}
       onClose={onClose}
-      onSubmit={submit}
-      {...state}
-      busy={state.busy || aiBusy}
+      onSubmit={importReview ? undefined : submit}
+      error={importReview?.error || state.error}
+      busy={state.busy || aiBusy || spreadsheet?.busy || importReview?.busy}
+      footer={importReview?.renderFooter(draft)}
     >
-      {!value && <CustomerAiFill disabled={state.busy} onBusy={setAiBusy} onApply={fields => {
-        setData(old => ({...old,...fields})); setDuplicates(null); setConfirmed(false);
-      }} />}
+      {importReview?.renderDetails(draft)}
+      {!value && <CustomerAiFill disabled={state.busy || spreadsheet?.busy} spreadsheet={spreadsheet} onBusy={setAiBusy} onApply={applyAiFields} />}
       <section className="crm-customer-form-section"><h3><ContractDesignIcon name="id_card" />1. 기본 인적사항 및 보조개톡 연결<small>* 고객명 필수</small></h3>
       <div className="crm-customer-form-grid">
         <CustomerField
@@ -236,7 +263,8 @@ export function CustomerForm({ value, onSave, onClose }) {
         onChange={(v) => setData((old) => ({ ...old, resident_number: v, resident_number_manual: true }))}
         placeholder="850307-1"
         inputProps={{ maxLength: 8 }}
-        helperText={data.resident_number_manual
+        error={invalidResidentNumber}
+        helperText={invalidResidentNumber ? residentNumberHelp : data.resident_number_manual
           ? "직접 수정한 값은 생년월일·성별이 바뀌어도 유지됩니다."
           : "생년월일·성별로 자동 입력합니다. 음력 생일은 양력으로 변환하며 직접 수정할 수 있습니다."}
       />
@@ -340,7 +368,7 @@ export function CustomerForm({ value, onSave, onClose }) {
         label="연락 중단 요청 (주변 고객 검색에서 제외)"
       />
       </section>
-    </Editor>
+    </CustomerModal>
   );
 }
 const contractDefaults = {

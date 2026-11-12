@@ -1,17 +1,29 @@
-"""Run Vite on 3397; synthetic requests only, no customer persistence."""
+"""Exercise the shared customer form with mocked import APIs; no customer persistence."""
 import json
 import os
-from playwright.sync_api import sync_playwright, expect
+
+from playwright.sync_api import expect, sync_playwright
 
 BASE = os.environ.get('CRM_IMPORT_UI_BASE', 'http://127.0.0.1:3397')
-errors, previews, writes, sample_requests = [], [], [], []
-USER = {'id': 7, 'role': 'USER', 'status': 'ACTIVE', 'plan_code': 'STANDARD', 'email': 'test@example.test', 'display_name': '화면 테스트', 'group_id': None}
-parsed = {'format': 'TSV', 'text': '성함\tTEL\t기타\n시험고객\t01012345678\t제외\n',
-          'headers': ['성함', 'TEL', '기타'], 'mapping': {'성함': 'name', 'TEL': 'phone', '기타': '__ignore__'},
-          'confidence': {'성함': .99, 'TEL': .7, '기타': .3}, 'header_row': 1,
-          'header_options': [{'value': 0, 'label': '1행: 고객 명단'}, {'value': 1, 'label': '2행: 성함 / TEL / 기타'}],
-          'samples': [['시험고객', '01012345678', '제외']], 'warning': ''}
-fallback = False
+USER = {'id': 7, 'role': 'USER', 'status': 'ACTIVE', 'plan_code': 'STANDARD',
+        'email': 'test@example.test', 'display_name': '화면 테스트', 'group_id': None}
+PARSED = {
+    'format': 'TSV', 'text': '성함\tTEL\n시험고객\t01012345678\n다른고객\t01022223333\n',
+    'headers': ['성함', 'TEL'], 'mapping': {'성함': 'name', 'TEL': 'phone'},
+    'confidence': {'성함': .99, 'TEL': .7}, 'header_row': 1,
+    'header_options': [{'value': 1, 'label': '2행: 성함 / TEL'}],
+    'customer_lines': 3, 'data_start': 4, 'data_start_options': [2, 3, 4, 5], 'layout_error': '',
+    'samples': [['시험고객', '01012345678']], 'warning': '',
+    'transform_source': 'def transform(row):\n    return {"phone": digits(row[1])}',
+    'transform_samples': [{'index': 0, 'input': ['시험고객', '01012345678'], 'output': {'phone': '01012345678'}, 'errors': []}],
+}
+ROWS = [
+    {'index': i, 'customer': {'name': name, 'phone': phone}, 'errors': [],
+     'original': {}, 'raw': {'성함': name, 'TEL': phone}}
+    for i, (name, phone) in enumerate([('시험고객', '01012345678'), ('다른고객', '01022223333')])
+]
+errors, uploads, previews, commits, registrations = [], [], [], [], []
+autofill_requests, autofill_feedback = [], []
 
 
 def handle(route):
@@ -19,123 +31,137 @@ def handle(route):
     path = request.url.split('/api/v1/', 1)[-1].split('?')[0]
     headers = {'Access-Control-Allow-Origin': BASE, 'Access-Control-Allow-Credentials': 'true',
                'Access-Control-Allow-Methods': 'GET,POST,OPTIONS', 'Access-Control-Allow-Headers': 'content-type'}
-    body = {}
     if request.method == 'OPTIONS':
         route.fulfill(status=204, headers=headers)
         return
-    if request.method != 'GET':
-        writes.append(path)
+    body = {}
     if path == 'auth/me':
         body = USER
     elif path == 'web-push/configuration':
         body = {'enabled': False}
+    elif path == 'crm/customers' and request.method == 'POST':
+        registrations.append(request.post_data_json)
+        body = {'id': 9}
     elif path == 'crm/customers':
         body = {'items': [], 'total': 0, 'page': 1, 'page_size': 20}
+    elif path == 'crm/customers/duplicates':
+        body = {'items': []}
+    elif path == 'crm/customers/ai-extract':
+        autofill_requests.append(request.post_data)
+        fields = {'name': '자동 채움 고객', 'tags': ['상담']} if len(autofill_requests) == 1 else {'unknown_field': '값'}
+        body = {'request_id': 'be41e2db-9d44-48c1-87bc-326e1d596571', 'fields': fields, 'message': '추출 완료'}
+    elif path == 'crm/customers/ai-extract/feedback':
+        autofill_feedback.append(request.post_data)
+    elif path == 'crm/customer-groups':
+        body = {'items': []}
     elif path == 'crm/imports/parse-file':
-        body = {**parsed, 'warning': '자동 인식을 완료하지 못했습니다. 제목 행과 저장 항목을 직접 선택해 주세요.' if fallback else ''}
-        if any(name in (request.post_data or '') for name in ('customers.html', 'customers.png')):
-            body = {**parsed, 'format': 'CSV', 'extractor': 'gpt-6-luna', 'header_options': [], 'warning': '추출한 값을 원본과 대조해 주세요.'}
-    elif path == 'crm/imports/extract-html':
-        body = {**parsed, 'format': 'CSV', 'extractor': 'gpt-6-luna', 'header_options': [], 'warning': '추출한 값을 원본과 대조해 주세요.'}
-    elif path == 'crm/imports/mapping-sample':
-        sample_requests.append(request.post_data_json)
-        body = {'columns': [{'source': source, 'field': field} for source, field in request.post_data_json['mapping'].items()],
-                'rows': [{'index': i, 'customer': {'name': f'시험고객{i}', 'phone': '01012345678'}, 'errors': [], 'original': {}, 'raw': {}} for i in range(10)]}
+        uploads.append(request.post_data)
+        body = PARSED
     elif path == 'crm/imports':
-        previews.append(request.post_data_json)
-        body = {'id': 3, 'rows': [{'index': 0, 'customer': {'name': '시험고객', 'phone': '01012345678'}, 'errors': [], 'original': {}, 'raw': {'성함': '시험고객'}}]}
+        payload = request.post_data_json
+        previews.append(payload)
+        rows = ROWS
+        if payload['mapping']['TEL'] == 'memo':
+            rows = [{**row, 'customer': {'name': row['customer']['name'], 'memo': row['raw']['TEL']}}
+                    for row in ROWS]
+        body = {'id': len(previews), 'rows': rows, 'status': 'PREVIEW'}
+    elif path.endswith('/commit'):
+        commits.append(request.post_data_json)
+        body = {'count': len(commits[-1]['indices'])}
     route.fulfill(status=200, content_type='application/json', body=json.dumps(body), headers=headers)
 
 
-with sync_playwright() as p:
-    browser = p.chromium.launch(headless=True, channel=os.environ.get('PLAYWRIGHT_CHANNEL', 'chrome'))
+with sync_playwright() as playwright:
+    browser = playwright.chromium.launch(headless=True, channel=os.environ.get('PLAYWRIGHT_CHANNEL', 'chrome'))
     context = browser.new_context(viewport={'width': 1280, 'height': 1000})
     context.route('**/api/v1/**', handle)
     page = context.new_page()
+    page.set_default_timeout(7000)
     page.on('pageerror', lambda error: errors.append(str(error)))
     page.goto(BASE + '/crm/customers')
-    page.get_by_role('button', name='자료 가져오기', exact=True).click()
+    page.get_by_role('button', name='고객 등록', exact=True).click()
     dialog = page.get_by_role('dialog')
-    upload_area = dialog.get_by_role('button', name='고객 자료 파일 업로드', exact=True)
-    def drop_files(files, twice=False):
-        upload_area.evaluate("""(element, {files, twice}) => {
-          const data = new DataTransfer();
-          for (const file of files) data.items.add(new File([file.content || 'synthetic'], file.name, {type: file.mime || 'text/csv'}));
-          element.dispatchEvent(new DragEvent('dragenter', {bubbles: true, dataTransfer: data}));
-          element.dispatchEvent(new DragEvent('drop', {bubbles: true, cancelable: true, dataTransfer: data}));
-          if (twice) element.dispatchEvent(new DragEvent('drop', {bubbles: true, cancelable: true, dataTransfer: data}));
-        }""", {'files': files, 'twice': twice})
-    drop_files([{'name': 'one.csv'}, {'name': 'two.csv'}])
-    expect(dialog.get_by_text('파일은 한 번에 하나씩 올려 주세요.', exact=True)).to_be_visible()
-    assert not writes
-    drop_files([{'name': 'unsupported.exe'}])
-    expect(dialog.get_by_text('엑셀(.xlsx), CSV, HTML 또는 이미지(PNG·JPEG·WebP)를 선택해 주세요.', exact=True)).to_be_visible()
-    assert not writes
-    # Two immediate drop events must result in just one upload.
-    drop_files([{'name': 'customers.csv'}], twice=True)
-
-    expect(dialog.get_by_label('성함 → 저장 항목', exact=True)).to_contain_text('고객명')
-    expect(dialog.get_by_label('TEL → 저장 항목 · 확인 필요', exact=True)).to_contain_text('연락처')
-    expect(dialog.get_by_label('기타 → 저장 항목 · 확인 필요', exact=True)).to_contain_text('가져오지 않음')
-    expect(dialog.get_by_text('샘플: 시험고객', exact=True)).to_be_visible()
-    expect(dialog.get_by_text('선택한 파일: customers.csv', exact=True)).to_be_visible()
-    assert writes.count('crm/imports/parse-file') == 1
+    dialog.get_by_label('고객명').fill('수동 입력 중')
+    upload_area = dialog.get_by_role('button', name='엑셀 · CSV 가져오기', exact=True)
     with page.expect_file_chooser() as chooser:
         upload_area.click()
-    # Closing the chooser keeps the existing mapping intact.
     chooser.value.set_files([])
-    consent = dialog.get_by_role('checkbox', name='표시된 매핑 결과를 확인했으며, 이 방식으로 가져오는 데 동의합니다', exact=True)
-    proceed = dialog.get_by_role('button', name='동의하고 전체 데이터 검증', exact=True)
-    dialog.get_by_role('button', name='매핑 결과 10명 확인', exact=True).click()
-    expect(dialog.get_by_role('table', name='매핑된 고객 데이터 샘플')).to_be_visible()
-    expect(dialog.get_by_role('table').get_by_role('row')).to_have_count(11)
-    expect(dialog.get_by_text('시험고객9', exact=True)).to_be_visible()
-    expect(proceed).to_be_disabled()
-    assert not previews
-    consent.check()
-    expect(proceed).to_be_enabled()
-    # Changing any mapping invalidates both the sample and its consent.
+    expect(dialog.get_by_label('고객명')).to_have_value('수동 입력 중')
+    upload_area.evaluate("""element => {
+      const data = new DataTransfer();
+      data.items.add(new File(['synthetic'], 'customers.xlsx'));
+      for (let i = 0; i < 2; i++)
+        element.dispatchEvent(new DragEvent('drop', {bubbles: true, cancelable: true, dataTransfer: data}));
+    }""")
+    expect(dialog.get_by_label('고객명')).to_have_value('시험고객')
+    expect(dialog.get_by_text('엑셀 3행을 고객 한 명으로 읽었습니다.', exact=True)).to_be_visible()
+    expect(dialog.get_by_label('제목 행')).to_have_count(0)
+    expect(dialog.get_by_role('button', name='이전', exact=True)).to_be_disabled()
+    assert len(uploads) == 1
+    assert previews[0]['mapping'] == PARSED['mapping'] and previews[0]['mapping_confirmed']
+    assert previews[0]['transform_source'] == PARSED['transform_source']
+    assert not commits
+
+    dialog.get_by_role('button', name='항목 연결 확인·수정', exact=True).click()
+    expect(dialog.get_by_label('제목 행')).to_be_visible()
+    expect(dialog.get_by_label('고객당 행 수')).to_contain_text('3행')
+    expect(dialog.get_by_label('첫 고객 행')).to_contain_text('5행')
+    dialog.get_by_text('함수와 변환 샘플 확인', exact=True).click()
+    expect(dialog.get_by_text('함수 결과 · 연락처 01012345678', exact=True)).to_be_visible()
+    dialog.get_by_role('checkbox', name='AI가 만든 값 처리 함수 적용', exact=True).uncheck()
     dialog.get_by_label('TEL → 저장 항목 · 확인 필요', exact=True).click()
     page.get_by_role('option', name='메모', exact=True).click()
-    expect(dialog.get_by_role('table')).to_have_count(0)
-    dialog.get_by_label('TEL → 저장 항목 · 확인 필요', exact=True).click()
-    page.get_by_role('option', name='연락처', exact=True).click()
-    dialog.get_by_role('button', name='매핑 결과 10명 확인', exact=True).click()
-    expect(consent).not_to_be_checked()
-    expect(proceed).to_be_disabled()
-    consent.check()
-    proceed.click()
-    expect(dialog.get_by_text('총 1행 · 선택 0행', exact=True)).to_be_visible()
-    expect(dialog.get_by_role('button', name='선택 고객 등록', exact=True)).to_be_disabled()
-    assert previews[0]['mapping'] == parsed['mapping']
-    assert previews[0]['mapping_confirmed'] is True
-    assert len(sample_requests) == 2
-    dialog.get_by_role('button', name='매핑 다시 하기', exact=True).click()
-    expect(dialog.get_by_role('table')).to_have_count(0)
-    fallback = True
-    dialog.locator('input[type=file]').set_input_files({'name': 'retry.csv', 'mimeType': 'text/csv', 'buffer': b'synthetic'})
-    expect(dialog.get_by_text('자동 인식을 완료하지 못했습니다. 제목 행과 저장 항목을 직접 선택해 주세요.', exact=True)).to_be_visible()
-    dialog.get_by_role('button', name='매핑 결과 10명 확인', exact=True).click()
-    expect(consent).not_to_be_checked()
+    dialog.get_by_role('button', name='적용하고 고객 다시 불러오기', exact=True).click()
+    expect(dialog.get_by_label('고객 메모')).to_have_value('01012345678')
+    assert previews[-1]['mapping']['TEL'] == 'memo'
+    assert 'transform_source' not in previews[-1]
+    assert not commits
+
+    dialog.get_by_label('고객명').fill('첫 고객 수정')
+    dialog.get_by_role('checkbox', name='이 고객 등록', exact=True).check()
+    dialog.get_by_role('button', name='다음', exact=True).click()
+    expect(dialog.get_by_label('고객명')).to_have_value('다른고객')
+    expect(dialog.get_by_role('button', name='다음', exact=True)).to_be_disabled()
+    dialog.get_by_label('연락처').fill('01055556666')
+    dialog.get_by_role('button', name='항목 연결 확인·수정', exact=True).click()
+    dialog.get_by_role('button', name='고객 검토로 돌아가기', exact=True).click()
+    expect(dialog.get_by_label('연락처')).to_have_value('010-5555-6666')
+    dialog.get_by_role('button', name='이전', exact=True).click()
+    expect(dialog.get_by_label('고객명')).to_have_value('첫 고객 수정')
+    expect(dialog.get_by_role('checkbox', name='이 고객 등록', exact=True)).to_be_checked()
+    dialog.get_by_label('연락처').fill('01077778888')
+
     page.set_viewport_size({'width': 390, 'height': 844})
     assert dialog.evaluate('(d) => d.scrollWidth <= d.clientWidth')
-    # HTML and image extraction reuse the mapping/sample/consent flow.
-    for filename, mime in [('customers.html', 'text/html'), ('customers.png', 'image/png')]:
-        dialog.locator('input[type=file]').set_input_files({'name': filename, 'mimeType': mime, 'buffer': b'synthetic'})
-        expect(dialog.get_by_label('추출된 CSV (수정 가능)', exact=True)).to_be_visible()
-        expect(dialog.get_by_label('제목 행', exact=True)).to_have_count(0)
-        expect(dialog.get_by_role('table')).to_have_count(0)
-        dialog.get_by_role('button', name='매핑 결과 10명 확인', exact=True).click()
-        expect(consent).not_to_be_checked()
-        expect(proceed).to_be_disabled()
-    # Pasted arbitrary HTML gets extracted before the sample step.
-    dialog.get_by_label('자료 형식', exact=True).click()
-    page.get_by_role('option', name='HTML 붙여넣기', exact=True).click()
-    dialog.get_by_label('원본 내용 붙여넣기', exact=True).fill('<table><tr><td>시험고객</td></tr></table>')
-    dialog.get_by_role('button', name='HTML 추출 및 매핑', exact=True).click()
-    expect(dialog.get_by_label('추출된 CSV (수정 가능)', exact=True)).to_be_visible()
-    expect(dialog.get_by_role('table')).to_have_count(0)
+    assert not commits
+    dialog.get_by_role('button', name='선택한 고객 일괄 등록', exact=True).click()
+    expect(dialog).to_have_count(0)
+    expect(page.get_by_text('1명의 고객을 등록했습니다.', exact=True)).to_be_visible()
+    expect(page).to_have_url(BASE + '/crm/customers')
+    assert len(commits) == 1 and commits[0]['indices'] == [0] and commits[0]['reviewed']
+    assert set(commits[0]['overrides']) == {'0'}
+    assert commits[0]['overrides']['0']['name'] == '첫 고객 수정'
+    assert commits[0]['overrides']['0']['phone'] == '010-7777-8888'
+
+    page.set_viewport_size({'width': 1280, 'height': 1000})
+    page.get_by_role('button', name='고객 등록', exact=True).click()
+    dialog.get_by_label('AI 고객정보 입력').fill('진단 테스트 입력')
+    autofill = dialog.get_by_role('button', name='AI 자동 채움 실행', exact=True)
+    autofill.click()
+    expect(dialog.get_by_label('고객명')).to_have_value('자동 채움 고객')
+    expect(dialog.get_by_label('태그 (쉼표 구분)')).to_have_value('상담')
+    expect(dialog.get_by_text('추출 완료', exact=True)).to_be_visible()
+    assert not autofill_feedback
+    with page.expect_request('**/customers/ai-extract/feedback') as report:
+        autofill.click()
+    assert 'form_not_applied' in report.value.post_data and '진단 테스트 입력' in report.value.post_data
+    expect(dialog.get_by_text('자동으로 입력된 고객 정보가 없습니다.', exact=True)).to_be_visible()
+    dialog.get_by_label('고객명').fill('개별 등록 고객')
+    dialog.get_by_label('연락처').fill('01033334444')
+    dialog.get_by_role('button', name='저장', exact=True).click()
+    expect(dialog).to_have_count(0)
+    expect(page).to_have_url(BASE + '/crm/customers')
+    assert len(registrations) == 1 and registrations[0]['name'] == '개별 등록 고객'
     assert not errors, errors
-    assert all(path in ('crm/imports/parse-file', 'crm/imports/mapping-sample', 'crm/imports/extract-html', 'crm/imports') for path in writes), writes
     browser.close()
-    print('PASS: drag/drop and click upload, multi-file/type rejection, concurrent-drop guard, ten normalized samples, consent gate, mapping change and upload reset consent, confirmed full preview, final review gate, failure message, mobile layout, HTML/image upload and pasted HTML extraction; no commit request')
+    print('PASS: shared form, optional mapping, row navigation, edits and selection, mobile layout, selected batch payload')

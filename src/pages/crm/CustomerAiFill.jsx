@@ -4,7 +4,8 @@ import { Alert } from "@mui/material";
 import { crmPost, crmError } from "@/services/crm-service";
 import Icon from "./ContractDesignIcon";
 // Input box structure and colors follow 내고객 수정 2026-11-12.html.
-export default function CustomerAiFill({ onApply, onBusy, disabled }) {
+export default function CustomerAiFill({ onApply, onBusy, spreadsheet, disabled }) {
+  const spreadsheetInput = useRef(null);
   const [text, setText] = useState(""),
     [file, setFile] = useState(null),
     [busy, setBusy] = useState(false),
@@ -36,13 +37,34 @@ export default function CustomerAiFill({ onApply, onBusy, disabled }) {
     const form = new FormData();
     form.append("text", text);
     if (file) form.append("image", file);
+    const requestId = globalThis.crypto?.randomUUID?.();
+    if (requestId) form.append("request_id", requestId);
+    let responseReceived = false;
+    let extracted = [];
+    function report(code, applied = []) {
+      form.set("code", code);
+      extracted.forEach((field) => form.append("extracted_fields", field));
+      applied.forEach((field) => form.append("applied_fields", field));
+      void crmPost("/customers/ai-extract/feedback", form).catch(() => {});
+    }
     try {
       const result = await crmPost("/customers/ai-extract", form, {
         timeout: 120000,
       });
-      onApply(result.fields);
-      setNotice(result.message);
+      responseReceived = true;
+      if (result.request_id) form.set("request_id", result.request_id);
+      const fields = result.fields && typeof result.fields === "object" ? result.fields : {};
+      extracted = Object.keys(fields).filter((key) => key !== "resident_number_manual");
+      const applied = await onApply(fields);
+      if (!extracted.length || applied.length < extracted.length) {
+        report("form_not_applied", applied);
+        setError(applied.length ? "일부 항목이 입력되지 않았습니다. 추출 결과를 확인해 주세요." : "자동으로 입력된 고객 정보가 없습니다.");
+      } else {
+        setNotice(result.message);
+      }
     } catch (e) {
+      if (responseReceived) report("form_apply_error");
+      else if (!e.response) report("request_failed");
       setError(crmError(e));
     } finally {
       inFlight.current = false;
@@ -113,7 +135,7 @@ export default function CustomerAiFill({ onApply, onBusy, disabled }) {
           </div>
         )}
         <div className="customer-ai-actions">
-          <div>
+          <div className="customer-ai-source-actions">
             <input
               ref={input}
               type="file"
@@ -121,15 +143,30 @@ export default function CustomerAiFill({ onApply, onBusy, disabled }) {
               hidden
               onChange={attach}
             />
-            <button
-              type="button"
-              disabled={busy || disabled}
-              onClick={() => input.current?.click()}
-            >
-              <Icon name="image_plus" />
-              이미지 첨부 (명함·카톡캡처)
-            </button>
-            <small>JPG, PNG, WEBP 지원</small>
+            <div className="customer-ai-image-action">
+              <button type="button" disabled={busy || disabled} onClick={() => input.current?.click()}>
+                <Icon name="image_plus" />
+                이미지 첨부 (명함·카톡캡처)
+              </button>
+              <small>JPG, PNG, WEBP 지원</small>
+            </div>
+            {spreadsheet && <>
+              <input ref={spreadsheetInput} type="file" accept=".xlsx,.xls,.csv" hidden onChange={(event) => {
+                const files = Array.from(event.target.files);
+                event.target.value = "";
+                spreadsheet.onFiles(files);
+              }} />
+              <button type="button" disabled={busy || disabled || spreadsheet.busy}
+                onClick={() => spreadsheetInput.current?.click()}
+                onDragOver={(event) => event.preventDefault()}
+                onDrop={(event) => {
+                  event.preventDefault();
+                  if (!busy && !disabled) spreadsheet.onFiles(Array.from(event.dataTransfer.files));
+                }}>
+                <Icon name="sheet" />
+                {spreadsheet.busy ? <span className="crm-import-reading">엑셀 읽는 중<span aria-hidden="true">...</span></span> : "엑셀 · CSV 가져오기"}
+              </button>
+            </>}
           </div>
           <button
             className="customer-ai-run"
@@ -143,10 +180,10 @@ export default function CustomerAiFill({ onApply, onBusy, disabled }) {
         </div>
       </div>
       {error && <Alert severity="error">{error}</Alert>}
+      {spreadsheet?.error && <Alert severity="error">{spreadsheet.error}</Alert>}
       {notice && <Alert severity="success">{notice}</Alert>}
       <p className="customer-ai-disclosure">
-        입력한 텍스트·이미지는 AI 추출을 위해 전송됩니다. 추출 결과를 확인한 뒤
-        고객 등록을 눌러 저장해 주세요.
+        텍스트·이미지는 AI 추출을 위해 전송됩니다. 자동 채움에 실패하면 원인 확인을 위해 입력 자료가 7일간 보관됩니다.
       </p>
     </div>
   );

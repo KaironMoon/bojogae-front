@@ -7,6 +7,12 @@ const typography = {
   button: { textTransform: "none", fontWeight: 700 },
 };
 
+const containedGreenButton = {
+  "--variant-containedColor": brand.ink,
+  "--variant-containedBg": brand.accent,
+  "&:hover": { "--variant-containedBg": brand.accentHover },
+};
+
 export const darkTheme = createTheme({
   typography,
   palette: {
@@ -82,16 +88,8 @@ export const lightTheme = createTheme({
       defaultProps: { disableElevation: true },
       styleOverrides: {
         root: { borderRadius: 10 },
-        containedPrimary: {
-          "--variant-containedColor": "#ffffff",
-          "--variant-containedBg": brand.accentInk,
-          "&:hover": { "--variant-containedBg": brand.deep },
-        },
-        containedSuccess: {
-          "--variant-containedColor": "#ffffff",
-          "--variant-containedBg": "#007842",
-          "&:hover": { "--variant-containedBg": brand.deep },
-        },
+        containedPrimary: containedGreenButton,
+        containedSuccess: containedGreenButton,
         textPrimary: { color: brand.accentInk },
         outlinedPrimary: {
           color: brand.accentInk, borderColor: brand.accent,

@@ -1585,7 +1585,7 @@ function ProposalsPage() {
           aria-controls="document-canvas-panel"
           onClick={() => setCanvasOpen(true)}
           sx={{ position: "fixed", right: 0, top: "50%", transform: "translateY(-50%)", zIndex: (theme) => theme.zIndex.drawer - 1, writingMode: "vertical-rl", minWidth: 40, px: 1, py: 2, borderRadius: "12px 0 0 12px", letterSpacing: 2, background: reportGradient,
-            boxShadow: reportHero.boxShadow }}
+            color: reportHero.color, boxShadow: reportHero.boxShadow }}
         >
           캔버스
         </Button>

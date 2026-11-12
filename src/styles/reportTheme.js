@@ -1,4 +1,4 @@
-export const reportGradient = "linear-gradient(135deg, #007840 0%, #006E43 50%, #075A3E 100%)";
+export const reportGradient = "linear-gradient(135deg, #03c75a 0%, #00a84b 50%, #008a60 100%)";
 
 export const reportHero = {
   position: "relative",
