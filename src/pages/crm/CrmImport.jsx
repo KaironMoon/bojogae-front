@@ -134,8 +134,8 @@ export default function CrmImport({ onClose, onDone }) {
       setError("파일은 한 번에 하나씩 올려 주세요.");
       return;
     }
-    if (!/\.(xlsx|csv|html?|tsv|txt|png|jpe?g|webp)$/i.test(files[0].name)) {
-      setError("엑셀(.xlsx), CSV, HTML 또는 이미지(PNG·JPEG·WebP)를 선택해 주세요.");
+    if (!/\.(xlsx|xls|csv)$/i.test(files[0].name)) {
+      setError("엑셀(.xlsx, .xls) 또는 CSV 파일을 선택해 주세요.");
       return;
     }
     await parseFile(files[0]);
@@ -204,11 +204,11 @@ export default function CrmImport({ onClose, onDone }) {
   }
   return (
     <Dialog slotProps={{ paper: { className: `crm-customer-dialog crm-customer-import-dialog${!expanded && !job && !result ? " customer-ref-import-initial" : ""}` } }} open onClose={busy ? undefined : onClose} fullWidth maxWidth={expanded || job || result ? "md" : "sm"}>
-      <CustomerPopupHeader title="고객 자료 가져오기 (엑셀·CSV / 보조개톡 연동)" icon="sheet" busy={busy} onClose={onClose} />
+      <CustomerPopupHeader title="고객 자료 가져오기 (엑셀·CSV 전용)" icon="sheet" busy={busy} onClose={onClose} />
       <DialogContent>
-        {!job && !result && <div className="customer-popup-import-choices"><button type="button" disabled={busy} onClick={() => { setExpanded(true); fileInput.current?.click(); }} onDragOver={e => e.preventDefault()} onDrop={e => { setExpanded(true); dropFile(e); }}><Icon name="upload" /><strong>엑셀 · CSV 파일 업로드</strong><p>기존 GA 고객관리 엑셀 파일을 드래그하거나 클릭하여 일괄 등록</p></button><button type="button" disabled><Icon name="message" /><strong>PC 카카오톡 친구 가져오기</strong><p>카톡 대화명(예: 권수경 흥국생명 63 강서)을 자동 파싱하여 등록</p><small>준비중입니다</small></button></div>}
+        {!job && !result && <div className="customer-popup-import-choices"><button type="button" disabled={busy} onClick={() => { setExpanded(true); fileInput.current?.click(); }} onDragOver={e => e.preventDefault()} onDrop={e => { setExpanded(true); dropFile(e); }}><Icon name="upload" /><strong>엑셀 · CSV 파일 업로드</strong><p>기존 GA 고객관리 엑셀 파일을 드래그하거나 클릭하여 일괄 등록</p></button></div>}
         {!expanded && !job && !result && <div className="customer-ref-import-template"><span>표준 고객 업로드 양식이 필요하신가요?</span><a href={`${import.meta.env.BASE_URL}templates/bojogae-customer-import.xlsx`} download="보조개_고객업로드_표준양식.xlsx">양식 다운로드</a></div>}
-        {!expanded && !job && !result && <Button onClick={() => setExpanded(true)}>표 붙여넣기 · HTML · 이미지 가져오기</Button>}
+        {!expanded && !job && !result && <Button onClick={() => setExpanded(true)}>엑셀 표 붙여넣기 · 업로드 상세 설정</Button>}
         <Stack gap={2} sx={{ display: expanded || job || result ? "flex" : "none" }}>
           {error && <Alert severity="error">{error}</Alert>}
           {result ? (
@@ -234,7 +234,7 @@ export default function CrmImport({ onClose, onDone }) {
                 기존에 사용하던 엑셀을 그대로 올릴 수 있습니다. 첫 번째 시트의 표 하나를 읽어 제목 행과 저장 항목을 제안합니다. 고객명과 연락처 또는 주소가 필요하며 최대 5,000명·2MB까지 가져올 수 있습니다. 제목 행은 처음 10행 안에 있어야 합니다.
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                엑셀·CSV는 첫 10행의 헤더와 샘플을 TypeSafe에 전송합니다. HTML·이미지는 파일 내용을 OpenAI에 전송해 표와 저장 항목을 함께 추출합니다. 추출된 값과 매핑은 등록 전에 확인하고 수정할 수 있습니다.
+                엑셀·CSV의 첫 10행을 분석해 저장 항목을 제안합니다. 등록 전에 매핑과 고객 정보를 확인하고 수정할 수 있습니다.
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 생년월일은 연도를 알면 19850307처럼 8자리로 입력하세요. 윤달 여부는 윤달·평달로 입력하며 예·아니오도 사용할 수 있습니다. 빈칸은 평달로 처리하고, 윤달은 음력 생일에만 입력할 수 있습니다.
@@ -264,19 +264,18 @@ export default function CrmImport({ onClose, onDone }) {
                   {busy ? "자료 처리 중…" : dragging ? "여기에 파일을 놓아 주세요" : "파일을 끌어다 놓거나 클릭해서 선택하세요"}
                 </Typography>
                 <Typography component="span" display="block" variant="body2" color="text.secondary" mt={1}>
-                  엑셀·CSV·HTML·이미지(PNG·JPEG·WebP) · 최대 2MB · 파일 1개
+                  엑셀(.xlsx, .xls)·CSV · 최대 2MB · 파일 1개
                 </Typography>
                 {sourceFile && <Typography component="span" display="block" variant="body2" mt={1} sx={{ overflowWrap: "anywhere" }}>선택한 파일: {sourceFile.name}</Typography>}
               </Box>
               <input ref={fileInput} type="file" hidden disabled={busy}
-                accept=".xlsx,.csv,.html,.htm,.tsv,.txt,.png,.jpg,.jpeg,.webp" onChange={upload} />
+                accept=".xlsx,.xls,.csv" onChange={upload} />
               <Field
                 label="자료 형식"
                 value={format}
                 options={{
                   TSV: "표 붙여넣기 (엑셀에서 복사)",
                   CSV: "CSV (쉼표 구분)",
-                  HTML: "HTML 붙여넣기",
                 }}
                 disabled={busy}
                 onChange={(value) => { resetMappingReview(); setFormat(value); setTable(null); setMapping({}); setSourceFile(null); }}
@@ -509,11 +508,11 @@ export default function CrmImport({ onClose, onDone }) {
           )}
         </Stack>
       </DialogContent>
-      {(expanded || job || result) && <DialogActions>
+      <DialogActions>
         <Button disabled={busy} onClick={onClose}>
           {result ? "완료" : "닫기"}
         </Button>
-      </DialogActions>}
+      </DialogActions>
     </Dialog>
   );
 }

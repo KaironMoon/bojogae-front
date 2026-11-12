@@ -56,7 +56,7 @@ export function CustomerDesignRow({ customer: c, checked, onCheck, onDetails }) 
 export function CustomerDesignDrawer(props) {
   return props.customer ? <CustomerDrawerContent key={props.customer.id} {...props} /> : null;
 }
-function CustomerDrawerContent({ customer, onClose, onSaved, onArchive, onPrevious, onNext }) {
+function CustomerDrawerContent({ customer, onClose, onSaved, onDelete, onPrevious, onNext }) {
   const [data, setData] = useState(null);
   const [version, setVersion] = useState(null);
   const [savedAddress, setSavedAddress] = useState(customer);
@@ -124,6 +124,6 @@ function CustomerDrawerContent({ customer, onClose, onSaved, onArchive, onPrevio
       </>}
       <Button component={Link} to={`/crm/customers/${customer.id}`}>전체 고객 상세</Button>
     </div>
-    <footer className="customer-popup-drawer-footer"><button type="button" disabled={busy || customer.archived} onClick={onArchive} className="customer-popup-archive"><Icon name="archive" />고객 보관 처리</button><div><button type="button" disabled={busy} onClick={onClose}>닫기</button><button type="button" disabled={busy || customer.archived || !data || !data.name.trim()} onClick={save} className="customer-popup-primary"><Icon name="check" />{busy ? "처리 중…" : "변경사항 저장"}</button></div></footer>
+    <footer className="customer-popup-drawer-footer"><button type="button" disabled={busy} onClick={onDelete} className="customer-popup-delete"><Icon name="trash" />고객 삭제</button><div><button type="button" disabled={busy} onClick={onClose}>닫기</button><button type="button" disabled={busy || customer.archived || !data || !data.name.trim()} onClick={save} className="customer-popup-primary"><Icon name="check" />{busy ? "처리 중…" : "변경사항 저장"}</button></div></footer>
   </Drawer>;
 }

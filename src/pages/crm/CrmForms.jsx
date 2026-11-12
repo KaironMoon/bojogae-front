@@ -1,3 +1,4 @@
+import CustomerAiFill from "./CustomerAiFill";
 import { CustomerField } from "./CustomerReference";
 import { customerDefaults } from "./customer-defaults";
 /* eslint-disable react/prop-types */
@@ -43,6 +44,7 @@ const pick = (value, defaults) =>
     Object.entries(defaults).map(([k, v]) => [k, value?.[k] ?? v]),
   );
 export function CustomerForm({ value, onSave, onClose }) {
+  const [aiBusy,setAiBusy]=useState(false);
   const [data, setData] = useState(() => pick(value, customerDefaults));
   const state = useSave(onSave, onClose);
   const [duplicates, setDuplicates] = useState(null);
@@ -123,6 +125,7 @@ export function CustomerForm({ value, onSave, onClose }) {
     }
   };
   async function submit() {
+    if (aiBusy) return;
     if (aliasDuplicate) return;
     if (!value && !confirmed) {
       try {
@@ -144,7 +147,11 @@ export function CustomerForm({ value, onSave, onClose }) {
       onClose={onClose}
       onSubmit={submit}
       {...state}
+      busy={state.busy || aiBusy}
     >
+      {!value && <CustomerAiFill disabled={state.busy} onBusy={setAiBusy} onApply={fields => {
+        setData(old => ({...old,...fields})); setDuplicates(null); setConfirmed(false);
+      }} />}
       <section className="crm-customer-form-section"><h3><ContractDesignIcon name="id_card" />1. 기본 인적사항 및 보조개톡 연결<small>* 고객명 필수</small></h3>
       <div className="crm-customer-form-grid">
         <CustomerField
@@ -154,6 +161,14 @@ export function CustomerForm({ value, onSave, onClose }) {
           required
         />
 <CustomerField
+          id=":rfh:" label="연락처" placeholder="010-0000-0000 또는 숫자만"
+          type="tel"
+          autoComplete="tel-national"
+          value={formatPhone(data.phone)}
+          onChange={(v) => set("phone", formatPhone(v))}
+        />
+      </div>
+      <div className="crm-customer-form-grid">        <CustomerField
         id=":rfi:" label={<>카톡대화명 <small className="customer-ref-kakao-hint">(보조개톡 자동매칭)</small></>} labelAside={`${data.alias?.length || 0} / 20자`}
         value={data.alias}
         onChange={(v) => set("alias", v)}
@@ -162,14 +177,6 @@ export function CustomerForm({ value, onSave, onClose }) {
         helperText={aliasDuplicate ? "이미 사용 중인 카톡대화명입니다. 다른 대화명으로 수정해 주세요." : aliasCheckError || "카카오톡 대화명을 최대 20자로 입력해 주세요."}
         placeholder="김성춘 흥국화재 도봉"
       />
-      </div>
-      <div className="crm-customer-form-grid">        <CustomerField
-          id=":rfh:" label="연락처" placeholder="010-0000-0000 또는 숫자만"
-          type="tel"
-          autoComplete="tel-national"
-          value={formatPhone(data.phone)}
-          onChange={(v) => set("phone", formatPhone(v))}
-        />
       <CustomerField id=":rfj:" label="직업" placeholder="예: 사무직, 간호사, 자영업 (상해급수 참고)" helperText="보장분석 및 리포트 직업급수 표기에 활용됩니다." value={data.occupation} onChange={(v) => set("occupation", v)} inputProps={{ maxLength: 200 }} /></div>
       {duplicates?.length > 0 && (
         <Alert severity="warning">

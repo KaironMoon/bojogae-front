@@ -23,6 +23,12 @@ export const crmUpload = async (file, target) => {
   return crmPost("/attachments", data);
 };
 const errors = {
+  crm_customer_extract_unavailable: "AI 서버에 연결하지 못했습니다. 잠시 후 다시 시도하거나 직접 입력해 주세요.",
+  crm_customer_delete_linked: "계약 또는 첨부파일이 연결된 고객이 있어 삭제하지 않았습니다. 연결 정보를 먼저 정리해 주세요.",
+  crm_delete_confirmation_required: "고객 영구 삭제 확인이 필요합니다.",
+  crm_customer_extract_empty: "고객 정보를 찾지 못했습니다. 텍스트나 이미지를 확인해 주세요.",
+  crm_customer_extract_failed: "고객 정보 추출에 실패했습니다. 내용을 확인하고 다시 시도해 주세요.",
+  crm_customer_extract_size: "텍스트는 10,000자, 이미지는 5MB까지 첨부할 수 있습니다.",
   crm_archive_confirmation_required: "선택한 고객과 보관 안내를 확인한 뒤 보관해 주세요.",
   crm_contract_archive_confirmation_required: "선택한 계약과 보관 안내를 확인한 뒤 보관해 주세요.",
   crm_schema_required:
@@ -86,3 +92,6 @@ export function crmError(error) {
       : "처리하지 못했습니다. 잠시 후 다시 시도해 주세요.")
   );
 }
+
+export const crmDeleteCustomers = async (customers) =>
+  (await api.delete(base + "/customers/bulk", undefined, { data: { customers, confirmed: true } })).data;
