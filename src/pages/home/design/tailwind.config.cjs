@@ -1,0 +1,1 @@
+module.exports={content:[__dirname+'/*.jsx',__dirname+'/../index.jsx'],important:'.home-design',corePlugins:{preflight:false},theme:{extend:{spacing:{18:'4.5rem',22:'5.5rem',26:'6.5rem',34:'8.5rem'},colors:{primary:'#03c75a',sub:'#6b38fb','primary-soft':'#ecfdf5','sub-soft':'#f5f3ff'}}}};

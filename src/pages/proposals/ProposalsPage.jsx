@@ -445,7 +445,7 @@ function ProposalsPage() {
         );
         const requestedPromptId = Number(searchParams.get("promptId"));
         const requestedPrompt = options.find(option => option.id === requestedPromptId);
-        const initialTab = requestedPrompt || searchParams.get("promptQuery") ? "recommended" : defaultPromptTab(options);
+        const initialTab = requestedPrompt || searchParams.get("promptQuery") ? "recommended" : searchParams.get("tab") === "favorites" ? "favorites" : searchParams.get("tab") === "all" ? "recommended" : defaultPromptTab(options);
         pendingPromptScrollId.current = requestedPrompt?.id || null;
         setPromptTab(initialTab);
         setSelectedCategoryIds(requestedPrompt?.categories?.map((category) => category.id) || []);

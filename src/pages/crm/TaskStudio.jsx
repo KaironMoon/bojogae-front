@@ -37,8 +37,18 @@ export default function TaskStudio() {
   const customerId = new URLSearchParams(window.location.search).get(
     "customer_id",
   );
+  const requestedScope = new URLSearchParams(window.location.search).get(
+    "scope",
+  );
+  const initialScope = ["ALL", "TODAY", "UPCOMING", "OVERDUE", "DONE"].includes(
+    requestedScope,
+  )
+    ? requestedScope
+    : customerId
+      ? "ALL"
+      : "TODAY";
   const [data, setData] = useState(null),
-    [scope, setScope] = useState(customerId ? "ALL" : "TODAY"),
+    [scope, setScope] = useState(initialScope),
     [kind, setKind] = useState("ALL"),
     [query, setQuery] = useState(""),
     [search, setSearch] = useState(""),

@@ -1,0 +1,17 @@
+.home-design,.home-design *{box-sizing:border-box;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;}
+.home-design :where(*){border-width:0;border-style:solid}
+.home-design :where(h1,h2,h3,h4,h5,h6,p){margin:0;font-size:inherit;font-weight:inherit}
+.home-design :where(button,input){font:inherit;letter-spacing:inherit;color:inherit}
+.home-design :where(button){cursor:pointer;background:transparent;padding:0}
+.home-design :where(a){color:inherit;text-decoration:none}
+.home-design :where(svg){display:block;flex-shrink:0}
+.home-design :where(img){display:block;max-width:100%}
+.home-design{line-height:1.5}
+.home-workspace{max-width:1440;width:100%;min-width:0;margin:0 auto;padding:24px;overflow-x:clip}
+.home-design .grid>*{min-width:0}
+.home-design button:focus-visible,.home-design a:focus-visible{outline:2px solid #03c75a;outline-offset:3px}
+.home-design #recentWorkSection,.home-design #latestNewsSection{scroll-margin-top:24px}
+.home-design .home-ad-stage[style]{background-image:linear-gradient(90deg,rgba(15,23,42,.88),rgba(15,23,42,.2)),var(--banner-desktop);background-size:cover;background-position:center}
+.home-design.home-preview-dialog{border-radius:24px;max-height:92dvh;background:white;max-width:672px}
+@media(max-width:639px){.home-workspace{padding:16px}.home-design .home-ad-stage[style]{background-image:linear-gradient(90deg,rgba(15,23,42,.88),rgba(15,23,42,.2)),var(--banner-mobile)}.home-design #viewHomeWorkspace>div>.ns-card.group{flex-wrap:wrap;gap:8px}.home-design .home-preview-footer{padding:12px;flex-wrap:wrap}.home-design .home-preview-footer>a{font-size:12px;padding:10px 12px}.home-design section>div:first-child{flex-wrap:wrap;gap:12px}.home-design .ns-card.group{flex-wrap:wrap;gap:8px}}
+@media(prefers-reduced-motion:reduce){.home-design *,.home-design *::after{animation:none!important;scroll-behavior:auto!important;transition:none!important}}
