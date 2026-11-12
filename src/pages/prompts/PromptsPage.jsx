@@ -297,7 +297,7 @@ function PromptsPage() {
       return;
     }
     if (draft.input_schema.some((field) => field.type === "file" && field.file_types
-      && (!field.file_types.length || field.file_types.some((type) => !["pdf", "image", "html"].includes(type))))) {
+      && (!field.file_types.length || field.file_types.some((type) => !["pdf", "image", "html", "excel"].includes(type))))) {
       setError("파일 항목의 허용 형식을 하나 이상 선택해 주세요.");
       return;
     }

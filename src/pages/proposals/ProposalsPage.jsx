@@ -660,7 +660,7 @@ function ProposalsPage() {
       (file) => !acceptsFile({}, file) || file.size > MAX_FILE_BYTES,
     );
     if (invalid) {
-      setError("PDF·이미지(JPG/JPEG, PNG, WEBP)·HTML 파일만 가능하며 파일당 크기는 100MB 이하여야 합니다.");
+      setError("PDF·이미지(JPG/JPEG, PNG, WEBP)·HTML·엑셀(XLSX, XLS) 파일만 가능하며 파일당 크기는 100MB 이하여야 합니다.");
       return;
     }
     setError("");
@@ -811,6 +811,10 @@ function ProposalsPage() {
             ? "입력 항목과 필수 자료, 파일 형식을 확인해 주세요."
           : detailCode === "invalid_image_file"
             ? "정상적인 JPG/JPEG, PNG, WEBP 이미지 파일을 첨부해 주세요."
+          : detailCode === "invalid_excel_document"
+            ? "암호가 없는 정상적인 엑셀(.xlsx, .xls) 파일을 첨부해 주세요."
+          : detailCode === "excel_text_too_large"
+            ? "엑셀 내용이 너무 큽니다. 필요한 시트와 행만 남겨 10만 셀·20만 자 이하로 줄여 주세요."
           : ["invalid_html_document", "html_utf8_required", "html_text_too_large"].includes(detailCode)
             ? "본문이 있는 UTF-8 HTML 파일을 첨부해 주세요. HTML의 본문은 20만 자 이하여야 합니다."
           : "보고서 생성 작업을 등록하지 못했습니다.",
@@ -1451,7 +1455,7 @@ function ProposalsPage() {
               }} /> : <>
             <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5 }}>
               <CloudUploadRoundedIcon color="primary" fontSize="small" />
-              <Typography variant="subtitle2" fontWeight={800}>PDF·이미지·HTML 첨부 및 자동 분석</Typography>
+              <Typography variant="subtitle2" fontWeight={800}>PDF·이미지·HTML·엑셀 첨부 및 자동 분석</Typography>
             </Stack>
             <Paper
               component="label"
@@ -1459,7 +1463,7 @@ function ProposalsPage() {
               variant="outlined"
               role="button"
               tabIndex={working ? -1 : 0}
-              aria-label="PDF·이미지·HTML 파일 선택 또는 드래그앤드롭"
+              aria-label="PDF·이미지·HTML·엑셀 파일 선택 또는 드래그앤드롭"
               aria-disabled={working}
               onDragEnter={(event) => {
                 event.preventDefault();
@@ -1503,13 +1507,13 @@ function ProposalsPage() {
               <Stack direction="row" alignItems="center" justifyContent="center" spacing={1} sx={{ display: { xs: "flex", sm: "none" } }}>
                 <CloudUploadRoundedIcon color="primary" sx={{ fontSize: 22 }} />
                 <Box sx={{ textAlign: "left" }}>
-                  <Typography variant="body2" fontWeight={750}>PDF·이미지·HTML 선택</Typography>
+                  <Typography variant="body2" fontWeight={750}>PDF·이미지·HTML·엑셀 선택</Typography>
                   <Typography variant="caption" color="text.secondary" sx={{ display: "block", lineHeight: 1.2 }}>최대 {maxInputFiles}개 · 파일당 100MB</Typography>
                 </Box>
               </Stack>
               <Box sx={{ display: { xs: "none", sm: "block" } }}>
                 <CloudUploadRoundedIcon color="primary" />
-                <Typography variant="body2" fontWeight={750}>{filesDragging ? "여기에 파일을 놓으세요" : "PDF·이미지·HTML 선택 또는 파일 드래그"}</Typography>
+                <Typography variant="body2" fontWeight={750}>{filesDragging ? "여기에 파일을 놓으세요" : "PDF·이미지·HTML·엑셀 선택 또는 파일 드래그"}</Typography>
                 <Typography variant="caption" color="text.secondary">최대 {maxInputFiles}개 · 파일당 100MB</Typography>
               </Box>
               <input ref={fileInputRef} hidden type="file" accept={fileAccept({})} multiple disabled={working} onChange={chooseFiles} />

@@ -1,14 +1,14 @@
 export function fileTypeLabel(field) {
-  return (field.file_types || ["pdf", "image", "html"]).map((type) => type === "image" ? "이미지" : type.toUpperCase()).join(" / ");
+  return (field.file_types || ["pdf", "image", "html", "excel"]).map((type) => type === "image" ? "이미지" : type === "excel" ? "엑셀" : type.toUpperCase()).join(" / ");
 }
 
 export function fileAccept(field) {
-  return (field.file_types || ["pdf", "image", "html"]).flatMap((type) => type === "html" ? [".html", ".htm"] : type === "image" ? [".jpg", ".jpeg", ".png", ".webp"] : [".pdf"]).join(",");
+  return (field.file_types || ["pdf", "image", "html", "excel"]).flatMap((type) => type === "excel" ? [".xlsx", ".xls"] : type === "html" ? [".html", ".htm"] : type === "image" ? [".jpg", ".jpeg", ".png", ".webp"] : [".pdf"]).join(",");
 }
 
 export function acceptsFile(field, file) {
   const extension = file.name.toLowerCase().split(".").pop();
-  return (field.file_types || ["pdf", "image", "html"]).includes(extension === "htm" ? "html" : ["jpg", "jpeg", "png", "webp"].includes(extension) ? "image" : extension);
+  return (field.file_types || ["pdf", "image", "html", "excel"]).includes(["xlsx", "xls"].includes(extension) ? "excel" : extension === "htm" ? "html" : ["jpg", "jpeg", "png", "webp"].includes(extension) ? "image" : extension);
 }
 
 export function missingInputGroup(fields, values, uploads) {
