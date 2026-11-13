@@ -1,11 +1,12 @@
 import { Alert, Box, Button, Chip, CircularProgress, Container, Divider, Paper, Stack, Tab, Tabs, TextField, Typography } from "@mui/material";
-import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
 import { getLastLoginMethod, setLastLoginMethod } from "@/auth/login-method-storage";
 import { showLandingFromNowOn } from "@/auth/landing-preference-storage";
+import { loginBackground, loginCardSx, loginProviders, loginTabsSx } from "./login-appearance";
+import SocialLoginButton from "./SocialLoginButton";
 import GroupLoginForm from "./GroupLoginForm";
 import ReviewLoginForm from "./ReviewLoginForm";
 import { useAuth } from "@/auth/AuthContext";
@@ -16,36 +17,6 @@ import {
 } from "@/auth/social-login-storage";
 import { getAuthOptions, getOAuthLoginUrl, localEmailLogin, startLocalSignup } from "@/services/auth-service";
 import { PLAN_INFO, isSignupPlan } from "@/constants/plans";
-
-const providers = [
-  {
-    id: "google",
-    name: "Google",
-    mark: "G",
-    background: "#ffffff",
-    color: "#202124",
-    border: "#dadce0",
-    markColor: "#4285f4",
-  },
-  {
-    id: "kakao",
-    name: "카카오",
-    mark: "K",
-    background: "#fee500",
-    color: "#191919",
-    border: "#fee500",
-    markColor: "#191919",
-  },
-  {
-    id: "naver",
-    name: "네이버",
-    mark: "N",
-    background: "#03A94D",
-    color: "#ffffff",
-    border: "#03A94D",
-    markColor: "#ffffff",
-  },
-];
 
 const errorMessages = {
   oauth_denied: "로그인이 취소되었습니다. 다시 시도해 주세요.",
@@ -140,8 +111,7 @@ function LoginPage() {
         alignItems: "center",
         justifyContent: "center",
         py: { xs: 4, md: 8 },
-        background:
-          "radial-gradient(circle at 15% 20%, rgba(3, 199, 90, .18), transparent 34%), radial-gradient(circle at 85% 80%, rgba(107, 56, 251, .20), transparent 30%), var(--bojogae-canvas)",
+        background: loginBackground,
       }}
     >
       <Container maxWidth="sm" sx={{ width: "100%" }}>
@@ -161,21 +131,11 @@ function LoginPage() {
             </Typography>
           </Stack>
 
-          <Paper
-            elevation={0}
-            sx={{
-              width: "100%",
-              p: { xs: 2.5, sm: 4 },
-              border: "1px solid",
-              borderColor: "divider",
-              borderRadius: 4,
-              boxShadow: "0 24px 70px rgba(31, 45, 61, .10)",
-            }}
-          >
+          <Paper elevation={0} sx={loginCardSx}>
             <Stack spacing={1.5}>
               {searchParams.get("passwordChanged") && <Alert severity="success">비밀번호가 변경되었습니다. 다시 로그인해 주세요.</Alert>}
               <Tabs value={loginMethod} onChange={(_, value) => { setLoginMethod(value); setLastLoginMethod(value); }} variant="fullWidth" aria-label="로그인 방식"
-                sx={{ mb: 1, "& .MuiTab-root": { minWidth: 0, px: 0.5, wordBreak: "keep-all", fontSize: { xs: 12, sm: 14 } } }}>
+                sx={loginTabsSx}>
                 <Tab value="group" label="단체 회원 로그인" id="login-tab-group" aria-controls="login-panel-group" />
                 <Tab value="personal" label="개인 가입 / 로그인" id="login-tab-personal" aria-controls="login-panel-personal" />
                 <Tab value="review" label="심사용 계정 로그인" id="login-tab-review" aria-controls="login-panel-review" />
@@ -237,88 +197,39 @@ function LoginPage() {
                     로컬 테스트 회원가입
                   </Button>
                 </Stack>
-              ) : providers.map((provider) => (
-                provider.id === "naver" ? (
-                  <Stack key={provider.id} spacing={0.5} alignItems="center">
-                    <Button
-                      component="a"
-                      href={getOAuthLoginUrl(provider.id, requestedPlan)}
-                      onClick={() => setPendingSocialLoginProvider(provider.id)}
-                      fullWidth
-                      aria-label="네이버 로그인"
-                      sx={{
-                        p: 0,
-                        minHeight: 56,
-                        overflow: "hidden",
-                        borderRadius: 1.5,
-                        backgroundColor: provider.background,
-                        "&:hover": { backgroundColor: provider.background },
-                      }}
-                    >
-                      <Box
-                        component="img"
-                        src="/images/naver-login-green.png"
-                        alt=""
-                        sx={{ display: "block", width: 368, height: 56, flexShrink: 0 }}
-                      />
-                    </Button>
-                    {lastProvider === provider.id && (
-                      <Typography variant="caption" color="text.secondary">최근 로그인</Typography>
-                    )}
-                  </Stack>
-                ) : (
-                <Button
-                  key={provider.id}
-                  component="a"
-                  href={getOAuthLoginUrl(provider.id, requestedPlan)}
-                  onClick={() => setPendingSocialLoginProvider(provider.id)}
-                  fullWidth
-                  variant="outlined"
-                  endIcon={<ArrowForwardRoundedIcon />}
-                  sx={{
-                    minHeight: 54,
-                    justifyContent: "space-between",
-                    px: 2,
-                    borderRadius: 2.5,
-                    borderColor: provider.border,
-                    backgroundColor: provider.background,
-                    color: provider.color,
-                    fontWeight: 750,
-                    "&:hover": {
-                      borderColor: provider.border,
-                      backgroundColor: provider.background,
-                      filter: "brightness(.97)",
-                    },
-                  }}
-                  startIcon={
-                    <Box
-                      component="span"
-                      sx={{ width: 24, fontWeight: 900, color: provider.markColor, textAlign: "center" }}
-                    >
-                      {provider.mark}
-                    </Box>
-                  }
-                >
-                  <Stack component="span" direction="row" spacing={1} alignItems="center">
-                    <Box component="span">{provider.name}로 계속하기</Box>
-                    {lastProvider === provider.id && (
-                      <Chip
-                        component="span"
-                        label="최근 로그인"
-                        size="small"
-                        sx={{
+              ) : loginProviders.map((provider) => {
+                const buttonProps = {
+                  component: "a",
+                  href: getOAuthLoginUrl(provider.id, requestedPlan),
+                  onClick: () => setPendingSocialLoginProvider(provider.id),
+                };
+                const recent = lastProvider === provider.id;
+                if (provider.id === "naver") {
+                  return (
+                    <Stack key={provider.id} spacing={0.5} alignItems="center">
+                      <SocialLoginButton provider={provider} {...buttonProps} />
+                      {recent && <Typography variant="caption" color="text.secondary">최근 로그인</Typography>}
+                    </Stack>
+                  );
+                }
+
+                return (
+                  <SocialLoginButton key={provider.id} provider={provider} {...buttonProps}>
+                    <Stack component="span" direction="row" spacing={1} alignItems="center">
+                      <Box component="span">{provider.name}로 계속하기</Box>
+                      {recent && (
+                        <Chip component="span" label="최근 로그인" size="small" sx={{
                           height: 22,
                           backgroundColor: provider.id === "kakao" ? "rgba(25, 25, 25, .12)" : "rgba(3, 199, 90, .12)",
                           color: "inherit",
                           fontSize: 11,
                           fontWeight: 800,
-                        }}
-                      />
-                    )}
-                  </Stack>
-                </Button>
-                )
-              ))}
+                        }} />
+                      )}
+                    </Stack>
+                  </SocialLoginButton>
+                );
+              })}
 
               <Stack direction="row" spacing={1} alignItems="center" justifyContent="center" sx={{ pt: 1 }}>
                 <LockOutlinedIcon sx={{ fontSize: 16, color: "text.secondary" }} />

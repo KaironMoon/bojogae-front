@@ -1,8 +1,10 @@
-import { Alert, Autocomplete, Box, Button, Paper, Stack, Tab, Tabs, TextField, Typography } from "@mui/material";
+import { Alert, Autocomplete, Box, Button, Chip, Paper, Stack, Tab, Tabs, TextField, Typography } from "@mui/material";
 import { useState } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import api from "@/services/api-caller";
 import { groupErrorMessage, searchGroups } from "@/services/group-service";
+import { loginBackground, loginCardSx, loginProviders, loginTabsSx } from "./login-appearance";
+import SocialLoginButton from "./SocialLoginButton";
 
 const endpoint = "/api/v1/auth/sender/talk-login";
 const messages = {
@@ -18,11 +20,6 @@ const messages = {
   REJECTED: "가입 승인이 거절되었습니다. 보조개에 문의해 주세요.",
   SUSPENDED: "이용이 정지된 계정입니다. 보조개에 문의해 주세요.",
 };
-const providers = [
-  { id: "kakao", label: "카카오로 계속하기", color: "#191919", background: "#fee500", hover: "#f0d900" },
-  { id: "naver", label: "네이버로 계속하기", color: "#fff", background: "#007a37", hover: "#00642d" },
-  { id: "google", label: "Google로 계속하기", color: "#202124", background: "#fff", hover: "#f3f5f8" },
-];
 
 function TalkGroupLoginForm({ busy, onSubmit }) { // eslint-disable-line react/prop-types
   const [groupName, setGroupName] = useState("");
@@ -59,7 +56,7 @@ function TalkGroupLoginForm({ busy, onSubmit }) { // eslint-disable-line react/p
 
   return (
     <Stack component="form" spacing={1.5} onSubmit={submit}>
-      <Stack direction="row" spacing={1}>
+      <Stack direction="row" spacing={1} alignItems="center">
         <Autocomplete
           freeSolo fullWidth options={groups} inputValue={groupName}
           open={searchOpen} onOpen={() => setSearchOpen(groups.length > 0)}
@@ -127,41 +124,51 @@ export default function TalkLoginPage() {
   }
 
   return (
-    <Box component="main" sx={{ minHeight: "100dvh", display: "grid", placeItems: "center", p: 2, bgcolor: "#f7f5f2" }}>
-      <Paper elevation={0} sx={{ boxSizing: "border-box", width: "100%", maxWidth: 420, p: { xs: 3, sm: 4 }, border: "1px solid #e8e0d9", borderRadius: 3 }}>
-        <Stack spacing={2.5}>
-          <Typography component="h1" variant="h5" fontWeight={750}>보조개톡 로그인</Typography>
-          {completed ? (
-            <Alert severity="success">보조개톡 로그인이 완료되었습니다. 이 탭을 닫아도 됩니다.</Alert>
-          ) : (
-            <>
-              {detail && <Alert severity="error">{messages[detail] || (error ? error : "로그인 요청을 확인할 수 없습니다. 보조개톡에서 다시 시작해 주세요.")}</Alert>}
-              {detail === "sender_signup_required" && <Button component={Link} to="/login">보조개 가입하기</Button>}
-              {detail === "password_change_required" && <Button component={Link} to="/login?method=group">보조개 웹에서 비밀번호 변경하기</Button>}
-              {!hasRequest && !detail && <Typography color="text.secondary">보조개톡에서 ‘브라우저로 로그인’을 눌러 시작해 주세요.</Typography>}
-              {canSignIn && (
-                <>
-                  <Tabs value={method} onChange={(_, value) => { setMethod(value); setError(""); }} variant="fullWidth" aria-label="로그인 방식">
-                    <Tab value="personal" label="개인 로그인" disabled={busy} />
-                    <Tab value="group" label="단체 로그인" disabled={busy} />
-                  </Tabs>
-                  {method === "personal" ? (
-                    <Stack spacing={1.25}>
-                      {providers.map(({ id, label, color, background, hover }) => (
-                        <Button key={id} variant="outlined" size="large" disabled={busy}
-                          sx={{ color, bgcolor: background, borderColor: id === "google" ? "#dadce0" : "transparent", "&:hover": { bgcolor: hover } }}
-                          onClick={() => signIn("social", { provider: id })}>
-                          {label}
-                        </Button>
-                      ))}
-                    </Stack>
-                  ) : <TalkGroupLoginForm busy={busy} onSubmit={signIn} />}
-                </>
-              )}
-            </>
-          )}
+    <Box component="main" sx={{ minHeight: "100dvh", display: "grid", placeItems: "center", px: 2, py: 4, background: loginBackground }}>
+      <Stack alignItems="center" spacing={2.5} sx={{ width: "100%", maxWidth: 420 }}>
+        <Stack alignItems="center" spacing={1.25}>
+          <Chip label="BOJOGAE" color="primary" size="small" sx={{ fontWeight: 800, letterSpacing: 2 }} />
+          <Typography component="h1" variant="h3" align="center"
+            sx={{ fontSize: { xs: 26, sm: 32 }, fontWeight: 900, letterSpacing: "-0.025em", wordBreak: "keep-all" }}>
+            보조개톡 로그인
+          </Typography>
         </Stack>
-      </Paper>
+        <Paper elevation={0} sx={{ ...loginCardSx, boxSizing: "border-box" }}>
+          <Stack spacing={1.5}>
+            {completed ? (
+              <Alert severity="success">보조개톡 로그인이 완료되었습니다. 이 탭을 닫아도 됩니다.</Alert>
+            ) : (
+              <>
+                {detail && <Alert severity="error">{messages[detail] || (error ? error : "로그인 요청을 확인할 수 없습니다. 보조개톡에서 다시 시작해 주세요.")}</Alert>}
+                {detail === "sender_signup_required" && <Button component={Link} to="/login">보조개 가입하기</Button>}
+                {detail === "password_change_required" && <Button component={Link} to="/login?method=group">보조개 웹에서 비밀번호 변경하기</Button>}
+                {!hasRequest && !detail && <Typography color="text.secondary">보조개톡에서 ‘브라우저로 로그인’을 눌러 시작해 주세요.</Typography>}
+                {canSignIn && (
+                  <>
+                    <Tabs value={method} onChange={(_, value) => { setMethod(value); setError(""); }}
+                      variant="fullWidth" aria-label="로그인 방식" sx={loginTabsSx}>
+                      <Tab value="group" label="단체 회원 로그인" id="talk-tab-group" aria-controls="talk-panel-group" disabled={busy} />
+                      <Tab value="personal" label="개인 회원 로그인" id="talk-tab-personal" aria-controls="talk-panel-personal" disabled={busy} />
+                    </Tabs>
+                    {method === "personal" ? (
+                      <Stack role="tabpanel" id="talk-panel-personal" aria-labelledby="talk-tab-personal" spacing={1.5}>
+                        {loginProviders.map((provider) => (
+                          <SocialLoginButton key={provider.id} provider={provider} disabled={busy}
+                            onClick={() => signIn("social", { provider: provider.id })} />
+                        ))}
+                      </Stack>
+                    ) : (
+                      <Box role="tabpanel" id="talk-panel-group" aria-labelledby="talk-tab-group">
+                        <TalkGroupLoginForm busy={busy} onSubmit={signIn} />
+                      </Box>
+                    )}
+                  </>
+                )}
+              </>
+            )}
+          </Stack>
+        </Paper>
+      </Stack>
     </Box>
   );
 }
