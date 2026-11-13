@@ -1,12 +1,14 @@
 import { Alert, Autocomplete, Box, Button, Chip, Paper, Stack, Tab, Tabs, TextField, Typography } from "@mui/material";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import api from "@/services/api-caller";
 import { groupErrorMessage, searchGroups } from "@/services/group-service";
 import { loginBackground, loginCardSx, loginProviders, loginTabsSx } from "./login-appearance";
 import SocialLoginButton from "./SocialLoginButton";
+import { getLastSocialLoginProvider, setLastSocialLoginProvider } from "@/auth/social-login-storage";
 
 const endpoint = "/api/v1/auth/sender/talk-login";
+const pendingProviderKey = "bojogae:talk-pending-social-login-provider";
 const messages = {
   sender_login_expired: "로그인 요청이 만료되었거나 이미 사용되었습니다. 보조개톡에서 다시 시작해 주세요.",
   sender_login_unavailable: "로그인 서버에 연결할 수 없습니다. 잠시 후 다시 시도해 주세요.",
@@ -97,12 +99,24 @@ export default function TalkLoginPage() {
   const [method, setMethod] = useState("personal");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [lastProvider] = useState(getLastSocialLoginProvider);
   const browserCode = hash.slice(1);
   const hasRequest = /^[A-Za-z0-9_-]{64}$/.test(browserCode);
   const completed = !hash && params.get("status") === "complete";
   const callbackError = !hash && params.get("error");
   const detail = error || callbackError;
   const canSignIn = hasRequest && error !== "sender_login_expired";
+
+  useEffect(() => {
+    try {
+      if (completed) {
+        setLastSocialLoginProvider(window.sessionStorage.getItem(pendingProviderKey));
+      }
+      window.sessionStorage.removeItem(pendingProviderKey);
+    } catch {
+      // 저장소를 사용할 수 없어도 로그인은 진행한다.
+    }
+  }, [hash, completed, callbackError]);
 
   async function signIn(kind, data) {
     if (busy || !canSignIn) return;
@@ -111,6 +125,11 @@ export default function TalkLoginPage() {
     try {
       const response = await api.post(`${endpoint}/${kind}`, { ...data, browser_code: browserCode });
       if (kind === "social") {
+        try {
+          window.sessionStorage.setItem(pendingProviderKey, data.provider);
+        } catch {
+          // 저장소를 사용할 수 없어도 로그인은 진행한다.
+        }
         window.location.replace(response.data.authorization_url);
         return;
       }
@@ -153,7 +172,7 @@ export default function TalkLoginPage() {
                     {method === "personal" ? (
                       <Stack role="tabpanel" id="talk-panel-personal" aria-labelledby="talk-tab-personal" spacing={1.5}>
                         {loginProviders.map((provider) => (
-                          <SocialLoginButton key={provider.id} provider={provider} disabled={busy}
+                          <SocialLoginButton key={provider.id} provider={provider} recent={lastProvider === provider.id} disabled={busy}
                             onClick={() => signIn("social", { provider: provider.id })} />
                         ))}
                       </Stack>

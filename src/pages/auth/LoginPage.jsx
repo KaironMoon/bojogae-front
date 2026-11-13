@@ -197,39 +197,11 @@ function LoginPage() {
                     로컬 테스트 회원가입
                   </Button>
                 </Stack>
-              ) : loginProviders.map((provider) => {
-                const buttonProps = {
-                  component: "a",
-                  href: getOAuthLoginUrl(provider.id, requestedPlan),
-                  onClick: () => setPendingSocialLoginProvider(provider.id),
-                };
-                const recent = lastProvider === provider.id;
-                if (provider.id === "naver") {
-                  return (
-                    <Stack key={provider.id} spacing={0.5} alignItems="center">
-                      <SocialLoginButton provider={provider} {...buttonProps} />
-                      {recent && <Typography variant="caption" color="text.secondary">최근 로그인</Typography>}
-                    </Stack>
-                  );
-                }
-
-                return (
-                  <SocialLoginButton key={provider.id} provider={provider} {...buttonProps}>
-                    <Stack component="span" direction="row" spacing={1} alignItems="center">
-                      <Box component="span">{provider.name}로 계속하기</Box>
-                      {recent && (
-                        <Chip component="span" label="최근 로그인" size="small" sx={{
-                          height: 22,
-                          backgroundColor: provider.id === "kakao" ? "rgba(25, 25, 25, .12)" : "rgba(3, 199, 90, .12)",
-                          color: "inherit",
-                          fontSize: 11,
-                          fontWeight: 800,
-                        }} />
-                      )}
-                    </Stack>
-                  </SocialLoginButton>
-                );
-              })}
+              ) : loginProviders.map((provider) => (
+                <SocialLoginButton key={provider.id} provider={provider} recent={lastProvider === provider.id}
+                  component="a" href={getOAuthLoginUrl(provider.id, requestedPlan)}
+                  onClick={() => setPendingSocialLoginProvider(provider.id)} />
+              ))}
 
               <Stack direction="row" spacing={1} alignItems="center" justifyContent="center" sx={{ pt: 1 }}>
                 <LockOutlinedIcon sx={{ fontSize: 16, color: "text.secondary" }} />

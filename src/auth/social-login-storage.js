@@ -17,6 +17,15 @@ function getLastSocialLoginProvider() {
   }
 }
 
+function setLastSocialLoginProvider(provider) {
+  if (!isSocialLoginProvider(provider)) return;
+  try {
+    window.localStorage.setItem(LAST_SOCIAL_LOGIN_PROVIDER_KEY, provider);
+  } catch {
+    // 저장소를 사용할 수 없어도 로그인 자체는 계속 진행한다.
+  }
+}
+
 function setPendingSocialLoginProvider(provider) {
   if (!isSocialLoginProvider(provider)) return;
   try {
@@ -40,7 +49,7 @@ function commitPendingSocialLoginProvider() {
     if (!isSocialLoginProvider(provider)) return null;
 
     setLastLoginMethod("personal");
-    window.localStorage.setItem(LAST_SOCIAL_LOGIN_PROVIDER_KEY, provider);
+    setLastSocialLoginProvider(provider);
     window.sessionStorage.removeItem(PENDING_SOCIAL_LOGIN_PROVIDER_KEY);
     return provider;
   } catch {
@@ -52,5 +61,6 @@ export {
   clearPendingSocialLoginProvider,
   commitPendingSocialLoginProvider,
   getLastSocialLoginProvider,
+  setLastSocialLoginProvider,
   setPendingSocialLoginProvider,
 };
