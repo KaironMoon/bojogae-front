@@ -1,6 +1,8 @@
 import { Alert, Box, Button, Divider, MenuItem, Paper, Stack, TextField, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
 import AdminEmailSettings from "./AdminEmailSettings";
+import AdminSettingsAudit from "./AdminSettingsAudit";
+import MaintenanceSettings from "./MaintenanceSettings";
 
 import {
   getPromptPointCosts,
@@ -81,6 +83,8 @@ function ProposalSettingsPage() {
       <Typography color="text.secondary" sx={{ mb: 3 }}>제한과 모델 설정은 서버가 검증하며 작업 생성 시점에 고정됩니다.</Typography>
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       {message && <Alert severity="success" sx={{ mb: 2 }}>{message}</Alert>}
+      <MaintenanceSettings />
+      <AdminSettingsAudit />
       <AdminEmailSettings />
       <Paper variant="outlined" sx={{ p: 3, borderRadius: 3, mb: 3 }}>
         <Stack spacing={2}>

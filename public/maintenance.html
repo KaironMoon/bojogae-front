@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <link rel="icon" href="/favicon-32.png" />
+    <link rel="preload" href="/fonts/PretendardVariable-1.3.9.woff2" as="font" type="font/woff2" crossorigin />
+    <title>{{title}} | 보조개</title>
+    <style>
+      @font-face {
+        font-family: Pretendard;
+        src: url("/fonts/PretendardVariable-1.3.9.woff2") format("woff2");
+        font-weight: 45 920;
+        font-display: swap;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 24px 16px;
+        background: #f4f6f8;
+        color: #121314;
+        font: 16px/1.6 Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+        letter-spacing: -.02em;
+        word-break: keep-all;
+      }
+      main {
+        width: min(100%, 540px);
+        padding: clamp(24px, 7vw, 52px);
+        border: 1px solid #e6eaee;
+        border-radius: 22px;
+        background: #fff;
+      }
+      .brand { display: flex; align-items: center; gap: 10px; font-weight: 900; }
+      .brand img { width: 36px; height: 36px; border-radius: 14px; }
+      h1 {
+        margin: 28px 0 10px;
+        color: #006e43;
+        font-size: clamp(1.65rem, 6vw, 2.15rem);
+        letter-spacing: -.04em;
+        line-height: 1.24;
+      }
+      p { margin: 0; color: #4e5968; }
+      .message { white-space: pre-line; overflow-wrap: anywhere; }
+      .window { margin-top: 12px; font-size: .9rem; }
+      .retry {
+        display: inline-block;
+        margin-top: 20px;
+        color: #006e43;
+        font-weight: 700;
+        text-underline-offset: 3px;
+      }
+      details { margin-top: 32px; padding-top: 18px; border-top: 1px solid #e6eaee; }
+      summary { width: fit-content; color: #4e5968; font-size: .875rem; cursor: pointer; }
+      nav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+      nav a, button {
+        border: 1px solid #e6eaee;
+        border-radius: 10px;
+        background: #ecfdf5;
+        color: #006e43;
+        padding: 7px 12px;
+        text-decoration: none;
+        font: inherit;
+        font-size: .875rem;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      nav a:hover, button:hover { background: #d1fae5; }
+      :focus-visible { outline: 2px solid #006e43; outline-offset: 3px; }
+      form { margin-top: 18px; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="brand"><img src="/bojogae-icon.png" alt="" />BOJOGAE</div>
+      <h1>{{title}}</h1>
+      <p class="message">{{message}}</p>
+      <p class="window">{{window}}</p>
+      <a class="retry" href="/">다시 접속하기</a>
+      <details>
+        <summary>관리자 로그인</summary>
+        <nav aria-label="관리자 로그인 방법">
+          <a href="/api/v1/auth/google/login">Google</a>
+          <a href="/api/v1/auth/kakao/login">카카오</a>
+          <a href="/api/v1/auth/naver/login">네이버</a>
+        </nav>
+        <form hidden id="stop-impersonation">
+          <button type="submit">대리 접속 종료</button>
+          <p role="status" id="stop-result"></p>
+        </form>
+      </details>
+    </main>
+    <script>
+      const form = document.querySelector("#stop-impersonation");
+      fetch("/api/v1/maintenance", { cache: "no-store" })
+        .then(response => response.json())
+        .then(status => { form.hidden = !status.can_stop_impersonation; })
+        .catch(() => {});
+      form.addEventListener("submit", async event => {
+        event.preventDefault();
+        const button = form.querySelector("button");
+        button.disabled = true;
+        try {
+          const response = await fetch("/api/v1/auth/impersonation/stop", { method: "POST" });
+          if (!response.ok) throw new Error();
+          location.assign("/home");
+        } catch {
+          document.querySelector("#stop-result").textContent = "대리 접속을 종료하지 못했습니다. 다시 시도해 주세요.";
+          button.disabled = false;
+        }
+      });
+    </script>
+  </body>
+</html>
