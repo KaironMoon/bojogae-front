@@ -156,14 +156,7 @@ button.crm-customer-address-status { cursor:pointer; }
 .crm-customer-dialog .MuiOutlinedInput-notchedOutline legend { display:none; }
 .crm-customer-dialog .MuiInputBase-root input.MuiInputBase-input::placeholder { opacity:1!important; }
 .crm-customer-dialog .MuiSelect-select { opacity:1!important; }
-.crm-customer-group-studio { display:grid; grid-template-columns:5fr 7fr; gap:20px; }
-.crm-customer-group-studio aside { display:flex; flex-direction:column; gap:12px; padding-right:16px; border-right:1px solid var(--cr-line); font-size:12px; }
-.crm-customer-group-studio aside>.MuiButton-root { justify-content:space-between; background:#fff; color:#4e5968; border:1px solid var(--cr-line); }
-.crm-customer-group-studio aside>[aria-pressed=true] { background:#f5f3ff; color:#5b21b6; border-color:#e9d5ff; }
 .crm-customer-group-create { display:flex; flex-direction:column; gap:8px; padding:12px; border:1px solid var(--cr-line); border-radius:16px; background:#fff; }
-.crm-customer-group-studio main { min-width:0; }
-.crm-customer-group-studio main .MuiList-root { padding:0 12px; border:1px solid var(--cr-line); border-radius:16px; background:#fff; max-height:290px; overflow:auto; }
-.crm-customer-group-studio main .MuiListItem-root+.MuiListItem-root { border-top:1px solid #f1f5f9; }
 .crm-customer-import-choices { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px; }
 .crm-customer-import-choices .MuiButton-root { display:flex; flex-direction:column; gap:6px; padding:16px; border:2px dashed #03c75a; border-radius:16px; color:#00b04e; background:#ecfdf54d; }
 .crm-customer-import-choices .MuiButton-root.Mui-disabled { color:#5b21b6; border-color:#6b38fb; background:#f5f3ff66; }
@@ -242,8 +235,6 @@ button.crm-customer-address-status { cursor:pointer; }
   .crm-customer-row { grid-template-columns:1fr; }
   .crm-customer-row-tags,.crm-customer-row-contact,.crm-customer-row-history,.crm-customer-row-actions { padding-left:28px; }
   .crm-customer-row-actions { justify-content:flex-start; }
-  .crm-customer-group-studio { grid-template-columns:1fr; }
-  .crm-customer-group-studio aside { padding:0 0 16px; border-right:0; border-bottom:1px solid var(--cr-line); }
 }
 @media(max-width:639px) {
   .customer-ref-workspace { padding:20px 12px 96px; }
@@ -305,17 +296,10 @@ button.crm-customer-address-status { cursor:pointer; }
 .customer-ref-consultation-options>div { margin-top:8px; }
 @media(max-width:639px) { .crm-customer-identity-grid>.customer-ref-field:nth-child(n) { grid-column:auto; } }
 .customer-ref-import-initial.MuiPaper-root { max-width:512px; }
-.crm-customer-groups-dialog.MuiPaper-root { max-width:896px; }
-.crm-customer-groups-dialog .MuiDialogContent-root { padding:0; }
-.crm-customer-group-studio { gap:0; }
-.crm-customer-group-studio aside { padding:16px; }
-.crm-customer-group-studio main { padding:20px; background:#fff; }
 .crm-customer-group-create { display:grid; grid-template-columns:minmax(0,1fr) 94px 50px; align-items:center; }
 .crm-customer-group-create>strong { grid-column:1/-1; font-size:11px; }
 .crm-customer-group-create .customer-ref-field>label { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; }
 .crm-customer-group-create>.MuiButton-root { padding:8px; height:36px; }
-.crm-customer-group-studio .crm-customer-picker>.MuiStack-root>.MuiButton-root { min-width:56px; flex-shrink:0; white-space:nowrap; align-self:flex-end; height:38px; }
-.crm-customer-group-studio aside>p { background:#f5f3ff; color:#5b21b6; border:1px solid #e9d5ff; border-radius:12px; padding:12px; font-size:11px; }
 @media(max-width:639px) { .crm-customer-group-create { grid-template-columns:minmax(0,1fr) 80px 46px; } }
 .crm-customer-address-status[data-state=confirmed] { color:#00b04e; background:#ecfdf5; border-color:#a7f3d0; }
 .crm-customer-address-status[data-state=pending],.crm-customer-address-status[data-state=registered],.crm-customer-address-status[data-state=empty] { color:#4e5968; background:#f4f6f8; border-color:#e6eaee; }
@@ -349,4 +333,71 @@ button.crm-customer-address-status { cursor:pointer; }
 }
 @media (max-width: 600px) {
   .customer-ai-image-action, .customer-ai-image-action > button { width: 100%; }
+}
+
+/* 내고객: filters, group bar and responsive list */
+.crm-customers-workspace { min-width:0; }
+.crm-customers-workspace .customer-ref-header { background:#fff; border:1px solid #e6eaee; border-radius:20px; }
+.crm-customers-workspace .crm-customer-switches { padding:4px 12px; }
+.crm-customers-workspace .crm-customer-switches>div:first-child { border:0; padding:0; }
+.crm-customers-workspace .crm-customer-filter-grid { display:flex; flex-direction:column; align-items:stretch; }
+.customer-filter-search-row { display:flex; align-items:center; gap:8px; min-width:0; }
+.customer-filter-search-row .crm-customer-search { flex:1; min-width:0; }
+.customer-filter-search-row .customer-filter-toggle.MuiButton-root { display:none; }
+.customer-detailed-filters { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:8px; }
+.customer-group-bar { padding:12px 16px; background:#fff; border:1px solid #e6eaee; border-radius:20px; margin-bottom:12px; font-size:13px; }
+.customer-group-bar .crm-customer-group-pills { margin-top:6px; }
+.customer-group-bar .crm-customer-group-pills .MuiButton-root { max-width:100%; overflow-wrap:anywhere; }
+.customer-group-bar .crm-customer-group-pills [aria-pressed=true] { outline:2px solid var(--group-ink,#121314); outline-offset:-2px; }
+.customer-list-toolbar { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; }
+.customer-selection-tray { width:100%; max-height:62px; overflow:auto; display:flex; flex-wrap:wrap; align-content:flex-start; gap:4px; }
+.customer-selection-tray button { border:1px solid #a7f3d0; background:#ecfdf5; color:#065f46; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; border-radius:999px; padding:4px 8px; font:inherit; font-size:11px; cursor:pointer; }
+.crm-customer-batch .customer-group-register.MuiButton-root:not(.Mui-disabled) { background:#03c75a; color:#fff; }
+.crm-customer-batch .customer-group-register.MuiButton-root:not(.Mui-disabled):hover { background:#00913f; color:#fff; }
+[data-group-color] { --group-bg:#ecfdf5; --group-ink:#065f46; --group-dot:#03c75a; }
+[data-group-color=blue] { --group-bg:#eff6ff; --group-ink:#1e40af; --group-dot:#2563eb; }
+[data-group-color=violet] { --group-bg:#f5f3ff; --group-ink:#5b21b6; --group-dot:#6b38fb; }
+[data-group-color=rose] { --group-bg:#fff1f2; --group-ink:#9f1239; --group-dot:#f04452; }
+[data-group-color=amber] { --group-bg:#fffbeb; --group-ink:#92400e; --group-dot:#f59e0b; }
+[data-group-color=teal] { --group-bg:#f0fdfa; --group-ink:#115e59; --group-dot:#0d9488; }
+.customer-group-bar .MuiButton-root[data-group-color],.customer-list-group { background:var(--group-bg); color:var(--group-ink); }
+.customer-list-table-wrap { width:100%; overflow:auto; border:1px solid #e6eaee; border-radius:16px; background:#fff; }
+.customer-list-table { width:100%; min-width:790px; border-collapse:collapse; text-align:left; font-size:12px; }
+.customer-list-table :is(th,td) { padding:8px; border-bottom:1px solid #f1f5f9; }
+.customer-list-table th { color:#4e5968; background:#f8fafc; font-size:11px; white-space:nowrap; }
+.customer-list-table td:nth-child(2),.customer-list-table td:nth-child(4) { max-width:200px; }
+.customer-list-table tr:last-child td { border:0; }
+.customer-list-table .MuiCheckbox-root,.customer-list-card .MuiCheckbox-root { padding:4px; }
+.customer-list-cards { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+.customer-list-card { min-width:0; padding:10px 12px; display:grid; gap:8px; background:#fff; border:1px solid #e6eaee; border-radius:16px; font-size:12px; }
+.customer-list-card-heading,.customer-list-card-footer { display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:6px; min-width:0; }
+.customer-list-card-heading>div { min-width:0; display:flex; flex-wrap:wrap; align-items:center; gap:4px; }
+.customer-list-card-heading>div:last-child { margin-left:auto; }
+.customer-list-card-footer { border-top:1px solid #eef1f5; padding-top:6px; align-items:center; }
+.customer-list-card-footer .customer-list-actions { margin-left:auto; }
+.customer-list-card-body { min-width:0; display:flex; flex-direction:column; align-items:flex-start; gap:3px; }
+.customer-list-name { font-weight:900; color:#1d4ed8; text-decoration:none; overflow-wrap:anywhere; }
+.customer-list-name:hover { text-decoration:underline; }
+.customer-list-copy { font:inherit; font-weight:700; border:0; padding:0; color:#334155; background:none; cursor:pointer; }
+.customer-list-copy:hover { text-decoration:underline; }
+.customer-list-table td small,.customer-list-card-body small { display:block; color:#4e5968; overflow-wrap:anywhere; }
+.customer-list-badges,.customer-list-actions { display:flex; flex-wrap:wrap; align-items:center; gap:4px; min-width:0; }
+.customer-list-actions .MuiButton-root { padding:4px 6px; gap:2px; white-space:nowrap; }
+.customer-list-actions .MuiSvgIcon-root { width:12px; height:12px; }
+.customer-list-rrn,.customer-list-contracts,.customer-list-group { display:inline-block; border-radius:6px; padding:2px 6px; font-size:11px; font-weight:800; line-height:16px; }
+.customer-list-rrn { background:#fffbeb; color:#92400e; font-variant-numeric:tabular-nums; white-space:nowrap; }
+.customer-list-contracts { background:#eff6ff; color:#1e40af; white-space:nowrap; }
+.customer-list-group { overflow-wrap:anywhere; }
+.customer-list-dates { display:grid; gap:2px; font-size:10px; color:#4e5968; white-space:nowrap; font-variant-numeric:tabular-nums; }
+[data-selection-row] { cursor:pointer; user-select:none; }
+[data-selection-row][data-selected] { background:#ecfdf5; }
+.customer-list-card[data-selected] { border-color:#6ee7b7; }
+@media (max-width:1000px) {
+ .customer-detailed-filters { grid-template-columns:repeat(3,minmax(0,1fr)); }
+}
+@media (max-width:767px) {
+ .customer-filter-search-row .customer-filter-toggle.MuiButton-root { display:inline-flex; white-space:nowrap; flex-shrink:0; padding:6px; }
+ .customer-detailed-filters[data-open=false] { display:none; }
+ .customer-detailed-filters { grid-template-columns:repeat(2,minmax(0,1fr)); }
+ .customer-list-cards { grid-template-columns:minmax(0,1fr); }
 }

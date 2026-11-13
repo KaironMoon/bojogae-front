@@ -2,7 +2,7 @@ import { customerAddressDisplay } from "./customer-address-display";
 import { CustomerField } from "./CustomerReference";
 /* eslint-disable react/prop-types */
 import { useEffect, useState } from "react";
-import { Alert, Button, Checkbox, Drawer } from "@mui/material";
+import { Alert, Button, Drawer } from "@mui/material";
 import { Link } from "react-router-dom";
 import Icon from "./ContractDesignIcon";
 import { Directions, LocationFields } from "./CrmShared";
@@ -32,25 +32,6 @@ export function CustomerContractPreview({ contracts, customerId }) {
     </Link>)}
     <Link className="crm-customer-contract-all" to={`/crm/contracts?customer_id=${customerId}`}>전체 연결 계약 보기{contracts?.total != null && ` (${contracts.total}건)`}</Link>
   </div>;
-}
-
-export function CustomerDesignRow({ customer: c, checked, onCheck, onDetails }) {
-  const address = customerAddressDisplay(c);
-  const [copyStatus, setCopyStatus] = useState("");
-  const detail = event => { if (!event.metaKey && !event.ctrlKey && !event.shiftKey && event.button === 0) { event.preventDefault(); onDetails(); } };
-  return <article className="crm-customer-row" data-selected={checked || undefined}>
-    <div className="crm-customer-row-name">
-      {onCheck && <Checkbox size="small" checked={checked} onChange={e => onCheck(e.target.checked)} inputProps={{ "aria-label": `${c.name} 고객 선택` }} />}
-      <span className="crm-customer-avatar">{c.name?.slice(0, 1)}</span><div>
-        <Link to={`/crm/customers/${c.id}`} onClick={detail}>{c.name}{c.alias && <span> ({c.alias})</span>}</Link>
-        {c.memo && <small className="crm-customer-row-memo" title={c.memo}>{c.memo}</small>}
-      </div>
-    </div>
-    <div className="crm-customer-row-tags"><span className={`crm-customer-stage crm-customer-stage--${c.stage}`}>{STAGES[c.stage] || "미확인"}</span>{c.do_not_contact && <span className="crm-customer-stop">연락 중단</span>}{c.groups?.map(group => <span className="crm-customer-membership" key={group.id}>{group.name}</span>)}</div>
-    <div className="crm-customer-row-contact">{c.phone ? <button type="button" className="crm-customer-row-phone" title="클릭하여 전화번호 복사" onClick={async () => { try { await navigator.clipboard.writeText(formatPhone(c.phone)); setCopyStatus("전화번호를 복사했습니다."); } catch { setCopyStatus("전화번호를 복사하지 못했습니다."); } }}><Icon name="phone" />{formatPhone(c.phone)}</button> : <small>연락처 미등록</small>}{copyStatus && <small role="status">{copyStatus}</small>}{c.location?.address && <small title={c.location.address}>{c.location.address}</small>}{address.state !== "confirmed" && <button type="button" className="crm-customer-address-status" data-state={address.state} onClick={onDetails}>{address.label}</button>}</div>
-    <div className="crm-customer-row-history">최근 상담 {dateTime(c.last_contact_at)} · <strong>계약 {c.contract_count || 0}건 (유지 {c.active_contract_count || 0}건)</strong></div>
-    <div className="crm-customer-row-actions"><Button component={Link} to={`/crm/customers/${c.id}`} onClick={detail}>상세</Button><Directions location={c.location || {}} /></div>
-  </article>;
 }
 
 export function CustomerDesignDrawer(props) {

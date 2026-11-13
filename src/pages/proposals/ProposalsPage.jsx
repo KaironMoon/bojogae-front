@@ -1,8 +1,6 @@
 import AutoAwesomeRoundedIcon from "@mui/icons-material/AutoAwesomeRounded";
-import PrintOutlinedIcon from "@mui/icons-material/PrintOutlined";
-import DownloadRoundedIcon from "@mui/icons-material/DownloadRounded";
 import { reportGradient, reportHero, reportHeroBadge, reportHeroIcon } from "@/styles/reportTheme";
-import { canvasInsurerThemes } from "./canvasInsurerThemes";
+import { brand } from "@/styles/palette";
 import KkomakIcon from "@/pages/components/KkomakIcon";
 import { Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/auth/AuthContext";
@@ -82,7 +80,6 @@ import {
   retryProposal,
   updateShareSummary,
   saveProposalDocument,
-  downloadProposalCanvas,
 } from "@/services/proposal-service";
 
 
@@ -211,11 +208,6 @@ function ProposalsPage() {
   const [statusMessage, setStatusMessage] = useState("");
   const [previewItem, setPreviewItem] = useState(null);
   const [canvasOpen, setCanvasOpen] = useState(false);
-  const [canvasInsurer, setCanvasInsurer] = useState("");
-  const [canvasFontScale, setCanvasFontScale] = useState(100);
-  const [canvasExporting, setCanvasExporting] = useState(false);
-  const [canvasError, setCanvasError] = useState("");
-  const canvasColor = canvasInsurerThemes.find(([name]) => name === canvasInsurer)?.[1] || "";
   const [copiedShareId, setCopiedShareId] = useState(null);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [shareDraft, setShareDraft] = useState("");
@@ -254,6 +246,7 @@ function ProposalsPage() {
   const mobileCategories = useMemo(() => categoryGroups.flatMap((group) => (
     group.children.map((child) => ({ ...child, parentName: group.name }))
   )), [categoryGroups]);
+  const selectedCategories = mobileCategories.filter((category) => selectedCategoryIds.includes(category.id));
   const filteredPromptOptions = useMemo(
     () => {
       const categorized = filterPromptCategories(tabPromptOptions, selectedCategoryIds);
@@ -583,18 +576,6 @@ function ProposalsPage() {
     };
   }, [previewItemId]);
 
-  const sendCanvasMessage = useCallback((type) => {
-    const frame = previewFrameRef.current;
-    frame?.contentWindow?.postMessage(
-      { source: "bojogae-parent", type, color: canvasColor, scale: canvasFontScale },
-      new URL(frame.src).origin,
-    );
-  }, [canvasColor, canvasFontScale]);
-
-  useEffect(() => {
-    if (canvasOpen && previewItemId) sendCanvasMessage("canvas-style");
-  }, [canvasOpen, previewItemId, sendCanvasMessage]);
-
   const requestDocumentSnapshot = () => new Promise((resolve, reject) => {
     const frame = previewFrameRef.current;
     if (!frame?.contentWindow) {
@@ -895,34 +876,6 @@ function ProposalsPage() {
     setPreviewZoom((current) => Math.min(1.25, Math.max(0.3, Number((current + amount).toFixed(2)))));
   };
 
-  const exportCanvasJpg = async () => {
-    if (!previewItem || canvasExporting) return;
-    setCanvasExporting(true);
-    setCanvasError("");
-    try {
-      const snapshot = await requestDocumentSnapshot();
-      if (snapshot.dirty) {
-        setCanvasError("편집한 문서를 저장한 뒤 JPG를 내려받아 주세요.");
-        return;
-      }
-      const response = await downloadProposalCanvas(previewItem.id, canvasColor, canvasFontScale, snapshot.revision);
-      const url = URL.createObjectURL(response);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `보고서-${previewItem.id}.${response.type === "application/zip" ? "zip" : "jpg"}`;
-      document.body.append(link);
-      link.click();
-      link.remove();
-      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-    } catch (error) {
-      setCanvasError(error?.response?.status === 409
-        ? "다른 창에서 문서가 변경되었습니다. 문서를 다시 열어 주세요."
-        : "JPG를 저장하지 못했습니다. 문서를 확인한 뒤 다시 시도해 주세요.");
-    } finally {
-      setCanvasExporting(false);
-    }
-  };
-
   const openShareDialog = async (item) => {
     if (!item?.share_uuid) return;
     setSharePreparing(true);
@@ -1109,38 +1062,34 @@ function ProposalsPage() {
             sx={{ borderRadius: "16px", maxHeight: { md: 680 }, boxSizing: "border-box", flexShrink: 0, minHeight: 0, display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 1px 3px rgba(15, 23, 42, 0.05)" }}
           >
             <Box sx={{ px: 2, py: 1.75, flexShrink: 0, borderBottom: 1, borderColor: "divider", bgcolor: "#F8FAFC" }}>
-              <Stack direction="row" justifyContent="space-between" alignItems="center">
-                <Stack direction="row" spacing={1} alignItems="center">
-                  <FolderOpenRoundedIcon color="primary" fontSize="small" />
-                  <Typography variant="subtitle2" fontWeight={800}>보험 카테고리</Typography>
-                </Stack>
-                <Chip
-                  label={selectedCategoryIds.length ? (
-                    <>
-                      <Box component="span" className="category-count-label">
-                        {selectedCategoryIds.length}개 선택
-                      </Box>
-                      <Box component="span" className="category-clear-label">
-                        전체 해제
-                      </Box>
-                    </>
-                  ) : "0개 선택"}
-                  size="small"
-                  variant={selectedCategoryIds.length ? "filled" : "outlined"}
-                  color={selectedCategoryIds.length ? "primary" : "default"}
-                  clickable={Boolean(selectedCategoryIds.length)}
-                  disabled={!selectedCategoryIds.length}
-                  aria-label={selectedCategoryIds.length
-                    ? `${selectedCategoryIds.length}개 선택, 전체 해제`
-                    : "선택된 카테고리 없음"}
-                  onClick={() => setSelectedCategoryIds([])}
-                  sx={{
-                    "& .category-clear-label": { display: "none" },
-                    "&:hover .category-count-label, &:focus-visible .category-count-label": { display: "none" },
-                    "&:hover .category-clear-label, &:focus-visible .category-clear-label": { display: "inline" },
-                  }}
-                />
+              <Stack direction="row" spacing={1} alignItems="center">
+                <FolderOpenRoundedIcon color="primary" fontSize="small" />
+                <Typography variant="subtitle2" fontWeight={800}>보험 카테고리</Typography>
               </Stack>
+              {selectedCategories.length > 0 && (
+                <Stack direction="row" alignItems="center" flexWrap="wrap" gap={0.5} sx={{ mt: 1 }}>
+                  {selectedCategories.map((category) => (
+                    <Chip
+                      key={category.id}
+                      label={category.name}
+                      size="small"
+                      aria-label={`${category.name} 선택 해제`}
+                      onClick={() => updateCategorySelection(category.id, false)}
+                      sx={{
+                        bgcolor: brand.accent,
+                        color: "white",
+                        height: "auto",
+                        minHeight: 24,
+                        "&:hover, &.Mui-focusVisible": { bgcolor: brand.accentHover },
+                        "& .MuiChip-label": { whiteSpace: "normal", overflowWrap: "anywhere", py: 0.25 },
+                      }}
+                    />
+                  ))}
+                  <Button size="small" onClick={() => setSelectedCategoryIds([])} sx={{ whiteSpace: "nowrap" }}>
+                    전체 해제
+                  </Button>
+                </Stack>
+              )}
             </Box>
             <Box
               aria-label="보험 카테고리 선택"
@@ -1648,30 +1597,6 @@ function ProposalsPage() {
               <Tooltip title="캔버스 접기"><IconButton aria-label="캔버스 접기" onClick={() => setCanvasOpen(false)}><CloseRoundedIcon /></IconButton></Tooltip>
             </Stack>
           </Stack>
-          <Stack direction="row" gap={1} flexWrap="wrap" sx={{ p: 1.25, borderBottom: 1, borderColor: "divider" }}>
-            <TextField select size="small" label="보험사 테마" value={canvasInsurer}
-              slotProps={{ select: { native: true }, inputLabel: { shrink: true } }}
-              onChange={(event) => setCanvasInsurer(event.target.value)} sx={{ minWidth: 148 }}>
-              <option value="">원본 테마</option>
-              {[["손해보험사", "non_life"], ["생명보험사", "life"]].map(([label, kind]) =>
-                <optgroup key={kind} label={label}>
-                  {canvasInsurerThemes.filter((theme) => theme[2] === kind).map(([name]) =>
-                    <option key={name} value={name}>{name}</option>)}
-                </optgroup>)}
-            </TextField>
-            <TextField select size="small" label="글자 크기" value={canvasFontScale}
-              slotProps={{ select: { native: true }, inputLabel: { shrink: true } }}
-              onChange={(event) => setCanvasFontScale(Number(event.target.value))} sx={{ minWidth: 98 }}>
-              {[80, 90, 100, 110, 120, 130].map(scale => <option key={scale} value={scale}>{scale}%</option>)}
-            </TextField>
-            <Button size="small" variant="outlined" startIcon={<PrintOutlinedIcon />}
-              disabled={!previewItem} onClick={() => sendCanvasMessage("canvas-print")}>인쇄</Button>
-            <Button size="small" variant="contained" startIcon={<DownloadRoundedIcon />}
-              disabled={!previewItem || canvasExporting} onClick={exportCanvasJpg}>
-              {canvasExporting ? "JPG 만드는 중…" : "JPG 저장"}
-            </Button>
-          </Stack>
-          {canvasError && <Alert severity="error" onClose={() => setCanvasError("")}>{canvasError}</Alert>}
           <Box sx={{ flex: 1, minHeight: 0, overflow: "hidden", bgcolor: "#e8edf5", p: { xs: 1.5, md: 2.5 } }}>
             {previewItem ? (
               <Box
@@ -1689,7 +1614,6 @@ function ProposalsPage() {
                   key={previewItem.id}
                   title={`${previewItem.title} 미리보기`}
                   src={proposalFileUrl(previewItem.id, "output")}
-                  onLoad={() => sendCanvasMessage("canvas-style")}
                   referrerPolicy="no-referrer"
                   sx={{
                     position: "absolute",
@@ -1817,6 +1741,7 @@ function ProposalsPage() {
                     variant={isCompletedStatus(item.status) ? "contained" : "outlined"}
                     startIcon={<VisibilityOutlinedIcon />}
                     onClick={() => openPreview(item)}
+                    sx={{ "&.MuiButton-contained": { "--variant-containedColor": "white" } }}
                   >
                     열기
                   </Button>

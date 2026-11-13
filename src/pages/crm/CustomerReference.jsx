@@ -23,7 +23,7 @@ export function CustomerField({ id, label, labelAside, inputAside, value, onChan
 
 export function CustomerWorkspace({ title, description, badges, actions, children }) {
   return <div className="customer-ref-workspace">
-    <header className="customer-ref-header">
+    <header className="customer-ref-header ns-card">
       <div>{badges}<div className="customer-ref-heading"><h1>{title}</h1><p>{description}</p></div></div>
       <div className="customer-ref-header-actions">{actions}</div>
     </header>

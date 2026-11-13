@@ -10,6 +10,7 @@
 .profile-design :where(svg){display:block;flex-shrink:0}
 .profile-design [hidden]{display:none!important}
 .profile-design.profile-page{min-height:100vh;line-height:1.5}
+.profile-design.profile-page label.MuiInputLabel-root{font-size:.8125rem}
 .profile-design .ns-card{border:1px solid #e6eaee;border-radius:22px}
 .profile-design .ns-card.bg-\[\#121314\]{background:#121314}
 .profile-design .ns-input-box{border:1.5px solid #d1d6db}
@@ -83,7 +84,7 @@
 .profile-design .profile-referral-email>span{font-size:11px;font-weight:700;color:#8b95a1}
 .profile-design .profile-referral-email>strong{font-size:14px;font-weight:900;color:#121314;overflow-wrap:anywhere}
 .profile-design .profile-account-field{display:flex;flex-direction:column;gap:6px}
-.profile-design .profile-account-field>label{font-size:12px;font-weight:900;color:#121314}
+.profile-design .profile-account-field>label{font-size:13px;font-weight:900;color:#121314}
 .profile-design .profile-account-input{display:flex;align-items:center;gap:10px;padding:10px 14px;background:#fff}
 .profile-design .profile-account-input svg{color:#00b04e}
 .profile-design .profile-account-input input{width:100%;background:transparent;border:0;outline:0;font-size:14px;line-height:20px;font-weight:700;color:#121314}

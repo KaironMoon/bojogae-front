@@ -39,6 +39,7 @@ const errors = {
     "다른 곳에서 수정한 내용이 있습니다. 새로고침한 뒤 다시 확인해 주세요.",
   crm_record_archived: "보관된 항목에는 새 기록을 추가할 수 없습니다.",
   crm_group_invalid_customers: "추가할 수 없는 고객이 있습니다. 내고객 목록을 새로고침하고 다시 선택해 주세요.",
+  crm_group_member_limit: "한 그룹에는 고객을 최대 10,000명까지 등록할 수 있습니다. 검색 범위를 줄여 주세요.",
   crm_group_duplicate_name: "이미 같은 이름의 고객 그룹이 있습니다.",
   crm_kakao_name_duplicate: "이미 사용 중인 카톡대화명입니다. 다른 대화명으로 수정해 주세요.",
   crm_contract_customer_mismatch: "이 고객에게 연결된 계약을 선택해 주세요.",

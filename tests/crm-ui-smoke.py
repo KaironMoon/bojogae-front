@@ -201,7 +201,7 @@ with sync_playwright() as p:
     page.screenshot(path=str(OUT / 'nearby-mobile.png'), full_page=True)
     page.goto(BASE + '/crm/customers')
     expect(page.get_by_role('button', name='고객 등록', exact=True)).to_be_visible()
-    expect(page.get_by_role('button', name='자료 가져오기', exact=True)).to_have_count(0)
+    expect(page.get_by_role('button', name='자료 가져오기', exact=True)).to_be_visible()
     assert not errors, errors
     assert not external, external
     assert any(path == 'crm/customers/1' for path, _ in writes)

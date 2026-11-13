@@ -1,7 +1,10 @@
 import { CustomerWorkspace, CustomerField } from "./CustomerReference";
-import CustomerBatchGroups from "./CrmCustomerBatchGroups";
+import CrmCustomerList from "./CrmCustomerList";
+import { useCustomerSelection } from "./use-customer-selection";
+import { CUSTOMER_SORTS } from "./customer-group-options";
+import useMediaQuery from "@mui/material/useMediaQuery";
 /* eslint-disable react/prop-types */
-import { CustomerDesignRow, CustomerDesignDrawer, CustomerConsultationTimeline, CustomerContractPreview } from "./CrmCustomerDesign";
+import { CustomerDesignDrawer, CustomerConsultationTimeline, CustomerContractPreview } from "./CrmCustomerDesign";
 import ContractDesignIcon from "./ContractDesignIcon";
 import { useState } from "react";
 import {
@@ -112,7 +115,11 @@ function BulkCustomerDelete({customers, onClose, onDone}) {
 export function CustomersPage() {
   const [pageSize, setPageSize] = useState(30);
   const [deleteTargets, setDeleteTargets] = useState(null);
-  const [density, setDensity] = useState("rows");
+  const mobile = useMediaQuery("(max-width: 767px)");
+  const [density, setDensity] = useState(null);
+  const cards = (density ?? (mobile ? "cards" : "table")) === "cards";
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [sort, setSort] = useState("updated_desc");
   const [detail, setDetail] = useState(null);
   const [groupId, setGroupId] = useState("");
   const groups = useCrm("/customer-groups");
@@ -133,6 +140,7 @@ export function CustomersPage() {
   const [groupTargets, setGroupTargets] = useState(null);
   const resource = useCrm("/customers", {
     q: search,
+    sort,
     group_id: groupId || undefined,
     include_archived: allCustomers,
     page_size: pageSize,
@@ -144,12 +152,26 @@ export function CustomersPage() {
     ...(hasContract !== "" ? { has_contract: hasContract } : {}),
     page,
   });
-  const selectionScope = JSON.stringify([search, stage, archived, missing, unconfirmed, tag, hasContract, page, view, groupId, allCustomers, pageSize]);
+  const selectionScope = JSON.stringify([search, stage, archived, missing, unconfirmed, tag, hasContract, page, view, groupId, allCustomers, pageSize, sort]);
   const selectable = resource.data?.items || [];
-  const selected = !resource.loading && !resource.error && selection.data === resource.data && selection.scope === selectionScope
-    ? selectable.filter((customer) => selection.ids.includes(customer.id)) : [];
+  const activeIds = !resource.loading && !resource.error && selection.data === resource.data && selection.scope === selectionScope
+    ? selection.ids : [];
+  const selectedIds = new Set(activeIds);
+  const selected = selectable.filter(customer => selectedIds.has(customer.id));
+  const groupColors = new Map(groups.data?.items?.map(group => [group.id, group.color]));
   function selectCustomers(ids) {
     setSelection({ data: resource.data, scope: selectionScope, ids });
+  }
+  const rowSelection = useCustomerSelection(
+    selectionScope, resource.loading || resource.error ? [] : selectable, activeIds, selectCustomers,
+  );
+  function clearSelection() {
+    selectCustomers([]);
+    rowSelection.reset();
+  }
+  function reloadGroups() {
+    groups.reload();
+    resource.reload();
   }
   function finishRegistration(count) {
     setForm(false);
@@ -160,14 +182,13 @@ export function CustomersPage() {
   }
   return (
     <div className="crm-customers-workspace"><CustomerWorkspace
-      headerClassName="crm-customers-header"
       badges={<div className="crm-customer-header-badges"><span>SMART CRM & GROUP WORKSPACE</span><span>보조개톡 · 보장분석 · 방문일정 실시간 연동</span></div>}
       title="내고객"
       description="상담부터 보험·방문까지, 고객의 업무를 한곳에서 관리합니다. (고객명 또는 우측 [상세] 버튼을 누르면 상세 워크스페이스가 열립니다)"
       actions={
         <>
-          <Button className="crm-customer-group-button" startIcon={<ContractDesignIcon name="folder" />} onClick={() => setGroupTargets([])}>고객 그룹 관리 <span className="crm-customer-group-count">{groups.data?.items.length ?? "—"}</span></Button>
-          <Button className="crm-customer-primary" startIcon={<ContractDesignIcon name="user_plus" />} variant="contained" onClick={() => setForm(true)}>
+          <Button className="crm-customer-group-button" startIcon={<ContractDesignIcon name="upload" />} onClick={() => setForm("import")}>자료 가져오기</Button>
+          <Button className="crm-customer-primary" startIcon={<ContractDesignIcon name="user_plus" />} variant="contained" onClick={() => setForm("register")}>
             고객 등록
           </Button>
         </>
@@ -175,9 +196,7 @@ export function CustomersPage() {
     >
       <section className="crm-customer-switches">
         <div><Tabs value={view} onChange={(_, v) => { selectCustomers([]); setView(v); }}><Tab value="list" icon={<ContractDesignIcon name="rows" />} iconPosition="start" label="내고객 목록" /><Tab value="map" icon={<ContractDesignIcon name="pin" />} iconPosition="start" label="주변 고객 지도" /></Tabs>
-        <div className="crm-customer-list-controls"><CustomerPageSize value={pageSize} onChange={v => { setPageSize(v); setPage(1); selectCustomers([]); }} /><div className="crm-customer-density"><span>화면 표시 밀도:</span><ToggleButtonGroup exclusive size="small" value={density} onChange={(_, v) => { if (v) setDensity(v); }}><ToggleButton value="rows"><ContractDesignIcon name="rows" />초슬림 행(최대노출)</ToggleButton><ToggleButton value="cards"><ContractDesignIcon name="grid" />2열 컴팩트 카드</ToggleButton></ToggleButtonGroup></div></div></div>
-        <div className="crm-customer-group-pills"><Button aria-pressed={!groupId} onClick={() => { setGroupId(""); setPage(1); }}>전체 고객</Button>{groups.data?.items.map(g => <Button key={g.id} aria-pressed={groupId === g.id} onClick={() => { setGroupId(g.id); setView("list"); setPage(1); }}>{g.name} {g.customer_count}명</Button>)}<Button onClick={() => setGroupTargets([])}>+ 새 그룹 만들기 · 편집</Button></div>
-        {groups.error && <Alert severity="warning">{groups.error}</Alert>}
+        </div>
       </section>
       {view === "map" ? (
         <section className="crm-customer-map"><header><div><span>LOCATION CRM</span><h3>주변 고객 지도 & 방문 동선</h3><p>주소가 등록된 고객(연락 중단 제외)의 위치를 지도에서 확인하고 원클릭 길찾기를 실행합니다.</p></div><Button onClick={() => setView("list")}>← 내고객 목록으로 돌아가기</Button></header><CrmMap /></section>
@@ -185,27 +204,49 @@ export function CustomersPage() {
         <>
           <Panel className="crm-customer-filters">
             <Box component="form" className="crm-customer-filter-grid" onSubmit={e => { e.preventDefault(); setSearch(q); setPage(1); }}>
+              <div className="customer-filter-search-row">
               <div className="crm-customer-search"><ContractDesignIcon name="search" /><CustomerField id=":r1ea:" inputProps={{ "aria-label": "이름·카톡대화명·연락처·주소·메모 검색" }} placeholder="이름·카톡대화명·연락처·주소·메모 검색" value={q} onChange={setQ} /><Button type="submit">검색</Button></div>
+                <Button className="customer-filter-toggle" type="button" aria-controls="customer-detailed-filters" aria-expanded={filtersOpen} onClick={() => setFiltersOpen(!filtersOpen)}>필터 {filtersOpen ? "▲" : "▼"}</Button>
+              </div>
+              <div id="customer-detailed-filters" className="customer-detailed-filters" data-open={filtersOpen}>
               <CustomerField id=":r1ec:" inputProps={{ "aria-label": "상담 단계" }} SelectProps={{ displayEmpty: true }} value={stage} options={{ "": "상담 단계: 전체", ...STAGES }} onChange={v => { setStage(v); setPage(1); }} />
               <CustomerField id=":r1ee:" inputProps={{ "aria-label": "보기" }} value={allCustomers ? "ALL" : archived ? "ARCHIVED" : missing ? "MISSING" : unconfirmed ? "UNCONFIRMED" : "ACTIVE"} options={{ ACTIVE: "보기: 관리 고객", ARCHIVED: "보관된 고객", ALL: "전체 고객", MISSING: "위치 미등록", UNCONFIRMED: "미확정 주소만 보기" }} onChange={v => { setAllCustomers(v === "ALL"); setArchived(v === "ARCHIVED"); setMissing(v === "MISSING"); setUnconfirmed(v === "UNCONFIRMED"); setPage(1); }} />
               <CustomerField id=":r1eg:" inputProps={{ "aria-label": "태그" }} placeholder="#태그 (예: 현대홈쇼핑, 지점장)" value={tag} onChange={v => { setTag(v); setPage(1); }} />
               <CustomerField id=":r1eh:" inputProps={{ "aria-label": "계약 보유" }} SelectProps={{ displayEmpty: true }} value={hasContract} options={{ "": "계약 보유: 전체", true: "계약 보유 (1건 이상)", false: "미보유 (0건)" }} onChange={v => { setHasContract(v); setPage(1); }} />
+                <CustomerField inputProps={{ "aria-label": "정렬 기준" }} value={sort} options={CUSTOMER_SORTS} onChange={v => { setSort(v); setPage(1); }} />
+              </div>
             </Box>
           </Panel>
+          <section className="customer-group-bar" aria-label="고객 그룹 필터">
+            <strong>고객 그룹</strong>
+            <div className="crm-customer-group-pills">
+              <Button aria-pressed={!groupId} onClick={() => { setGroupId(""); setPage(1); }}>전체 고객</Button>
+              {groups.data?.items?.map(g => <Button key={g.id} aria-pressed={groupId === g.id} data-group-color={g.color || "green"} onClick={() => { setGroupId(g.id); setPage(1); }}>{g.name} {g.customer_count}명</Button>)}
+              <Button className="crm-customer-group-button" startIcon={<ContractDesignIcon name="folder" />} onClick={() => setGroupTargets([])}>고객 그룹 관리</Button>
+            </div>
+            {groups.error && <Alert severity="warning">{groups.error}</Alert>}
+          </section>
+          <div className="customer-list-toolbar">
+            <CustomerPageSize value={pageSize} onChange={v => { setPageSize(v); setPage(1); clearSelection(); }} />
+            <div className="crm-customer-density"><ToggleButtonGroup exclusive size="small" value={cards ? "cards" : "table"} aria-label="리스트 뷰 전환" onChange={(_, v) => { if (v) setDensity(v); }}>
+              <ToggleButton value="table"><ContractDesignIcon name="rows" />테이블 뷰</ToggleButton><ToggleButton value="cards"><ContractDesignIcon name="grid" />카드 뷰</ToggleButton>
+            </ToggleButtonGroup></div>
+          </div>
           <State resource={resource} />
           {actionNotice && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setActionNotice("")}>{actionNotice}</Alert>}
           <div className="crm-customer-batch">
             <div className="customer-ref-selection">
               {<FormControlLabel label="현재 페이지 전체 선택" control={<Checkbox size="small" disabled={resource.loading || !!resource.error || !selectable.length} checked={selected.length > 0 && selected.length === selectable.length} indeterminate={selected.length > 0 && selected.length < selectable.length} onChange={e => selectCustomers(e.target.checked ? selectable.map(c => c.id) : [])} />} />}
               <p>총 <strong>{resource.data?.total || 0}</strong>명 <small>(현재 페이지 표시 {resource.data?.items.length || 0}명)</small></p>
-              <span>선택 {selected.length}명</span>{selected.length > 0 && <Button className="customer-clear-selection" startIcon={<ContractDesignIcon name="close" />} onClick={() => selectCustomers([])}>선택 해제</Button>}
+              <span>선택 {selected.length}명</span>{selected.length > 0 && <Button className="customer-clear-selection" startIcon={<ContractDesignIcon name="close" />} onClick={clearSelection}>선택 해제</Button>}
             </div>
-            {<div className="customer-ref-batch-actions"><Button startIcon={<ContractDesignIcon name="folder" />} variant="outlined" disabled={!selected.length || selected.some(c => c.archived)} onClick={() => setGroupTargets(selected)}>선택 고객 그룹에 추가</Button><Button className="customer-bulk-delete" startIcon={<ContractDesignIcon name="trash" />} disabled={!selected.length || resource.loading} onClick={() => setDeleteTargets(selected)}>선택 고객 삭제</Button></div>}
+            <div className="customer-ref-batch-actions">
+              <Button className="customer-group-register" startIcon={<ContractDesignIcon name="folder" />} disabled={!selected.length || selected.some(c => c.archived)} onClick={() => setGroupTargets(selected)}>선택 그룹 등록</Button>
+              <Button className="customer-bulk-delete" startIcon={<ContractDesignIcon name="trash" />} disabled={!selected.length || resource.loading} onClick={() => setDeleteTargets(selected)}>선택 고객 삭제</Button>
+            </div>
+            {!!selected.length && <div className="customer-selection-tray" aria-label="선택한 고객" tabIndex={0}>{selected.map(c => <button type="button" key={c.id} aria-label={`${c.name} 선택 해제`} onClick={() => selectCustomers(activeIds.filter(id => id !== c.id))}>{c.name} ×</button>)}</div>}
           </div>
-          <div className={`crm-customer-list crm-customer-list--${density}`}>
-            {density === "rows" && <div className="crm-customer-list-head"><span>고객명 (카톡대화명 · 메모)</span><span>상담단계 · 그룹</span><span>연락처 · 주소 상태</span><span>최근 상담 · 보유계약</span><span>업무액션</span></div>}
-            {resource.data?.items.map(c => <CustomerDesignRow key={c.id} customer={c} onDetails={() => setDetail(c)} checked={selected.some(item => item.id === c.id)} onCheck={checked => selectCustomers(checked ? [...selected.map(item => item.id), c.id] : selected.filter(item => item.id !== c.id).map(item => item.id))} />)}
-          </div>
+          <CrmCustomerList cards={cards} customers={selectable} selectedIds={selectedIds} selection={rowSelection} groupColors={groupColors} onDetails={setDetail} />
           {resource.data && !resource.data.items.length && <Empty />}
           <div className="crm-customer-pagination"><span>전체 {resource.data?.total || 0}명 중 {resource.data?.page_start ?? "—"} - {resource.data?.page_end ?? "—"}번째 고객 표시 (페이지당 {pageSize}명 고밀도 뷰)</span><CustomerPageSize bottom value={pageSize} onChange={v => { setPageSize(v); setPage(1); selectCustomers([]); }} /><Pages data={resource.data} onChange={setPage} /></div>
         </>
@@ -214,17 +255,21 @@ export function CustomersPage() {
         <CrmImport
           onClose={() => setForm(false)}
           onDone={finishRegistration}
-          renderRegistration={(spreadsheet) => (
+          renderRegistration={form === "register" ? (spreadsheet) => (
             <CustomerForm open={spreadsheet.open} spreadsheet={spreadsheet} onClose={() => setForm(false)}
               onSave={async (data) => {
                 await crmPost("/customers", data);
                 finishRegistration(1);
               }} />
-          )}
+          ) : undefined}
         />
       )}
-      {groupTargets?.length > 0 && <CustomerBatchGroups customers={groupTargets} onClose={() => { setGroupTargets(null); groups.reload(); resource.reload(); }} />}
-      {groupTargets?.length === 0 && <CrmCustomerGroups onFilter={id => { setGroupId(id); setView("list"); setPage(1); setGroupTargets(null); groups.reload(); }} selectedCustomers={groupTargets} onClose={() => { setGroupTargets(null); groups.reload(); resource.reload(); }} />}
+      {groupTargets !== null && <CrmCustomerGroups selectedCustomers={groupTargets}
+        onFilter={id => { setGroupId(id); setView("list"); setPage(1); setGroupTargets(null); }}
+        onChanged={deletedId => {
+          if (deletedId && groupId === deletedId) { setGroupId(""); setPage(1); }
+          reloadGroups();
+        }} onClose={() => setGroupTargets(null)} />}
       {deleteTargets && <BulkCustomerDelete customers={deleteTargets} onClose={() => setDeleteTargets(null)} onDone={count => {
         setDeleteTargets(null); setDetail(null); selectCustomers([]); groups.reload();
         setActionNotice(`${count}명의 고객을 삭제했습니다.`);
