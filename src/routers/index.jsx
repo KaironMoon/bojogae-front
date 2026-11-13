@@ -13,6 +13,7 @@ import Info from "../pages/info";
 import NotFound from "../pages/error/NotFound";
 import PageLayout from "../pages/PageLayout";
 import LoginPage from "../pages/auth/LoginPage";
+import TalkLoginPage from "../pages/auth/TalkLoginPage";
 import AccessRestrictedPage from "../pages/auth/AccessRestrictedPage";
 import UsersPage from "../pages/admin/UsersPage";
 import SignupCompletePage from "../pages/auth/SignupCompletePage";
@@ -79,6 +80,7 @@ const ProductRouter = [
 ];
 
 const router = createBrowserRouter([
+  { path: "/talk/login", element: <TalkLoginPage /> },
   { path: "/board/posts/:postId", element: <BoardPostPage /> },
   { path: "/terms", element: <PolicyPage key="terms" kind="terms" /> },
   { path: "/privacy", element: <PolicyPage key="privacy" kind="privacy" /> },
