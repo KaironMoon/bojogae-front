@@ -1,5 +1,6 @@
 /* eslint-disable react/prop-types */
 import { useEffect, useMemo, useRef, useState } from "react";
+import CloudUploadRoundedIcon from "@mui/icons-material/CloudUploadRounded";
 import {
   Alert, Box, Button, Checkbox, Dialog, DialogActions, DialogContent, DialogTitle,
   FormControlLabel, Paper, Stack, TextField, Typography,
@@ -200,14 +201,72 @@ function FileDialog({ field, value, example, onClose, onApply }) {
   </Dialog>;
 }
 
+function TemplateFileDropZone({ field, filename, disabled, onFiles }) {
+  const input = useRef(null);
+  const [dragging, setDragging] = useState(false);
+
+  return (<>
+    <input
+      ref={input}
+      type="file"
+      hidden
+      accept={field.accept}
+      disabled={disabled}
+      onChange={(event) => {
+        onFiles(event.target.files);
+        event.target.value = "";
+      }}
+    />
+    <Paper
+      component="button"
+      type="button"
+      variant="outlined"
+      aria-label={`${field.label} 파일 선택 또는 드래그 앤 드롭`}
+      disabled={disabled}
+      onClick={() => input.current?.click()}
+      onDragOver={(event) => {
+        event.preventDefault();
+        event.dataTransfer.dropEffect = disabled ? "none" : "copy";
+        if (!disabled) setDragging(true);
+      }}
+      onDragLeave={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) setDragging(false);
+      }}
+      onDrop={(event) => {
+        event.preventDefault();
+        setDragging(false);
+        if (!disabled) onFiles(event.dataTransfer.files);
+      }}
+      sx={{
+        width: "100%", p: 2, borderWidth: 2, borderStyle: "dashed",
+        borderColor: dragging ? "primary.main" : "divider", borderRadius: 2,
+        bgcolor: dragging ? "action.selected" : "background.paper",
+        cursor: disabled ? "not-allowed" : "pointer", opacity: disabled ? 0.6 : 1,
+        "&:focus-visible": { outline: "3px solid", outlineColor: "primary.light", outlineOffset: 2 },
+      }}
+    >
+      <Stack component="span" spacing={0.5} alignItems="center">
+        <CloudUploadRoundedIcon color={dragging ? "primary" : "action"} />
+        <Typography component="span" variant="body2" fontWeight={700}>
+          {dragging ? "여기에 파일을 놓으세요" : "파일을 끌어다 놓거나 클릭해서 선택"}
+        </Typography>
+        <Typography component="span" variant="caption" color="text.secondary">
+          {field.accept.split(",").join(" / ")} · 1개 · 최대 1MB
+        </Typography>
+        {filename && <Typography component="span" variant="caption" sx={{ overflowWrap: "anywhere" }}>{filename}</Typography>}
+      </Stack>
+    </Paper>
+  </>);
+}
+
 export default function ReportTemplateEditor({ value, onChange, disabled }) {
   const [field, setField] = useState(null);
   const [error, setError] = useState("");
-  const upload = async (definition, event) => {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-    if (!file) return;
+  const upload = async (definition, files) => {
+    if (disabled || !files?.length) return;
     try {
+      if (files.length !== 1) throw new Error("파일을 한 개만 선택해 주세요.");
+      const file = files[0];
       if (!definition.accept.split(",").some((extension) => file.name.toLowerCase().endsWith(extension))) {
         throw new Error("지정된 확장자의 파일을 선택해 주세요.");
       }
@@ -224,15 +283,15 @@ export default function ReportTemplateEditor({ value, onChange, disabled }) {
     }
   };
   return <Stack spacing={1.5}>
-    {fields.map((item) => <Stack key={item.key} direction="row" gap={1} alignItems="center" flexWrap="wrap">
-      <Typography variant="body2" sx={{ flex: 1 }}>{item.label}{item.optional ? " (선택)" : ""} {value[item.filename] || ""}</Typography>
-      <Button component="label" size="small" disabled={disabled}>
-        파일 선택
-        <input type="file" hidden accept={item.accept} onChange={(event) => upload(item, event)} />
-      </Button>
-      <Button size="small" disabled={disabled || value[item.key] == null} onClick={() => setField(item)}>편집</Button>
-      {item.optional && value[item.key] != null && <Button size="small" disabled={disabled}
-        onClick={() => onChange((current) => ({ ...current, [item.key]: null, [item.filename]: undefined }))}>제거</Button>}
+    {fields.map((item) => <Stack key={item.key} spacing={0.75}>
+      <Stack direction="row" gap={1} alignItems="center" flexWrap="wrap">
+        <Typography variant="body2" sx={{ flex: 1 }}>{item.label}{item.optional ? " (선택)" : ""}</Typography>
+        <Button size="small" disabled={disabled || value[item.key] == null} onClick={() => setField(item)}>편집</Button>
+        {item.optional && value[item.key] != null && <Button size="small" disabled={disabled}
+          onClick={() => onChange((current) => ({ ...current, [item.key]: null, [item.filename]: undefined }))}>제거</Button>}
+      </Stack>
+      <TemplateFileDropZone field={item} filename={value[item.filename]} disabled={disabled}
+        onFiles={(files) => upload(item, files)} />
     </Stack>)}
     {error && <Alert severity="error">{error}</Alert>}
     {field && value?.[field.key] != null && <FileDialog field={field} value={value[field.key]} example={value.example_data}
