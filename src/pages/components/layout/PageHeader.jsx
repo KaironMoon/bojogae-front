@@ -81,7 +81,7 @@ function PageHeader({ onMenuClick }) { // eslint-disable-line react/prop-types
         <Box component="span" sx={{ px: 0.9, py: 0.25, borderRadius: 99, bgcolor: "#6B38FB", color: "white", fontSize: 10, fontWeight: 850, whiteSpace: "nowrap" }}>프롬프트</Box>
         <InputBase value={query} onChange={(event) => setQuery(event.target.value)} placeholder="프롬프트 검색"
           inputProps={{ "aria-label": "프롬프트 검색어", maxLength: 100 }} sx={{ flex: 1, minWidth: 0, fontSize: 12 }} />
-        <IconButton type="submit" aria-label="프롬프트 검색 실행" size="small" sx={{ bgcolor: "primary.main", color: "#00100A", "&:hover": { bgcolor: "#00A84B" } }}>
+        <IconButton type="submit" aria-label="프롬프트 검색 실행" size="small" sx={{ bgcolor: "primary.main", color: "primary.contrastText", "&:hover": { bgcolor: "#00A84B" } }}>
           <SearchRoundedIcon sx={{ fontSize: 17 }} />
         </IconButton>
       </Box>

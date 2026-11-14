@@ -3,11 +3,15 @@
   background: var(--bojogae-canvas);
 }
 
-.landing-header .brand-mark,
+.landing-header .brand-mark {
+  color: var(--bojogae-ink);
+  background: var(--bojogae-accent);
+}
+
 .landing-page .primary-cta,
 .landing-page .hero-actions .primary-cta,
 .landing-page .pricing-grid article.featured > button {
-  color: var(--bojogae-ink);
+  color: var(--bojogae-accent-contrast);
   background: var(--bojogae-accent);
 }
 

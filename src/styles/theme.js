@@ -8,7 +8,7 @@ const typography = {
 };
 
 const containedGreenButton = {
-  "--variant-containedColor": brand.ink,
+  "--variant-containedColor": brand.accentContrast,
   "--variant-containedBg": brand.accent,
   "&:hover": { "--variant-containedBg": brand.accentHover },
 };
@@ -17,7 +17,7 @@ export const darkTheme = createTheme({
   typography,
   palette: {
     mode: "dark",
-    primary: { main: brand.accent, contrastText: brand.ink },
+    primary: { main: brand.accent, contrastText: brand.accentContrast },
     background: {
       default: "#241F1D",
       paper: "#352F2D",
@@ -40,7 +40,7 @@ export const lightTheme = createTheme({
       main: brand.accent,
       light: brand.tint,
       dark: brand.accentInk,
-      contrastText: brand.ink,
+      contrastText: brand.accentContrast,
     },
     background: {
       default: brand.canvas,
@@ -118,7 +118,7 @@ export const lightTheme = createTheme({
       standardInfo: { color: "#4020A0", backgroundColor: "#F3EEFF", "& .MuiAlert-icon": { color: "#6B38FB" } },
     } },
     MuiChip: { styleOverrides: {
-      colorPrimary: { color: brand.accentInk, "&.MuiChip-filled": { color: "#00100A" } },
+      colorPrimary: { "&.MuiChip-outlined": { color: brand.accentInk } },
       colorWarning: { color: "#854D0E", backgroundColor: "#FFFBEB", borderColor: "#F59E0B" },
       colorInfo: { color: "#4020A0", backgroundColor: "#F3EEFF" },
       colorSuccess: { color: "#006E43", backgroundColor: "#ECFDF5" },

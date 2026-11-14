@@ -1764,7 +1764,6 @@ function ProposalsPage() {
                     variant={isCompletedStatus(item.status) ? "contained" : "outlined"}
                     startIcon={<VisibilityOutlinedIcon />}
                     onClick={() => openPreview(item)}
-                    sx={{ "&.MuiButton-contained": { "--variant-containedColor": "white" } }}
                   >
                     열기
                   </Button>

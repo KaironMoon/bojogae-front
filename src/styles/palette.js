@@ -1,6 +1,7 @@
 export const brand = {
   accent: "#03C75A",
   accentHover: "#00A84B",
+  accentContrast: "#FFFFFF",
   accentInk: "#006E43",
   tint: "#ECFDF5",
   tintHover: "#D1FAE5",
