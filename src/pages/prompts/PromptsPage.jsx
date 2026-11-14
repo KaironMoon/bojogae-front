@@ -21,6 +21,7 @@ import {
   IconButton,
   ListItemButton,
   ListItemText,
+  MenuItem,
   Paper,
   Stack,
   Switch,
@@ -701,6 +702,19 @@ function PromptsPage() {
                 disabled={selectedPrompt?.is_deleted || working}
                 onChange={(input_schema) => setDraft((current) => ({ ...current, input_schema }))} />
               <TextField
+                select
+                label="보고서 생성 방식"
+                value={draft.report_template === null ? "html" : "template"}
+                disabled={selectedPrompt?.is_deleted || working}
+                onChange={(event) => {
+                  const reportTemplate = event.target.value === "template" ? {} : null;
+                  setDraft((current) => ({ ...current, report_template: reportTemplate }));
+                }}
+              >
+                <MenuItem value="html">HTML 전체 생성</MenuItem>
+                <MenuItem value="template">템플릿 기반 생성</MenuItem>
+              </TextField>
+              <TextField
                 label="본문"
                 value={draft.body}
                 onChange={(event) => setDraft((current) => ({ ...current, body: event.target.value }))}
@@ -716,8 +730,12 @@ function PromptsPage() {
                   },
                 }}
               />
-              <ReportTemplateEditor value={draft.report_template} disabled={selectedPrompt?.is_deleted || working}
-                onChange={(update) => setDraft((current) => ({ ...current, report_template: update(current.report_template) }))} />
+              {draft.report_template !== null && (
+                <ReportTemplateEditor value={draft.report_template} disabled={selectedPrompt?.is_deleted || working}
+                  onChange={(update) => setDraft((current) => current.report_template === null
+                    ? current
+                    : { ...current, report_template: update(current.report_template) })} />
+              )}
               {commonError && <Alert severity="warning">{commonError}</Alert>}
               {commonLoading && <Typography color="text.secondary">공통 프롬프트를 불러오는 중입니다.</Typography>}
               <CommonPromptSelector items={commonPrompts} value={draft.common_prompt_ids}
@@ -888,7 +906,7 @@ function PromptsPage() {
             {Object.entries({
               "HTML 템플릿": viewVersion.report_template.html,
               "출력 데이터 스키마": JSON.stringify(viewVersion.report_template.schema_document, null, 2),
-              "예시 데이터": viewVersion.report_template.example_data && JSON.stringify(viewVersion.report_template.example_data, null, 2),
+              "템플릿 점검용 예시 데이터": viewVersion.report_template.example_data && JSON.stringify(viewVersion.report_template.example_data, null, 2),
             }).filter(([, value]) => value).map(([label, value]) => <details key={label}>
               <summary>{label}</summary>
               <Box component="pre" sx={{ overflow: "auto", maxHeight: 300 }}>{value}</Box>

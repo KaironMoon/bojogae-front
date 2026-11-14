@@ -2,13 +2,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert, Box, Button, Checkbox, Dialog, DialogActions, DialogContent, DialogTitle,
-  FormControlLabel, MenuItem, Paper, Stack, TextField, Typography,
+  FormControlLabel, Paper, Stack, TextField, Typography,
 } from "@mui/material";
 
 const fields = [
   { key: "html", filename: "html_filename", label: "HTML 템플릿", accept: ".html,.htm" },
   { key: "schema_document", filename: "schema_filename", label: "출력 데이터 스키마", accept: ".json" },
-  { key: "example_data", filename: "example_filename", label: "예시 데이터", accept: ".json", optional: true },
+  { key: "example_data", filename: "example_filename", label: "템플릿 점검용 예시 데이터", accept: ".json", optional: true },
 ];
 
 function DataTree({ name, value, onChange }) {
@@ -224,12 +224,7 @@ export default function ReportTemplateEditor({ value, onChange, disabled }) {
     }
   };
   return <Stack spacing={1.5}>
-    <TextField select label="보고서 생성 방식" value={value === null ? "html" : "template"} disabled={disabled}
-      onChange={(e) => { setError(""); onChange(() => e.target.value === "template" ? {} : null); }}>
-      <MenuItem value="html">HTML 전체 생성</MenuItem>
-      <MenuItem value="template">템플릿 기반 생성</MenuItem>
-    </TextField>
-    {value !== null && fields.map((item) => <Stack key={item.key} direction="row" gap={1} alignItems="center" flexWrap="wrap">
+    {fields.map((item) => <Stack key={item.key} direction="row" gap={1} alignItems="center" flexWrap="wrap">
       <Typography variant="body2" sx={{ flex: 1 }}>{item.label}{item.optional ? " (선택)" : ""} {value[item.filename] || ""}</Typography>
       <Button component="label" size="small" disabled={disabled}>
         파일 선택
