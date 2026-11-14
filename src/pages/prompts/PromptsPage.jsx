@@ -1,3 +1,4 @@
+import ReportShellPanel from "./ReportShellPanel";
 import ReportTemplateEditor from "./ReportTemplateEditor";
 import PreviewImageEditor from "./PreviewImageEditor";
 import InputSchemaEditor from "./InputSchemaEditor";
@@ -292,7 +293,8 @@ function PromptsPage() {
 
   const savePrompt = async () => {
     const title = draft.title.trim();
-    if (draft.report_template && (!draft.report_template.html || !draft.report_template.schema_document)) {
+    if (draft.report_template && (!(draft.report_template.shell_version_id ? draft.report_template.fragment_html : draft.report_template.html)
+        || !draft.report_template.schema_document)) {
       setError("HTML 템플릿과 출력 데이터 스키마를 선택해 주세요.");
       return;
     }
@@ -345,6 +347,10 @@ function PromptsPage() {
       const detail = requestError.response?.data?.detail;
       setError(Array.isArray(detail) ? detail.map((item) => item.msg).join(" / ") : typeof detail === "string" && (detail.startsWith("common_prompt_") || detail === "invalid_common_prompt_ids")
         ? commonPromptError(requestError)
+        : detail === "report_shell_schema_required"
+        ? "공통 HTML을 사용하려면 DB 설정을 적용해야 합니다."
+        : requestError.response?.status === 422 && typeof detail === "string"
+        ? detail
         : detail === "prompt_preview_schema_required"
         ? "프롬프트는 저장됐지만 이미지 저장을 위한 DB 설정이 필요합니다."
         : typeof detail === "string" && detail.startsWith("preview_image_")
@@ -491,6 +497,7 @@ function PromptsPage() {
           <Tab label="카테고리 관리" />
           <Tab label="기본 즐겨찾기 관리" />
           <Tab label="공통 프롬프트 관리" />
+          <Tab label="공통 HTML 관리" />
         </Tabs>
       </Paper>
 
@@ -731,7 +738,7 @@ function PromptsPage() {
                 }}
               />
               {draft.report_template !== null && (
-                <ReportTemplateEditor value={draft.report_template} disabled={selectedPrompt?.is_deleted || working}
+                <ReportTemplateEditor key={selectedId} title={draft.title} value={draft.report_template} disabled={selectedPrompt?.is_deleted || working}
                   onChange={(update) => setDraft((current) => current.report_template === null
                     ? current
                     : { ...current, report_template: update(current.report_template) })} />
@@ -760,13 +767,13 @@ function PromptsPage() {
         <PromptCategoriesPanel />
       ) : activeTab === 2 ? (
         <DefaultPromptFavoritesPanel />
-      ) : (
+      ) : activeTab === 3 ? (
         <Stack spacing={2}>
           {commonError && <Alert severity="warning">{commonError}</Alert>}
           <CommonPromptsPanel items={commonPrompts} loading={commonLoading || Boolean(commonError)}
             onRefresh={loadCommon} onDirtyChange={setCommonDirty} />
         </Stack>
-      )}
+      ) : <ReportShellPanel onDirtyChange={setCommonDirty} />}
 
       <Drawer
         anchor="right"
@@ -903,7 +910,11 @@ function PromptsPage() {
           </Box>
           {viewVersion?.report_template && <Box sx={{ mt: 2 }}>
             <Typography variant="subtitle2">템플릿과 출력 데이터</Typography>
+            {viewVersion.report_template.shell_version_id && <Typography variant="body2">
+              공통 HTML #{viewVersion.report_template.shell_version_id} · 조립 규칙 v{viewVersion.report_template.assembly_version}
+            </Typography>}
             {Object.entries({
+              "유형별 HTML 템플릿": viewVersion.report_template.fragment_html,
               "HTML 템플릿": viewVersion.report_template.html,
               "출력 데이터 스키마": JSON.stringify(viewVersion.report_template.schema_document, null, 2),
               "템플릿 점검용 예시 데이터": viewVersion.report_template.example_data && JSON.stringify(viewVersion.report_template.example_data, null, 2),

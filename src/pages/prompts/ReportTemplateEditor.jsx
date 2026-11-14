@@ -3,8 +3,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import CloudUploadRoundedIcon from "@mui/icons-material/CloudUploadRounded";
 import {
   Alert, Box, Button, Checkbox, Dialog, DialogActions, DialogContent, DialogTitle,
-  FormControlLabel, Paper, Stack, TextField, Typography,
+  FormControlLabel, MenuItem, Paper, Stack, TextField, Typography,
 } from "@mui/material";
+
+import { listReportShells, previewReportTemplate, reportTemplateError } from "@/services/report-template-service";
+
+const fragmentField = { key: "fragment_html", filename: "html_filename", label: "유형별 HTML 템플릿", accept: ".html,.htm" };
 
 const fields = [
   { key: "html", filename: "html_filename", label: "HTML 템플릿", accept: ".html,.htm" },
@@ -165,8 +169,10 @@ function HtmlEditor({ source, onChange, example }) {
 }
 
 function FileDialog({ field, value, example, onClose, onApply }) {
-  const [source, setSource] = useState(() => field.key === "html" ? value : JSON.stringify(value, null, 2));
+  const isFragment = field.key === fragmentField.key;
+  const [source, setSource] = useState(() => isFragment || field.key === "html" ? value : JSON.stringify(value, null, 2));
   const parsed = useMemo(() => {
+    if (isFragment) return source.trim() ? { value: source } : { error: "유형별 HTML 소스를 입력해 주세요." };
     if (field.key === "html") {
       return /<!-- DATA_START -->[\s\S]*?<!-- DATA_END -->/.test(source) && /<html\b/i.test(source)
         ? { value: source } : { error: "HTML 문서에 DATA_START와 DATA_END가 필요합니다." };
@@ -178,11 +184,14 @@ function FileDialog({ field, value, example, onClose, onApply }) {
     } catch (error) {
       return { error: error.message };
     }
-  }, [field.key, source]);
+  }, [field.key, isFragment, source]);
   return <Dialog open onClose={onClose} fullWidth maxWidth="xl">
     <DialogTitle>{field.label} 편집</DialogTitle>
     <DialogContent dividers>
       {parsed.error && <Alert severity="warning" sx={{ mb: 2 }}>{parsed.error}</Alert>}
+      {isFragment ? <TextField label="유형별 HTML 소스" value={source}
+        onChange={(event) => setSource(event.target.value)} multiline minRows={20} maxRows={26} fullWidth
+        slotProps={{ input: { sx: { fontFamily: "monospace", fontSize: 13 } } }} /> :
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "minmax(0, 1fr)", md: "repeat(2, minmax(0, 1fr))" }, gap: 2 }}>
         {field.key === "html" ? <HtmlEditor source={source} onChange={setSource} example={example} /> : <>
           <TextField label="JSON 소스" value={source} onChange={(event) => setSource(event.target.value)}
@@ -192,7 +201,7 @@ function FileDialog({ field, value, example, onClose, onApply }) {
             {parsed.value && <DataTree name="JSON" value={parsed.value} onChange={(data) => setSource(JSON.stringify(data, null, 2))} />}
           </Paper>
         </>}
-      </Box>
+      </Box>}
     </DialogContent>
     <DialogActions>
       <Button onClick={onClose}>취소</Button>
@@ -259,9 +268,47 @@ function TemplateFileDropZone({ field, filename, disabled, onFiles }) {
   </>);
 }
 
-export default function ReportTemplateEditor({ value, onChange, disabled }) {
+function previewDocument(html) {
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const csp = doc.createElement("meta");
+  csp.httpEquiv = "Content-Security-Policy";
+  csp.content = "default-src 'none'; script-src 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; font-src data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src data: blob:; base-uri 'none'; form-action 'none'";
+  doc.head.prepend(csp);
+  return "<!doctype html>\n" + doc.documentElement.outerHTML;
+}
+
+export default function ReportTemplateEditor({ value, onChange, disabled, title }) {
   const [field, setField] = useState(null);
   const [error, setError] = useState("");
+  const [shells, setShells] = useState([]);
+  const [preview, setPreview] = useState(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const assembled = value.shell_version_id != null;
+  const fieldsToShow = assembled ? [fragmentField, ...fields.slice(1)] : fields;
+
+  useEffect(() => {
+    let active = true;
+    listReportShells().then((items) => {
+      if (active) setShells(items);
+    }).catch((exception) => {
+      if (active) setError(reportTemplateError(exception, "공통 HTML 목록을 불러오지 못했습니다."));
+    });
+    return () => { active = false; };
+  }, []);
+
+  const showPreview = async () => {
+    setPreviewLoading(true);
+    setError("");
+    try {
+      const result = await previewReportTemplate(title.trim() || "보고서", value);
+      setPreview(previewDocument(result.html));
+    } catch (exception) {
+      setError(reportTemplateError(exception, "조립 미리보기를 불러오지 못했습니다."));
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
   const upload = async (definition, files) => {
     if (disabled || !files?.length) return;
     try {
@@ -272,8 +319,9 @@ export default function ReportTemplateEditor({ value, onChange, disabled }) {
       }
       if (file.size > 1_000_000) throw new Error("파일은 1MB 이하로 선택해 주세요.");
       const source = await file.text();
-      const content = definition.key === "html" ? source : JSON.parse(source);
-      if (definition.key !== "html" && (!content || typeof content !== "object" || Array.isArray(content))) {
+      const isHtml = definition.key === "html" || definition.key === fragmentField.key;
+      const content = isHtml ? source : JSON.parse(source);
+      if (!isHtml && (!content || typeof content !== "object" || Array.isArray(content))) {
         throw new Error("JSON 객체가 들어 있는 파일을 선택해 주세요.");
       }
       onChange((current) => ({ ...current, [definition.key]: content, [definition.filename]: file.name }));
@@ -283,7 +331,27 @@ export default function ReportTemplateEditor({ value, onChange, disabled }) {
     }
   };
   return <Stack spacing={1.5}>
-    {fields.map((item) => <Stack key={item.key} spacing={0.75}>
+    <TextField select label="공통 HTML 버전" value={value.shell_version_id ?? ""} disabled={disabled || previewLoading}
+      onChange={(event) => {
+        const shell = event.target.value || null;
+        onChange((current) => {
+          if ((current.shell_version_id != null) === (shell != null)) {
+            return { ...current, shell_version_id: shell };
+          }
+          const next = { ...current };
+          for (const field of ["html", "fragment_html", "html_filename", "shell_version_id", "assembly_version"]) {
+            delete next[field];
+          }
+          if (shell) next.shell_version_id = shell;
+          return next;
+        });
+      }}>
+      <MenuItem value="">완성 HTML 직접 등록</MenuItem>
+      {assembled && !shells.some((item) => item.id === value.shell_version_id)
+        && <MenuItem value={value.shell_version_id}>#{value.shell_version_id}</MenuItem>}
+      {shells.map((item) => <MenuItem key={item.id} value={item.id}>#{item.id} · {item.filename}</MenuItem>)}
+    </TextField>
+    {fieldsToShow.map((item) => <Stack key={item.key} spacing={0.75}>
       <Stack direction="row" gap={1} alignItems="center" flexWrap="wrap">
         <Typography variant="body2" sx={{ flex: 1 }}>{item.label}{item.optional ? " (선택)" : ""}</Typography>
         <Button size="small" disabled={disabled || value[item.key] == null} onClick={() => setField(item)}>편집</Button>
@@ -293,7 +361,18 @@ export default function ReportTemplateEditor({ value, onChange, disabled }) {
       <TemplateFileDropZone field={item} filename={value[item.filename]} disabled={disabled}
         onFiles={(files) => upload(item, files)} />
     </Stack>)}
+    {assembled && <Button variant="outlined" onClick={showPreview}
+      disabled={previewLoading || !value.fragment_html || !value.schema_document || !value.example_data}
+      sx={{ alignSelf: "flex-start" }}>예시 데이터로 조립 미리보기</Button>}
     {error && <Alert severity="error">{error}</Alert>}
+    {preview && <Dialog open fullWidth maxWidth="xl" onClose={() => setPreview(null)}>
+      <DialogTitle>조립 미리보기</DialogTitle>
+      <DialogContent dividers>
+        <Box component="iframe" title="조립된 보고서" sandbox="allow-scripts" srcDoc={preview}
+          sx={{ width: "100%", height: "70vh", border: 0 }} />
+      </DialogContent>
+      <DialogActions><Button onClick={() => setPreview(null)}>닫기</Button></DialogActions>
+    </Dialog>}
     {field && value?.[field.key] != null && <FileDialog field={field} value={value[field.key]} example={value.example_data}
       onClose={() => setField(null)}
       onApply={(content) => { onChange((current) => ({ ...current, [field.key]: content })); setField(null); }} />}
