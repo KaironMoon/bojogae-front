@@ -32,7 +32,7 @@ async function getPrompt(promptId) {
   return response.data;
 }
 
-async function createPrompt(title, body, categoryIds = [], inputSchema = [], description = "", commonPromptIds = [], maxInputFiles = 10, releaseFlags = {}) {
+async function createPrompt(title, body, categoryIds = [], inputSchema = [], description = "", commonPromptIds = [], maxInputFiles = 10, releaseFlags = {}, reportTemplate = null) {
   const response = await apiCaller.post("/api/v1/admin/prompts", {
     title,
     body,
@@ -41,13 +41,14 @@ async function createPrompt(title, body, categoryIds = [], inputSchema = [], des
     max_input_files: maxInputFiles,
     description: description || null,
     common_prompt_ids: commonPromptIds,
+    report_template: reportTemplate,
     is_new: releaseFlags.is_new ?? false,
     is_recently_updated: releaseFlags.is_recently_updated ?? false,
   });
   return response.data;
 }
 
-async function updatePrompt(promptId, title, body, categoryIds = [], inputSchema = [], description = "", commonPromptIds = [], maxInputFiles = 10, releaseFlags = {}) {
+async function updatePrompt(promptId, title, body, categoryIds = [], inputSchema = [], description = "", commonPromptIds = [], maxInputFiles = 10, releaseFlags = {}, reportTemplate = null) {
   const response = await apiCaller.put(`/api/v1/admin/prompts/${promptId}`, {
     title,
     body,
@@ -56,6 +57,7 @@ async function updatePrompt(promptId, title, body, categoryIds = [], inputSchema
     max_input_files: maxInputFiles,
     description: description || null,
     common_prompt_ids: commonPromptIds,
+    report_template: reportTemplate,
     is_new: releaseFlags.is_new ?? false,
     is_recently_updated: releaseFlags.is_recently_updated ?? false,
   });
@@ -167,4 +169,8 @@ export function commonPromptError(error) {
     common_prompt_in_use: "적용 중인 공통 프롬프트입니다. 각 프롬프트의 적용 목록에서 제외하고 저장한 뒤 삭제해 주세요.",
     common_prompt_not_found: "공통 프롬프트를 찾을 수 없습니다. 목록을 새로고침해 주세요.",
   }[error.response?.data?.detail] || "공통 프롬프트 처리에 실패했습니다. 다시 시도해 주세요.";
+}
+
+export async function publishPromptVersion(promptId, values) {
+  return (await apiCaller.put(`/api/v1/admin/prompts/${promptId}/published-version`, values)).data;
 }

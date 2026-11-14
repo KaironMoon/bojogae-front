@@ -30,6 +30,7 @@ import {
   Drawer,
   FormControlLabel,
   IconButton,
+  MenuItem,
   Pagination,
   Paper,
   Stack,
@@ -179,6 +180,7 @@ function ProposalsPage() {
   const favoriteRequest = useRef(false);
   const [pointBalance, setPointBalance] = useState({ free_points: 0, paid_points: 0, total_points: 0 });
   const [promptId, setPromptId] = useState("");
+  const [versionChoice, setVersionChoice] = useState(null);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState([]);
   const [title, setTitle] = useState("");
   const [titleTouched, setTitleTouched] = useState(false);
@@ -291,7 +293,18 @@ function ProposalsPage() {
     }
   };
 
-  const selectedPrompt = promptOptions.find((option) => option.id === promptId);
+  const promptOption = promptOptions.find((option) => option.id === promptId);
+  const chosenVersion = versionChoice?.promptId === promptId
+    ? promptOption?.versions?.find((version) => version.id === versionChoice.versionId)
+    : null;
+  const selectedPrompt = chosenVersion ? {
+    ...promptOption,
+    title: chosenVersion.title,
+    current_version_id: chosenVersion.id,
+    current_version_no: chosenVersion.version_no,
+    input_schema: chosenVersion.input_schema,
+    max_input_files: chosenVersion.max_input_files,
+  } : promptOption;
   const selectedReport = statusItem || openedDocument;
   const displayedPromptOptions = filteredPromptOptions;
   const maxInputFiles = selectedPrompt?.max_input_files ?? 10;
@@ -740,15 +753,10 @@ function ProposalsPage() {
       try {
         job = await createProposal(buildPayload(selectedPrompt.current_version_id));
       } catch (requestError) {
-        if (requestError.response?.data?.detail !== "prompt_version_changed") throw requestError;
-        // 창을 띄워둔 사이 프롬프트가 업데이트된 경우 - 최신 버전을 다시
-        // 받아와 입력해 둔 제목/파일/값은 그대로 유지한 채 한 번만 자동
-        // 재시도한다. 새 스키마와 안 맞으면 그때는 그 에러가 그대로 보인다.
-        const refreshed = await getPromptOptions();
-        setPromptOptions(refreshed);
-        const latest = refreshed.find((option) => option.id === promptId);
-        if (!latest) throw requestError;
-        job = await createProposal(buildPayload(latest.current_version_id));
+        if (requestError.response?.data?.detail === "prompt_version_changed") {
+          setPromptOptions(await getPromptOptions());
+        }
+        throw requestError;
       }
       submissionKey.current = null;
       setActiveId(job.id);
@@ -1350,6 +1358,21 @@ function ProposalsPage() {
             {selectedPrompt && <Stack direction="row" alignItems="center" flexWrap="wrap" gap={1} sx={{ mb: 2, pb: 1.5, borderBottom: 1, borderColor: "divider" }}>
               <Chip label="선택된 프롬프트" size="small" sx={{ borderRadius: "8px", bgcolor: "#D1FAE5", color: "#00452B", fontWeight: 900 }} />
               <Typography variant="body2" fontWeight={900}>{selectedPrompt.title} v{selectedPrompt.current_version_no}</Typography>
+              {user?.role === "ADMIN" && Boolean(promptOption?.versions?.length) && (
+                <TextField select size="small" label="생성 버전" disabled={working} value={selectedPrompt.current_version_id}
+                  onChange={(event) => {
+                    setVersionChoice({ promptId, versionId: Number(event.target.value) });
+                    setFiles([]);
+                    clearReportSelection();
+                  }}>
+                  {promptOption.versions.map((version) => (
+                    <MenuItem key={version.id} value={version.id}>
+                      v{version.version_no} · {version.template_based ? "템플릿" : "HTML 전체"}
+                      {version.id === promptOption.published_version_id ? " · 제공 중" : ""}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              )}
             </Stack>}
             {customInputs ? <PromptInputForm maxInputFiles={maxInputFiles} fields={inputSchema} values={inputValues} uploads={fieldUploads} pdfPasswords={pdfPasswords}
               documents={fieldDocuments} documentOptions={generatedDocumentOptions} disabled={working}

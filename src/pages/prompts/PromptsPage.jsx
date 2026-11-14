@@ -1,3 +1,4 @@
+import ReportTemplateEditor from "./ReportTemplateEditor";
 import PreviewImageEditor from "./PreviewImageEditor";
 import InputSchemaEditor from "./InputSchemaEditor";
 import CommonPromptSelector from "./CommonPromptSelector";
@@ -53,6 +54,7 @@ import {
   recoverPrompt,
   recoverPromptVersion,
   restorePromptVersion,
+  publishPromptVersion,
   updatePrompt,
 } from "@/services/prompt-service";
 import PromptCategoriesPanel from "./PromptCategoriesPanel";
@@ -60,7 +62,7 @@ import PromptCategoryList from "./PromptCategoryList";
 import DefaultPromptFavoritesPanel from "./DefaultPromptFavoritesPanel";
 
 
-const EMPTY_PROMPT = { is_new: false, is_recently_updated: false, title: "", description: "", body: "", category_ids: [], input_schema: [], max_input_files: 10, common_prompt_ids: [] };
+const EMPTY_PROMPT = { report_template: null, is_new: false, is_recently_updated: false, title: "", description: "", body: "", category_ids: [], input_schema: [], max_input_files: 10, common_prompt_ids: [] };
 
 function categoryIds(prompt) {
   return (prompt?.categories || []).map((category) => category.id).sort((a, b) => a - b);
@@ -89,6 +91,8 @@ function PromptsPage() {
   const [working, setWorking] = useState(false);
   const [error, setError] = useState("");
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [publication, setPublication] = useState(null);
+  const [publicationError, setPublicationError] = useState("");
   const [viewVersion, setViewVersion] = useState(null);
   const [confirmAction, setConfirmAction] = useState(null);
   const [categories, setCategories] = useState([]);
@@ -137,7 +141,7 @@ function PromptsPage() {
   const isNew = selectedId === "new";
   const isDirty = useMemo(() => {
     if (previewFile?.length || previewRemoved.length) return true;
-    if (isNew) return Boolean(draft.is_new || draft.is_recently_updated || draft.title || draft.description || draft.body || draft.category_ids.length || draft.input_schema.length || draft.common_prompt_ids.length || draft.max_input_files !== 10);
+    if (isNew) return Boolean(draft.report_template || draft.is_new || draft.is_recently_updated || draft.title || draft.description || draft.body || draft.category_ids.length || draft.input_schema.length || draft.common_prompt_ids.length || draft.max_input_files !== 10);
     if (!selectedPrompt || selectedPrompt.is_deleted) return false;
     return JSON.stringify(draft.common_prompt_ids) !== JSON.stringify(selectedPrompt.common_prompt_ids || [])
       || draft.is_new !== Boolean(selectedPrompt.is_new)
@@ -145,6 +149,7 @@ function PromptsPage() {
       || draft.title !== selectedPrompt.title
       || draft.description !== (selectedPrompt.description || "")
       || draft.body !== selectedPrompt.body
+      || JSON.stringify(draft.report_template) !== JSON.stringify(selectedPrompt.report_template ?? null)
       || draft.max_input_files !== (selectedPrompt.max_input_files ?? 10)
       || JSON.stringify(draft.input_schema) !== JSON.stringify(selectedPrompt.input_schema || [])
       || JSON.stringify([...draft.category_ids].sort((a, b) => a - b))
@@ -197,7 +202,7 @@ function PromptsPage() {
         setSelectedPrompt(prompt);
         setPreviewFile(null);
         setPreviewRemoved([]);
-        setDraft({ is_new: Boolean(prompt.is_new), is_recently_updated: Boolean(prompt.is_recently_updated), title: prompt.title, body: prompt.body, category_ids: categoryIds(prompt), input_schema: prompt.input_schema || [], max_input_files: prompt.max_input_files ?? 10, description: prompt.description || "", common_prompt_ids: prompt.common_prompt_ids || [] });
+        setDraft({ report_template: prompt.report_template ?? null, is_new: Boolean(prompt.is_new), is_recently_updated: Boolean(prompt.is_recently_updated), title: prompt.title, body: prompt.body, category_ids: categoryIds(prompt), input_schema: prompt.input_schema || [], max_input_files: prompt.max_input_files ?? 10, description: prompt.description || "", common_prompt_ids: prompt.common_prompt_ids || [] });
         setVersions(versionRows);
       } catch {
         setError("프롬프트를 불러오지 못했습니다.");
@@ -286,6 +291,10 @@ function PromptsPage() {
 
   const savePrompt = async () => {
     const title = draft.title.trim();
+    if (draft.report_template && (!draft.report_template.html || !draft.report_template.schema_document)) {
+      setError("HTML 템플릿과 출력 데이터 스키마를 선택해 주세요.");
+      return;
+    }
     if (!title || !draft.body.trim()) {
       setError("제목과 본문을 모두 입력해 주세요.");
       return;
@@ -314,8 +323,8 @@ function PromptsPage() {
     setError("");
     try {
       let saved = isNew
-        ? await createPrompt(title, draft.body, draft.category_ids, draft.input_schema, draft.description, draft.common_prompt_ids, draft.max_input_files, { is_new: draft.is_new, is_recently_updated: draft.is_recently_updated })
-        : await updatePrompt(selectedPrompt.id, title, draft.body, draft.category_ids, draft.input_schema, draft.description, draft.common_prompt_ids, draft.max_input_files, { is_new: draft.is_new, is_recently_updated: draft.is_recently_updated });
+        ? await createPrompt(title, draft.body, draft.category_ids, draft.input_schema, draft.description, draft.common_prompt_ids, draft.max_input_files, { is_new: draft.is_new, is_recently_updated: draft.is_recently_updated }, draft.report_template)
+        : await updatePrompt(selectedPrompt.id, title, draft.body, draft.category_ids, draft.input_schema, draft.description, draft.common_prompt_ids, draft.max_input_files, { is_new: draft.is_new, is_recently_updated: draft.is_recently_updated }, draft.report_template);
       setSelectedPrompt(saved);
       setSelectedId(saved.id);
       if (previewFile?.length || previewRemoved.length) {
@@ -326,20 +335,41 @@ function PromptsPage() {
       setSelectedPrompt(saved);
       setPreviewFile(null);
       setPreviewRemoved([]);
-      setDraft({ is_new: Boolean(saved.is_new), is_recently_updated: Boolean(saved.is_recently_updated), title: saved.title, body: saved.body, category_ids: categoryIds(saved), input_schema: saved.input_schema || [], max_input_files: saved.max_input_files ?? 10, description: saved.description || "", common_prompt_ids: saved.common_prompt_ids || [] });
+      setDraft({ report_template: saved.report_template ?? null, is_new: Boolean(saved.is_new), is_recently_updated: Boolean(saved.is_recently_updated), title: saved.title, body: saved.body, category_ids: categoryIds(saved), input_schema: saved.input_schema || [], max_input_files: saved.max_input_files ?? 10, description: saved.description || "", common_prompt_ids: saved.common_prompt_ids || [] });
       await Promise.all([
         loadVersions(saved.id, includeDeletedVersions),
         loadList(saved.id),
       ]);
     } catch (requestError) {
       const detail = requestError.response?.data?.detail;
-      setError(typeof detail === "string" && (detail.startsWith("common_prompt_") || detail === "invalid_common_prompt_ids")
+      setError(Array.isArray(detail) ? detail.map((item) => item.msg).join(" / ") : typeof detail === "string" && (detail.startsWith("common_prompt_") || detail === "invalid_common_prompt_ids")
         ? commonPromptError(requestError)
         : detail === "prompt_preview_schema_required"
         ? "프롬프트는 저장됐지만 이미지 저장을 위한 DB 설정이 필요합니다."
         : typeof detail === "string" && detail.startsWith("preview_image_")
           ? "프롬프트는 저장됐지만 이미지 저장에 실패했습니다. 파일 형식과 10MB 제한을 확인해 주세요."
           : "프롬프트 또는 미리보기 이미지 저장에 실패했습니다. 변경사항을 확인하고 다시 저장해 주세요.");
+    } finally {
+      setWorking(false);
+    }
+  };
+
+  const applyPublication = async () => {
+    if (!publication) return;
+    setWorking(true);
+    setPublicationError("");
+    try {
+      const updated = await publishPromptVersion(selectedPrompt.id, {
+        version_id: publication.version.id,
+        is_new: publication.is_new,
+        is_recently_updated: publication.is_recently_updated,
+      });
+      setSelectedPrompt(updated);
+      setDraft((current) => ({ ...current, is_new: updated.is_new, is_recently_updated: updated.is_recently_updated }));
+      setPublication(null);
+      await Promise.all([loadVersions(updated.id, includeDeletedVersions), loadList(updated.id)]);
+    } catch {
+      setPublicationError("제공 버전을 지정하지 못했습니다. 버전 상태를 확인하고 다시 시도해 주세요.");
     } finally {
       setWorking(false);
     }
@@ -364,7 +394,7 @@ function PromptsPage() {
           action.version.id,
         );
         setSelectedPrompt(restored);
-        setDraft({ is_new: Boolean(restored.is_new), is_recently_updated: Boolean(restored.is_recently_updated), title: restored.title, body: restored.body, category_ids: categoryIds(restored), input_schema: restored.input_schema || [], max_input_files: restored.max_input_files ?? 10, description: restored.description || "", common_prompt_ids: restored.common_prompt_ids || [] });
+        setDraft({ report_template: restored.report_template ?? null, is_new: Boolean(restored.is_new), is_recently_updated: Boolean(restored.is_recently_updated), title: restored.title, body: restored.body, category_ids: categoryIds(restored), input_schema: restored.input_schema || [], max_input_files: restored.max_input_files ?? 10, description: restored.description || "", common_prompt_ids: restored.common_prompt_ids || [] });
         await Promise.all([
           loadVersions(restored.id, includeDeletedVersions),
           loadList(restored.id),
@@ -388,7 +418,7 @@ function PromptsPage() {
     try {
       const recovered = await recoverPrompt(selectedPrompt.id);
       setSelectedPrompt(recovered);
-      setDraft({ is_new: Boolean(recovered.is_new), is_recently_updated: Boolean(recovered.is_recently_updated), title: recovered.title, body: recovered.body, category_ids: categoryIds(recovered), input_schema: recovered.input_schema || [], max_input_files: recovered.max_input_files ?? 10, description: recovered.description || "", common_prompt_ids: recovered.common_prompt_ids || [] });
+      setDraft({ report_template: recovered.report_template ?? null, is_new: Boolean(recovered.is_new), is_recently_updated: Boolean(recovered.is_recently_updated), title: recovered.title, body: recovered.body, category_ids: categoryIds(recovered), input_schema: recovered.input_schema || [], max_input_files: recovered.max_input_files ?? 10, description: recovered.description || "", common_prompt_ids: recovered.common_prompt_ids || [] });
       await loadList(recovered.id);
     } catch {
       setError("프롬프트를 복구하지 못했습니다.");
@@ -621,7 +651,7 @@ function PromptsPage() {
                   />
                 </Stack>
                 <Typography variant="caption" color="text.secondary">
-                  각각 설정할 수 있습니다. 신규는 생성일, 최근 업데이트는 수정일 최신순으로 최대 6개 표시됩니다. 속성만 변경하면 버전은 유지되고 수정일은 갱신됩니다.
+                  각각 설정할 수 있습니다. 신규는 생성일, 최근 업데이트는 제공 전환일 기준으로 최대 6개 표시됩니다.
                 </Typography>
               </Box>
               <Box>
@@ -686,6 +716,8 @@ function PromptsPage() {
                   },
                 }}
               />
+              <ReportTemplateEditor value={draft.report_template} disabled={selectedPrompt?.is_deleted || working}
+                onChange={(update) => setDraft((current) => ({ ...current, report_template: update(current.report_template) }))} />
               {commonError && <Alert severity="warning">{commonError}</Alert>}
               {commonLoading && <Typography color="text.secondary">공통 프롬프트를 불러오는 중입니다.</Typography>}
               <CommonPromptSelector items={commonPrompts} value={draft.common_prompt_ids}
@@ -757,7 +789,9 @@ function PromptsPage() {
                 <Stack spacing={0.5} sx={{ minWidth: 0 }}>
                   <Stack direction="row" spacing={1} alignItems="center">
                     <Typography sx={{ fontWeight: 750 }}>v{version.version_no}</Typography>
-                    {version.is_current && <Chip label="현재" size="small" color="primary" />}
+                    {version.is_current && <Chip label="최신 편집" size="small" color="primary" />}
+                    {version.is_published && <Chip label="제공 중" size="small" color="success" />}
+                    <Chip label={version.report_template ? "템플릿" : "HTML 전체"} size="small" variant="outlined" />
                     {version.is_deleted && <Chip label="삭제됨" size="small" />}
                   </Stack>
                   <Typography noWrap>{version.title}</Typography>
@@ -785,6 +819,13 @@ function PromptsPage() {
                     </Tooltip>
                   ) : (
                     <>
+                      <Button size="small" disabled={working || selectedPrompt?.is_deleted}
+                        onClick={() => {
+                          setPublicationError("");
+                          setPublication({ version, is_new: Boolean(selectedPrompt?.is_new), is_recently_updated: Boolean(selectedPrompt?.is_recently_updated) });
+                        }}>
+                        {version.is_published ? "노출 설정" : "일반 사용자에게 제공"}
+                      </Button>
                       {!version.is_current && (
                         <Tooltip title="이 내용으로 새 버전 생성">
                           <span>
@@ -798,12 +839,12 @@ function PromptsPage() {
                           </span>
                         </Tooltip>
                       )}
-                      <Tooltip title={version.is_current ? "현재 버전은 삭제할 수 없습니다" : "버전 삭제"}>
+                      <Tooltip title={(version.is_current || version.is_published) ? "최신 편집 또는 제공 중인 버전은 삭제할 수 없습니다" : "버전 삭제"}>
                         <span>
                           <IconButton
                             color="error"
                             onClick={() => setConfirmAction({ type: "delete-version", version })}
-                            disabled={working || version.is_current}
+                            disabled={working || version.is_current || version.is_published}
                             aria-label={`버전 ${version.version_no} 삭제`}
                           >
                             <DeleteOutlineRoundedIcon />
@@ -842,6 +883,17 @@ function PromptsPage() {
           >
             {viewVersion?.body}
           </Box>
+          {viewVersion?.report_template && <Box sx={{ mt: 2 }}>
+            <Typography variant="subtitle2">템플릿과 출력 데이터</Typography>
+            {Object.entries({
+              "HTML 템플릿": viewVersion.report_template.html,
+              "출력 데이터 스키마": JSON.stringify(viewVersion.report_template.schema_document, null, 2),
+              "예시 데이터": viewVersion.report_template.example_data && JSON.stringify(viewVersion.report_template.example_data, null, 2),
+            }).filter(([, value]) => value).map(([label, value]) => <details key={label}>
+              <summary>{label}</summary>
+              <Box component="pre" sx={{ overflow: "auto", maxHeight: 300 }}>{value}</Box>
+            </details>)}
+          </Box>}
           {Boolean(viewVersion?.common_prompt_ids?.length) && (
             <Typography variant="body2" sx={{ mt: 2 }}>
               공통 프롬프트 적용 순서: {viewVersion.common_prompt_ids.map(id => commonPrompts.find(item => item.id === id)?.title || "삭제된 공통 프롬프트").join(" → ")}
@@ -977,6 +1029,29 @@ function PromptsPage() {
           <Button variant="contained" onClick={() => setCategoryPickerOpen(false)}>
             선택 완료
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={Boolean(publication)} onClose={() => !working && setPublication(null)} fullWidth maxWidth="xs">
+        <DialogTitle>제공 버전과 홈 노출</DialogTitle>
+        <DialogContent>
+          {publicationError && <Alert severity="error" sx={{ mb: 1 }}>{publicationError}</Alert>}
+          <DialogContentText>
+            {versions.find((version) => version.is_published)
+              ? `v${versions.find((version) => version.is_published).version_no} (${versions.find((version) => version.is_published).report_template ? "템플릿" : "HTML 전체"})`
+              : "미제공"}
+            {" → "}v{publication?.version.version_no} ({publication?.version.report_template ? "템플릿" : "HTML 전체"})
+          </DialogContentText>
+          <Stack>
+            <FormControlLabel label="새로 나온 보고서에 노출" control={<Checkbox checked={Boolean(publication?.is_new)}
+              disabled={working} onChange={(e) => setPublication((current) => ({ ...current, is_new: e.target.checked }))} />} />
+            <FormControlLabel label="최근 업데이트된 보고서에 노출" control={<Checkbox checked={Boolean(publication?.is_recently_updated)}
+              disabled={working} onChange={(e) => setPublication((current) => ({ ...current, is_recently_updated: e.target.checked }))} />} />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button disabled={working} onClick={() => setPublication(null)}>취소</Button>
+          <Button disabled={working} variant="contained" onClick={applyPublication}>적용</Button>
         </DialogActions>
       </Dialog>
 
