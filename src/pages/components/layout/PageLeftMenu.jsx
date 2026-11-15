@@ -38,6 +38,7 @@ import ViewCarouselOutlinedIcon from "@mui/icons-material/ViewCarouselOutlined";
 import ContactPhoneOutlinedIcon from "@mui/icons-material/ContactPhoneOutlined";
 import HelpOutlineOutlinedIcon from "@mui/icons-material/HelpOutlineOutlined";
 import ChatBubbleOutlineRoundedIcon from "@mui/icons-material/ChatBubbleOutlineRounded";
+import DownloadRoundedIcon from "@mui/icons-material/DownloadRounded";
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { planName } from "@/constants/plans";
@@ -299,6 +300,7 @@ function PageLeftMenu({ onNavigate }) { // eslint-disable-line react/prop-types
         {renderMenuGroup({ label: "도움말 센터", icon: HelpOutlineOutlinedIcon, items: HELP_MENU, open: helpOpen, setOpen: setHelpOpen, prefix: "/help/" })}
         {user?.group_role === "LEADER" && renderMenuItem({ label: "조직 관리", path: "/group", icon: GroupOutlinedIcon })}
         {user?.group_id && renderMenuItem({ label: "비밀번호 변경", path: "/group/change-password", icon: AccountCircleOutlinedIcon })}
+        {renderMenuItem({ label: "보조개톡 다운로드", path: "/talk/download", icon: DownloadRoundedIcon, tone: "green" })}
       </List>
 
       {user?.role === "ADMIN" && (
@@ -317,6 +319,7 @@ function PageLeftMenu({ onNavigate }) { // eslint-disable-line react/prop-types
             {renderMenuGroup({ label: "게시판 관리", icon: ArticleOutlinedIcon, items: ADMIN_BOARD_MENU, open: adminBoardsOpen, setOpen: setAdminBoardsOpen, prefix: "/admin/boards/" })}
             {renderMenuItem({ label: "Info", path: "/admin/info", icon: InfoOutlinedIcon })}
             {renderMenuItem({ label: "FAQ 관리", path: "/admin/faqs", icon: HelpOutlineOutlinedIcon })}
+            {renderMenuItem({ label: "보조개톡 배포 관리", path: "/admin/talk-releases", icon: ChatBubbleOutlineRoundedIcon })}
           </List>
         </>
       )}

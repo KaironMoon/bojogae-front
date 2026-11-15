@@ -1,4 +1,4 @@
-import { Container, Box, Divider, Drawer, useMediaQuery, Alert, Button } from "@mui/material";
+import { Container, Box, Divider, Drawer, useMediaQuery, Alert, Button, CircularProgress } from "@mui/material";
 import AppBar from "@mui/material/AppBar";
 import { Link, Outlet } from "react-router-dom";
 import { useTheme } from "@mui/material/styles";
@@ -10,14 +10,21 @@ import PageHeader from "@/pages/components/layout/PageHeader";
 import PageLeftMenu from "@/pages/components/layout/PageLeftMenu";
 import PageFooter from "@/pages/components/layout/PageFooter";
 
-function PageLayout() {
+function PageLayout({ publicAccess = false }) { // eslint-disable-line react/prop-types
   const theme = useTheme();
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const [dismissedReminder, setDismissedReminder] = useState('');
   const reminderKey = user?.pending_email ? `${user.id}:${user.pending_email}` : '';
   useEffect(() => { if (!user) setDismissedReminder(''); }, [user]);
   const compactMenu = useMediaQuery(theme.breakpoints.down("lg"));
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  if (publicAccess && loading) {
+    return <Box sx={{ minHeight: "100vh", display: "grid", placeItems: "center" }}>
+      <CircularProgress size={32} aria-label="불러오는 중" />
+    </Box>;
+  }
+  if (publicAccess && (user?.status !== "ACTIVE" || user.must_change_password)) return <Outlet />;
 
   return (
     <Container

@@ -1,6 +1,7 @@
 /* eslint-disable react/prop-types */
 // Structure copied from the public-home HTML design reference.
 import Icon from "./LandingIcon";
+import DownloadRoundedIcon from "@mui/icons-material/DownloadRounded";
 export default function HomeReference({ vm }) {
   return (
     <div id="top" className="flex-1">
@@ -882,6 +883,10 @@ export default function HomeReference({ vm }) {
                   친구를 자동 매칭하여, 그룹별 안부 인사·명절 카드·생일
                   축하·상용구와 내 명함 서명을 원클릭 또는 예약 전송합니다.
                 </p>
+                <a href="/talk/download" className="btn-outline inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold">
+                  <DownloadRoundedIcon sx={{ fontSize: 17 }} />
+                  보조개톡 다운로드
+                </a>
               </div>
 
               <div className="p-4 rounded-2xl bg-[#f8fafc] border border-[#e6eaee] space-y-2.5 text-xs">

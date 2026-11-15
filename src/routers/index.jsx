@@ -14,6 +14,7 @@ import NotFound from "../pages/error/NotFound";
 import PageLayout from "../pages/PageLayout";
 import LoginPage from "../pages/auth/LoginPage";
 import TalkLoginPage from "../pages/auth/TalkLoginPage";
+import TalkDownloadPage from "../pages/talk/TalkDownloadPage";
 import AccessRestrictedPage from "../pages/auth/AccessRestrictedPage";
 import UsersPage from "../pages/admin/UsersPage";
 import SignupCompletePage from "../pages/auth/SignupCompletePage";
@@ -32,6 +33,7 @@ import ProposalSettingsPage from "../pages/admin/ProposalSettingsPage";
 import PointsPage from "../pages/admin/PointsPage";
 import PaymentSupportPage from "../pages/admin/PaymentSupportPage";
 import DashboardBannersPage from "../pages/admin/DashboardBannersPage";
+import TalkReleasesPage from "../pages/admin/TalkReleasesPage";
 import GroupInquiriesPage from "../pages/admin/GroupInquiriesPage";
 import BoardListPage from "../pages/boards/BoardListPage";
 import BoardPostPage from "../pages/boards/BoardPostPage";
@@ -81,6 +83,10 @@ const ProductRouter = [
 
 const router = createBrowserRouter([
   { path: "/talk/login", element: <TalkLoginPage /> },
+  {
+    element: <PageLayout publicAccess />,
+    children: [{ path: "/talk/download", element: <TalkDownloadPage /> }],
+  },
   { path: "/board/posts/:postId", element: <BoardPostPage /> },
   { path: "/terms", element: <PolicyPage key="terms" kind="terms" /> },
   { path: "/privacy", element: <PolicyPage key="privacy" kind="privacy" /> },
@@ -192,6 +198,7 @@ const router = createBrowserRouter([
           { path: "/admin/usage", element: <UsagePage /> },
           { path: "/admin/proposal-settings", element: <ProposalSettingsPage /> },
           { path: "/admin/dashboard-banners", element: <DashboardBannersPage /> },
+          { path: "/admin/talk-releases", element: <TalkReleasesPage /> },
           { path: "/admin/insurers", element: <InsurersAdminPage /> },
           { path: "/admin/group-inquiries", element: <GroupInquiriesPage /> },
           { path: "/admin/help-inquiries", element: <QnaPage key="admin-qna" admin /> },

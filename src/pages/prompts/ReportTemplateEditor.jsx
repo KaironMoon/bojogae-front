@@ -5,7 +5,7 @@ import {
   FormControlLabel, MenuItem, Paper, Stack, TextField, Typography,
 } from "@mui/material";
 
-import TemplateFileDropZone from "./TemplateFileDropZone";
+import FileDropZone from "@/pages/components/FileDropZone";
 
 import { listReportShells, previewReportTemplate, reportTemplateError } from "@/services/report-template-service";
 
@@ -301,7 +301,7 @@ export default function ReportTemplateEditor({ value, onChange, disabled, title 
         {item.optional && value[item.key] != null && <Button size="small" disabled={disabled}
           onClick={() => onChange((current) => ({ ...current, [item.key]: null, [item.filename]: undefined }))}>제거</Button>}
       </Stack>
-      <TemplateFileDropZone label={item.label} accept={item.accept} filename={value[item.filename]} disabled={disabled}
+      <FileDropZone label={item.label} accept={item.accept} filename={value[item.filename]} disabled={disabled}
         onFiles={(files) => upload(item, files)} />
     </Stack>)}
     {assembled && <Button variant="outlined" onClick={showPreview}

@@ -3,7 +3,7 @@ import { useRef, useState } from "react";
 import CloudUploadRoundedIcon from "@mui/icons-material/CloudUploadRounded";
 import { Paper, Stack, Typography } from "@mui/material";
 
-export default function TemplateFileDropZone({ label, accept, filename, disabled, onFiles }) {
+export default function FileDropZone({ label, accept, filename, disabled, onFiles, maxSizeLabel = "1MB" }) {
   const input = useRef(null);
   const [dragging, setDragging] = useState(false);
 
@@ -53,7 +53,7 @@ export default function TemplateFileDropZone({ label, accept, filename, disabled
           {dragging ? "여기에 파일을 놓으세요" : "파일을 끌어다 놓거나 클릭해서 선택"}
         </Typography>
         <Typography component="span" variant="caption" color="text.secondary">
-          {accept.split(",").join(" / ")} · 1개 · 최대 1MB
+          {accept.split(",").join(" / ")} · 1개 · 최대 {maxSizeLabel}
         </Typography>
         {filename && <Typography component="span" variant="caption" sx={{ overflowWrap: "anywhere" }}>{filename}</Typography>}
       </Stack>

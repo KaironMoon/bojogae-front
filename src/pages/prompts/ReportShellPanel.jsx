@@ -1,7 +1,7 @@
 /* eslint-disable react/prop-types */
 import { useEffect, useState } from "react";
 import { Alert, Button, MenuItem, Paper, Stack, TextField } from "@mui/material";
-import TemplateFileDropZone from "./TemplateFileDropZone";
+import FileDropZone from "@/pages/components/FileDropZone";
 
 import {
   createReportShell, getReportShell, listReportShells, reportTemplateError,
@@ -100,7 +100,7 @@ export default function ReportShellPanel({ onDirtyChange }) {
         <MenuItem value="">새 공통 HTML</MenuItem>
         {versions.map((item) => <MenuItem key={item.id} value={item.id}>#{item.id} · {item.filename}</MenuItem>)}
       </TextField>
-      <TemplateFileDropZone label="공통 HTML" accept=".html,.htm"
+      <FileDropZone label="공통 HTML" accept=".html,.htm"
         filename={draft.html ? draft.filename : undefined} disabled={working} onFiles={upload} />
       <TextField label="파일명" value={draft.filename} disabled={working}
         onChange={(event) => setDraft({ ...draft, filename: event.target.value })} />
