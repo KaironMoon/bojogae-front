@@ -34,6 +34,7 @@ import PointsPage from "../pages/admin/PointsPage";
 import PaymentSupportPage from "../pages/admin/PaymentSupportPage";
 import DashboardBannersPage from "../pages/admin/DashboardBannersPage";
 import TalkReleasesPage from "../pages/admin/TalkReleasesPage";
+import TalkErrorReportsPage from "../pages/admin/TalkErrorReportsPage";
 import GroupInquiriesPage from "../pages/admin/GroupInquiriesPage";
 import BoardListPage from "../pages/boards/BoardListPage";
 import BoardPostPage from "../pages/boards/BoardPostPage";
@@ -199,6 +200,7 @@ const router = createBrowserRouter([
           { path: "/admin/proposal-settings", element: <ProposalSettingsPage /> },
           { path: "/admin/dashboard-banners", element: <DashboardBannersPage /> },
           { path: "/admin/talk-releases", element: <TalkReleasesPage /> },
+          { path: "/admin/talk-error-reports", element: <TalkErrorReportsPage /> },
           { path: "/admin/insurers", element: <InsurersAdminPage /> },
           { path: "/admin/group-inquiries", element: <GroupInquiriesPage /> },
           { path: "/admin/help-inquiries", element: <QnaPage key="admin-qna" admin /> },
