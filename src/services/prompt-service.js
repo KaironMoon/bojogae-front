@@ -174,3 +174,7 @@ export function commonPromptError(error) {
 export async function publishPromptVersion(promptId, values) {
   return (await apiCaller.put(`/api/v1/admin/prompts/${promptId}/published-version`, values)).data;
 }
+
+export async function setPromptReportMapping(promptId, folder) {
+  return (await apiCaller.put(`/api/v1/admin/prompts/${promptId}/report-mapping`, { report_folder: folder })).data;
+}

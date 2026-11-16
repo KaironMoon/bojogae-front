@@ -57,6 +57,7 @@ import {
   recoverPromptVersion,
   restorePromptVersion,
   publishPromptVersion,
+  setPromptReportMapping,
   updatePrompt,
 } from "@/services/prompt-service";
 import PromptCategoriesPanel from "./PromptCategoriesPanel";
@@ -95,6 +96,8 @@ function PromptsPage() {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [publication, setPublication] = useState(null);
   const [publicationError, setPublicationError] = useState("");
+  const [reportFolderInput, setReportFolderInput] = useState(null);
+  const [reportFolderError, setReportFolderError] = useState("");
   const [viewVersion, setViewVersion] = useState(null);
   const [confirmAction, setConfirmAction] = useState(null);
   const [categories, setCategories] = useState([]);
@@ -356,6 +359,30 @@ function PromptsPage() {
         : typeof detail === "string" && detail.startsWith("preview_image_")
           ? "프롬프트는 저장됐지만 이미지 저장에 실패했습니다. 파일 형식과 10MB 제한을 확인해 주세요."
           : "프롬프트 또는 미리보기 이미지 저장에 실패했습니다. 변경사항을 확인하고 다시 저장해 주세요.");
+    } finally {
+      setWorking(false);
+    }
+  };
+
+  const saveReportMapping = async () => {
+    const promptId = selectedPrompt.id;
+    setWorking(true);
+    setReportFolderError("");
+    try {
+      const mapping = await setPromptReportMapping(promptId, reportFolderInput.trim() || null);
+      setSelectedPrompt((current) => current?.id === promptId ? { ...current, ...mapping } : current);
+      setPrompts((current) => current.map((prompt) => prompt.id === promptId ? { ...prompt, ...mapping } : prompt));
+      setReportFolderInput(null);
+    } catch (requestError) {
+      const detail = requestError.response?.data?.detail;
+      if (Array.isArray(detail)) {
+        setReportFolderError(detail.map((item) => item.msg).join(" / "));
+      } else {
+        setReportFolderError({
+          report_folder_in_use: "다른 프롬프트에 연결된 폴더입니다.",
+          report_mapping_schema_required: "보고서 연결을 저장하려면 DB 설정을 적용해야 합니다.",
+        }[detail] || "보고서 연결을 저장하지 못했습니다. 다시 시도해 주세요.");
+      }
     } finally {
       setWorking(false);
     }
@@ -633,6 +660,24 @@ function PromptsPage() {
                 inputProps={{ maxLength: 200 }}
                 fullWidth
               />
+              {selectedPrompt && (
+                <Stack direction={{ xs: "column", sm: "row" }} gap={1} alignItems={{ sm: "center" }}>
+                  <Typography variant="body2">
+                    보고서 동기화 폴더 · {selectedPrompt.report_folder || "연결 안 됨"}
+                  </Typography>
+                  {selectedPrompt.report_folder && !selectedPrompt.report_folder_confirmed && (
+                    <Chip label="폴더 확인 대기" size="small" variant="outlined" />
+                  )}
+                  {!selectedPrompt.is_deleted && (
+                    <Button size="small" disabled={working} onClick={() => {
+                      setReportFolderError("");
+                      setReportFolderInput(selectedPrompt.report_folder || "");
+                    }}>
+                      연결 편집
+                    </Button>
+                  )}
+                </Stack>
+              )}
               <TextField
                 label="간단한 설명"
                 value={draft.description}
@@ -1058,6 +1103,28 @@ function PromptsPage() {
           <Button variant="contained" onClick={() => setCategoryPickerOpen(false)}>
             선택 완료
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={reportFolderInput !== null} onClose={() => !working && setReportFolderInput(null)} fullWidth maxWidth="xs">
+        <DialogTitle>보고서 동기화 폴더</DialogTitle>
+        <DialogContent>
+          {reportFolderError && <Alert severity="error" sx={{ mb: 1 }}>{reportFolderError}</Alert>}
+          <TextField
+            autoFocus
+            fullWidth
+            margin="dense"
+            label="빌더 폴더명"
+            value={reportFolderInput ?? ""}
+            onChange={(event) => setReportFolderInput(event.target.value)}
+            inputProps={{ maxLength: 64 }}
+            disabled={working}
+            helperText="다음 동기화에서 폴더를 확인합니다. 비워 두고 저장하면 연결을 해제합니다."
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button disabled={working} onClick={() => setReportFolderInput(null)}>취소</Button>
+          <Button variant="contained" disabled={working} onClick={saveReportMapping}>저장</Button>
         </DialogActions>
       </Dialog>
 
