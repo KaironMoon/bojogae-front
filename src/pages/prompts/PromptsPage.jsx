@@ -660,24 +660,6 @@ function PromptsPage() {
                 inputProps={{ maxLength: 200 }}
                 fullWidth
               />
-              {selectedPrompt && (
-                <Stack direction={{ xs: "column", sm: "row" }} gap={1} alignItems={{ sm: "center" }}>
-                  <Typography variant="body2">
-                    보고서 동기화 폴더 · {selectedPrompt.report_folder || "연결 안 됨"}
-                  </Typography>
-                  {selectedPrompt.report_folder && !selectedPrompt.report_folder_confirmed && (
-                    <Chip label="폴더 확인 대기" size="small" variant="outlined" />
-                  )}
-                  {!selectedPrompt.is_deleted && (
-                    <Button size="small" disabled={working} onClick={() => {
-                      setReportFolderError("");
-                      setReportFolderInput(selectedPrompt.report_folder || "");
-                    }}>
-                      연결 편집
-                    </Button>
-                  )}
-                </Stack>
-              )}
               <TextField
                 label="간단한 설명"
                 value={draft.description}
@@ -766,6 +748,24 @@ function PromptsPage() {
                 <MenuItem value="html">HTML 전체 생성</MenuItem>
                 <MenuItem value="template">템플릿 기반 생성</MenuItem>
               </TextField>
+              {selectedPrompt && (
+                <Stack direction={{ xs: "column", sm: "row" }} gap={1} alignItems={{ sm: "center" }}>
+                  <Typography variant="body2">
+                    보고서 동기화 폴더 · {selectedPrompt.report_folder || "연결 안 됨"}
+                  </Typography>
+                  {selectedPrompt.report_folder && !selectedPrompt.report_folder_confirmed && (
+                    <Chip label="폴더 확인 대기" size="small" variant="outlined" />
+                  )}
+                  {!selectedPrompt.is_deleted && (
+                    <Button size="small" disabled={working} onClick={() => {
+                      setReportFolderError("");
+                      setReportFolderInput(selectedPrompt.report_folder || "");
+                    }}>
+                      연결 편집
+                    </Button>
+                  )}
+                </Stack>
+              )}
               <TextField
                 label="본문"
                 value={draft.body}
