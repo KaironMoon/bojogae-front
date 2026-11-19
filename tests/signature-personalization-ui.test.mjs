@@ -54,6 +54,17 @@ try {
   assert.match(saved[0].body, /테스트보험 서울지점/);
   assert.doesNotMatch(saved[0].body, /\[(?:소속|지점|이름|전화번호)\]/);
 
+  profile = { ...fullProfile, name: null };
+  await page.getByRole('button', { name: '서명 등록', exact: true }).click();
+  const unexpectedAlerts = [];
+  const unexpectedAlert = async event => { unexpectedAlerts.push(event.message()); await event.accept(); };
+  page.on('dialog', unexpectedAlert);
+  await dialog.getByRole('button', { name: '+ 내 이름', exact: true }).click();
+  await page.waitForFunction(() => document.querySelector('textarea.sig-clean-text')?.value.includes('홍설계'));
+  page.off('dialog', unexpectedAlert);
+  assert.deepEqual(unexpectedAlerts, []);
+  await dialog.getByRole('button', { name: '취소', exact: true }).click();
+
   async function rejectedInsertion(expected) {
     await page.getByRole('button', { name: '서명 등록', exact: true }).click();
     const alert = new Promise(resolve => page.once('dialog', async event => { const message = event.message(); await event.accept(); resolve(message); }));

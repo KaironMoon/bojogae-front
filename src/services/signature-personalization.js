@@ -12,6 +12,10 @@ export class SignatureProfileError extends Error {
   constructor(message) { super(message); this.name = "SignatureProfileError"; }
 }
 
+export function resolveSignatureProfile(profile, account) {
+  return { ...profile, name: profile?.name?.trim() || account?.display_name?.trim() || "" };
+}
+
 export function hasSignatureFields(text, options = {}) {
   return [...text.matchAll(pattern(options))].length > 0;
 }

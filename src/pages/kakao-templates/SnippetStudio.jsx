@@ -10,7 +10,8 @@ import {
 } from "@/services/kakao-template-service";
 import api from "@/services/api-caller";
 import { getMyProfile } from "@/services/profile-service";
-import { hasSignatureFields, personalizeSignature, SignatureProfileError } from "@/services/signature-personalization";
+import { useAuth } from "@/auth/AuthContext";
+import { hasSignatureFields, personalizeSignature, resolveSignatureProfile, SignatureProfileError } from "@/services/signature-personalization";
 import SignatureReference from "./design/SignatureReference";
 import SignatureCards from "./design/SignatureCards";
 import SnippetReference from "./design/SnippetReference";
@@ -29,6 +30,7 @@ const errorText = (e) =>
       ? "상용구 관리에 필요한 DB 변경이 적용되지 않았습니다. 서버 업데이트와 SQL 적용 상태를 확인해 주세요."
       : templateError(e);
 export default function SnippetStudio({ collection = "snippets" }) {
+  const { user } = useAuth();
   const signature = collection === "signatures",
     label = signature ? "서명" : "상용구";
   const [balance, setBalance] = useState(null);
@@ -49,6 +51,7 @@ export default function SnippetStudio({ collection = "snippets" }) {
   }, [signature]);
   const loadSignatureProfile = () => {
     if (!profileRequest.current) profileRequest.current = getMyProfile()
+      .then((profile) => resolveSignatureProfile(profile, user))
       .catch(() => { throw new SignatureProfileError("내 정보를 불러오지 못해 서명을 넣지 않았습니다. 다시 시도해 주세요."); })
       .finally(() => { profileRequest.current = null; });
     return profileRequest.current;
