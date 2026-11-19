@@ -10,6 +10,7 @@ import {
 } from "@/services/kakao-template-service";
 import api from "@/services/api-caller";
 import { getMyProfile } from "@/services/profile-service";
+import { hasSignatureFields, personalizeSignature, SignatureProfileError } from "@/services/signature-personalization";
 import SignatureReference from "./design/SignatureReference";
 import SignatureCards from "./design/SignatureCards";
 import SnippetReference from "./design/SnippetReference";
@@ -22,7 +23,7 @@ import "./design/template-utilities.css";
 import "./design/template-source.css";
 import "./design/template-integration.css";
 const errorText = (e) =>
-  e.response?.status === 422 && typeof e.response?.data?.detail === "string"
+  e instanceof SignatureProfileError ? e.message : e.response?.status === 422 && typeof e.response?.data?.detail === "string"
     ? e.response.data.detail
     : e.response?.status === 503
       ? "상용구 관리에 필요한 DB 변경이 적용되지 않았습니다. 서버 업데이트와 SQL 적용 상태를 확인해 주세요."
@@ -30,16 +31,11 @@ const errorText = (e) =>
 export default function SnippetStudio({ collection = "snippets" }) {
   const signature = collection === "signatures",
     label = signature ? "서명" : "상용구";
-  const [profile, setProfile] = useState(null),
-    [balance, setBalance] = useState(null);
+  const [balance, setBalance] = useState(null);
+  const profileRequest = useRef(null);
   useEffect(() => {
     let active = true;
     if (signature) {
-      getMyProfile()
-        .then((data) => {
-          if (active) setProfile(data);
-        })
-        .catch(() => {});
       api
         .get("/api/v1/points/me")
         .then(({ data }) => {
@@ -51,12 +47,14 @@ export default function SnippetStudio({ collection = "snippets" }) {
       active = false;
     };
   }, [signature]);
-  const personalize = (value) =>
-    value
-      .replaceAll("현대홈쇼핑 GA", profile?.affiliation || "[소속]")
-      .replaceAll("강대한지점", profile?.branch_name || "[지점]")
-      .replaceAll("김성춘", profile?.name || "[이름]")
-      .replaceAll("010-9729-9649", profile?.phone || "[전화번호]");
+  const loadSignatureProfile = () => {
+    if (!profileRequest.current) profileRequest.current = getMyProfile()
+      .catch(() => { throw new SignatureProfileError("내 정보를 불러오지 못해 서명을 넣지 않았습니다. 다시 시도해 주세요."); })
+      .finally(() => { profileRequest.current = null; });
+    return profileRequest.current;
+  };
+  const personalize = async (value, options = {}) => hasSignatureFields(value, options)
+    ? personalizeSignature(value, await loadSignatureProfile(), options) : value;
   const [page, setPage] = useState(null),
     [revision, setRevision] = useState(0),
     [category, setCategory] = useState("ALL"),
@@ -148,17 +146,26 @@ export default function SnippetStudio({ collection = "snippets" }) {
   };
   const copy = async (value) => {
     try {
+      if (signature) value = await personalize(value, { examples: false });
       await navigator.clipboard.writeText(value);
       setNotice("문구를 복사했습니다.");
-    } catch {
+    } catch (e) {
+      if (e instanceof SignatureProfileError) { window.alert(e.message); setError(e.message); return; }
       setError(
         "복사하지 못했습니다. 브라우저의 클립보드 권한을 확인해 주세요.",
       );
     }
   };
-  const openCreate = (value = { title: "", body: "", category: "REPORT" }) => {
+  const openCreate = (value = { title: "", body: "", category: "REPORT" }, preset = false) => {
     setError("");
     setNotice("");
+    if (signature && hasSignatureFields(value.body, { examples: preset })) {
+      return run(async () => {
+        const profile = await loadSignatureProfile();
+        setEditor({ ...value, title: preset ? personalizeSignature(value.title, profile) : value.title,
+          body: personalizeSignature(value.body, profile, { examples: preset }) });
+      });
+    }
     setEditor(value);
   };
   const run = async (action) => {
@@ -168,6 +175,7 @@ export default function SnippetStudio({ collection = "snippets" }) {
     try {
       await action();
     } catch (e) {
+      if (e instanceof SignatureProfileError) window.alert(e.message);
       setError(errorText(e));
     } finally {
       setBusy(false);
@@ -175,6 +183,7 @@ export default function SnippetStudio({ collection = "snippets" }) {
   };
   const save = (data) =>
     run(async () => {
+      if (signature) data = { ...data, body: await personalize(data.body, { examples: false }) };
       await saveStudioTemplate(collection, editor, data);
       setEditor(null);
       setNotice(`${label} 저장했습니다.`);
@@ -270,10 +279,10 @@ export default function SnippetStudio({ collection = "snippets" }) {
     openCreate,
     openPreset: (title, body, category) =>
       openCreate({
-        title: signature ? personalize(title) : title,
-        body: signature ? personalize(body) : body,
+        title,
+        body,
         category: category || "REPORT",
-      }),
+      }, true),
     openGuide: () => setGuide(true),
     list,
     feedback: (

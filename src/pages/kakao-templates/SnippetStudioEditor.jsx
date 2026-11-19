@@ -4,6 +4,7 @@ import { Alert, Dialog } from "@mui/material";
 import SignatureEditorReference from "./design/SignatureEditorReference";
 import SnippetEditorReference from "./design/SnippetEditorReference";
 import useTemplatePreview from "./design/useTemplatePreview";
+import { SignatureProfileError } from "@/services/signature-personalization";
 export default function SnippetStudioEditor({
   item,
   busy,
@@ -18,12 +19,14 @@ export default function SnippetStudioEditor({
   const [body, setBody] = useState(item.body);
   const [category, setCategory] = useState(item.category || "REPORT");
   const [emojiOpen, setEmojiOpen] = useState(false);
+  const [personalizing, setPersonalizing] = useState(false);
+  const [insertionError, setInsertionError] = useState("");
   const bodyRef = useRef(null);
   const caret = useRef(null);
   const titleLength = Array.from(title.trim()).length,
     bodyLength = Array.from(body).length;
   const canSave =
-    !busy &&
+    !busy && !personalizing &&
     title.trim() &&
     body.trim() &&
     titleLength <= 100 &&
@@ -50,13 +53,20 @@ export default function SnippetStudioEditor({
       caret.current = null;
     }
   }, [body, emojiOpen]);
-  const insertText = (value) => {
+  const insertText = async (value) => {
+    if (busy || personalizing) return;
     const el = bodyRef.current;
     const start = el?.selectionStart ?? body.length,
       end = el?.selectionEnd ?? body.length;
-    setBody(body.slice(0, start) + value + body.slice(end));
-    caret.current = start + value.length;
-    setEmojiOpen(false);
+    setInsertionError("");
+    setPersonalizing(true);
+    try {
+      if (signature) value = await personalize(value);
+      setBody(body.slice(0, start) + value + body.slice(end));
+      caret.current = start + value.length;
+      setEmojiOpen(false);
+    } catch (e) { if (e instanceof SignatureProfileError) window.alert(e.message); setInsertionError(e.message); }
+    finally { setPersonalizing(false); }
   };
   const submit = (e) => {
     e.preventDefault();
@@ -64,7 +74,6 @@ export default function SnippetStudioEditor({
   };
   const vm = {
     item,
-    personalize,
     title,
     setTitle,
     body,
@@ -79,12 +88,12 @@ export default function SnippetStudioEditor({
     insertText,
     submit,
     canSave,
-    busy,
+    busy: busy || personalizing,
     onClose,
     ...preview,
-    feedback: error ? (
+    feedback: error || insertionError ? (
       <Alert severity="error" className="template-feedback">
-        {error}
+        {error || insertionError}
       </Alert>
     ) : null,
     emojis: [

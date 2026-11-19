@@ -121,7 +121,7 @@ export default function SignatureEditorReference({ vm }) {
                   type="button"
                   className="px-2 py-1 rounded-lg bg-white hover:bg-primary-soft border border-[#d1d6db] text-[11px] font-bold"
                   onClick={() =>
-                    vm.insertText(vm.personalize("──────────────\n"))
+                    vm.insertText("──────────────\n")
                   }
                   disabled={vm.busy}
                 >
@@ -132,7 +132,7 @@ export default function SignatureEditorReference({ vm }) {
                   className="px-2 py-1 rounded-lg bg-white hover:bg-primary-soft border border-[#d1d6db] text-[11px] font-bold"
                   onClick={() =>
                     vm.insertText(
-                      vm.personalize("🏢 현대홈쇼핑 GA 강대한지점\n"),
+                      "🏢 현대홈쇼핑 GA 강대한지점\n",
                     )
                   }
                   disabled={vm.busy}
@@ -143,7 +143,7 @@ export default function SignatureEditorReference({ vm }) {
                   type="button"
                   className="px-2 py-1 rounded-lg bg-white hover:bg-primary-soft border border-[#d1d6db] text-[11px] font-bold"
                   onClick={() =>
-                    vm.insertText(vm.personalize("👩‍💼 담당 설계사: 김성춘\n"))
+                    vm.insertText("👩‍💼 담당 설계사: 김성춘\n")
                   }
                   disabled={vm.busy}
                 >
@@ -154,7 +154,7 @@ export default function SignatureEditorReference({ vm }) {
                   className="px-2 py-1 rounded-lg bg-white hover:bg-primary-soft border border-[#d1d6db] text-[11px] font-bold"
                   onClick={() =>
                     vm.insertText(
-                      vm.personalize("📞 직통 연락처: 010-9729-9649\n"),
+                      "📞 직통 연락처: 010-9729-9649\n",
                     )
                   }
                   disabled={vm.busy}
