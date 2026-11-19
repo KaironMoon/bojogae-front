@@ -296,7 +296,9 @@ function PromptsPage() {
 
   const savePrompt = async () => {
     const title = draft.title.trim();
-    if (draft.report_template && (!(draft.report_template.shell_version_id ? draft.report_template.fragment_html : draft.report_template.html)
+    const emptyTemplateDraft = draft.report_template !== null
+      && Object.keys(draft.report_template).length === 0 && !selectedPrompt?.current_version_id;
+    if (draft.report_template && !emptyTemplateDraft && (!(draft.report_template.shell_version_id ? draft.report_template.fragment_html : draft.report_template.html)
         || !draft.report_template.schema_document)) {
       setError("HTML 템플릿과 출력 데이터 스키마를 선택해 주세요.");
       return;
@@ -350,6 +352,8 @@ function PromptsPage() {
       const detail = requestError.response?.data?.detail;
       setError(Array.isArray(detail) ? detail.map((item) => item.msg).join(" / ") : typeof detail === "string" && (detail.startsWith("common_prompt_") || detail === "invalid_common_prompt_ids")
         ? commonPromptError(requestError)
+        : detail === "prompt_draft_schema_required"
+        ? "템플릿 초안을 저장하려면 DB 설정(101_prompt_template_drafts.sql)을 적용해야 합니다."
         : detail === "report_shell_schema_required"
         ? "공통 HTML을 사용하려면 DB 설정을 적용해야 합니다."
         : requestError.response?.status === 422 && typeof detail === "string"
@@ -602,7 +606,7 @@ function PromptsPage() {
               >
                 <Stack direction="row" alignItems="center" gap={1} flexWrap="wrap">
                   <Typography variant="h6" sx={{ fontWeight: 750 }}>
-                    {isNew ? "새 프롬프트" : `버전 ${selectedPrompt.current_version_no}`}
+                    {isNew ? "새 프롬프트" : selectedPrompt.current_version_no == null ? "템플릿 준비 중" : `버전 ${selectedPrompt.current_version_no}`}
                   </Typography>
                   {isDirty && <Chip label="저장 안 됨" size="small" color="warning" />}
                   {selectedPrompt?.is_deleted && <Chip label="삭제된 프롬프트" size="small" />}
@@ -782,6 +786,9 @@ function PromptsPage() {
                   },
                 }}
               />
+              {draft.report_template !== null && !selectedPrompt?.current_version_id && (
+                <Alert severity="info">HTML·스키마 없이 저장할 수 있습니다. 저장 후 동기화 폴더를 연결하고 싱크하면 첫 버전이 생성됩니다. 초안은 일반 사용자에게 표시되지 않습니다.</Alert>
+              )}
               {draft.report_template !== null && (
                 <ReportTemplateEditor key={selectedId} title={draft.title} value={draft.report_template} disabled={selectedPrompt?.is_deleted || working}
                   onChange={(update) => setDraft((current) => current.report_template === null

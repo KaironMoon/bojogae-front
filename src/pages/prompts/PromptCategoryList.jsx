@@ -64,7 +64,7 @@ function PromptCategoryList({ prompts, categories, selectedId, onSelect }) {
                 {prompt.is_deleted && <Chip label="삭제됨" size="small" />}
               </Stack>
             )}
-            secondary={`v${prompt.current_version_no} · ${formatDate(prompt.updated_at)}${prompt.report_folder ? ` · ${prompt.report_folder}` : ""}`}
+            secondary={`${prompt.current_version_no == null ? "템플릿 준비 중" : `v${prompt.current_version_no}`} · ${formatDate(prompt.updated_at)}${prompt.report_folder ? ` · ${prompt.report_folder}` : ""}`}
           />
         </ListItemButton>
       ))}
