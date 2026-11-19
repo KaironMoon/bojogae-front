@@ -274,7 +274,8 @@ export default function ReportTemplateEditor({ value, onChange, disabled, title 
     }
   };
   return <Stack spacing={1.5}>
-    <TextField select label="공통 HTML 버전" value={value.shell_version_id ?? ""} disabled={disabled || previewLoading}
+    <TextField select label="검증·미리보기용 공통 HTML 버전"
+      helperText="실제 보고서는 가장 최근에 등록한 공통 HTML로 표시됩니다." value={value.shell_version_id ?? ""} disabled={disabled || previewLoading}
       onChange={(event) => {
         const shell = event.target.value || null;
         onChange((current) => {

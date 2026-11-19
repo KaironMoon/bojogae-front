@@ -82,7 +82,7 @@ export default function ReportShellPanel({ onDirtyChange }) {
       setSelected(version.id);
       setDraft(source);
       setSaved(source);
-      setMessage(`공통 HTML #${version.id} 버전을 등록했습니다.`);
+      setMessage(`공통 HTML #${version.id}을 등록했습니다. 기존·신규 보고서에 적용됩니다.`);
     } catch (exception) {
       setError(reportTemplateError(exception, "공통 HTML을 저장하지 못했습니다."));
     } finally {
@@ -92,6 +92,7 @@ export default function ReportShellPanel({ onDirtyChange }) {
 
   return <Paper variant="outlined" sx={{ p: 2 }}>
     <Stack spacing={2}>
+      <Alert severity="info">새로 등록한 공통 HTML은 공통 HTML을 사용하는 기존·신규 보고서를 열 때 적용됩니다. 프롬프트별 제공 버전을 다시 지정할 필요가 없습니다.</Alert>
       {message && <Alert severity="success">{message}</Alert>}
       {error && <Alert severity="error">{error}</Alert>}
       <TextField select label="편집할 공통 HTML" value={selected}
