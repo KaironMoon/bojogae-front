@@ -171,6 +171,8 @@ export function Editor({
   titleId,
   contractLayout = false,
   contractTaskLayout = false,
+  submitLabel = "저장",
+  applicationDraft = false,
   open,
   onClose,
   onSubmit,
@@ -195,13 +197,13 @@ export function Editor({
         }}
       >
         {contractLayout || contractTaskLayout ? <div className="crm-contract-dialog-header">
-          <span className="crm-contract-dialog-icon"><ContractDesignIcon name="bell" /></span>
+          <span className="crm-contract-dialog-icon"><ContractDesignIcon name={applicationDraft ? "wand" : "bell"} /></span>
           <div>
             <div className="crm-contract-dialog-heading">
               <DialogTitle id={titleId} className="css-2o971p">{title}</DialogTitle>
-              {contractLayout && <span>성립일·생년월일을 바탕으로 참고일 자동 산출</span>}
+              {contractLayout && <span>{applicationDraft ? "AI 자동 입력 · 확인 후 등록" : "성립일·생년월일을 바탕으로 참고일 자동 산출"}</span>}
             </div>
-            <Typography variant="caption">{contractTaskLayout ? "고객에게 연락할 날짜와 업무 내용을 확인해 주세요." : "계약일과 생년월일을 바탕으로 고객에게 연락할 참고일을 확인하세요."}</Typography>
+            <Typography variant="caption">{applicationDraft ? "제안서의 계약 정보를 확인하고 내 계약에 등록하세요." : contractTaskLayout ? "고객에게 연락할 날짜와 업무 내용을 확인해 주세요." : "계약일과 생년월일을 바탕으로 고객에게 연락할 참고일을 확인하세요."}</Typography>
           </div>
           <IconButton aria-label="닫기" onClick={onClose} disabled={busy}><ContractDesignIcon name="close" /></IconButton>
         </div> : <DialogTitle id={titleId}>{title}</DialogTitle>}
@@ -217,7 +219,7 @@ export function Editor({
             취소
           </Button>
           <Button variant="contained" disabled={busy} type="submit">
-            {busy ? "저장 중…" : "저장"}
+            {busy ? "저장 중…" : submitLabel}
           </Button>
         </DialogActions>
       </Box>

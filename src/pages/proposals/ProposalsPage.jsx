@@ -1,3 +1,5 @@
+import ProposalApplicationDialog, { applicationButtonStyle } from "./ProposalApplicationDialog";
+import { crmPost, crmError } from "@/services/crm-service";
 import AutoAwesomeRoundedIcon from "@mui/icons-material/AutoAwesomeRounded";
 import { reportGradient, reportHero, reportHeroBadge, reportHeroIcon } from "@/styles/reportTheme";
 import { brand } from "@/styles/palette";
@@ -165,6 +167,22 @@ function isCompletedStatus(status) {
 
 
 function ProposalsPage() {
+  const [application, setApplication] = useState(null);
+  const applicationBusy = useRef(false);
+  async function prepareApplication(item) {
+    if (applicationBusy.current) return;
+    applicationBusy.current = true;
+    setApplication({ item, loading: true });
+    try {
+      const { drafts } = await crmPost(`/contracts/from-proposal/${item.id}/preview`, {}, { timeout: 120000 });
+      setApplication({ item, drafts, draft: drafts.length === 1 ? drafts[0] : null });
+    } catch (error) {
+      setApplication({ item, error: crmError(error) });
+    } finally {
+      applicationBusy.current = false;
+    }
+  }
+
   const [searchParams, setSearchParams] = useSearchParams();
   const promptQuery = (searchParams.get("promptQuery") || "").trim().slice(0, 100);
   const { user } = useAuth();
@@ -1305,7 +1323,7 @@ function ProposalsPage() {
                           {option.description}
                         </Typography>
                       )}
-                      <Stack direction="row" alignItems="center" gap={0.6} flexWrap={{ xs: "nowrap", sm: "wrap" }} sx={{ mt: 0.75, overflowX: { xs: "auto", sm: "visible" }, scrollbarWidth: "none", "&::-webkit-scrollbar": { display: "none" }, "& .MuiChip-root": { flexShrink: 0 } }}>
+                      <Stack direction="row" alignItems="center" gap={0.6} flexWrap="wrap" sx={{ mt: 0.75, overflowX: { xs: "auto", sm: "visible" }, scrollbarWidth: "none", "&::-webkit-scrollbar": { display: "none" }, "& .MuiChip-root": { flexShrink: 0 } }}>
                           <Chip icon={<KkomakIcon size={18} />} label={`${option.point_cost.toLocaleString()}꼬막`} size="small" color="warning" variant="outlined" />
                           {(option.categories || []).map((category) => (
                             <Chip key={category.id} label={`${category.parent_name} · ${category.name}`} size="small" />
@@ -1694,24 +1712,12 @@ function ProposalsPage() {
           {items.map((item) => (
             <Box
               key={item.id}
-              role="button"
-              tabIndex={0}
-              onClick={() => {
-                openPreview(item);
-              }}
-              onKeyDown={(event) => {
-                if (event.target !== event.currentTarget) return;
-                if (event.key === "Enter" || event.key === " ") {
-                  event.preventDefault();
-                  openPreview(item);
-                }
-              }}
               sx={{
                 px: { xs: 0.5, sm: 1 },
                 py: { xs: 1, sm: 1.5 },
                 borderTop: "1px solid #f1f5f9",
                 borderRadius: "10px",
-                cursor: "pointer",
+                cursor: "default",
                 bgcolor: (statusItem?.id ?? previewItem?.id) === item.id ? "primary.light" : "transparent",
                 outline: (statusItem?.id ?? previewItem?.id) === item.id ? "2px solid var(--bojogae-accent-ink)" : "none",
                 outlineOffset: "-2px",
@@ -1722,7 +1728,7 @@ function ProposalsPage() {
             >
               <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between" gap={{ xs: 0.5, md: 1.5 }}>
                 <Box sx={{ minWidth: 0 }}>
-                  <Stack direction="row" alignItems="center" gap={0.75} flexWrap={{ xs: "nowrap", sm: "wrap" }}>
+                  <Stack direction="row" alignItems="center" gap={0.75} flexWrap="wrap">
                     <Typography variant="subtitle2" noWrap sx={{ fontWeight: 800, minWidth: 0, flex: { xs: 1, sm: "initial" } }}>{item.title}</Typography>
                     <Chip size="small" color={statusColor(item.status)} label={STATUS_LABELS[item.status] || item.status} />
                     {item.point_status === "REFUNDED" && <Chip size="small" color="success" variant="outlined" label="꼬막 반환 완료" sx={{ display: { xs: "none", sm: "inline-flex" } }} />}
@@ -1743,7 +1749,7 @@ function ProposalsPage() {
                   alignItems="center"
                   justifyContent={{ xs: "flex-end", md: "flex-start" }}
                   gap={0.25}
-                  flexWrap={{ xs: "nowrap", sm: "wrap" }}
+                  flexWrap="wrap"
                   sx={{
                     width: { xs: "100%", md: "auto" },
                     "& .MuiButton-root": {
@@ -1767,6 +1773,7 @@ function ProposalsPage() {
                   >
                     열기
                   </Button>
+                  {isCompletedStatus(item.status) && <Button size="small" startIcon={<AutoAwesomeRoundedIcon />} sx={applicationButtonStyle} disabled={!!application?.loading} onClick={() => prepareApplication(item)}>청약</Button>}
                   {ACTIVE.has(item.status) && <Button size="small" color="warning" startIcon={<CancelOutlinedIcon />} onClick={() => runAction("cancel", item)}>취소</Button>}
                   {item.status === "FAILED" && item.retryable && <Button size="small" startIcon={<ReplayRoundedIcon />} onClick={() => runAction("retry", item)}>재시도</Button>}
                   {!ACTIVE.has(item.status) && <Button size="small" color="error" startIcon={<DeleteOutlineRoundedIcon />} onClick={() => runAction("delete", item)}>삭제</Button>}
@@ -1967,6 +1974,16 @@ function ProposalsPage() {
           )}
         </DialogActions>
       </Dialog>
+      <ProposalApplicationDialog
+        open={!!application} {...application}
+        onClose={() => setApplication(null)}
+        onRetry={() => prepareApplication(application.item)}
+        onSelect={draft => setApplication(current => ({ ...current, draft }))}
+        onSave={async data => {
+          const saved = await crmPost("/contracts", data);
+          setApplication(current => ({ ...current, draft: null, saved }));
+        }}
+      />
     </Box>
   );
 }

@@ -1,21 +1,18 @@
 /* eslint-disable react/prop-types */
+import { Link } from "react-router-dom";
+import CustomerMapReference from "./CustomerMapReference";
 import { useEffect, useRef, useState } from "react";
 import {
   Alert,
   Box,
   Button,
-  Checkbox,
   Chip,
-  FormControlLabel,
   Stack,
-  Typography,
 } from "@mui/material";
 import { crmGet, crmPost, crmPut, crmError, crmNearbyEvents } from "@/services/crm-service";
 import {
   useCrm,
-  Panel,
   State,
-  Field,
   Pages,
   CustomerLink,
   Directions,
@@ -26,7 +23,7 @@ import { STAGES, ACCURACY, hasLocation, loadNaver } from "./crm-utils";
 
 import { createMapPin, useSearchPins } from "./crm-map-pins";
 
-function MapCanvas({ config, origin, radius, items, route, candidates, onPick }) {
+function MapCanvas({ config, origin, radius, items, candidates, onPick, onSelect }) {
   const element = useRef(null);
   const map = useRef(null);
   const [maps, setMaps] = useState(null);
@@ -34,6 +31,8 @@ function MapCanvas({ config, origin, radius, items, route, candidates, onPick })
   useSearchPins(maps, map, candidates, onPick);
   const [error, setError] = useState("");
   const pickRef = useRef(onPick);
+  const selectRef = useRef(onSelect);
+  useEffect(() => { selectRef.current = onSelect; }, [onSelect]);
   useEffect(() => {
     pickRef.current = onPick;
   }, [onPick]);
@@ -60,7 +59,7 @@ function MapCanvas({ config, origin, radius, items, route, candidates, onPick })
           }),
         );
         observer = new ResizeObserver(() => {
-          if (map.current)
+          if (map.current && element.current.clientWidth > 0 && element.current.clientHeight > 0)
             map.current.setSize(
               new api.Size(
                 element.current.clientWidth,
@@ -106,9 +105,9 @@ function MapCanvas({ config, origin, radius, items, route, candidates, onPick })
           map: map.current,
           center: position,
           radius: radius * 1000,
-          fillColor: "#2563eb",
+          fillColor: "#03c75a",
           fillOpacity: 0.05,
-          strokeColor: "#2563eb",
+          strokeColor: "#03c75a",
           strokeOpacity: 0.6,
         }),
       );
@@ -119,26 +118,12 @@ function MapCanvas({ config, origin, radius, items, route, candidates, onPick })
       overlays.push(createMapPin(
         maps, map.current, loc,
         `${c.name}${loc.accuracy === "APPROXIMATE" ? " (대략)" : ""}`,
-        () => document.getElementById(`nearby-${c.id}-${c.task_id || 0}`)
-          ?.scrollIntoView({ behavior: "smooth", block: "center" }),
+        () => selectRef.current(c),
         "customer",
       ));
     });
-    if (route.length > 1)
-      overlays.push(
-        new maps.Polyline({
-          map: map.current,
-          path: route.map(
-            (c) =>
-              new maps.LatLng(c.search_location.lat, c.search_location.lng),
-          ),
-          strokeColor: "#e11d48",
-          strokeWeight: 3,
-          strokeStyle: "shortdash",
-        }),
-      );
     return () => overlays.forEach((overlay) => overlay.setMap(null));
-  }, [maps, origin, radius, items, route]);
+  }, [maps, origin, radius, items]);
   if (!config?.enabled)
     return (
       <Alert severity="info">
@@ -152,15 +137,12 @@ function MapCanvas({ config, origin, radius, items, route, candidates, onPick })
       <Box
         ref={element}
         sx={{
-          height: { xs: 350, md: 480 },
+          height: { xs: 480, md: 560 },
           width: "100%",
           bgcolor: "#f1f5f9",
           borderRadius: 2,
         }}
       />
-      <Typography variant="caption">
-        지도를 누르면 검색 기준 위치가 바뀝니다.
-      </Typography>
     </>
   );
 }
@@ -177,12 +159,13 @@ export default function CrmMap() {
   const [mode, setMode] = useState("CUSTOMERS");
   const [stage, setStage] = useState("");
   const [tag, setTag] = useState("");
-  const [insurer, setInsurer] = useState("");
   const [tasks, setTasks] = useState("");
   const [hasContract, setHasContract] = useState("");
   const [active, setActive] = useState(null);
   const [page, setPage] = useState(1);
-  const [route, setRoute] = useState([]);
+  const [selected, setSelected] = useState(null);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [pane, setPane] = useState("map");
   const [visit, setVisit] = useState(null);
   const [customer, setCustomer] = useState(null);
   const liveEnabled = !!config.data?.address_worker_enabled;
@@ -249,7 +232,7 @@ export default function CrmMap() {
     setOrigin({ address: location.address, lat: location.lat, lng: location.lng, accuracy: location.accuracy });
     setActive(null);
     setPage(1);
-    setRoute([]);
+    setSelected(null);
   }
   function locate() {
     setError("");
@@ -291,7 +274,7 @@ export default function CrmMap() {
     }
     setError("");
     setPage(1);
-    setRoute([]);
+    setSelected(null);
     setActive({
       lat: origin.lat,
       lng: origin.lng,
@@ -299,7 +282,6 @@ export default function CrmMap() {
       mode,
       stage,
       tag,
-      insurer,
       tasks,
       ...(hasContract === "" ? {} : { has_contract: hasContract }),
     });
@@ -319,251 +301,53 @@ export default function CrmMap() {
       setError(crmError(e));
     }
   }
-  function reorder(index, delta) {
-    setRoute((values) => {
-      const result = [...values];
-      [result[index], result[index + delta]] = [
-        result[index + delta],
-        result[index],
-      ];
-      return result;
-    });
-  }
-  return (
-    <>
-      {registration?.loading && <Alert severity="info">기존 고객의 주소 확인 작업을 등록하고 있습니다.</Alert>}
-      {!!registration?.queued && <Alert severity="info">기존 고객 {registration.queued}명의 주소 확인 작업을 등록했습니다. 완료된 위치는 지도 검색에 자동 반영됩니다.</Alert>}
-      {registration?.error && <Alert severity="error" action={<Button color="inherit" onClick={() => setRegistrationAttempt((value) => value + 1)}>다시 시도</Button>}>주소 확인 작업 등록 실패: {registration.error}</Alert>}
-      <Panel>
-        <Stack gap={2}>
-          <Stack direction={{ xs: "column", sm: "row" }} gap={1}>
-            <Field
-              label="검색 기준 주소·장소"
-              placeholder="예: 상현역, 법조로 252"
-              value={address}
-              onChange={setAddress}
-            />
-            <Button
-              disabled={
-                busy ||
-                !(config.data?.maps.geocoding_enabled || config.data?.maps.place_search_enabled) ||
-                address.length < 2
-              }
-              onClick={geocode}
-              sx={{ minWidth: 90 }}
-            >
-              {busy ? "검색 중…" : "위치 검색"}
-            </Button>
-            <Button disabled={busy} onClick={locate} sx={{ minWidth: 90 }}>
-              내 위치
-            </Button>
-          </Stack>
-          {candidates.map((r, i) => (
-            <Button
-              key={i}
-              variant="outlined"
-              onClick={() => {
-                pick(r);
-                setCandidates([]);
-              }}
-            >
-              {r.title ? `${r.title} · ${r.address}` : r.address}
-            </Button>
-          ))}
-          <Typography variant="body2">
-            기준 위치:{" "}
-            {origin
-              ? origin.address || "선택한 위치"
-              : "주소 검색·내 위치·지도 선택으로 지정해 주세요."}
-          </Typography>
-          <Stack direction={{ xs: "column", sm: "row" }} gap={1}>
-            <Field
-              label="반경 (km, 1·3·5·10 등)"
-              value={radius}
-              type="number"
-              inputProps={{ min: 0.1, max: 100, step: 0.1 }}
-              onChange={setRadius}
-            />
-            <Field
-              label="위치 기준"
-              value={mode}
-              options={{ CUSTOMERS: "고객 기본주소", VISITS: "예정 방문 장소" }}
-              onChange={setMode}
-            />
-            <Field
-              label="상담 단계"
-              value={stage}
-              options={{ "": "전체", ...STAGES }}
-              onChange={setStage}
-            />
-          </Stack>
-          <Stack direction={{ xs: "column", sm: "row" }} gap={1}>
-            <Field label="태그" value={tag} onChange={setTag} />
-            <Field
-              label="보험사 (정확한 명칭)"
-              value={insurer}
-              onChange={setInsurer}
-            />
-            <Field
-              label="계약 보유"
-              value={hasContract}
-              options={{ "": "전체", true: "보유", false: "미보유" }}
-              onChange={setHasContract}
-            />
-            <Field
-              label="업무 필터"
-              value={tasks}
-              options={{
-                "": "전체",
-                CALL: "재연락 예정",
-                OVERDUE: "기한 초과",
-                TODAY_VISIT: "오늘 방문",
-              }}
-              onChange={setTasks}
-            />
-          </Stack>
-          <Button
-            variant="contained"
-            onClick={search}
-            disabled={!origin || resource.loading}
-          >
-            주변 고객 찾기
-          </Button>
-        </Stack>
-      </Panel>
-      {error && (
-        <Alert severity="warning" sx={{ mb: 2 }}>
-          {error}
-        </Alert>
-      )}
-      <State resource={config} />
-      <MapCanvas
-        config={config.data?.maps}
-        candidates={candidates}
-        origin={origin}
-        radius={Number(radius) || 3}
-        items={active ? items : EMPTY}
-        route={route}
-        onPick={pick}
-      />
-      {route.length > 0 && (
-        <Panel>
-          <Typography fontWeight={700}>방문 후보 {route.length}명</Typography>
-          <Typography variant="caption">
-            연결선은 방문 순서이며 실제 도로 경로가 아닙니다.
-          </Typography>
-          {route.map((c, i) => (
-            <Stack key={keyOf(c)} direction="row" gap={1} alignItems="center">
-              <Typography>
-                {i + 1}. {c.name}
-              </Typography>
-              <Button
-                size="small"
-                disabled={i === 0}
-                onClick={() => reorder(i, -1)}
-              >
-                위로
-              </Button>
-              <Button
-                size="small"
-                disabled={i === route.length - 1}
-                onClick={() => reorder(i, 1)}
-              >
-                아래로
-              </Button>
-              <Button
-                size="small"
-                onClick={() =>
-                  setRoute(route.filter((r) => keyOf(r) !== keyOf(c)))
-                }
-              >
-                제외
-              </Button>
-              <Directions
-                location={c.search_location}
-                origin={i > 0 ? route[i - 1].search_location : origin}
-              />
-            </Stack>
-          ))}
-        </Panel>
-      )}
-      {active && (
-        <>
-          <State resource={resource} />
-          <Typography my={2}>
-            직선거리 기준 {resource.data?.total || 0}건 · 연락 중단·보관 고객
-            제외
-          </Typography>
-          {!!resource.data?.address_progress?.pending && <Alert severity="info">주소 확인 대기·진행 {resource.data.address_progress.pending}명 (전체 고객 기준). 완료된 고객 중 검색 반경과 조건에 맞는 고객이 자동으로 표시됩니다.</Alert>}
-          {!!resource.data?.address_progress?.unresolved && <Alert severity="info">미확정 주소 {resource.data.address_progress.unresolved}명 (전체 고객 기준). 고객정보에서 주소를 확인해 주세요.</Alert>}
-          {!!resource.data?.unresolved_addresses && <Alert severity="info">주소를 찾지 못한 {resource.data.unresolved_addresses}건은 지도에 표시하지 못했습니다. 고객 주소를 확인해 주세요.</Alert>}
-          {items.map((c) => (
-            <Panel key={keyOf(c)} id={`nearby-${c.id}-${c.task_id || 0}`}>
-              <Stack
-                direction={{ xs: "column", sm: "row" }}
-                justifyContent="space-between"
-              >
-                <Box>
-                  <CustomerLink id={c.id} name={c.name} />
-                  <Chip
-                    size="small"
-                    label={`${c.distance_km.toFixed(2)}km · ${ACCURACY[c.search_location.accuracy]}`}
-                  />
-                  <Typography variant="body2">
-                    {c.search_location.address || c.region} · {STAGES[c.stage]}
-                  </Typography>
-                  <Typography variant="body2">
-                    통화: {c.call_preference || "미확인"} / 방문:{" "}
-                    {c.visit_preference || "미확인"} (선호 시간)
-                  </Typography>
-                  {c.next_task && (
-                    <Typography
-                      variant="body2"
-                      color={
-                        c.next_task.is_overdue ? "error" : "text.secondary"
-                      }
-                    >
-                      다음 일정: {c.next_task.due_date} · {c.next_task.title}
-                    </Typography>
-                  )}
-                  {c.search_location.accuracy === "APPROXIMATE" && (
-                    <Typography variant="caption" color="warning.main">
-                      대략 위치에 따른 참고 거리입니다.
-                    </Typography>
-                  )}
-                </Box>
-                <Stack direction="row" alignItems="center" flexWrap="wrap">
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={route.some((r) => keyOf(r) === keyOf(c))}
-                        onChange={(e) =>
-                          setRoute(
-                            e.target.checked
-                              ? [...route, c]
-                              : route.filter((r) => keyOf(r) !== keyOf(c)),
-                          )
-                        }
-                      />
-                    }
-                    label="방문 후보"
-                  />
-                  {c.phone && <Button href={`tel:${c.phone}`}>전화</Button>}
-                  <Button onClick={() => setVisit(c)}>방문 등록</Button>
-                  <Directions location={c.search_location} origin={origin} />
-                  <Button onClick={() => editLocation(c)}>
-                    기준점으로 위치 수정
-                  </Button>
-                </Stack>
-              </Stack>
-            </Panel>
-          ))}
-          {resource.data && !items.length && (
-            <Empty>반경 안에 해당 고객이 없습니다.</Empty>
-          )}
-          <Pages data={resource.data} onChange={setPage} />
-        </>
-      )}
+  const selectedCustomer = selected && items.find(c => keyOf(c) === keyOf(selected));
+  const cardActions = c => <div className="customer-map-card-actions">
+    {c.phone && <Button href={`tel:${c.phone}`}>전화</Button>}
+    <Directions location={c.search_location} origin={origin} />
+    <Button component={Link} to={`/crm/customers/${c.id}`}>상세</Button>
+  </div>;
+  return (<>
+    <CustomerMapReference
+      address={address} radius={radius} mode={mode} stage={stage} tag={tag} tasks={tasks} hasContract={hasContract}
+      filtersOpen={filtersOpen} pane={pane} busy={busy} searching={resource.loading}
+      canSearch={!!(config.data?.maps?.geocoding_enabled || config.data?.maps?.place_search_enabled)}
+      origin={origin} total={resource.data?.total || 0}
+      onAddress={setAddress} onRadius={setRadius} onMode={setMode} onStage={setStage} onTag={setTag}
+      onTasks={setTasks} onHasContract={setHasContract} onFilters={() => setFiltersOpen(v => !v)}
+      onPane={setPane} onGeocode={geocode} onLocate={locate} onSearch={search}
+      candidates={candidates.map((r, i) => <Button key={i} variant="outlined" onClick={() => { pick(r); setCandidates([]); }}>{r.title ? `${r.title} · ${r.address}` : r.address}</Button>)}
+      notices={<Stack gap={1}>
+        {error && <Alert severity="warning">{error}</Alert>}
+        <State resource={config} />
+        {registration?.loading && <Alert severity="info">기존 고객의 주소 확인 작업을 등록하고 있습니다.</Alert>}
+        {!!registration?.queued && <Alert severity="info">기존 고객 {registration.queued}명의 주소 확인 작업을 등록했습니다.</Alert>}
+        {registration?.error && <Alert severity="error" action={<Button color="inherit" onClick={() => setRegistrationAttempt(v => v + 1)}>다시 시도</Button>}>주소 확인 작업 등록 실패: {registration.error}</Alert>}
+        {!!resource.data?.address_progress?.pending && <Alert severity="info">주소 확인 대기·진행 {resource.data.address_progress.pending}명. 완료된 위치는 자동 반영됩니다.</Alert>}
+        {!!resource.data?.address_progress?.unresolved && <Alert severity="info">미확정 주소 {resource.data.address_progress.unresolved}명. 고객정보에서 확인해 주세요.</Alert>}
+        {!!resource.data?.unresolved_addresses && <Alert severity="info">주소를 찾지 못한 {resource.data.unresolved_addresses}건은 지도에 표시하지 못했습니다.</Alert>}
+      </Stack>}
+      map={<MapCanvas config={config.data?.maps} candidates={candidates} origin={active || origin} radius={active?.radius || Number(radius) || 3} items={active ? items : EMPTY} onPick={pick} onSelect={setSelected} />}
+      selected={selectedCustomer && <>
+        <div className="customer-map-floating-heading"><h3>{selectedCustomer.name}</h3><Button aria-label="선택 고객 닫기" onClick={() => setSelected(null)}>닫기</Button></div>
+        <p>{selectedCustomer.search_location.address || selectedCustomer.region}</p>
+        {cardActions(selectedCustomer)}
+      </>}
+      list={active && <>
+        <State resource={resource} />
+        {items.map(c => <article key={keyOf(c)} className={`customer-map-card${selectedCustomer && keyOf(selectedCustomer) === keyOf(c) ? " is-selected" : ""}`}>
+          <div className="customer-map-card-heading"><CustomerLink id={c.id} name={c.name} /><Chip size="small" label={`${c.distance_km.toFixed(2)}km · ${ACCURACY[c.search_location.accuracy]}`} /></div>
+          <p>{c.search_location.address || c.region} · {STAGES[c.stage]}</p>
+          <p>통화: {c.call_preference || "미확인"} / 방문: {c.visit_preference || "미확인"}</p>
+          {c.next_task && <p>다음 일정: {c.next_task.due_date} · {c.next_task.title}{c.next_task.is_overdue ? " · 기한 초과" : ""}</p>}
+          {c.search_location.accuracy === "APPROXIMATE" && <p>대략 위치에 따른 참고 거리입니다.</p>}
+          {cardActions(c)}
+          <div className="customer-map-card-actions"><Button onClick={() => { setSelected(c); setPane("map"); }}>지도에서 보기</Button><Button onClick={() => setVisit(c)}>방문 등록</Button><Button onClick={() => editLocation(c)}>기준점으로 위치 수정</Button></div>
+        </article>)}
+        {resource.data && !items.length && <Empty>반경 안에 해당 고객이 없습니다.</Empty>}
+        <Pages data={resource.data} onChange={setPage} />
+      </>}
+    />
       {visit && (
         <TaskForm
           customerId={visit.id}

@@ -2,7 +2,7 @@ import CustomerAiFill from "./CustomerAiFill";
 import { CustomerField, CustomerModal } from "./CustomerReference";
 import { customerDefaults } from "./customer-defaults";
 /* eslint-disable react/prop-types */
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Alert,
   Box,
@@ -394,15 +394,16 @@ const contractDefaults = {
   verified: false,
   verified_date: null,
 };
-export function ContractForm({ value, customerId, onSave, onClose }) {
+export function ContractForm({ value, initialDraft, applicationDraft = false, customerId, onSave, onClose }) {
   const [data, setData] = useState(() => ({
-    ...pick(value, contractDefaults),
-    parties: value?.parties || [
+    ...pick(value || initialDraft, contractDefaults),
+    parties: value?.parties || initialDraft?.parties || [
       { role: "HOLDER", customer_id: customerId || null, name: "" },
       { role: "INSURED", customer_id: null, name: "", same_as_holder: false },
     ],
   }));
-  const state = useSave(onSave, onClose);
+  const submitting = useRef(false);
+  const state = useSave(onSave, applicationDraft ? () => {} : onClose);
   const [duplicates, setDuplicates] = useState(null);
   const [confirmed, setConfirmed] = useState(false);
   const [insurers, setInsurers] = useState(null);
@@ -435,27 +436,36 @@ export function ContractForm({ value, customerId, onSave, onClose }) {
     }
   }
   async function submit() {
-    if (!value && !confirmed) {
-      try {
-        const result = await crmPost("/contracts/duplicates", data);
-        setDuplicates(result.items);
-        if (result.items.length) return;
-      } catch {
-        /* Save returns validation errors. */
+    if (submitting.current) return;
+    submitting.current = true;
+    try {
+      if (!value && !confirmed) {
+        try {
+          const result = await crmPost("/contracts/duplicates", data);
+          setDuplicates(result.items);
+          if (result.items.length) return;
+        } catch {
+          /* Save returns validation errors. */
+        }
       }
+      await state.save({ ...data, ...(value ? { version: value.version } : {}) });
+    } finally {
+      submitting.current = false;
     }
-    state.save({ ...data, ...(value ? { version: value.version } : {}) });
   }
   return (
     <Editor
       open
-      title={value ? "계약정보 수정" : "보험 계약 등록"}
+      title={applicationDraft ? "✨ AI 청약 · 내 계약 등록" : value ? "계약정보 수정" : "보험 계약 등록"}
+      submitLabel={applicationDraft ? "등록" : "저장"}
+      applicationDraft={applicationDraft}
       titleId=":rf1:"
       contractLayout
       onClose={onClose}
       onSubmit={submit}
       {...state}
     >
+      {applicationDraft && <Alert severity="info">제안서에서 자동 입력한 내용입니다. 보험사·상품·보험료와 계약자·피보험자를 확인해 주세요. 최소 한 명을 내고객에 연결한 뒤 등록할 수 있습니다. 등록하면 내 계약에 청약 접수 상태로 저장됩니다.</Alert>}
       <Stack component="section" gap={1.5} className="crm-contract-form-section" aria-labelledby="crm-contract-base">
         <div className="crm-contract-section-heading">
           <Typography component="h3" id="crm-contract-base"><ContractDesignIcon name="shield_plain" />1. 등록 구분 및 보험 상품 기본 정보</Typography>

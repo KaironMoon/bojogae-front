@@ -181,7 +181,7 @@ export function CustomersPage() {
     resource.reload();
   }
   return (
-    <div className="crm-customers-workspace"><CustomerWorkspace
+    <div className={`crm-customers-workspace${view === "map" ? " crm-customers-map-view" : ""}`}><CustomerWorkspace
       badges={<div className="crm-customer-header-badges"><span>SMART CRM & GROUP WORKSPACE</span><span>보조개톡 · 보장분석 · 방문일정 실시간 연동</span></div>}
       title="내고객"
       description="상담부터 보험·방문까지, 고객의 업무를 한곳에서 관리합니다. (고객명 또는 우측 [상세] 버튼을 누르면 상세 워크스페이스가 열립니다)"
@@ -199,7 +199,7 @@ export function CustomersPage() {
         </div>
       </section>
       {view === "map" ? (
-        <section className="crm-customer-map"><header><div><span>LOCATION CRM</span><h3>주변 고객 지도 & 방문 동선</h3><p>주소가 등록된 고객(연락 중단 제외)의 위치를 지도에서 확인하고 원클릭 길찾기를 실행합니다.</p></div><Button onClick={() => setView("list")}>← 내고객 목록으로 돌아가기</Button></header><CrmMap /></section>
+        <section className="crm-customer-map"><CrmMap /></section>
       ) : (
         <>
           <Panel className="crm-customer-filters">
@@ -398,8 +398,9 @@ export function CustomerDetailPage() {
   const [editor, setEditor] = useState("");
   const [task, setTask] = useState(null);
   return (
-    <Page
-      headerClassName="crm-customer-detail-header"
+    <div className="crm-customers-workspace crm-customer-detail-workspace"><CustomerWorkspace
+      badges={<div className="crm-customer-header-badges"><span>CUSTOMER WORKSPACE</span><span>고객 정보 · 상담 · 계약 · 일정</span></div>}
+      description="고객의 상세 정보와 상담·계약 이력을 한곳에서 확인합니다."
       title={c ? `${c.name}${c.alias ? ` (${c.alias})` : ""}` : "고객 상세"}
       actions={
         <>
@@ -644,7 +645,7 @@ export function CustomerDetailPage() {
           )}
         </>
       )}
-    </Page>
+    </CustomerWorkspace></div>
   );
 }
 function ContractBatchDialog({ action, contracts, reminder, onClose, onDone }) {
