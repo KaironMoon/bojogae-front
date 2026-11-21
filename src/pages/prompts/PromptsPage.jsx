@@ -383,8 +383,8 @@ function PromptsPage() {
         setReportFolderError(detail.map((item) => item.msg).join(" / "));
       } else {
         setReportFolderError({
-          report_folder_in_use: "다른 프롬프트에 연결된 폴더입니다.",
-          report_mapping_schema_required: "보고서 연결을 저장하려면 DB 설정을 적용해야 합니다.",
+          report_folder_in_use: "폴더 공유 연결을 위한 DB 설정이 필요합니다. 관리자에게 문의해 주세요.",
+          report_mapping_schema_required: "보고서 연결·폴더 공유를 위한 DB 설정이 필요합니다. 관리자에게 문의해 주세요.",
         }[detail] || "보고서 연결을 저장하지 못했습니다. 다시 시도해 주세요.");
       }
     } finally {
@@ -1126,7 +1126,7 @@ function PromptsPage() {
             onChange={(event) => setReportFolderInput(event.target.value)}
             inputProps={{ maxLength: 64 }}
             disabled={working}
-            helperText="다음 동기화에서 폴더를 확인합니다. 비워 두고 저장하면 연결을 해제합니다."
+            helperText="같은 폴더를 여러 프롬프트에 연결할 수 있습니다. 동기화하면 연결된 각 프롬프트에 폴더 내용이 반영됩니다. 비워 두고 저장하면 이 프롬프트의 연결만 해제합니다."
           />
         </DialogContent>
         <DialogActions>
