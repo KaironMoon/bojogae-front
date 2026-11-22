@@ -19,6 +19,7 @@ import {
 import { useAuth } from "@/auth/AuthContext";
 import CustomerDetailDialog from "./CustomerDetailDialog";
 import { customerError, signalIdentityChange, startImpersonation } from "@/services/customer-service";
+import AddCardRoundedIcon from "@mui/icons-material/AddCardRounded";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import ManageAccountsRoundedIcon from "@mui/icons-material/ManageAccountsRounded";
@@ -26,6 +27,11 @@ import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
 import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { planName } from "@/constants/plans";
+import GrantFreePointsDialog, {
+  canManageManualSubscription,
+  createPointRequestKey,
+} from "./GrantFreePointsDialog";
+import ManualSubscriptionDialog from "./ManualSubscriptionDialog";
 
 import {
   decidePersonalPlanRequest,
@@ -47,6 +53,10 @@ function UsersPage() {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [roleTarget, setRoleTarget] = useState(null);
   const [detailTarget, setDetailTarget] = useState(null);
+  const [grantTarget, setGrantTarget] = useState(null);
+  const [manualTarget, setManualTarget] = useState(null);
+  const [detailRefreshKey, setDetailRefreshKey] = useState(0);
+  const [message, setMessage] = useState("");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [draftQuery, setDraftQuery] = useState("");
@@ -60,6 +70,10 @@ function UsersPage() {
       setUsers(result.items);
       setPage(result.page);
       setTotalPages(result.total_pages);
+      setDetailTarget((current) => {
+        if (!current) return null;
+        return result.items.find((item) => item.id === current.id) || current;
+      });
     } catch {
       setError("설계사 목록을 불러오지 못했습니다.");
     } finally {
@@ -183,6 +197,7 @@ function UsersPage() {
       </Paper>
 
       {userId && <Alert severity="info" sx={{ mb: 2 }} action={<Button onClick={() => setSearchParams({})}>전체 설계사 보기</Button>}>설계사 #{userId} 조회 중</Alert>}
+      {message && <Alert severity="success" onClose={() => setMessage("")} sx={{ mb: 2 }}>{message}</Alert>}
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       {loading ? (
         <Box sx={{ py: 8, display: "grid", placeItems: "center" }}><CircularProgress /></Box>
@@ -197,7 +212,12 @@ function UsersPage() {
                     <Typography variant="h6" sx={{ fontWeight: 750 }}>{user.name || user.display_name}</Typography>
                     <Chip label={user.status} size="small" color={user.status === "ACTIVE" ? "success" : user.status === "PENDING" ? "warning" : "default"} />
                     {user.role === "ADMIN" && <Chip label="ADMIN" size="small" color="primary" />}
-                    <Chip label={planName(user.plan_code)} size="small" color={user.plan_code && user.plan_code !== "FREE" ? "primary" : "default"} variant="outlined" />
+                    <Chip
+                      label={user.manual_subscription_id ? `${planName(user.plan_code)} 수동 구독` : planName(user.plan_code)}
+                      size="small"
+                      color={user.plan_code && user.plan_code !== "FREE" ? "primary" : "default"}
+                      variant="outlined"
+                    />
                     {user.next_plan_code && <Chip label={`${new Date(user.next_plan_effective_at).toLocaleDateString("ko-KR")}부터 ${user.next_plan_code === "FREE" ? "해지" : planName(user.next_plan_code)}`} size="small" variant="outlined" />}
                     {user.plan_request_status === "PENDING" && (
                       <Chip
@@ -225,6 +245,31 @@ function UsersPage() {
                   </Stack>
                 </Stack>
                 <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+                  <Button
+                    variant="contained"
+                    startIcon={<AddCardRoundedIcon />}
+                    disabled={workingUserId === user.id}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setMessage("");
+                      setGrantTarget(user);
+                    }}
+                  >
+                    꼬막 지급
+                  </Button>
+                  {canManageManualSubscription(user) && (
+                    <Button
+                      variant="outlined"
+                      disabled={workingUserId === user.id}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setMessage("");
+                        setManualTarget({ user, requestKey: createPointRequestKey() });
+                      }}
+                    >
+                      {user.manual_subscription_id ? "수동 구독 종료" : "수동 구독 적용"}
+                    </Button>
+                  )}
                   <Button variant="outlined" onClick={event => { event.stopPropagation(); setDetailTarget(user); }}>상세보기</Button>
                   <Button variant="outlined" disabled={workingUserId !== null || user.role !== "USER" || user.status !== "ACTIVE"}
                     onClick={event => { event.stopPropagation(); impersonate(user); }}>Impersonate</Button>
@@ -268,8 +313,48 @@ function UsersPage() {
         </Stack>
       )}
 
-      <CustomerDetailDialog customer={detailTarget} onClose={() => setDetailTarget(null)}
-        onImpersonate={impersonate} working={workingUserId !== null} actionError={error} />
+      <CustomerDetailDialog
+        customer={detailTarget}
+        onClose={() => setDetailTarget(null)}
+        onImpersonate={impersonate}
+        onGrantPoints={(targetUser) => {
+          setMessage("");
+          setGrantTarget(targetUser);
+        }}
+        onManualSubscription={(targetUser) => {
+          setMessage("");
+          setManualTarget({ user: targetUser, requestKey: createPointRequestKey() });
+        }}
+        refreshKey={detailRefreshKey}
+        actionMessage={message}
+        working={workingUserId !== null}
+        actionError={error}
+      />
+      {grantTarget && (
+        <GrantFreePointsDialog
+          member={grantTarget}
+          onClose={() => setGrantTarget(null)}
+          onDone={async ({ member, amount }) => {
+            setGrantTarget(null);
+            setMessage(`${member.name || member.display_name} 설계사에게 ${amount.toLocaleString()}꼬막을 지급했습니다.`);
+            setDetailRefreshKey((value) => value + 1);
+            await loadUsers(page);
+          }}
+        />
+      )}
+      {manualTarget && (
+        <ManualSubscriptionDialog
+          member={manualTarget.user}
+          requestKey={manualTarget.requestKey}
+          onClose={() => setManualTarget(null)}
+          onDone={async (outcome) => {
+            setManualTarget(null);
+            setMessage(outcome.plan_code === "FREE" ? "수동 구독을 종료했습니다." : `${planName(outcome.plan_code)} 수동 구독을 적용했습니다.`);
+            setDetailRefreshKey((value) => value + 1);
+            await loadUsers(page);
+          }}
+        />
+      )}
       <Dialog open={Boolean(deleteTarget)} onClose={() => setDeleteTarget(null)}>
         <DialogTitle>설계사 계정을 삭제할까요?</DialogTitle>
         <DialogContent>

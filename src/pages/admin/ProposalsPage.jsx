@@ -10,6 +10,7 @@ import {
   DialogContent,
   DialogTitle,
   FormControlLabel,
+  InputAdornment,
   MenuItem,
   Pagination,
   Paper,
@@ -21,6 +22,7 @@ import {
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import RestoreRoundedIcon from "@mui/icons-material/RestoreRounded";
 import ReplayRoundedIcon from "@mui/icons-material/ReplayRounded";
+import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import { useCallback, useEffect, useState } from "react";
 
 import {
@@ -113,10 +115,18 @@ function TimingTimeline({ timing }) {
 
 const startedAt = (value) => value ? new Date(value).toLocaleString("ko-KR", { timeZone: "Asia/Seoul", hour12: false }) : "시작 전";
 
+function formatProposalOwner(item) {
+  const primaryName = item.user_name && item.user_nickname && item.user_name !== item.user_nickname
+    ? `${item.user_name} (${item.user_nickname})`
+    : item.user_name || item.user_nickname || item.user_display_name;
+  return [primaryName, `ID ${item.user_id}`, item.user_email].filter(Boolean).join(" · ");
+}
+
 function AdminProposalsPage() {
   const [result, setResult] = useState({ items: [], page: 1, total_pages: 0, total: 0 });
   const [status, setStatus] = useState("");
-  const [userId, setUserId] = useState("");
+  const [draftQuery, setDraftQuery] = useState("");
+  const [query, setQuery] = useState("");
   const [includeDeleted, setIncludeDeleted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -131,7 +141,7 @@ function AdminProposalsPage() {
         page,
         page_size: 20,
         status: status || undefined,
-        user_id: userId || undefined,
+        q: query || undefined,
         include_deleted: includeDeleted,
       }));
     } catch {
@@ -139,9 +149,16 @@ function AdminProposalsPage() {
     } finally {
       setLoading(false);
     }
-  }, [includeDeleted, status, userId]);
+  }, [includeDeleted, query, status]);
 
   useEffect(() => { load(1); }, [load]);
+
+  const search = (event) => {
+    event.preventDefault();
+    const nextQuery = draftQuery.trim();
+    if (nextQuery === query) load(1);
+    else setQuery(nextQuery);
+  };
 
   useEffect(() => {
     if (!detail || detail.share_status !== "RENDERING") return undefined;
@@ -211,14 +228,25 @@ function AdminProposalsPage() {
       <Typography variant="h4" sx={{ fontWeight: 800 }}>보고서 관리</Typography>
       <Typography color="text.secondary" sx={{ mb: 3 }}>본문을 노출하지 않고 파일, 처리 상태, 토큰 사용량을 관리합니다.</Typography>
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-      <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, mb: 2 }}>
-        <Stack direction={{ xs: "column", md: "row" }} gap={2} alignItems={{ md: "center" }}>
+      <Paper component="form" onSubmit={search} variant="outlined" sx={{ p: 2, borderRadius: 3, mb: 2 }}>
+        <Stack direction={{ xs: "column", md: "row" }} gap={2} alignItems={{ md: "center" }} flexWrap="wrap">
           <TextField select label="상태" value={status} onChange={(event) => setStatus(event.target.value)} sx={{ minWidth: { md: 190 } }}>
             {STATUSES.map((value) => <MenuItem key={value || "ALL"} value={value}>{value || "전체 상태"}</MenuItem>)}
           </TextField>
-          <TextField label="사용자 ID" type="number" value={userId} onChange={(event) => setUserId(event.target.value)} />
+          <TextField
+            label="검색"
+            placeholder="사용자 ID, 이름, 닉네임, 이메일, 보고서 제목 검색"
+            value={draftQuery}
+            inputProps={{ maxLength: 100 }}
+            onChange={(event) => setDraftQuery(event.target.value)}
+            InputProps={{ startAdornment: <InputAdornment position="start"><SearchRoundedIcon fontSize="small" /></InputAdornment> }}
+            sx={{ flex: 1, minWidth: { md: 320 } }}
+          />
           <FormControlLabel control={<Checkbox checked={includeDeleted} onChange={(event) => setIncludeDeleted(event.target.checked)} />} label="삭제 포함" />
-          <Button onClick={() => load(1)}>조회</Button>
+          <Button type="submit" variant="outlined">조회</Button>
+          {query && (
+            <Button onClick={() => { setDraftQuery(""); setQuery(""); }}>초기화</Button>
+          )}
           <Typography variant="body2" color="text.secondary">총 {result.total}건</Typography>
         </Stack>
       </Paper>
@@ -235,7 +263,7 @@ function AdminProposalsPage() {
                     {item.is_deleted && <Chip label="삭제됨" size="small" color="error" />}
                   </Stack>
                   <Typography variant="body2" color="text.secondary">
-                    #{item.id} · {item.user_display_name} ({item.user_email || `ID ${item.user_id}`}) · {item.prompt_title} v{item.prompt_version_no}
+                    #{item.id} · {formatProposalOwner(item)} · {item.prompt_title} v{item.prompt_version_no}
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
                     생성 시작: {startedAt(item.started_at)} · 입력 {bytes(item.total_input_bytes)} · 출력 {bytes(item.output_bytes)} · 호출 {item.call_count} · 토큰 {item.total_tokens.toLocaleString()}
@@ -250,6 +278,11 @@ function AdminProposalsPage() {
               </Stack>
             </Paper>
           ))}
+          {!result.items.length && (
+            <Typography color="text.secondary" sx={{ py: 4, textAlign: "center" }}>
+              {query || status ? "검색 조건에 맞는 보고서가 없습니다." : "등록된 보고서가 없습니다."}
+            </Typography>
+          )}
         </Stack>
       )}
       {result.total_pages > 1 && <Pagination count={result.total_pages} page={result.page} onChange={(_, value) => load(value)} sx={{ mt: 3 }} />}

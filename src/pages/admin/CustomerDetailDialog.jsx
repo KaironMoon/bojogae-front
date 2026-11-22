@@ -9,6 +9,7 @@ import { useTheme } from "@mui/material/styles";
 import { useEffect, useState } from "react";
 import { planName } from "@/constants/plans";
 import { customerError, getCustomerDetail, getCustomerRecords } from "@/services/customer-service";
+import { canManageManualSubscription } from "./GrantFreePointsDialog";
 
 const TABS = [
   ["overview", "기본 정보"], ["points", "꼬막 내역"], ["reports", "보고서"],
@@ -83,40 +84,68 @@ function AuditChanges({ changes }) {
   ));
 }
 
-export default function CustomerDetailDialog({ customer, onClose, onImpersonate, working, actionError }) {
+export default function CustomerDetailDialog({
+  customer,
+  onClose,
+  onImpersonate,
+  onGrantPoints,
+  onManualSubscription,
+  refreshKey = 0,
+  actionMessage = "",
+  working,
+  actionError,
+}) {
   const theme = useTheme();
   const mobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const customerId = customer?.id || null;
   const [detail, setDetail] = useState(null);
   const [records, setRecords] = useState(null);
   const [kind, setKind] = useState("overview");
   const [page, setPage] = useState(1);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setDetail(null);
+    setKind("overview");
+    setPage(1);
+    setError("");
+  }, [customerId]);
+
   useEffect(() => {
     let ignore = false;
-    setDetail(null); setKind("overview"); setPage(1); setError("");
-    if (customer) getCustomerDetail(customer.id).then(data => { if (!ignore) setDetail(data); })
-      .catch(err => { if (!ignore) setError(customerError(err)); });
+    setError("");
+    if (customerId) {
+      getCustomerDetail(customerId)
+        .then(data => { if (!ignore) setDetail(data); })
+        .catch(err => { if (!ignore) setError(customerError(err)); });
+    }
     return () => { ignore = true; };
-  }, [customer]);
+  }, [customerId, refreshKey]);
+
   useEffect(() => {
     let ignore = false;
     setRecords(null);
-    if (!customer || kind === "overview") return;
-    setLoading(true); setError("");
-    getCustomerRecords(customer.id, kind, page).then(data => { if (!ignore) setRecords(data); })
-      .catch(err => { if (!ignore) setError(customerError(err)); }).finally(() => { if (!ignore) setLoading(false); });
+    if (!customerId || kind === "overview") return;
+    setLoading(true);
+    setError("");
+    getCustomerRecords(customerId, kind, page)
+      .then(data => { if (!ignore) setRecords(data); })
+      .catch(err => { if (!ignore) setError(customerError(err)); })
+      .finally(() => { if (!ignore) setLoading(false); });
     return () => { ignore = true; };
-  }, [customer, kind, page]);
+  }, [customerId, kind, page, refreshKey]);
+
   const user = detail?.user || customer;
   const summary = detail?.summary;
   return (
     <Dialog open={Boolean(customer)} onClose={working ? undefined : onClose} fullWidth maxWidth="lg" fullScreen={mobile} scroll="paper">
       <DialogTitle><Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" gap={1}>
         <Typography component="span" variant="h6" fontWeight={800}>설계사 #{user?.id} · {user?.name || user?.display_name}</Typography>
-        <Chip size="small" label={planName(user?.plan_code)} color="primary" variant="outlined" />
+        <Chip size="small" label={user?.manual_subscription_id ? `${planName(user?.plan_code)} 수동 구독` : planName(user?.plan_code)} color="primary" variant="outlined" />
       </Stack></DialogTitle>
       <DialogContent dividers>
+        {actionMessage && <Alert severity="success" sx={{ mb: 2 }}>{actionMessage}</Alert>}
         {(error || actionError) && <Alert severity="error" sx={{ mb: 2 }}>{error || actionError}</Alert>}
         <Stack direction="row" flexWrap="wrap" gap={1.25} sx={{ mb: 2 }}>
           <Stat label="보유 꼬막" value={`${number(user?.total_points)}개`} />
@@ -172,7 +201,17 @@ export default function CustomerDetailDialog({ customer, onClose, onImpersonate,
           </Stack>
         )}
       </DialogContent>
-      <DialogActions sx={{ p: 2 }}>
+      <DialogActions sx={{ p: 2, flexWrap: "wrap", gap: 1 }}>
+        {onGrantPoints && (
+          <Button disabled={working || !user} variant="outlined" onClick={() => onGrantPoints(user)}>
+            꼬막 지급
+          </Button>
+        )}
+        {onManualSubscription && canManageManualSubscription(user) && (
+          <Button disabled={working || !user} variant="outlined" onClick={() => onManualSubscription(user)}>
+            {user?.manual_subscription_id ? "수동 구독 종료" : "수동 구독 적용"}
+          </Button>
+        )}
         <Button disabled={working || user?.role !== "USER" || user?.status !== "ACTIVE"} variant="contained" onClick={() => onImpersonate(user)}>설계사로 접속 (Impersonate)</Button>
         <Button disabled={working} onClick={onClose}>닫기</Button>
       </DialogActions>
