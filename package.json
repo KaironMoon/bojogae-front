@@ -9,7 +9,12 @@
     "build": "vite build --mode production",
     "lint": "eslint .",
     "preview": "vite preview",
-    "copy": "rm -rf ../bojogae-backend/frontend && cp -r ./dist ../bojogae-backend/frontend"
+    "copy": "rm -rf ../bojogae-backend/frontend && cp -r ./dist ../bojogae-backend/frontend",
+    "setup:local": "powershell -NoProfile -ExecutionPolicy Bypass -File ../bojogae-backend/tools/local_dev/setup-local.ps1",
+    "dev:stack": "powershell -NoProfile -ExecutionPolicy Bypass -File ../bojogae-backend/tools/local_dev/start-local.ps1 -WithWorker",
+    "stop:stack": "powershell -NoProfile -ExecutionPolicy Bypass -File ../bojogae-backend/tools/local_dev/stop-local.ps1",
+    "status:stack": "powershell -NoProfile -ExecutionPolicy Bypass -File ../bojogae-backend/tools/local_dev/status-local.ps1",
+    "sync:server": "powershell -NoProfile -ExecutionPolicy Bypass -File ../bojogae-backend/tools/local_dev/sync-from-server.ps1 -FullDb -AllS3 -Restart"
   },
   "dependencies": {
     "@emotion/react": "^11.13.5",

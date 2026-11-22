@@ -33,3 +33,15 @@ export function groupPromptCategories(promptOptions) {
     }))
     .sort(compareCategories);
 }
+
+export function isCompactCategoryGroup(group) {
+  const children = group?.children || [];
+  if (!children.length) return true;
+  const maxLen = Math.max(...children.map((child) => (child.name || "").length));
+  if (children.length <= 2) return maxLen <= 12;
+  if (children.length === 3) {
+    const totalLen = children.reduce((sum, child) => sum + (child.name || "").length, 0);
+    return maxLen <= 6 && totalLen <= 14;
+  }
+  return false;
+}

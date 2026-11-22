@@ -1,6 +1,6 @@
 import { Alert, Box, Button, Chip, CircularProgress, Container, Divider, Paper, Stack, Tab, Tabs, TextField, Typography } from "@mui/material";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
 import { getLastLoginMethod, setLastLoginMethod } from "@/auth/login-method-storage";
@@ -42,6 +42,7 @@ function LoginPage() {
         : getLastLoginMethod());
   const [lastProvider] = useState(getLastSocialLoginProvider);
   const [authOptions, setAuthOptions] = useState(null);
+  const [optionsLoadFailed, setOptionsLoadFailed] = useState(false);
   const [email, setEmail] = useState("bojoge.smith@gmail.com");
   const [localSignupName, setLocalSignupName] = useState("");
   const [localError, setLocalError] = useState("");
@@ -51,16 +52,30 @@ function LoginPage() {
     if (error) clearPendingSocialLoginProvider();
   }, [error]);
 
-  useEffect(() => {
+  const loadAuthOptions = useCallback(() => {
     getAuthOptions()
       .then((options) => {
+        setOptionsLoadFailed(false);
         setAuthOptions(options);
         if (options.local_email_login_enabled) {
           setEmail(options.local_login_default_email || "bojoge.smith@gmail.com");
         }
       })
-      .catch(() => setAuthOptions({ local_email_login_enabled: false }));
+      .catch(() => {
+        setOptionsLoadFailed(true);
+        setAuthOptions({ local_email_login_enabled: false });
+      });
   }, []);
+
+  useEffect(() => {
+    loadAuthOptions();
+  }, [loadAuthOptions]);
+
+  const retryAuthOptions = () => {
+    setAuthOptions(null);
+    setOptionsLoadFailed(false);
+    loadAuthOptions();
+  };
 
   const submitLocalLogin = async (event) => {
     event.preventDefault();
@@ -101,6 +116,8 @@ function LoginPage() {
   };
 
   const localMode = authOptions?.local_email_login_enabled === true;
+  const isLocalHost = typeof window !== "undefined"
+    && ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname);
 
   return (
     <Box
@@ -134,6 +151,20 @@ function LoginPage() {
           <Paper elevation={0} sx={loginCardSx}>
             <Stack spacing={1.5}>
               {searchParams.get("passwordChanged") && <Alert severity="success">비밀번호가 변경되었습니다. 다시 로그인해 주세요.</Alert>}
+              {optionsLoadFailed && (
+                <Alert
+                  severity="warning"
+                  action={(
+                    <Button color="inherit" size="small" onClick={retryAuthOptions}>
+                      다시 연결
+                    </Button>
+                  )}
+                >
+                  {isLocalHost
+                    ? "로컬 백엔드 서버(33801)에 연결되지 않아 로그인 옵션을 불러오지 못했습니다. 서버 실행 후 다시 연결을 눌러 주세요."
+                    : "일부 로그인 옵션을 불러오지 못했습니다. 소셜·단체 로그인은 그대로 이용할 수 있으며, 필요하면 다시 연결을 눌러 주세요."}
+                </Alert>
+              )}
               <Tabs value={loginMethod} onChange={(_, value) => { setLoginMethod(value); setLastLoginMethod(value); }} variant="fullWidth" aria-label="로그인 방식"
                 sx={loginTabsSx}>
                 <Tab value="group" label="단체 회원 로그인" id="login-tab-group" aria-controls="login-panel-group" />
@@ -164,44 +195,51 @@ function LoginPage() {
                 <Box sx={{ minHeight: 120, display: "grid", placeItems: "center" }}>
                   <CircularProgress size={28} />
                 </Box>
-              ) : localMode ? (
-                <Stack component="form" spacing={1.5} onSubmit={submitLocalLogin}>
-                  <TextField
-                    type="email"
-                    label="이메일"
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)}
-                    required
-                    autoFocus
-                    fullWidth
-                    inputProps={{ autoComplete: "email" }}
-                  />
-                  <Button
-                    type="submit"
-                    fullWidth
-                    variant="contained"
-                    disabled={localWorking || !email.trim()}
-                    sx={{ minHeight: 54, borderRadius: 2.5, fontWeight: 800 }}
-                  >
-                    {localWorking ? "로그인 중..." : "로컬 이메일로 로그인"}
-                  </Button>
-                  <Divider />
-                  <Typography variant="body2" color="text.secondary">
-                    새 테스트 회원은 소셜 인증만 생략합니다. 약관 동의·이메일 인증 후 가입하며 유료 이용은 결제가 필요합니다.
-                  </Typography>
-                  <TextField label="가입할 이름" value={localSignupName}
-                    onChange={(event) => setLocalSignupName(event.target.value)}
-                    inputProps={{ maxLength: 100 }} fullWidth />
-                  <Button type="button" variant="outlined" onClick={beginLocalSignup}
-                    disabled={localWorking || !localSignupName.trim()}>
-                    로컬 테스트 회원가입
-                  </Button>
-                </Stack>
-              ) : loginProviders.map((provider) => (
-                <SocialLoginButton key={provider.id} provider={provider} recent={lastProvider === provider.id}
-                  component="a" href={getOAuthLoginUrl(provider.id, requestedPlan)}
-                  onClick={() => setPendingSocialLoginProvider(provider.id)} />
-              ))}
+              ) : (
+                <>
+                  {loginProviders.map((provider) => (
+                    <SocialLoginButton key={provider.id} provider={provider} recent={lastProvider === provider.id}
+                      component="a" href={getOAuthLoginUrl(provider.id, requestedPlan)}
+                      onClick={() => setPendingSocialLoginProvider(provider.id)} />
+                  ))}
+                  {localMode && (
+                    <>
+                      <Divider sx={{ my: 0.5 }}>로컬 개발용 이메일 로그인</Divider>
+                      <Stack component="form" spacing={1.5} onSubmit={submitLocalLogin}>
+                        <TextField
+                          type="email"
+                          label="이메일"
+                          value={email}
+                          onChange={(event) => setEmail(event.target.value)}
+                          required
+                          fullWidth
+                          inputProps={{ autoComplete: "email" }}
+                        />
+                        <Button
+                          type="submit"
+                          fullWidth
+                          variant="contained"
+                          disabled={localWorking || !email.trim()}
+                          sx={{ minHeight: 54, borderRadius: 2.5, fontWeight: 800 }}
+                        >
+                          {localWorking ? "로그인 중..." : "로컬 이메일로 로그인"}
+                        </Button>
+                        <Divider />
+                        <Typography variant="body2" color="text.secondary">
+                          새 테스트 회원은 소셜 인증만 생략합니다. 약관 동의·이메일 인증 후 가입하며 유료 이용은 결제가 필요합니다.
+                        </Typography>
+                        <TextField label="가입할 이름" value={localSignupName}
+                          onChange={(event) => setLocalSignupName(event.target.value)}
+                          inputProps={{ maxLength: 100 }} fullWidth />
+                        <Button type="button" variant="outlined" onClick={beginLocalSignup}
+                          disabled={localWorking || !localSignupName.trim()}>
+                          로컬 테스트 회원가입
+                        </Button>
+                      </Stack>
+                    </>
+                  )}
+                </>
+              )}
 
               <Stack direction="row" spacing={1} alignItems="center" justifyContent="center" sx={{ pt: 1 }}>
                 <LockOutlinedIcon sx={{ fontSize: 16, color: "text.secondary" }} />

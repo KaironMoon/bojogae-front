@@ -10,3 +10,12 @@ export function filterPromptCategories(options, categoryIds) {
   return options.filter((option) => categoryIds.every((id) =>
     (option.categories || []).some((category) => category.id === id)));
 }
+
+export function selectSingleCategory(currentCategoryId, nextCategoryId) {
+  if (nextCategoryId == null) return null;
+  return currentCategoryId === nextCategoryId ? null : nextCategoryId;
+}
+
+export function categoryIdsFromSingle(selectedCategoryId) {
+  return selectedCategoryId == null ? [] : [selectedCategoryId];
+}

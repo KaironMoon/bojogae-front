@@ -13,16 +13,21 @@ import PromptInputForm from "@/pages/components/PromptInputForm";
 import PdfPasswordInput from "@/pages/components/PdfPasswordInput";
 import usePdfPasswords from "@/pages/components/usePdfPasswords";
 import { promptPreviewImageUrl } from "@/services/prompt-service";
-import { defaultPromptTab, promptsForTab, filterPromptCategories } from "@/services/prompt-list-utils";
+import {
+  defaultPromptTab,
+  promptsForTab,
+  filterPromptCategories,
+  selectSingleCategory,
+  categoryIdsFromSingle,
+} from "@/services/prompt-list-utils";
 import StarRoundedIcon from "@mui/icons-material/StarRounded";
 import StarBorderRoundedIcon from "@mui/icons-material/StarBorderRounded";
-import { groupPromptCategories } from "@/services/prompt-category-utils";
+import { groupPromptCategories, isCompactCategoryGroup } from "@/services/prompt-category-utils";
 import { acceptsFile, fileAccept, fileTypeLabel, missingInputGroup } from "@/services/prompt-input-utils";
 import {
   Alert,
   Box,
   Button,
-  Checkbox,
   Chip,
   CircularProgress,
   Dialog,
@@ -30,7 +35,6 @@ import {
   DialogContent,
   DialogTitle,
   Drawer,
-  FormControlLabel,
   IconButton,
   MenuItem,
   Pagination,
@@ -92,6 +96,8 @@ const PREVIEW_WIDTH = 794;
 const PREVIEW_HEIGHT = 1123;
 
 const CATEGORY_ACCENTS = {
+  "알릴의무": "#e11d48",
+  "고객관리": "#0284c7",
   "보고서": "#2563eb",
   "건강": "#16a34a",
   "간병/시니어": "#7c3aed",
@@ -114,8 +120,8 @@ const STATUS_LABELS = {
 const WORKFLOW_STEPS = [
   {
     eyebrow: "Step 1",
-    title: "1. 카테고리 체크 & 프롬프트 선택",
-    description: "체크 항목 연동 추천 및 결과 미리보기",
+    title: "1. 카테고리 & 프롬프트 선택",
+    description: "카테고리별 맞춤 추천 및 결과 미리보기",
     icon: FactCheckRoundedIcon,
     color: "#006E43",
     background: "#03C75A",
@@ -199,7 +205,8 @@ function ProposalsPage() {
   const [pointBalance, setPointBalance] = useState({ free_points: 0, paid_points: 0, total_points: 0 });
   const [promptId, setPromptId] = useState("");
   const [versionChoice, setVersionChoice] = useState(null);
-  const [selectedCategoryIds, setSelectedCategoryIds] = useState([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState(null);
+  const selectedCategoryIds = useMemo(() => categoryIdsFromSingle(selectedCategoryId), [selectedCategoryId]);
   const [title, setTitle] = useState("");
   const [titleTouched, setTitleTouched] = useState(false);
   const [files, setFiles] = useState([]);
@@ -266,7 +273,7 @@ function ProposalsPage() {
   const mobileCategories = useMemo(() => categoryGroups.flatMap((group) => (
     group.children.map((child) => ({ ...child, parentName: group.name }))
   )), [categoryGroups]);
-  const selectedCategories = mobileCategories.filter((category) => selectedCategoryIds.includes(category.id));
+  const selectedCategory = mobileCategories.find((category) => category.id === selectedCategoryId) || null;
   const filteredPromptOptions = useMemo(
     () => {
       const categorized = filterPromptCategories(tabPromptOptions, selectedCategoryIds);
@@ -281,16 +288,33 @@ function ProposalsPage() {
 
   const changePromptTab = (_, tab) => {
     setPromptTab(tab);
-    setSelectedCategoryIds([]);
+    setSelectedCategoryId(null);
   };
 
-  const updateCategorySelection = (categoryId, checked) => {
-    if (checked) setPromptTab("recommended");
-    setSelectedCategoryIds((current) => (
-      checked
-        ? [...new Set([...current, categoryId])]
-        : current.filter((id) => id !== categoryId)
-    ));
+  const chooseCategory = (categoryId) => {
+    const nextId = selectSingleCategory(selectedCategoryId, categoryId);
+    if (nextId !== null) setPromptTab("recommended");
+    setSelectedCategoryId(nextId);
+  };
+
+  const handleCategoryRadioKeyDown = (event) => {
+    if (!["ArrowRight", "ArrowDown", "ArrowLeft", "ArrowUp"].includes(event.key)) return;
+    const radios = Array.from(event.currentTarget.querySelectorAll('[role="radio"]'))
+      .filter((element) => element.offsetParent !== null);
+    if (!radios.length) return;
+    const currentIndex = radios.indexOf(document.activeElement);
+    if (currentIndex === -1) return;
+    event.preventDefault();
+    const delta = event.key === "ArrowRight" || event.key === "ArrowDown" ? 1 : -1;
+    const nextRadio = radios[(currentIndex + delta + radios.length) % radios.length];
+    nextRadio.focus();
+    const rawId = nextRadio.dataset.categoryId;
+    if (rawId === "all") {
+      setSelectedCategoryId(null);
+    } else if (rawId) {
+      setPromptTab("recommended");
+      setSelectedCategoryId(Number(rawId));
+    }
   };
 
   const toggleFavorite = async (option) => {
@@ -472,7 +496,7 @@ function ProposalsPage() {
         const initialTab = requestedPrompt || searchParams.get("promptQuery") ? "recommended" : searchParams.get("tab") === "favorites" ? "favorites" : searchParams.get("tab") === "all" ? "recommended" : defaultPromptTab(options);
         pendingPromptScrollId.current = requestedPrompt?.id || null;
         setPromptTab(initialTab);
-        setSelectedCategoryIds(requestedPrompt?.categories?.map((category) => category.id) || []);
+        setSelectedCategoryId(requestedPrompt?.categories?.[0]?.id ?? null);
         setPromptId(requestedPrompt?.id || promptsForTab(options, initialTab)[0]?.id || "");
         if (request === listRequest.current) {
           setItems(result.items);
@@ -697,14 +721,6 @@ function ProposalsPage() {
     const groupError = missingInputGroup(inputSchema, inputValues, fieldUploads);
     if (groupError) { setError(groupError); return; }
     const selectedFiles = selectedUploads;
-    for (const file of selectedFiles) {
-      const state = pdfPasswords.stateFor(file);
-      if (state.checking || state.error || (state.encrypted && !state.password)) {
-        setError(state.checking ? "PDF 암호 여부 확인이 끝난 뒤 다시 시도해 주세요."
-          : state.error || `${file.name}: PDF 암호를 입력해 주세요.`);
-        return;
-      }
-    }
     const fileFields = customInputs ? inputSchema.flatMap((field) => (fieldUploads[field.key] || []).map(() => field.key)) : [];
     const selectedDocuments = inputSchema.flatMap((field) => (
       field.type === "generated_document" ? fieldDocuments[field.key] || [] : []
@@ -754,6 +770,14 @@ function ProposalsPage() {
     setWorking(true);
     setError("");
     try {
+      const resolvedPdfStates = await pdfPasswords.ensureChecked(selectedFiles);
+      for (const file of selectedFiles) {
+        const state = resolvedPdfStates.get(file) || pdfPasswords.stateFor(file);
+        if (state.error || (state.encrypted && !state.password)) {
+          setError(state.error || `${file.name}: PDF 암호를 입력해 주세요.`);
+          return;
+        }
+      }
       submissionKey.current ||= createIdempotencyKey();
       const buildPayload = (promptVersionId) => ({
         title: title.trim(),
@@ -761,7 +785,7 @@ function ProposalsPage() {
         files: selectedFiles,
         inputValues: values,
         fileFields,
-        pdfPasswords: selectedFiles.map((file) => pdfPasswords.stateFor(file).password || ""),
+        pdfPasswords: selectedFiles.map((file) => (resolvedPdfStates.get(file) || pdfPasswords.stateFor(file)).password || ""),
         attachedGenerationIds: selectedDocuments.map((doc) => doc.id),
         attachedGenerationFields: documentFields,
         promptVersionId,
@@ -977,7 +1001,7 @@ function ProposalsPage() {
     const initialTab = defaultPromptTab(promptOptions);
     setPromptTab(initialTab);
     setPromptId(promptsForTab(promptOptions, initialTab)[0]?.id || "");
-    setSelectedCategoryIds([]);
+    setSelectedCategoryId(null);
     submissionKey.current = null;
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -1068,7 +1092,7 @@ function ProposalsPage() {
           "& .MuiAlert-action": { display: "flex", alignItems: "center", pl: 1, mr: 0 },
         }}
       >
-        카테고리를 체크하시면 입력폼 상단의 추천 프롬프트가 실시간으로 재구성되며, [결과 미리보기]로 슬라이드를 확인할 수 있습니다.
+        카테고리를 선택하시면 입력폼 상단의 추천 프롬프트가 실시간으로 재구성되며, [결과 미리보기]로 슬라이드를 확인할 수 있습니다.
       </Alert>
 
       <ExpiringPoints balance={pointBalance} />
@@ -1085,40 +1109,73 @@ function ProposalsPage() {
           <Paper
             data-report-help="categories"
             variant="outlined"
-            sx={{ borderRadius: "16px", maxHeight: { md: 680 }, boxSizing: "border-box", flexShrink: 0, minHeight: 0, display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 1px 3px rgba(15, 23, 42, 0.05)" }}
+            role="radiogroup"
+            aria-label="보험 카테고리 선택"
+            onKeyDown={handleCategoryRadioKeyDown}
+            sx={{ borderRadius: "16px", boxSizing: "border-box", flexShrink: 0, display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 1px 3px rgba(15, 23, 42, 0.05)" }}
           >
-            <Box sx={{ px: 2, py: 1.75, flexShrink: 0, borderBottom: 1, borderColor: "divider", bgcolor: "#F8FAFC" }}>
-              <Stack direction="row" spacing={1} alignItems="center">
+            <Box
+              sx={{
+                px: 1.75,
+                py: 1.25,
+                flexShrink: 0,
+                borderBottom: 1,
+                borderColor: "divider",
+                bgcolor: "#F8FAFC",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 1,
+              }}
+            >
+              <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0 }}>
                 <FolderOpenRoundedIcon color="primary" fontSize="small" />
                 <Typography variant="subtitle2" fontWeight={800}>보험 카테고리</Typography>
               </Stack>
-              {selectedCategories.length > 0 && (
-                <Stack direction="row" alignItems="center" flexWrap="wrap" gap={0.5} sx={{ mt: 1 }}>
-                  {selectedCategories.map((category) => (
-                    <Chip
-                      key={category.id}
-                      label={category.name}
-                      size="small"
-                      aria-label={`${category.name} 선택 해제`}
-                      onClick={() => updateCategorySelection(category.id, false)}
-                      sx={{
-                        bgcolor: brand.accent,
-                        color: "white",
-                        height: "auto",
-                        minHeight: 24,
-                        "&:hover, &.Mui-focusVisible": { bgcolor: brand.accentHover },
-                        "& .MuiChip-label": { whiteSpace: "normal", overflowWrap: "anywhere", py: 0.25 },
-                      }}
-                    />
-                  ))}
-                  <Button size="small" onClick={() => setSelectedCategoryIds([])} sx={{ whiteSpace: "nowrap" }}>
-                    전체 해제
-                  </Button>
-                </Stack>
-              )}
+              <Box
+                component="button"
+                type="button"
+                role="radio"
+                aria-checked={selectedCategoryId === null}
+                data-category-id="all"
+                onClick={() => chooseCategory(null)}
+                sx={{
+                  appearance: "none",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  px: 1.25,
+                  py: 0.45,
+                  minHeight: 28,
+                  borderRadius: "999px",
+                  border: "1px solid",
+                  borderColor: selectedCategoryId === null ? brand.accentInk : "#DCE2E8",
+                  bgcolor: selectedCategoryId === null ? brand.accentInk : "#FFFFFF",
+                  color: selectedCategoryId === null ? "#FFFFFF" : "text.secondary",
+                  fontFamily: "inherit",
+                  fontSize: 12,
+                  fontWeight: selectedCategoryId === null ? 800 : 700,
+                  lineHeight: 1.2,
+                  letterSpacing: "-0.02em",
+                  whiteSpace: "nowrap",
+                  cursor: "pointer",
+                  boxShadow: selectedCategoryId === null ? "0 1px 3px rgba(0, 110, 67, 0.24)" : "none",
+                  transition: "background-color 120ms ease, border-color 120ms ease, color 120ms ease, box-shadow 120ms ease",
+                  "&:hover": {
+                    bgcolor: selectedCategoryId === null ? brand.deep : brand.tint,
+                    borderColor: selectedCategoryId === null ? brand.deep : brand.accent,
+                    color: selectedCategoryId === null ? "#FFFFFF" : brand.accentInk,
+                  },
+                  "&:focus-visible": {
+                    outline: `2px solid ${brand.accentInk}`,
+                    outlineOffset: 2,
+                  },
+                }}
+              >
+                전체
+              </Box>
             </Box>
             <Box
-              aria-label="보험 카테고리 선택"
               sx={{
                 display: { xs: "grid", md: "none" },
                 gridTemplateRows: "repeat(3, auto)",
@@ -1133,14 +1190,17 @@ function ProposalsPage() {
               }}
             >
               {mobileCategories.map((category) => {
-                const selected = selectedCategoryIds.includes(category.id);
+                const selected = selectedCategoryId === category.id;
                 const accent = CATEGORY_ACCENTS[category.parentName] || "#64748b";
                 return (
                   <Chip
                     key={category.id}
+                    role="radio"
+                    aria-checked={selected}
+                    data-category-id={String(category.id)}
                     label={`${category.parentName} · ${category.name}`}
                     variant="outlined"
-                    onClick={() => updateCategorySelection(category.id, !selected)}
+                    onClick={() => chooseCategory(category.id)}
                     sx={{
                       justifyContent: "flex-start",
                       borderWidth: 2,
@@ -1159,34 +1219,108 @@ function ProposalsPage() {
               })}
               {!mobileCategories.length && <Typography variant="body2" color="text.secondary">등록된 카테고리가 없습니다.</Typography>}
             </Box>
-            <Box sx={{ display: { xs: "none", md: "block" }, p: 1.5, flex: 1, minHeight: 0, overflowY: "auto" }}>
-              <Stack spacing={1.25}>
-                {categoryGroups.map((group) => (
-                  <Paper key={group.id} variant="outlined" sx={{ p: 1.25, borderRadius: "10px" }}>
-                    <Typography variant="body2" fontWeight={800} sx={{ mb: 0.5 }}>{group.name}</Typography>
-                    <Stack>
-                      {group.children.map((child) => (
-                        <FormControlLabel
-                          key={child.id}
-                          control={(
-                            <Checkbox
-                              size="small"
-                              checked={selectedCategoryIds.includes(child.id)}
-                              onChange={(event) => updateCategorySelection(child.id, event.target.checked)}
-                            />
-                          )}
-                          label={child.name}
-                          slotProps={{ typography: { variant: "body2" } }}
-                          sx={{ my: -0.25 }}
-                        />
-                      ))}
-                    </Stack>
+            <Box
+              sx={{
+                display: { xs: "none", md: "grid" },
+                gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                gridAutoFlow: "row dense",
+                gap: 1,
+                p: 1.15,
+              }}
+            >
+              {categoryGroups.map((group) => {
+                const groupSelected = group.children.some((child) => child.id === selectedCategoryId);
+                const compact = isCompactCategoryGroup(group);
+                return (
+                  <Paper
+                    key={group.id}
+                    data-category-group={group.name}
+                    variant="outlined"
+                    sx={{
+                      gridColumn: compact ? "span 1" : "1 / -1",
+                      px: 1.1,
+                      py: 0.9,
+                      borderRadius: "12px",
+                      display: "flex",
+                      flexDirection: "column",
+                      borderColor: groupSelected ? brand.accent : "divider",
+                      bgcolor: groupSelected ? "rgba(236, 253, 245, 0.4)" : "background.paper",
+                      transition: "border-color 150ms ease, background-color 150ms ease",
+                    }}
+                  >
+                    <Typography
+                      variant="caption"
+                      component="div"
+                      sx={{
+                        fontSize: 12,
+                        fontWeight: 800,
+                        color: groupSelected ? brand.accentInk : "text.primary",
+                        mb: 0.6,
+                        lineHeight: 1.25,
+                      }}
+                    >
+                      {group.name}
+                    </Typography>
+                    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.55 }}>
+                      {group.children.map((child) => {
+                        const selected = selectedCategoryId === child.id;
+                        return (
+                          <Box
+                            key={child.id}
+                            component="button"
+                            type="button"
+                            role="radio"
+                            aria-checked={selected}
+                            data-category-id={String(child.id)}
+                            onClick={() => chooseCategory(child.id)}
+                            sx={{
+                              appearance: "none",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              maxWidth: "100%",
+                              px: 1,
+                              py: 0.45,
+                              minHeight: 28,
+                              borderRadius: "7px",
+                              border: "1px solid",
+                              borderColor: selected ? brand.accentInk : "#DCE2E8",
+                              bgcolor: selected ? brand.accentInk : "#F8FAFC",
+                              color: selected ? "#FFFFFF" : "text.primary",
+                              fontFamily: "inherit",
+                              fontSize: 12,
+                              fontWeight: selected ? 800 : 600,
+                              lineHeight: 1.25,
+                              letterSpacing: "-0.02em",
+                              whiteSpace: "normal",
+                              wordBreak: "keep-all",
+                              overflowWrap: "anywhere",
+                              textAlign: "left",
+                              cursor: "pointer",
+                              boxShadow: selected ? "0 1px 3px rgba(0, 110, 67, 0.24)" : "none",
+                              transition: "background-color 120ms ease, border-color 120ms ease, color 120ms ease, box-shadow 120ms ease",
+                              "&:hover": {
+                                bgcolor: selected ? brand.deep : brand.tint,
+                                borderColor: selected ? brand.deep : brand.accent,
+                                color: selected ? "#FFFFFF" : brand.accentInk,
+                              },
+                              "&:focus-visible": {
+                                outline: `2px solid ${brand.accentInk}`,
+                                outlineOffset: 2,
+                              },
+                            }}
+                          >
+                            {child.name}
+                          </Box>
+                        );
+                      })}
+                    </Box>
                   </Paper>
-                ))}
-                {!categoryGroups.length && (
-                  <Alert severity="info">등록된 프롬프트 카테고리가 없습니다.</Alert>
-                )}
-              </Stack>
+                );
+              })}
+              {!categoryGroups.length && (
+                <Alert severity="info" sx={{ gridColumn: "1 / -1" }}>등록된 프롬프트 카테고리가 없습니다.</Alert>
+              )}
             </Box>
           </Paper>
 
@@ -1213,7 +1347,11 @@ function ProposalsPage() {
                   </Tabs>
                 </Stack>
                 <Typography variant="caption" color="text.secondary">
-                  {selectedCategoryIds.length ? "선택한 카테고리를 모두 포함한 프롬프트입니다." : promptTab === "favorites" ? "내가 즐겨찾기한 프롬프트 목록입니다." : "사용 가능한 프롬프트 전체 목록입니다."}
+                  {selectedCategory
+                    ? `'${selectedCategory.parentName} · ${selectedCategory.name}' 카테고리 프롬프트입니다.`
+                    : promptTab === "favorites"
+                      ? "내가 즐겨찾기한 프롬프트 목록입니다."
+                      : "사용 가능한 프롬프트 전체 목록입니다."}
                 </Typography>
               </Box>
               {promptQuery && <Chip label={`검색: ${promptQuery}`} size="small" onDelete={() => {

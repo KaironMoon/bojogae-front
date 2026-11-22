@@ -1,36 +1,52 @@
-import { useEffect, useState } from "react";
-import { needsPdfPassword } from "@/services/pdf-password";
-
-const isPdf = (file) => /\.pdf$/i.test(file.name);
+import { useCallback, useEffect, useRef, useState } from "react";
+import { createPdfPasswordTracker, preloadPdfLibrary } from "@/services/pdf-password";
 
 export default function usePdfPasswords(files) {
-  const [states, setStates] = useState(new Map());
-  useEffect(() => {
-    let active = true;
-    const pdfs = files.filter(isPdf);
-    setStates((current) => new Map(pdfs.map((file) => [file, current.get(file) || { checking: true, password: "" }])));
-    for (const file of pdfs) {
-      if (states.has(file) && !states.get(file).checking) continue;
-      needsPdfPassword(file).then(
-        (encrypted) => {
-          if (active) setStates((current) => new Map(current).set(file, { ...current.get(file), checking: false, encrypted }));
-        },
-        () => {
-          if (active) setStates((current) => new Map(current).set(file, { checking: false, error: "PDF를 읽지 못했습니다. 파일을 확인하고 다시 첨부해 주세요." }));
-        },
-      );
-    }
-    return () => { active = false; };
-    // Only selection changes trigger inspection; typing a password must not reparse PDFs.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [files]);
+  const trackerRef = useRef(null);
+  if (!trackerRef.current) {
+    trackerRef.current = createPdfPasswordTracker();
+  }
+  const mountedRef = useRef(true);
+  const [, setRevision] = useState(0);
 
-  const stateFor = (file) => states.get(file) || (isPdf(file) ? { checking: true } : {});
-  const setPassword = (file, password) => setStates((current) => new Map(current).set(file, {
-    ...current.get(file), password, serverError: "",
-  }));
-  const setFileError = (file, message) => setStates((current) => new Map(current).set(file, {
-    ...current.get(file), encrypted: true, serverError: message,
-  }));
-  return { stateFor, setPassword, setFileError };
+  const notify = useCallback(() => {
+    if (mountedRef.current) {
+      setRevision((value) => value + 1);
+    }
+  }, []);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    preloadPdfLibrary().catch(() => {});
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    const tracker = trackerRef.current;
+    tracker.prune(files);
+    for (const file of files) {
+      tracker.inspect(file, notify);
+    }
+  }, [files, notify]);
+
+  const stateFor = useCallback((file) => trackerRef.current.stateFor(file), []);
+
+  const setPassword = useCallback((file, password) => {
+    trackerRef.current.setPassword(file, password);
+    notify();
+  }, [notify]);
+
+  const setFileError = useCallback((file, message) => {
+    trackerRef.current.setFileError(file, message);
+    notify();
+  }, [notify]);
+
+  const ensureChecked = useCallback(
+    (targetFiles) => trackerRef.current.ensureChecked(targetFiles, notify),
+    [notify],
+  );
+
+  return { stateFor, setPassword, setFileError, ensureChecked };
 }
