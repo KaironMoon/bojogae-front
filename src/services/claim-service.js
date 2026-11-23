@@ -1,7 +1,7 @@
 import apiCaller from './api-caller';
 
-export async function getClaimInsurers(signal) {
-  return (await apiCaller.get('/api/v1/claims/insurers', {}, { signal })).data.items;
+export async function getClaimConfiguration(signal) {
+  return (await apiCaller.get('/api/v1/claims/insurers', {}, { signal })).data;
 }
 
 export function claimTemplateUrl(id) {
@@ -71,8 +71,8 @@ export function downloadClaimBlob(blob, filename) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-export async function downloadClaimDocument(requestId) {
-  const response = await apiCaller.get(`/api/v1/claims/requests/${requestId}/download`, {}, { responseType: 'blob', timeout: 120000 });
+export async function downloadClaimDocument(requestId, faxDownload = false) {
+  const response = await apiCaller.get(`/api/v1/claims/requests/${requestId}/download`, { fax_download: faxDownload }, { responseType: 'blob', timeout: 120000 });
   const encoded = response.headers['content-disposition']?.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
   const filename = encoded ? decodeURIComponent(encoded) : `청구서_${requestId}.${response.data.type === 'application/pdf' ? 'pdf' : 'zip'}`;
   downloadClaimBlob(response.data, filename);

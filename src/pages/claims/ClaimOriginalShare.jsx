@@ -8,7 +8,7 @@ import { claimError, downloadClaimBlob, getClaimOriginalShare, getClaimOriginalD
 
 export const PC_SHARE_NOTICE = '공유되었습니다. 모바일에서 청구내역에 있는 공유버튼을 눌러주세요';
 
-export default function ClaimOriginalShare({ result, requestId, deliveryId, expiresAt, serverTime, prepare, disabled, showRemaining = false, additionalActions, feedbackId }) {
+export default function ClaimOriginalShare({ result, requestId, deliveryId, prepare, disabled, showDownload = true, additionalActions, feedbackId }) {
   const mobile = useMediaQuery('(max-width: 600px), (pointer: coarse)');
   const [expired, setExpired] = useState(false);
   const [files, setFiles] = useState(null);
@@ -18,25 +18,7 @@ export default function ClaimOriginalShare({ result, requestId, deliveryId, expi
   const [sharing, setSharing] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [visible, setVisible] = useState(false);
-  const [remainingMs, setRemainingMs] = useState(null);
   const anchor = useRef(null);
-  const deadlineRef = useRef(Infinity);
-  useEffect(() => {
-    if (!expiresAt) return;
-    const remaining = Date.parse(expiresAt) - Date.parse(serverTime);
-    const deadline = performance.now() + Math.max(0, remaining);
-    deadlineRef.current = deadline;
-    const expire = () => {
-      const left = Math.max(0, deadline - performance.now());
-      setRemainingMs(left);
-      if (left === 0) { setExpired(true); setFiles(null); }
-    };
-    expire();
-    const interval = setInterval(expire, 1000);
-    const timer = setTimeout(expire, Math.max(0, remaining));
-    document.addEventListener('visibilitychange', expire);
-    return () => { clearTimeout(timer); clearInterval(interval); document.removeEventListener('visibilitychange', expire); };
-  }, [expiresAt, serverTime]);
   useEffect(() => {
     if (result) return;
     const observer = new IntersectionObserver(entries => setVisible(entries[0].isIntersecting));
@@ -53,7 +35,7 @@ export default function ClaimOriginalShare({ result, requestId, deliveryId, expi
       : mobile ? getClaimOriginalShare(requestId, deliveryId, controller.signal)
         : getClaimOriginalDownload(requestId, deliveryId, controller.signal).then(file => [file]);
     pending.then(value => {
-      if (!controller.signal.aborted && performance.now() < deadlineRef.current) setFiles(value);
+      if (!controller.signal.aborted) setFiles(value);
     }).catch(async e => {
       if (controller.signal.aborted) return;
       if (e.response?.status === 410) setExpired(true);
@@ -62,7 +44,6 @@ export default function ClaimOriginalShare({ result, requestId, deliveryId, expi
     return () => { controller.abort(); setFiles(null); };
   }, [mobile, visible, expired, requestId, deliveryId, result, attempt]);
   async function share() {
-    if (performance.now() >= deadlineRef.current) { setExpired(true); setFiles(null); return; }
     setError(''); setNotice(''); setSharing(true);
     try {
       if (!mobile) {
@@ -99,15 +80,14 @@ export default function ClaimOriginalShare({ result, requestId, deliveryId, expi
       aria-label={`${result?.name || ''} 공유하기`.trim()}>
       {mobile && !files?.length ? (error ? '공유 파일 다시 준비' : '공유 파일 준비 중…') : sharing ? '저장 중…' : result ? '모바일 공유·팩스 (무료)' : '공유하기'}
     </Button>
-    {!result && <Button variant="outlined" startIcon={<DownloadOutlinedIcon />}
+    {!result && showDownload && <Button variant="outlined" startIcon={<DownloadOutlinedIcon />}
       disabled={disabled || downloading || (!mobile && !files?.length && !error)}
       onClick={async () => {
-        if (performance.now() >= deadlineRef.current) { setExpired(true); setFiles(null); return; }
         if (!mobile && !files?.length && error) { setError(''); setAttempt(value => value + 1); return; }
         setDownloading(true); setError('');
         try {
           const file = mobile ? await getClaimOriginalDownload(requestId, deliveryId) : files?.[0];
-          if (file && performance.now() < deadlineRef.current) downloadClaimBlob(file, file.name);
+          if (file) downloadClaimBlob(file, file.name);
         } catch (e) {
           if (e.response?.status === 410) setExpired(true);
           else setError(await claimError(e));
@@ -116,9 +96,6 @@ export default function ClaimOriginalShare({ result, requestId, deliveryId, expi
       {downloading ? '흑백 PDF 준비 중…' : !mobile && !files?.length ? (error ? '파일 다시 준비' : '파일 준비 중…') : '다운로드'}
     </Button>}
     {additionalActions}
-    {showRemaining && remainingMs !== null && <Typography variant="caption" color="text.secondary">
-      {remainingMs < 60000 ? '1분 미만 남음' : `약 ${Math.ceil(remainingMs / 60000)}분 남음`}
-    </Typography>}
     </Stack>}
     {mobile && files?.length > 1 && !expired && <Typography variant="caption" color="text.secondary">
       8MB 미만의 PDF {files.length}개로 나눴습니다. 공유하기를 누르면 모든 파일을 함께 전달합니다.

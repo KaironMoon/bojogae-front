@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useBlocker, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Alert,
   Box,
@@ -36,10 +36,9 @@ import {
   claimError,
   claimTemplateUrl,
   generateClaimPdf,
-  getClaimInsurers,
+  getClaimConfiguration,
   saveClaimRequest,
-  getClaimOriginalDownload,
-  downloadClaimBlob,
+  downloadClaimDocument,
 } from "@/services/claim-service";
 import {
   activeClaimPayload,
@@ -118,6 +117,7 @@ export default function ClaimsPage() {
   const [sector, setSector] = useState("ALL");
   const [faxNumbers, setFaxNumbers] = useState({});
   const [payload, setPayload] = useState(EMPTY);
+  const defaultAccidentDate = useRef("");
   const [files, setFiles] = useState([]);
   const [previewId, setPreviewId] = useState(null);
   const [step, setStep] = useState(0);
@@ -126,14 +126,11 @@ export default function ClaimsPage() {
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
   const [results, setResults] = useState([]);
-  const [leavingStep, setLeavingStep] = useState(false);
-  const [leaveTarget, setLeaveTarget] = useState(2);
   const [faxConfirmationOpen, setFaxConfirmationOpen] = useState(false);
   const [faxError, setFaxError] = useState("");
   const [progress, setProgress] = useState("");
   const [downloadingAll, setDownloadingAll] = useState(false);
   const [saved, setSaved] = useState(null);
-  const [originalExpired, setOriginalExpired] = useState(false);
   const [customerTarget, setCustomerTarget] = useState(null);
   const [customerNotice, setCustomerNotice] = useState("");
   const [partyRevision, setPartyRevision] = useState({
@@ -201,71 +198,20 @@ export default function ClaimsPage() {
   const requestKey = useRef(null);
   const pending = useRef(null);
   const form = useRef(null);
-  useEffect(() => {
-    if (!saved?.original_expires_at) return;
-    const remaining =
-      Date.parse(saved.original_expires_at) - Date.parse(saved.server_time);
-    const deadline = performance.now() + Math.max(0, remaining);
-    const expire = () => {
-      if (performance.now() < deadline) return;
-      setResults([]);
-      setFiles([]);
-      setOriginalExpired(true);
-      setFaxConfirmationOpen(false);
-      setPayload((previous) => ({
-        ...previous,
-        insured_id: previous.insured_id.slice(0, 8),
-        beneficiary_id: previous.beneficiary_id.slice(0, 8),
-      }));
-    };
-    const timer = setTimeout(expire, Math.max(0, remaining));
-    document.addEventListener("visibilitychange", expire);
-    return () => {
-      clearTimeout(timer);
-      document.removeEventListener("visibilitychange", expire);
-    };
-  }, [saved]);
-  const hasOriginals = view === "create" && step === 3 && results.length > 0;
-  const blocker = useBlocker(
-    ({ currentLocation, nextLocation }) =>
-      hasOriginals && currentLocation.pathname !== nextLocation.pathname,
-  );
-  useEffect(() => {
-    if (!hasOriginals) return;
-    const warnBeforeUnload = (event) => {
-      event.preventDefault();
-      event.returnValue = "";
-    };
-    window.addEventListener("beforeunload", warnBeforeUnload);
-    return () => window.removeEventListener("beforeunload", warnBeforeUnload);
-  }, [hasOriginals]);
-  function cancelLeave() {
-    setLeavingStep(false);
-    if (blocker.state === "blocked") blocker.reset();
-  }
-  function confirmLeave() {
-    invalidate();
-    setLeavingStep(false);
-    if (blocker.state === "blocked") {
-      // The history route can reuse this component: discard the original source too.
-      setPayload(EMPTY);
-      setFiles([]);
-      setSelected([]);
-      setFaxNumbers({});
-      setStep(0);
-      blocker.proceed();
-    } else setStep(leaveTarget);
-  }
   function previousStep() {
-    if (hasOriginals) {
-      setLeaveTarget(2);
-      setLeavingStep(true);
-    } else setStep((s) => s - 1);
+    setStep((previous) => previous - 1);
   }
   useEffect(() => {
     const controller = new AbortController();
-    getClaimInsurers(controller.signal)
-      .then(setInsurers)
+    getClaimConfiguration(controller.signal)
+      .then((configuration) => {
+        setInsurers(configuration.items);
+        defaultAccidentDate.current = configuration.default_accident_date || "";
+        setPayload((previous) => previous.accident_date ? previous : {
+          ...previous,
+          accident_date: defaultAccidentDate.current,
+        });
+      })
       .catch(async (e) => {
         if (!controller.signal.aborted) setError(await claimError(e));
       })
@@ -281,7 +227,6 @@ export default function ClaimsPage() {
     setFaxConfirmationOpen(false);
     setResults([]);
     setSaved(null);
-    setOriginalExpired(false);
     setError("");
     requestKey.current = null;
   }
@@ -653,14 +598,10 @@ export default function ClaimsPage() {
   function reuse(detail, attachments) {
     invalidate();
     const claim = { ...detail.claim };
-    for (const key of Object.keys(EMPTY))
-      if (key.endsWith("_signature")) claim[key] = "";
     for (const party of ["insured", "beneficiary"]) {
       claim[`${party}_id`] = formatClaimInput(
         `${party}_id`,
-        String(claim[`${party}_id`] || "")
-          .replace(/\D/g, "")
-          .slice(0, 7),
+        String(claim[`${party}_id`] || "").replace(/\D/g, ""),
       );
     }
     setPayload({
@@ -688,16 +629,13 @@ export default function ClaimsPage() {
     setStep(0);
     navigate("/claims/new");
   }
-  async function downloadAll() {
+  async function downloadAll(faxDownload = false) {
     if (busy || downloadingAll) return;
     setDownloadingAll(true);
     setError("");
     try {
       const stored = saved || (await save("FILE"));
-      for (const delivery of stored.deliveries) {
-        const file = await getClaimOriginalDownload(stored.id, delivery.id);
-        downloadClaimBlob(file, file.name);
-      }
+      await downloadClaimDocument(stored.id, faxDownload);
     } catch (e) {
       setError(await claimError(e));
     } finally {
@@ -845,10 +783,7 @@ export default function ClaimsPage() {
         disabled={busy || index > step}
         onClick={() => {
           if (index >= step) return;
-          if (hasOriginals) {
-            setLeaveTarget(index);
-            setLeavingStep(true);
-          } else setStep(index);
+          setStep(index);
         }}
         key={title}
         aria-current={step === index ? "step" : undefined}
@@ -1210,6 +1145,10 @@ export default function ClaimsPage() {
             files={files}
             rotations={payload.attachment_rotations}
             disabled={busy}
+            onDeleteAll={() => {
+              setFiles([]);
+              update("attachment_rotations", []);
+            }}
             onRotate={(index, page) => {
               const rotations = files.map((_, i) => [
                 ...(payload.attachment_rotations[i] || []),
@@ -1269,9 +1208,10 @@ export default function ClaimsPage() {
         </Typography>
         <Typography variant="body2" color="text.secondary">
           보험사별 내용을 확인한 뒤 공유하기, PDF 다운로드 또는 팩스 발송을
-          선택하세요. 팩스 발송은 선택한 보험사 전체를 대상으로 합니다. 보험사별
-          PDF를 각각 다운로드할 수 있으며, 파일 공유를 지원하는 모바일에서는
-          공유하기를 사용할 수 있습니다. 입력을 수정하면 다시 생성해야 합니다.
+          선택하세요. 다운로드는 아래에서 원본 또는 흑백 팩스용을 선택합니다.
+          보험사가 여러 곳이면 ZIP 파일로 받습니다. 팩스 발송은 선택한 보험사
+          전체를 대상으로 하며, 모바일에서는 보험사별 공유하기를 사용할 수 있습니다.
+          입력을 수정하면 다시 생성해야 합니다.
         </Typography>
         <Typography variant="body2" color="text.secondary">
           공유하거나 PDF를 다운로드할 때는 수신 팩스 번호를 입력하지 않아도
@@ -1280,16 +1220,13 @@ export default function ClaimsPage() {
         {downloadOnlyInsurers.length > 0 && (
           <Alert severity="info">
             {downloadOnlyInsurers.map((item) => item.name).join(", ")}이
-            선택되어 팩스 발송을 사용할 수 없습니다. 보험사별 PDF 다운로드를
+            선택되어 팩스 발송을 사용할 수 없습니다. 아래의 다운로드를
             이용해 주세요.
           </Alert>
         )}
         <Alert severity="warning">
-          발송용 원본에는 주민등록번호·서명·첨부서류가 포함됩니다. 다운로드나
-          공유하기로 저장 후 1시간 동안 PC에서는 흑백 통합본을 다운로드하고
-          모바일에서는 8MB 미만으로 분할된 흑백 파일을 공유할 수 있습니다. 만료
-          후에는 원본과 공유버튼이 삭제됩니다. 이미 내려받거나 공유한 파일은
-          사용자 기기에 남습니다.
+          주민등록번호·서명·첨부서류가 포함된 원본 PDF와 흑백 팩스용 PDF를
+          각각 보관합니다. 청구내역에서 원본을 내려받거나 흑백 파일을 다운로드·공유할 수 있습니다.
         </Alert>
         <Typography variant="body2">
           요금: 보험사별 1~16장 10꼬막 · 17~18장 11꼬막 · 19~20장 12꼬막 · 이후
@@ -1317,7 +1254,6 @@ export default function ClaimsPage() {
               <ClaimPdfResult
                 result={result}
                 disabled={busy}
-                saved={saved}
                 prepare={() => save("FILE")}
                 feedbackId={feedbackId}
                 faxAction={
@@ -1387,21 +1323,32 @@ export default function ClaimsPage() {
       </>
     ),
     downloadAll: (
-      <Button
-        type="button"
-        variant="contained"
-        disabled={
-          busy ||
-          downloadingAll ||
-          !results.length ||
-          results.length !== selected.length
-        }
-        className="claim-download-all"
-        onClick={downloadAll}
-      >
-        <Icon name="download" />
-        PC 흑백 통합본 전체 다운로드 (무료)
-      </Button>
+      <Stack spacing={1} role="group" aria-label="청구서 다운로드">
+        <Stack direction="row" gap={1} flexWrap="wrap">
+          <Button
+            type="button"
+            variant="outlined"
+            disabled={busy || downloadingAll || !results.length || results.length !== selected.length}
+            startIcon={<Icon name="download" />}
+            onClick={() => downloadAll()}
+          >
+            원본 다운로드
+          </Button>
+          <Button
+            type="button"
+            variant="contained"
+            disabled={busy || downloadingAll || !results.length || results.length !== selected.length}
+            className="claim-download-all"
+            startIcon={<Icon name="download" />}
+            onClick={() => downloadAll(true)}
+          >
+            흑백 팩스용 다운로드
+          </Button>
+        </Stack>
+        <Typography variant="caption" color="text.secondary">
+          {selected.length > 1 ? "보험사별 PDF를 ZIP 파일로 함께 받습니다." : "선택한 종류의 PDF를 받습니다."}
+        </Typography>
+      </Stack>
     ),
     feedback: (
       <>
@@ -1434,7 +1381,7 @@ export default function ClaimsPage() {
           >
             청구 요청 {saved.id}번이 저장되었습니다.{" "}
             {saved.save_mode === "FILE"
-              ? "흑백 전송용 파일은 저장 후 1시간 동안 청구내역에서 PC 다운로드·모바일 공유를 이용할 수 있습니다."
+              ? "원본과 흑백 팩스용 파일은 청구내역에서 다운로드·공유할 수 있습니다."
               : "팩스 발송 결과는 청구내역의 발송 이력에서 확인해 주세요."}
           </Alert>
         )}
@@ -1443,12 +1390,6 @@ export default function ClaimsPage() {
     footer: (
       <div className="w-full">
         {" "}
-        {originalExpired && (
-          <Alert severity="info">
-            원본 공유 기간 1시간이 만료되어 원본과 공유버튼이 삭제되었습니다.
-            마스킹 보관본은 청구내역에서 확인할 수 있습니다.
-          </Alert>
-        )}
         {busy && (
           <Stack direction="row" spacing={1} alignItems="center" role="status">
             <CircularProgress size={20} />
@@ -1604,30 +1545,6 @@ export default function ClaimsPage() {
         <DialogActions>
           <Button onClick={() => setFaxError("")} autoFocus>
             확인
-          </Button>
-        </DialogActions>
-      </Dialog>
-      <Dialog
-        slotProps={{ paper: { className: "claim-design claim-dialog" } }}
-        open={leavingStep || blocker.state === "blocked"}
-        onClose={cancelLeave}
-        aria-labelledby="claim-leave-title"
-        aria-describedby="claim-leave-description"
-      >
-        <DialogTitle id="claim-leave-title">원본 PDF를 받으셨나요?</DialogTitle>
-        <DialogContent>
-          <DialogContentText id="claim-leave-description">
-            저장하지 않은 원본은 이 화면을 벗어나면 사라집니다. 다운로드나
-            공유하기로 저장한 전송용 파일은 저장 후 1시간 동안 같은 계정의
-            청구내역에서 PC 다운로드·모바일 공유를 이용할 수 있습니다.
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={cancelLeave} autoFocus>
-            머무르기
-          </Button>
-          <Button onClick={confirmLeave} color="warning">
-            나가기
           </Button>
         </DialogActions>
       </Dialog>

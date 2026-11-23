@@ -71,10 +71,10 @@ export default function ClaimReference({ vm }) {
             <div className="space-y-2">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-xs sm:text-sm font-black text-[#121314]">
-                  청구서 보관 · 마스킹 · 팩스 과금 안내
+                  청구서 보관 · 다운로드 · 팩스 과금 안내
                 </span>
                 <span className="px-2 py-0.5 rounded-md bg-primary-soft text-primary text-[11px] font-black">
-                  1시간 임시 보관
+                  원본·흑백본 별도 보관
                 </span>
                 <span className="px-2 py-0.5 rounded-md bg-sub-soft text-sub text-[11px] font-extrabold">
                   다운로드·공유 무료
@@ -85,15 +85,9 @@ export default function ClaimReference({ vm }) {
               </div>
 
               <div className="MuiAlert-message css-127h8j3 text-xs text-[#4e5968] leading-relaxed font-medium">
-                다운로드나 공유하기를 누르면 청구내역에 저장하고,{" "}
-                <strong>PC 전송용 흑백 통합본</strong>과{" "}
-                <strong>모바일 전송용 흑백 분할본</strong>을{" "}
-                <strong>1시간 임시 보관</strong>합니다. 청구내역에서 PC는
-                다운로드, 모바일은 공유하기를 이용할 수 있습니다. 이후 발송용
-                원본은 삭제되고, 마스킹 보관본과 첨부서류는 청구내역에 남습니다.{" "}
-                <span className="text-[#f04452] font-bold">
-                  첨부서류의 개인정보는 자동 마스킹되지 않습니다.
-                </span>{" "}
+                다운로드나 공유하기를 누르면 청구내역에 저장합니다.{" "}
+                <strong>원본 PDF와 흑백 팩스용 PDF를 별도로 보관</strong>하며,
+                청구내역에서도 다시 다운로드하거나 모바일에서 공유할 수 있습니다.{" "}
                 팩스 발송 결과는 청구내역의 발송 이력에서 확인할 수 있습니다.
                 결과 확인이 필요한 건은 확인 전까지 다시 발송하지 마세요.{" "}
                 <strong>다운로드·공유하기는 무료</strong>이며,{" "}
@@ -389,19 +383,17 @@ export default function ClaimReference({ vm }) {
                     STEP 4 OF 4
                   </span>
                   <span className="px-2.5 py-0.5 rounded-md bg-amber-50 text-[#92400e] border border-amber-200 text-[11px] font-extrabold">
-                    다운로드·공유 저장 후 원본 1시간 보관
+                    원본·흑백 팩스본 별도 보관
                   </span>
                 </div>
                 <h5 className="text-lg sm:text-xl font-black text-[#121314] mt-1">
                   보험사별 청구서 PDF 생성 완료 — 확인 및 발송 방식을 선택하세요
                 </h5>
                 <p className="text-xs font-semibold text-[#4e5968]">
-                  생성된 PDF를 확인해 주세요. 다운로드·공유 시 전송용 흑백
-                  파일을 준비합니다.
+                  생성된 PDF를 확인하고 아래에서 원본 또는 흑백 팩스용 파일을 다운로드하세요.
                 </p>
               </div>
 
-              <div className="flex items-center gap-2">{vm.downloadAll}</div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
@@ -410,6 +402,9 @@ export default function ClaimReference({ vm }) {
                 id="step4GeneratedCardsList"
               >
                 {vm.generatedActions}
+                <div className="flex flex-wrap items-center gap-2 pt-4">
+                  {vm.downloadAll}
+                </div>
               </div>
 
               <div className="lg:col-span-5 flex flex-col gap-3">

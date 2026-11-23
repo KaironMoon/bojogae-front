@@ -14,7 +14,7 @@ export default function HistoryReference({ vm }) {
               CLAIM ARCHIVE & FAX DISPATCH
             </span>
             <span className="px-2.5 py-0.5 rounded-full bg-sub-soft text-sub text-[11px] font-extrabold">
-              주민번호 자동 마스킹 보관함
+              원본 · 흑백 팩스본 보관함
             </span>
           </div>
           <div className="MuiStack-root css-95g4uk flex items-center gap-3 flex-wrap">
@@ -63,31 +63,24 @@ export default function HistoryReference({ vm }) {
             <div className="space-y-1.5">
               <div className="flex flex-wrap items-center gap-1.5">
                 <span className="text-xs sm:text-sm font-black text-[#121314]">
-                  전송용 흑백 PDF 1시간 임시 보관 및 마스킹 안내
+                  원본 PDF와 흑백 팩스용 PDF 별도 보관
                 </span>
                 <span className="px-2 py-0.5 rounded bg-primary-soft text-primary text-[10.5px] font-black">
-                  1시간 이내 전송본 활성
+                  기간 제한 없이 보관
                 </span>
               </div>
               <div className="MuiAlert-message css-127h8j3 text-xs text-[#4e5968] leading-relaxed font-medium">
-                전송용 흑백 PDF는 저장 후{" "}
-                <strong>
-                  1시간 동안 PC에서는 통합본 다운로드, 모바일에서는 8MB 미만
-                  분할본 공유
-                </strong>
-                를 이용할 수 있습니다. 만료 후 전송용 파일과 버튼은 삭제됩니다.{" "}
-                <strong>
-                  보관본 다운로드는 주민등록번호가 마스킹된 보관용
-                </strong>
-                입니다.
+                주민등록번호와 서명을 포함한 원본 PDF를 보관합니다.
+                흑백 팩스용 PDF는 별도로 저장하며 PC 통합본 다운로드와
+                모바일 8MB 미만 분할본 공유를 이용할 수 있습니다.
               </div>
             </div>
           </div>
 
           <div className="mt-3 pt-2.5 border-t border-[#f4f6f8] flex flex-wrap items-center justify-between gap-2 text-[11px]">
             <span className="font-bold text-[#8b95a1]">
-              💡 만료된 건도 <strong>[상세 보기 · 같은 내용으로 작성]</strong>을
-              누르면 인적사항·서명·동의를 확인한 뒤 전송용 파일을 다시 생성할 수 있습니다.
+              💡 <strong>[상세 보기 · 같은 내용으로 작성]</strong>을
+              누르면 저장된 인적사항·서명·첨부서류를 불러와 새 청구서를 작성할 수 있습니다.
             </span>
           </div>
         </div>
@@ -154,7 +147,7 @@ export default function HistoryReference({ vm }) {
             aria-pressed={vm.status === "active1h"}
           >
             <span className="w-2 h-2 rounded-full bg-primary animate-ping"></span>
-            <span>전송 가능 (1시간 내)</span>
+            <span>원본 · 흑백 파일 보관</span>
             <span
               id="badgeCountActive"
               className="px-1.5 py-0.2 rounded-full bg-primary text-white text-[10px]"

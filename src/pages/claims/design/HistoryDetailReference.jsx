@@ -35,7 +35,7 @@ export default function HistoryDetailReference({ vm }) {
           <div className="flex items-center justify-between">
             <span className="text-xs font-black text-[#121314] flex items-center gap-1.5">
               <Icon name="user-check" className="w-4 h-4 text-primary" />
-              <span>저장된 청구 공통 정보 (주민번호 뒷자리 마스킹 보관)</span>
+              <span>저장된 청구 공통 정보</span>
             </span>
             <span
               id="modalActionTypeBadge"
@@ -117,11 +117,10 @@ export default function HistoryDetailReference({ vm }) {
           />
           <div className="text-xs space-y-1">
             <div className="font-black text-[#121314]">
-              1시간이 지나 전송용 흑백 PDF가 만료되었나요?
+              저장된 내용으로 새 청구서를 작성하시나요?
             </div>
             <p className="font-semibold text-[#4e5968] leading-relaxed">
-              피보험자 인적사항·계좌·사고내용과 첨부서류를 불러옵니다. 주민번호
-              나머지 자리·모든 서명·가상팩스 번호는 다시 입력하고 개인정보
+              피보험자 인적사항·계좌·사고내용과 첨부서류를 불러옵니다. 저장된 주민번호와 서명도 불러옵니다. 가상팩스 번호와 개인정보
               동의도 다시 확인해 주세요.
             </p>
           </div>
@@ -141,11 +140,20 @@ export default function HistoryDetailReference({ vm }) {
         </button>
         <button
           className="px-4 py-2.5 rounded-xl border border-[#d1d6db] hover:bg-[#f4f6f8] text-xs font-extrabold text-[#121314] flex items-center gap-1.5"
-          onClick={vm.download}
+          onClick={() => vm.download()}
           disabled={vm.busy}
         >
           <Icon name="file-lock-2" className="w-4 h-4 text-sub" />
-          <span>보관본 다운로드 (마스킹본)</span>
+          <span>원본 다운로드</span>
+        </button>
+
+        <button
+          className="px-4 py-2.5 rounded-xl border border-[#d1d6db] hover:bg-[#f4f6f8] text-xs font-extrabold text-[#121314] flex items-center gap-1.5 disabled:opacity-50"
+          onClick={() => vm.download(true)}
+          disabled={vm.busy || !vm.detail.original_available}
+        >
+          <Icon name="download" className="w-4 h-4" />
+          <span>흑백 팩스용 다운로드</span>
         </button>
 
         <div className="flex items-center gap-2">

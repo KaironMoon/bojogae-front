@@ -29,8 +29,8 @@ USER = {'id': 7, 'role': 'USER', 'status': 'ACTIVE', 'plan_code': 'STANDARD',
         'email': 'test@example.test', 'display_name': '화면 테스트', 'group_id': None}
 ITEM = {'id': 80, 'save_mode': 'FILE', 'created_at': '2026-10-26T00:00:00Z',
         'insured_name': '시험고객', 'accident_date': '2026-10-20',
-        # Deliberately different from the device clock: use server-relative expiration.
-        'server_time': '2020-01-01T00:00:00Z', 'original_expires_at': '2020-01-01T01:00:00Z',
+        # Retained copies remain usable after the former one-hour limit.
+        'server_time': '2020-01-01T00:00:00Z', 'original_expires_at': None,
         'original_available': True,
         'deliveries': [{'id': 1, 'insurer_id': '35', 'insurer_name': '시험보험', 'status': 'STORED', 'pages': 4,
                         'fax_number': '02-123-4567', 'fax_type': 'COMMON'}]}
@@ -135,7 +135,7 @@ def assert_pc_download(page, button):
 
 with sync_playwright() as p:
     browser = p.chromium.launch(headless=True, channel=os.environ.get('PLAYWRIGHT_CHANNEL', 'chrome'))
-    # Both history actions use stored prepared files, respect device and expiry.
+    # Both history actions use stored prepared files, respect the device and remain available.
     for mobile in (False, True):
         context = new_context(browser, mobile)
         page = context.new_page(); page.clock.install()
@@ -152,8 +152,8 @@ with sync_playwright() as p:
         else:
             assert_pc_download(page, action)
         page.clock.fast_forward(3_600_001)
-        expect(action).to_have_count(0)
-        expect(page.get_by_role('button',name='보관본 다운로드',exact=True)).to_be_visible()
+        expect(action).to_be_enabled()
+        expect(page.get_by_role('button',name='원본 PDF 다운로드',exact=True)).to_be_visible()
         context.close()
 
     # PC download saves once, retains the browser full-file copy, and history's

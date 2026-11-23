@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { Box, Button, Paper, Stack, Typography } from '@mui/material';
 import RotateRightIcon from '@mui/icons-material/RotateRight';
+import DeleteSweepOutlinedIcon from '@mui/icons-material/DeleteSweepOutlined';
 import ClaimPdfPreview from './ClaimPdfPreview';
 
 function ImagePreview({ file, rotation }) {
@@ -22,8 +23,13 @@ function ImagePreview({ file, rotation }) {
   </Box>;
 }
 
-export default function ClaimAttachments({ files, rotations, disabled, onRotate, onDelete }) {
+export default function ClaimAttachments({ files, rotations, disabled, onRotate, onDelete, onDeleteAll }) {
   return <Stack spacing={2} sx={{ mt: 2 }}>
+    {files.length > 0 && <Stack direction="row" alignItems="center" justifyContent="space-between" gap={1}>
+      <Typography variant="body2">첨부서류 {files.length}개</Typography>
+      <Button type="button" color="error" variant="outlined" startIcon={<DeleteSweepOutlinedIcon />}
+        disabled={disabled} onClick={onDeleteAll} aria-label="첨부서류 전체 삭제">전체 삭제</Button>
+    </Stack>}
     {files.map((file, index) => <Paper key={index} variant="outlined" sx={{ p: 1.5, minWidth: 0 }}>
       <Stack direction="row" alignItems="center" justifyContent="space-between" gap={1} sx={{ mb: 1 }}>
         <Typography variant="body2" sx={{ overflowWrap: 'anywhere' }}>{file.name}</Typography>

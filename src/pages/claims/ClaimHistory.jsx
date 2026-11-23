@@ -193,11 +193,11 @@ export default function ClaimHistory({ onReuse, insurers = [] }) {
       setBusy(false);
     }
   }
-  async function downloadDocument(id) {
+  async function downloadDocument(id, faxDownload = false) {
     setBusy(true);
     setError("");
     try {
-      await downloadClaimDocument(id);
+      await downloadClaimDocument(id, faxDownload);
     } catch (e) {
       setError(await claimError(e));
     } finally {
@@ -208,7 +208,7 @@ export default function ClaimHistory({ onReuse, insurers = [] }) {
     const pending = pendingDownload;
     setPendingDownload(null);
     if (pending.file) await download(pending.file);
-    else await downloadDocument(pending.id);
+    else await downloadDocument(pending.id, pending.faxDownload);
   }
   function askDelete(id, name) {
     setDeleteError("");
@@ -266,7 +266,7 @@ export default function ClaimHistory({ onReuse, insurers = [] }) {
     refresh: () => setRefresh((v) => v + 1),
     create: () => navigate("/claims/new"),
     open,
-    download: (id) => setPendingDownload({ id }),
+    download: (id, faxDownload = false) => setPendingDownload({ id, faxDownload }),
     remove: askDelete,
     deliveryStatus: (d) => <ClaimDeliveryStatus status={d.status} />,
     faxNumber: (d) => <HistoryFaxNumber delivery={d} insurers={insurers} />,
@@ -277,7 +277,7 @@ export default function ClaimHistory({ onReuse, insurers = [] }) {
         expiresAt={item.original_expires_at}
         serverTime={item.server_time}
         disabled={busy}
-        showRemaining
+        showDownload={false}
       />
     ),
     feedback: (
@@ -331,7 +331,7 @@ export default function ClaimHistory({ onReuse, insurers = [] }) {
       busy,
       timestamp,
       open,
-      download: (id) => setPendingDownload({ id }),
+      download: (id, faxDownload = false) => setPendingDownload({ id, faxDownload }),
       remove: askDelete,
       deliveryStatus: (d) => <ClaimDeliveryStatus status={d.status} />,
       faxNumber: (d) => <HistoryFaxNumber delivery={d} insurers={insurers} />,
@@ -342,7 +342,7 @@ export default function ClaimHistory({ onReuse, insurers = [] }) {
           expiresAt={item.original_expires_at}
           serverTime={item.server_time}
           disabled={busy}
-          showRemaining
+          showDownload={false}
         />
       ),
     };
@@ -379,7 +379,7 @@ export default function ClaimHistory({ onReuse, insurers = [] }) {
               },
               reuse,
               remove: () => askDelete(detail.id, detail.claim.insured_name),
-              download: () => setPendingDownload({ id: detail.id }),
+              download: (faxDownload = false) => setPendingDownload({ id: detail.id, faxDownload }),
               error: error ? <Alert severity="error">{error}</Alert> : null,
               deliveries: (
                 <>
@@ -407,7 +407,7 @@ export default function ClaimHistory({ onReuse, insurers = [] }) {
                           expiresAt={detail.original_expires_at}
                           serverTime={detail.server_time}
                           disabled={busy}
-                          showRemaining
+                          showDownload={false}
                         />
                       )}
                     </Stack>
@@ -447,21 +447,10 @@ export default function ClaimHistory({ onReuse, insurers = [] }) {
                     </Typography>
                   )}
                   <Typography variant="body2" color="text.secondary">
-                    주민번호는 앞 6자리와 뒤 첫 자리만 보관합니다. 당시 서명과
-                    동의 표시는 보관 PDF에 유지하며, 새 청구서에 재사용하지
-                    않습니다. 첨부서류는 원본 공유 만료 후에도 청구내역에
-                    보관합니다. 첨부에 포함된 주민등록번호 등 개인정보는 자동
-                    마스킹되지 않습니다.
+                    주민등록번호와 서명을 그대로 보관합니다. 원본 PDF와 흑백 팩스용 PDF는
+                    별도로 저장하며, 청구내역에서 다운로드·공유할 수 있습니다.
                   </Typography>
                   <Divider />
-                  <Stack direction="row" gap={1}>
-                    <Button
-                      disabled={busy}
-                      onClick={() => setPendingDownload({ id: detail.id })}
-                    >
-                      보관본 다운로드
-                    </Button>
-                  </Stack>
                   {preview && (
                     <ClaimPdfPreview blob={preview.blob} name={preview.name} />
                   )}
@@ -481,8 +470,8 @@ export default function ClaimHistory({ onReuse, insurers = [] }) {
                   <Alert severity="info">
                     같은 내용으로 작성하면 청구서 양식은 새로 생성하고, 첨부
                     원본은 순서대로 뒤에 붙입니다. PDF는 원본 방향, 사진은
-                    저장된 회전 방향을 유지합니다. 주민번호 나머지 자리·모든
-                    서명·가상팩스 번호는 다시 입력하고 개인정보 동의도 다시
+                    저장된 회전 방향을 유지합니다. 저장된 주민번호와 서명도 불러옵니다.
+                    가상팩스 번호와 개인정보 동의는 다시
                     확인해 주세요.
                   </Alert>
                   <Divider />
@@ -597,12 +586,13 @@ export default function ClaimHistory({ onReuse, insurers = [] }) {
           <Alert severity="warning">
             {pendingDownload?.file
               ? "첨부파일은 원본입니다. 주민등록번호·서명·진료정보 등 개인정보가 포함될 수 있습니다."
-              : "청구서 양식의 주민등록번호는 마스킹되어 있습니다. 이 파일을 그대로 발송하시면 안 됩니다."}
+              : pendingDownload?.faxDownload
+                ? "저장된 흑백 팩스용 PDF를 다운로드합니다."
+                : "주민등록번호·서명·첨부서류가 포함된 원본 청구서입니다."}
           </Alert>
           {!pendingDownload?.file && (
             <Typography sx={{ mt: 2 }}>
-              발송하려면 ‘같은 내용으로 작성’에서 주민번호와 서명을 다시 입력한
-              뒤 발송용 원본을 생성해 주세요.
+              다시 발송하려면 ‘같은 내용으로 작성’에서 저장된 내용을 확인해 주세요.
             </Typography>
           )}
         </DialogContent>

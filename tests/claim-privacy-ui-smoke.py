@@ -69,11 +69,7 @@ def handle(route):
         return
     elif path == 'claims/requests' and req.method == 'POST':
         posts.append(req.post_data_buffer.decode(errors='replace'))
-        safe = {**CLAIM, 'insured_id': CLAIM['insured_id'][:7], 'beneficiary_id': CLAIM['beneficiary_id'][:7], 'consent': False}
-        for key in safe:
-            if key.endswith('_signature'):
-                safe[key] = ''
-        body = {**DETAIL, 'claim': safe, 'id': 2}
+        body = {**DETAIL, 'claim': {**CLAIM, 'consent': False}, 'id': 2}
     elif path == 'claims/original-download':
         original_requests.append(req.post_data_buffer.decode(errors='replace'))
         route.fulfill(content_type='application/zip', body=zipped.getvalue(), headers=headers)
@@ -97,7 +93,7 @@ with sync_playwright() as p:
     expect(page.get_by_role('button', name='팩스 재발송', exact=True)).to_have_count(0)
     page.get_by_role('button', name='파일 다운로드', exact=True).click()
     warning = page.get_by_role('dialog', name='파일 다운로드 안내')
-    expect(warning).to_contain_text('이 파일을 그대로 발송하시면 안 됩니다.')
+    expect(warning).to_contain_text('주민등록번호·서명·첨부서류가 포함된 원본 청구서입니다.')
     assert not archive_requests
     warning.get_by_role('button', name='취소', exact=True).click()
     assert not archive_requests
@@ -115,20 +111,12 @@ with sync_playwright() as p:
     warning.get_by_role('button', name='취소', exact=True).click()
     detail.get_by_role('button', name='같은 내용으로 작성', exact=True).click()
     page.get_by_role('button', name='다음', exact=True).click()
-    expect(page.locator('[name=insured_id]')).to_have_value('900101-1')
-    expect(page.locator('[name=beneficiary_id]')).to_have_value('920202-2')
+    expect(page.locator('[name=insured_id]')).to_have_value('900101-1000000')
+    expect(page.locator('[name=beneficiary_id]')).to_have_value('920202-2000000')
     is_signed = """c => c.getContext('2d').getImageData(0, 0, c.width, c.height).data.some((v, i) => i % 4 === 3 && v > 0)"""
     for label in ['피보험자', '수익자', '피보험자 법정대리인', '수익자 법정대리인']:
         canvas = page.get_by_role('img', name=label + ' 서명 입력 영역', exact=True)
-        assert not canvas.evaluate(is_signed), label
-        canvas.scroll_into_view_if_needed()
-        box = canvas.bounding_box()
-        page.mouse.move(box['x'] + 20, box['y'] + 20)
-        page.mouse.down()
-        page.mouse.move(box['x'] + 80, box['y'] + 60, steps=5)
-        page.mouse.up()
-    page.locator('[name=insured_id]').fill('900101-1000000')
-    page.locator('[name=beneficiary_id]').fill('920202-2000000')
+        assert canvas.evaluate(is_signed), label
     page.get_by_role('button', name='다음', exact=True).click()
     expect(page.get_by_text('첨부원본.pdf', exact=True)).to_be_visible()
     consent = page.get_by_role('checkbox', name='선택한 보험사의 필수 개인정보 동의서를 확인했으며, 서명자의 동의에 따라 PDF에 동의 표시와 서명을 반영합니다.', exact=True)
@@ -146,4 +134,4 @@ with sync_playwright() as p:
     assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth')
     assert not errors, errors
     browser.close()
-    print('PASS: warning confirm/cancel, history fax removal, partial identity/four signatures reset, original attachments restored, immediate original ZIP download, mobile')
+    print('PASS: warning confirm/cancel, history fax removal, full identity/four signatures retained, original attachments restored, immediate original ZIP download, mobile')
