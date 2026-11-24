@@ -11,6 +11,7 @@ import {
   DialogTitle,
   FormControlLabel,
   InputAdornment,
+  Link,
   MenuItem,
   Pagination,
   Paper,
@@ -25,6 +26,9 @@ import ReplayRoundedIcon from "@mui/icons-material/ReplayRounded";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import { useCallback, useEffect, useState } from "react";
 
+import { useAuth } from "@/auth/AuthContext";
+import { planName } from "@/constants/plans";
+import { customerError, signalIdentityChange, startImpersonation } from "@/services/customer-service";
 import {
   decideProposalPoints,
   deleteProposal,
@@ -35,6 +39,9 @@ import {
   recoverProposal,
   rerenderProposalShare,
 } from "@/services/proposal-service";
+import CustomerDetailDialog from "./CustomerDetailDialog";
+import GrantFreePointsDialog, { createPointRequestKey } from "./GrantFreePointsDialog";
+import ManualSubscriptionDialog from "./ManualSubscriptionDialog";
 
 
 const STATUSES = ["", "QUEUED", "RUNNING", "CANCEL_REQUESTED", "COMPLETED", "FAILED", "CANCELLED"];
@@ -115,14 +122,36 @@ function TimingTimeline({ timing }) {
 
 const startedAt = (value) => value ? new Date(value).toLocaleString("ko-KR", { timeZone: "Asia/Seoul", hour12: false }) : "시작 전";
 
-function formatProposalOwner(item) {
+/* eslint-disable react/prop-types */
+function ProposalOwnerLinks({ item, onSelectUser }) {
   const primaryName = item.user_name && item.user_nickname && item.user_name !== item.user_nickname
     ? `${item.user_name} (${item.user_nickname})`
     : item.user_name || item.user_nickname || item.user_display_name;
-  return [primaryName, `ID ${item.user_id}`, item.user_email].filter(Boolean).join(" · ");
+  const linkProps = {
+    component: "button",
+    type: "button",
+    underline: "hover",
+    color: "primary",
+    onClick: () => onSelectUser(item),
+    sx: { font: "inherit", fontWeight: 600, verticalAlign: "baseline" },
+  };
+  return (
+    <>
+      {primaryName && (
+        <>
+          <Link {...linkProps}>{primaryName}</Link>
+          {" · "}
+        </>
+      )}
+      <Link {...linkProps}>ID {item.user_id}</Link>
+      {item.user_email ? ` · ${item.user_email}` : ""}
+    </>
+  );
 }
+/* eslint-enable react/prop-types */
 
 function AdminProposalsPage() {
+  const { clearIdentity } = useAuth();
   const [result, setResult] = useState({ items: [], page: 1, total_pages: 0, total: 0 });
   const [status, setStatus] = useState("");
   const [draftQuery, setDraftQuery] = useState("");
@@ -132,6 +161,13 @@ function AdminProposalsPage() {
   const [error, setError] = useState("");
   const [detail, setDetail] = useState(null);
   const [shareRerendering, setShareRerendering] = useState(false);
+  const [customerTarget, setCustomerTarget] = useState(null);
+  const [customerRefreshKey, setCustomerRefreshKey] = useState(0);
+  const [customerActionMessage, setCustomerActionMessage] = useState("");
+  const [customerActionError, setCustomerActionError] = useState("");
+  const [customerWorking, setCustomerWorking] = useState(false);
+  const [grantTarget, setGrantTarget] = useState(null);
+  const [manualTarget, setManualTarget] = useState(null);
 
   const load = useCallback(async (page = 1) => {
     setLoading(true);
@@ -182,6 +218,34 @@ function AdminProposalsPage() {
       setDetail(await getProposal(id, true));
     } catch {
       setError("제안서 상세를 불러오지 못했습니다.");
+    }
+  };
+
+  const openCustomerDetail = (item) => {
+    if (!item?.user_id) return;
+    setCustomerActionMessage("");
+    setCustomerActionError("");
+    setCustomerTarget({
+      id: item.user_id,
+      name: item.user_name,
+      nickname: item.user_nickname,
+      display_name: item.user_display_name,
+      email: item.user_email,
+    });
+  };
+
+  const impersonate = async (user) => {
+    setCustomerWorking(true);
+    setCustomerActionError("");
+    try {
+      await startImpersonation(user.id);
+      clearIdentity();
+      signalIdentityChange();
+      window.location.assign("/home");
+    } catch (err) {
+      setCustomerActionError(customerError(err));
+    } finally {
+      setCustomerWorking(false);
     }
   };
 
@@ -263,7 +327,7 @@ function AdminProposalsPage() {
                     {item.is_deleted && <Chip label="삭제됨" size="small" color="error" />}
                   </Stack>
                   <Typography variant="body2" color="text.secondary">
-                    #{item.id} · {formatProposalOwner(item)} · {item.prompt_title} v{item.prompt_version_no}
+                    #{item.id} · <ProposalOwnerLinks item={item} onSelectUser={openCustomerDetail} /> · {item.prompt_title} v{item.prompt_version_no}
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
                     생성 시작: {startedAt(item.started_at)} · 입력 {bytes(item.total_input_bytes)} · 출력 {bytes(item.output_bytes)} · 호출 {item.call_count} · 토큰 {item.total_tokens.toLocaleString()}
@@ -292,6 +356,9 @@ function AdminProposalsPage() {
         <DialogContent>
           {detail && (
             <Stack spacing={2} sx={{ mt: 1 }}>
+              <Typography variant="body2">
+                설계사: <ProposalOwnerLinks item={detail} onSelectUser={openCustomerDetail} />
+              </Typography>
               <Typography variant="body2">생성 시작: {startedAt(detail.started_at)} (한국 시간)</Typography>
               <Typography variant="body2">LLM 모델 {detail.llm_model} · thinking {detail.thinking_level} · 최대 출력 {detail.max_output_tokens.toLocaleString()}</Typography>
               <Typography variant="body2">입력 합계 {bytes(detail.total_input_bytes)} · 출력 {bytes(detail.output_bytes)}</Typography>
@@ -395,6 +462,49 @@ function AdminProposalsPage() {
         </DialogContent>
         <DialogActions><Button onClick={() => setDetail(null)}>닫기</Button></DialogActions>
       </Dialog>
+
+      <CustomerDetailDialog
+        customer={customerTarget}
+        onClose={() => setCustomerTarget(null)}
+        onImpersonate={impersonate}
+        onGrantPoints={(targetUser) => {
+          setCustomerActionMessage("");
+          setCustomerActionError("");
+          setGrantTarget(targetUser);
+        }}
+        onManualSubscription={(targetUser) => {
+          setCustomerActionMessage("");
+          setCustomerActionError("");
+          setManualTarget({ user: targetUser, requestKey: createPointRequestKey() });
+        }}
+        refreshKey={customerRefreshKey}
+        actionMessage={customerActionMessage}
+        working={customerWorking}
+        actionError={customerActionError}
+      />
+      {grantTarget && (
+        <GrantFreePointsDialog
+          member={grantTarget}
+          onClose={() => setGrantTarget(null)}
+          onDone={async ({ member, amount, action }) => {
+            setGrantTarget(null);
+            setCustomerActionMessage(`${member.name || member.display_name} 설계사에게 ${amount.toLocaleString()}꼬막을 ${action === "RECOVER" ? "회수" : "지급"}했습니다.`);
+            setCustomerRefreshKey((value) => value + 1);
+          }}
+        />
+      )}
+      {manualTarget && (
+        <ManualSubscriptionDialog
+          member={manualTarget.user}
+          requestKey={manualTarget.requestKey}
+          onClose={() => setManualTarget(null)}
+          onDone={async (outcome) => {
+            setManualTarget(null);
+            setCustomerActionMessage(outcome.plan_code === "FREE" ? "수동 구독을 종료했습니다." : `${planName(outcome.plan_code)} 수동 구독을 적용했습니다.`);
+            setCustomerRefreshKey((value) => value + 1);
+          }}
+        />
+      )}
     </Box>
   );
 }

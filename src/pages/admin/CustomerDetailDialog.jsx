@@ -136,23 +136,29 @@ export default function CustomerDetailDialog({
     return () => { ignore = true; };
   }, [customerId, kind, page, refreshKey]);
 
-  const user = detail?.user || customer;
+  const headerUser = detail?.user || customer;
+  const resolvedUser = detail?.user || (customer?.plan_code ? customer : null);
+  const user = detail?.user;
   const summary = detail?.summary;
   return (
     <Dialog open={Boolean(customer)} onClose={working ? undefined : onClose} fullWidth maxWidth="lg" fullScreen={mobile} scroll="paper">
       <DialogTitle><Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" gap={1}>
-        <Typography component="span" variant="h6" fontWeight={800}>설계사 #{user?.id} · {user?.name || user?.display_name}</Typography>
-        <Chip size="small" label={user?.manual_subscription_id ? `${planName(user?.plan_code)} 수동 구독` : planName(user?.plan_code)} color="primary" variant="outlined" />
+        <Typography component="span" variant="h6" fontWeight={800}>설계사 #{headerUser?.id} · {headerUser?.name || headerUser?.display_name || headerUser?.nickname || "-"}</Typography>
+        {resolvedUser?.plan_code && (
+          <Chip size="small" label={resolvedUser.manual_subscription_id ? `${planName(resolvedUser.plan_code)} 수동 구독` : planName(resolvedUser.plan_code)} color="primary" variant="outlined" />
+        )}
       </Stack></DialogTitle>
       <DialogContent dividers>
         {actionMessage && <Alert severity="success" sx={{ mb: 2 }}>{actionMessage}</Alert>}
         {(error || actionError) && <Alert severity="error" sx={{ mb: 2 }}>{error || actionError}</Alert>}
-        <Stack direction="row" flexWrap="wrap" gap={1.25} sx={{ mb: 2 }}>
-          <Stat label="보유 꼬막" value={`${number(user?.total_points)}개`} />
-          <Stat label="누적 사용 (환불 제외)" value={`${number(user?.used_points)}개`} />
-          <Stat label="예약 중" value={`${number(user?.reserved_points)}개`} />
-          {summary && <Stat label="이번 달 사용" value={`${number(summary.month_used_points)}개`} />}
-        </Stack>
+        {resolvedUser && (
+          <Stack direction="row" flexWrap="wrap" gap={1.25} sx={{ mb: 2 }}>
+            <Stat label="보유 꼬막" value={`${number(resolvedUser.total_points)}개`} />
+            <Stat label="누적 사용 (환불 제외)" value={`${number(resolvedUser.used_points)}개`} />
+            <Stat label="예약 중" value={`${number(resolvedUser.reserved_points)}개`} />
+            {summary && <Stat label="이번 달 사용" value={`${number(summary.month_used_points)}개`} />}
+          </Stack>
+        )}
         <Tabs value={kind} onChange={(_, value) => { setKind(value); setPage(1); }} variant="scrollable" scrollButtons="auto" aria-label="설계사 상세 정보" sx={{ mb: 2 }}>
           {TABS.map(([key, label]) => <Tab key={key} value={key} label={label} />)}
         </Tabs>
@@ -203,16 +209,18 @@ export default function CustomerDetailDialog({
       </DialogContent>
       <DialogActions sx={{ p: 2, flexWrap: "wrap", gap: 1 }}>
         {onGrantPoints && (
-          <Button disabled={working || !user} variant="outlined" onClick={() => onGrantPoints(user)}>
+          <Button disabled={working || !resolvedUser} variant="outlined" onClick={() => onGrantPoints(resolvedUser)}>
             꼬막 지급·회수
           </Button>
         )}
-        {onManualSubscription && canManageManualSubscription(user) && (
-          <Button disabled={working || !user} variant="outlined" onClick={() => onManualSubscription(user)}>
-            {user?.manual_subscription_id ? "수동 구독 종료" : "수동 구독 적용"}
+        {onManualSubscription && canManageManualSubscription(resolvedUser) && (
+          <Button disabled={working || !resolvedUser} variant="outlined" onClick={() => onManualSubscription(resolvedUser)}>
+            {resolvedUser?.manual_subscription_id ? "수동 구독 종료" : "수동 구독 적용"}
           </Button>
         )}
-        <Button disabled={working || user?.role !== "USER" || user?.status !== "ACTIVE"} variant="contained" onClick={() => onImpersonate(user)}>설계사로 접속 (Impersonate)</Button>
+        {onImpersonate && (
+          <Button disabled={working || resolvedUser?.role !== "USER" || resolvedUser?.status !== "ACTIVE"} variant="contained" onClick={() => onImpersonate(resolvedUser)}>설계사로 접속 (Impersonate)</Button>
+        )}
         <Button disabled={working} onClick={onClose}>닫기</Button>
       </DialogActions>
     </Dialog>
