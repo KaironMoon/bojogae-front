@@ -82,6 +82,12 @@ async function deleteUser(userId) {
   await apiCaller.delete(`/api/v1/admin/users/${userId}`);
 }
 
+export async function recoverFreePoints(userId, { grantId, amount, reason, idempotencyKey }) {
+  return (await apiCaller.post(`/api/v1/admin/users/${userId}/points/free-recoveries`, {
+    grant_id: grantId, amount, reason, idempotency_key: idempotencyKey,
+  })).data;
+}
+
 async function grantFreePoints(userId, { amount, expirationDate, reason, idempotencyKey }) {
   const response = await apiCaller.post(
     `/api/v1/admin/users/${userId}/points/free-grants`,

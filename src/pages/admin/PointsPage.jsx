@@ -8,7 +8,6 @@ import {
   Dialog,
   DialogActions,
   DialogContent,
-  DialogContentText,
   DialogTitle,
   InputAdornment,
   MenuItem,
@@ -26,10 +25,11 @@ import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { getUsers, grantFreePoints, getPointGrants } from "@/services/auth-service";
+import { getUsers, getPointGrants } from "@/services/auth-service";
 import { planName } from '@/constants/plans';
 import ManualSubscriptionDialog from './ManualSubscriptionDialog';
 import PointGrantsTable from './PointGrantsTable';
+import GrantFreePointsDialog, { createPointRequestKey } from './GrantFreePointsDialog';
 
 
 const USER_STATUSES = [
@@ -39,19 +39,6 @@ const USER_STATUSES = [
   { value: "SUSPENDED", label: "정지" },
   { value: "REJECTED", label: "거절" },
 ];
-
-function defaultExpirationDate() {
-  const parts = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit' }).formatToParts(new Date());
-  const year = Number(parts.find(p => p.type === 'year').value);
-  const month = Number(parts.find(p => p.type === 'month').value);
-  const day = new Date(Date.UTC(year, month, 0)).getUTCDate();
-  return `${year}-${String(month).padStart(2, '0')}-${day}`;
-}
-
-function idempotencyKey() {
-  if (typeof globalThis.crypto?.randomUUID === "function") return globalThis.crypto.randomUUID();
-  return `point-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-}
 
 function SummaryCard({ title, value, icon: Icon, color, background }) { // eslint-disable-line react/prop-types
   return (
@@ -93,12 +80,10 @@ function PointsPage() {
   const [query, setQuery] = useState("");
   const listRequest = useRef(0);
   const [loading, setLoading] = useState(true);
-  const [working, setWorking] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [grantTarget, setGrantTarget] = useState(null);
   const [manualTarget, setManualTarget] = useState(null);
-  const [grantDraft, setGrantDraft] = useState({ amount: "", expirationDate: defaultExpirationDate(), reason: "" });
 
   const load = useCallback(async (page = 1) => {
     const request = ++listRequest.current;
@@ -134,43 +119,16 @@ function PointsPage() {
 
   const openGrant = (user) => {
     setGrantTarget(user);
-    setGrantDraft({ amount: "", expirationDate: defaultExpirationDate(), reason: "" });
     setError("");
     setMessage("");
-  };
-
-  const submitGrant = async () => {
-    const amount = Number(grantDraft.amount);
-    if (!grantTarget || !Number.isInteger(amount) || amount < 1 || !grantDraft.reason.trim() || !grantDraft.expirationDate) {
-      setError("지급 꼬막, 만료일, 지급 사유를 확인해 주세요.");
-      return;
-    }
-    setWorking(true);
-    setError("");
-    try {
-      await grantFreePoints(grantTarget.id, {
-        ...grantDraft,
-        amount,
-        reason: grantDraft.reason.trim(),
-        idempotencyKey: idempotencyKey(),
-      });
-      const targetName = grantTarget.display_name;
-      setGrantTarget(null);
-      setMessage(`${targetName} 사용자에게 ${amount.toLocaleString()}꼬막을 지급했습니다.`);
-      await load(result.page);
-    } catch {
-      setError("꼬막을 지급하지 못했습니다.");
-    } finally {
-      setWorking(false);
-    }
   };
 
   return (
     <Box component="main" sx={{ p: { xs: 2, md: 4 }, maxWidth: 1280, mx: "auto" }}>
       <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" gap={2} sx={{ mb: 3 }}>
         <Box>
-          <Typography variant="h4" component="h1" fontWeight={850}>꼬막 지급·내역</Typography>
-          <Typography color="text.secondary">사용자별 지급·구매 꼬막 잔액을 확인하고 꼬막을 지급합니다.</Typography>
+          <Typography variant="h4" component="h1" fontWeight={850}>꼬막 지급·회수·내역</Typography>
+          <Typography color="text.secondary">사용자별 지급·구매 꼬막 잔액을 확인하고 꼬막을 지급하거나 회수합니다.</Typography>
         </Box>
         <Button startIcon={<RefreshRoundedIcon />} onClick={() => load(result.page)}>새로고침</Button>
       </Stack>
@@ -235,12 +193,12 @@ function PointsPage() {
                     총 {user.total_points.toLocaleString()}꼬막
                   </Typography>
                   <Button variant="contained" startIcon={<AddCardRoundedIcon />} onClick={() => openGrant(user)}>
-                    꼬막 지급
+                    꼬막 지급·회수
                   </Button>
                   {(user.manual_subscription_id || (!user.group_id && user.role === 'USER' && user.status === 'ACTIVE')) && (
                     <Button variant="outlined" onClick={() => {
                       setMessage('');
-                      setManualTarget({ user, requestKey: idempotencyKey() });
+                      setManualTarget({ user, requestKey: createPointRequestKey() });
                     }}>{user.manual_subscription_id ? '수동 구독 종료' : '수동 구독 적용'}</Button>
                   )}
                   <Button onClick={() => showDetails(user)}>꼬막 상세</Button>
@@ -255,51 +213,12 @@ function PointsPage() {
         </Stack>
       )}
 
-      <Dialog open={Boolean(grantTarget)} onClose={() => !working && setGrantTarget(null)} fullWidth maxWidth="xs">
- 
-        <DialogTitle>꼬막 지급</DialogTitle>
-        <DialogContent>
-          <DialogContentText sx={{ mb: 2 }}>
-            {grantTarget?.display_name} 사용자에게 지급할 꼬막을 입력하세요.
-          </DialogContentText>
-          <Stack spacing={2}>
-            {error && <Alert severity="error">{error}</Alert>}
-            <TextField
-              autoFocus
-              required
-              label="지급 꼬막"
-              type="number"
-              value={grantDraft.amount}
-              inputProps={{ min: 1 }}
-              onChange={(event) => setGrantDraft((current) => ({ ...current, amount: event.target.value }))}
-            />
-            <TextField
-              required
-              type="date"
-              label="만료일"
-              value={grantDraft.expirationDate}
-              InputLabelProps={{ shrink: true }}
-              helperText="선택한 날짜까지 사용 가능합니다. 한국 시간 기준 다음 날 00시에 만료됩니다."
-              onChange={(event) => setGrantDraft((current) => ({ ...current, expirationDate: event.target.value }))}
-            />
-            <TextField
-              required
-              label="지급 사유"
-              multiline
-              minRows={2}
-              value={grantDraft.reason}
-              inputProps={{ maxLength: 500 }}
-              onChange={(event) => setGrantDraft((current) => ({ ...current, reason: event.target.value }))}
-            />
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button disabled={working} onClick={() => setGrantTarget(null)}>취소</Button>
-          <Button disabled={working} variant="contained" onClick={submitGrant}>
-            {working ? "지급 중..." : "지급"}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      {grantTarget && <GrantFreePointsDialog member={grantTarget} onClose={() => setGrantTarget(null)}
+        onDone={({ member, amount, action }) => {
+          setGrantTarget(null);
+          setMessage(`${member.name || member.display_name} 고객의 ${amount.toLocaleString()}꼬막을 ${action === 'RECOVER' ? '회수' : '지급'}했습니다.`);
+          load(result.page);
+        }} />}
       {manualTarget && <ManualSubscriptionDialog member={manualTarget.user} requestKey={manualTarget.requestKey}
         onClose={() => setManualTarget(null)} onDone={outcome => {
           setManualTarget(null);

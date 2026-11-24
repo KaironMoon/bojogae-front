@@ -32,6 +32,9 @@ export default function PointGrantsTable({ items, hideType = false }) {
             <Collapse in={expanded === g.id} unmountOnExit><Box sx={{ py: 2 }}>
               <Typography variant="body2">지급 #{g.id} · 지급일 {date(g.created_at)}</Typography>
               <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>사유: {cockleReason(g.reason) || '기록 없음'}</Typography>
+              {(g.recoveries || []).map(recovery => <Typography key={recovery.id} variant="body2" sx={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>
+                회수 {recovery.amount.toLocaleString()}꼬막 · {recovery.reason} · {date(recovery.created_at)} · 처리 관리자 #{recovery.actor_id}
+              </Typography>)}
               {g.reference_id && <Typography variant="body2">{g.reference_type === 'POINT_USAGE' ? '원 사용 내역' : '연결 내역'} #{g.reference_id}</Typography>}
             </Box></Collapse>
           </TableCell></TableRow>

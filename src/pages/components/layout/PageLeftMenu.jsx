@@ -83,7 +83,7 @@ const CLAIM_MENU = [
 ];
 
 const ADMIN_POINT_MENU = [
-  { label: '꼬막 지급·내역', path: '/admin/points' },
+  { label: '꼬막 지급·회수·내역', path: '/admin/points' },
   { label: '결제·환불 처리', path: '/admin/payment-support' },
 ];
 

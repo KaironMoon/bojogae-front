@@ -255,7 +255,7 @@ function UsersPage() {
                       setGrantTarget(user);
                     }}
                   >
-                    꼬막 지급
+                    꼬막 지급·회수
                   </Button>
                   {canManageManualSubscription(user) && (
                     <Button
@@ -334,9 +334,9 @@ function UsersPage() {
         <GrantFreePointsDialog
           member={grantTarget}
           onClose={() => setGrantTarget(null)}
-          onDone={async ({ member, amount }) => {
+          onDone={async ({ member, amount, action }) => {
             setGrantTarget(null);
-            setMessage(`${member.name || member.display_name} 설계사에게 ${amount.toLocaleString()}꼬막을 지급했습니다.`);
+            setMessage(`${member.name || member.display_name} 설계사에게 ${amount.toLocaleString()}꼬막을 ${action === 'RECOVER' ? '회수' : '지급'}했습니다.`);
             setDetailRefreshKey((value) => value + 1);
             await loadUsers(page);
           }}

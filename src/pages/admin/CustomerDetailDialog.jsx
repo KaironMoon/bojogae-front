@@ -204,7 +204,7 @@ export default function CustomerDetailDialog({
       <DialogActions sx={{ p: 2, flexWrap: "wrap", gap: 1 }}>
         {onGrantPoints && (
           <Button disabled={working || !user} variant="outlined" onClick={() => onGrantPoints(user)}>
-            꼬막 지급
+            꼬막 지급·회수
           </Button>
         )}
         {onManualSubscription && canManageManualSubscription(user) && (
