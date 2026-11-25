@@ -1,5 +1,5 @@
 import ProposalApplicationDialog, { applicationButtonStyle } from "./ProposalApplicationDialog";
-import { crmPost, crmError } from "@/services/crm-service";
+import { crmGet, crmPost, crmError } from "@/services/crm-service";
 import AutoAwesomeRoundedIcon from "@mui/icons-material/AutoAwesomeRounded";
 import { reportGradient, reportHero, reportHeroBadge, reportHeroIcon } from "@/styles/reportTheme";
 import { brand } from "@/styles/palette";
@@ -10,7 +10,8 @@ import ReportHelpTour from "@/pages/components/ReportHelpTour";
 import { hasSeenReportHelp, markReportHelpSeen } from "@/services/report-help-storage";
 import PreviewImageCarousel from "@/pages/components/PreviewImageCarousel";
 import PromptInputForm from "@/pages/components/PromptInputForm";
-import { CustomerPicker } from "@/pages/crm/CrmShared";
+import ProposalCustomerField from "./ProposalCustomerField";
+import { formatCustomerShortName } from "./proposal-customer-utils";
 import PdfPasswordInput from "@/pages/components/PdfPasswordInput";
 import usePdfPasswords from "@/pages/components/usePdfPasswords";
 import { promptPreviewImageUrl } from "@/services/prompt-service";
@@ -63,6 +64,7 @@ import DescriptionRoundedIcon from "@mui/icons-material/DescriptionRounded";
 import FactCheckRoundedIcon from "@mui/icons-material/FactCheckRounded";
 import FolderOpenRoundedIcon from "@mui/icons-material/FolderOpenRounded";
 import OpenInNewRoundedIcon from "@mui/icons-material/OpenInNewRounded";
+import PersonOutlineRoundedIcon from "@mui/icons-material/PersonOutlineRounded";
 import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
 import ReplayRoundedIcon from "@mui/icons-material/ReplayRounded";
 import SummarizeOutlinedIcon from "@mui/icons-material/SummarizeOutlined";
@@ -277,6 +279,24 @@ function ProposalsPage() {
     const id = Number(searchParams.get("customerId"));
     return Number.isSafeInteger(id) && id > 0 ? id : null;
   });
+  const [customerNames, setCustomerNames] = useState({});
+  const requestedCustomerIds = useRef(new Set());
+  const registerLoadedCustomers = useCallback((list) => {
+    if (!list?.length) return;
+    setCustomerNames((current) => {
+      let changed = false;
+      const next = { ...current };
+      for (const customer of list) {
+        if (!customer?.id) continue;
+        const shortName = formatCustomerShortName(customer);
+        if (shortName && next[customer.id] !== shortName) {
+          next[customer.id] = shortName;
+          changed = true;
+        }
+      }
+      return changed ? next : current;
+    });
+  }, []);
   const [titleTouched, setTitleTouched] = useState(false);
   const [files, setFiles] = useState([]);
   const [filesDragging, setFilesDragging] = useState(false);
@@ -786,6 +806,25 @@ function ProposalsPage() {
       window.clearInterval(poll);
     };
   }, [canvasOpen, previewItemId, previewShareUuid, previewShareStatus]);
+
+  useEffect(() => {
+    const missing = [...new Set(
+      items
+        .map((item) => item.customer_id)
+        .filter((id) => id && !customerNames[id] && !requestedCustomerIds.current.has(id)),
+    )];
+    if (!missing.length) return undefined;
+    missing.forEach((id) => requestedCustomerIds.current.add(id));
+    let cancelled = false;
+    Promise.all(
+      missing.map((id) => crmGet(`/customers/${id}`).catch(() => null)),
+    ).then((customers) => {
+      if (!cancelled) registerLoadedCustomers(customers.filter(Boolean));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [items, customerNames, registerLoadedCustomers]);
 
   const clearReportSelection = () => {
     documentRequest.current += 1;
@@ -1876,14 +1915,6 @@ function ProposalsPage() {
               ))}
             </Stack>
             </>}
-            <Box sx={{ mt: 2 }}>
-              <CustomerPicker label="고객 (선택 사항)" value={customerId} allowEmpty disabled={working}
-                onChange={(id) => { setCustomerId(id); submissionKey.current = null; }} />
-              <Typography variant="caption" color="text.secondary">
-                고객을 선택하면 제안 중인 고객으로 처리하고, 고객 상세에서 생성 문서를 조회하거나 계약에 연결할 수 있습니다.
-              </Typography>
-              {customerId && <Button component={Link} to={`/crm/customers/${customerId}`}>고객 문서 보기</Button>}
-            </Box>
             <TextField
               fullWidth
               size="small"
@@ -1896,8 +1927,19 @@ function ProposalsPage() {
                 setTitleTouched(true);
                 submissionKey.current = null;
               }}
-              sx={{ mt: 1.5 }}
+              sx={{ mt: 2 }}
             />
+            <Box sx={{ mt: 1.5 }}>
+              <ProposalCustomerField
+                value={customerId}
+                disabled={working}
+                onCustomersLoaded={registerLoadedCustomers}
+                onChange={(id) => {
+                  setCustomerId(id);
+                  submissionKey.current = null;
+                }}
+              />
+            </Box>
           </Paper>
 
           <Button
@@ -2087,6 +2129,25 @@ function ProposalsPage() {
                   <Stack direction="row" alignItems="center" gap={0.75} flexWrap="wrap">
                     <Typography variant="subtitle2" noWrap sx={{ fontWeight: 800, minWidth: 0, flex: { xs: 1, sm: "initial" } }}>{item.title}</Typography>
                     <Chip size="small" color={statusColor(item.status)} label={STATUS_LABELS[item.status] || item.status} />
+                    {item.customer_id && (
+                      <Tooltip title="클릭하면 이 고객의 제안서·보고서만 모아 볼 수 있어요" arrow>
+                        <Chip
+                          size="small"
+                          component={Link}
+                          to={`/crm/customers/${item.customer_id}`}
+                          clickable
+                          icon={<PersonOutlineRoundedIcon sx={{ fontSize: "14px !important", color: "#006E43 !important" }} />}
+                          label={customerNames[item.customer_id] || `고객 #${item.customer_id}`}
+                          onClick={(event) => event.stopPropagation()}
+                          sx={{
+                            bgcolor: "#ECFDF5",
+                            color: "#006E43",
+                            border: "1px solid rgba(3, 199, 90, 0.32)",
+                            fontWeight: 750,
+                          }}
+                        />
+                      </Tooltip>
+                    )}
                     {item.report_variant === "simple" && <Chip size="small" color="info" variant="outlined" label="간소화" />}
                     {item.point_status === "REFUNDED" && <Chip size="small" color="success" variant="outlined" label="꼬막 반환 완료" sx={{ display: { xs: "none", sm: "inline-flex" } }} />}
                     {(statusItem?.id ?? previewItem?.id) === item.id && (
@@ -2149,6 +2210,27 @@ function ProposalsPage() {
               </IconButton>
             </Stack>
             <Typography variant="body2">선택한 프롬프트: {selectedReport.prompt_title} v{selectedReport.prompt_version_no}{selectedReport.report_variant === "simple" ? " · 간소화 버전" : ""}</Typography>
+            {selectedReport.customer_id && (
+              <Stack direction="row" alignItems="center" gap={1} flexWrap="wrap">
+                <Typography variant="body2" color="text.secondary">연결 고객:</Typography>
+                <Tooltip title="클릭하면 이 고객의 제안서·보고서만 모아 볼 수 있어요" arrow>
+                  <Chip
+                    size="small"
+                    component={Link}
+                    to={`/crm/customers/${selectedReport.customer_id}`}
+                    clickable
+                    icon={<PersonOutlineRoundedIcon sx={{ fontSize: "14px !important", color: "#006E43 !important" }} />}
+                    label={customerNames[selectedReport.customer_id] || `고객 #${selectedReport.customer_id}`}
+                    sx={{
+                      bgcolor: "#ECFDF5",
+                      color: "#006E43",
+                      border: "1px solid rgba(3, 199, 90, 0.32)",
+                      fontWeight: 750,
+                    }}
+                  />
+                </Tooltip>
+              </Stack>
+            )}
               <Stack spacing={1.25}>
                 <Typography variant="subtitle2" fontWeight={800}>첨부파일</Typography>
                 {!selectedReport.files ? (
