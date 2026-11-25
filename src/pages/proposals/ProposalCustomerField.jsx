@@ -1,6 +1,6 @@
 /* eslint-disable react/prop-types */
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Autocomplete, Box, Button, CircularProgress, Stack, TextField, Typography } from "@mui/material";
+import { Autocomplete, Box, Button, CircularProgress, Paper, Stack, TextField, Typography } from "@mui/material";
 import AutoAwesomeRoundedIcon from "@mui/icons-material/AutoAwesomeRounded";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 import OpenInNewRoundedIcon from "@mui/icons-material/OpenInNewRounded";
@@ -96,7 +96,79 @@ export default function ProposalCustomerField({
   );
 
   return (
-    <Box>
+    <Paper
+      variant="outlined"
+      sx={{
+        p: { xs: 1.5, sm: 1.75 },
+        borderRadius: "14px",
+        bgcolor: value ? "#F0FDF4" : "#F4F7FA",
+        borderColor: value ? "rgba(3, 199, 90, 0.38)" : "#DDE5ED",
+        transition: "background-color 150ms ease, border-color 150ms ease",
+      }}
+    >
+      <Stack
+        direction="row"
+        alignItems="center"
+        justifyContent="space-between"
+        gap={1}
+        flexWrap="wrap"
+        sx={{ mb: 1.1 }}
+      >
+        <Stack direction="row" alignItems="center" spacing={0.75}>
+          <PersonOutlineRoundedIcon sx={{ fontSize: 18, color: value ? "#006E43" : "#4E5968" }} />
+          <Typography variant="subtitle2" sx={{ fontWeight: 800, color: "#121314" }}>
+            연결할 고객
+          </Typography>
+          <Box
+            component="span"
+            sx={{
+              px: 0.75,
+              py: 0.15,
+              borderRadius: "6px",
+              bgcolor: "#FFFFFF",
+              border: "1px solid #DCE3EA",
+              color: "#64748B",
+              fontSize: 11,
+              fontWeight: 700,
+            }}
+          >
+            선택 사항
+          </Box>
+        </Stack>
+        <Stack direction="row" alignItems="center" spacing={0.5}>
+          <Box
+            component="span"
+            sx={{
+              px: 0.75,
+              py: 0.15,
+              borderRadius: "6px",
+              bgcolor: value ? "#DCFCE7" : "#ECFDF5",
+              color: "#006E43",
+              border: "1px solid rgba(3, 199, 90, 0.24)",
+              fontSize: 11,
+              fontWeight: 750,
+            }}
+          >
+            고객별 구분
+          </Box>
+          <Box
+            component="span"
+            sx={{
+              px: 0.75,
+              py: 0.15,
+              borderRadius: "6px",
+              bgcolor: value ? "#DCFCE7" : "#ECFDF5",
+              color: "#006E43",
+              border: "1px solid rgba(3, 199, 90, 0.24)",
+              fontSize: 11,
+              fontWeight: 750,
+            }}
+          >
+            문서 모아보기
+          </Box>
+        </Stack>
+      </Stack>
+
       <Stack direction="row" spacing={1} alignItems="center">
         <Autocomplete
           fullWidth
@@ -165,24 +237,13 @@ export default function ProposalCustomerField({
           renderInput={(params) => (
             <TextField
               {...params}
-              label="연결할 고객 (선택)"
               placeholder="고객 이름, 카톡대화명, 연락처로 검색 또는 선택"
+              inputProps={{
+                ...params.inputProps,
+                "aria-label": "연결할 고객 (선택)",
+              }}
               InputProps={{
                 ...params.InputProps,
-                startAdornment: (
-                  <>
-                    <PersonOutlineRoundedIcon
-                      sx={{
-                        fontSize: 19,
-                        color: value ? "#006E43" : "text.secondary",
-                        ml: 0.5,
-                        mr: 0.25,
-                        flexShrink: 0,
-                      }}
-                    />
-                    {params.InputProps.startAdornment}
-                  </>
-                ),
                 endAdornment: (
                   <>
                     {loading ? <CircularProgress size={16} color="inherit" /> : null}
@@ -192,7 +253,8 @@ export default function ProposalCustomerField({
               }}
               sx={{
                 "& .MuiOutlinedInput-root": {
-                  bgcolor: value ? "rgba(236, 253, 245, 0.35)" : "#FFFFFF",
+                  bgcolor: "#FFFFFF",
+                  borderRadius: "10px",
                 },
               }}
             />
@@ -201,21 +263,21 @@ export default function ProposalCustomerField({
         {value && (
           <Button
             component={Link}
-            to={`/crm/customers/${value}`}
+            to={`/crm/customers/${value}?tab=files`}
             variant="outlined"
             size="small"
             endIcon={<OpenInNewRoundedIcon sx={{ fontSize: 15 }} />}
             sx={{
               height: 40,
               px: 1.5,
-              borderRadius: "12px",
+              borderRadius: "10px",
               flexShrink: 0,
               whiteSpace: "nowrap",
-              bgcolor: "#ECFDF5",
-              borderColor: "rgba(3, 199, 90, 0.4)",
+              bgcolor: "#FFFFFF",
+              borderColor: "rgba(3, 199, 90, 0.45)",
               color: "#006E43",
               fontWeight: 750,
-              "&:hover": { bgcolor: "#D1FAE5", borderColor: "#006E43" },
+              "&:hover": { bgcolor: "#ECFDF5", borderColor: "#006E43" },
             }}
           >
             고객 문서함
@@ -223,91 +285,27 @@ export default function ProposalCustomerField({
         )}
       </Stack>
 
-      <Box
-        sx={{
-          mt: 1,
-          px: 1.5,
-          py: 1.15,
-          borderRadius: "12px",
-          bgcolor: value ? "rgba(236, 253, 245, 0.65)" : "#F8FAFC",
-          border: "1px solid",
-          borderColor: value ? "rgba(3, 199, 90, 0.32)" : "#E6EAEE",
-          display: "flex",
-          alignItems: "flex-start",
-          gap: 1.15,
-          transition: "background-color 150ms ease, border-color 150ms ease",
-        }}
-      >
-        <Box
-          sx={{
-            width: 26,
-            height: 26,
-            borderRadius: "8px",
-            display: "grid",
-            placeItems: "center",
-            flexShrink: 0,
-            mt: 0.1,
-            bgcolor: value ? "#D1FAE5" : "#ECFDF5",
-            color: "#006E43",
-            border: "1px solid rgba(3, 199, 90, 0.22)",
-          }}
-        >
-          {value ? <CheckRoundedIcon sx={{ fontSize: 16 }} /> : <AutoAwesomeRoundedIcon sx={{ fontSize: 15 }} />}
-        </Box>
-        <Box sx={{ minWidth: 0, flex: 1 }}>
+      <Stack direction="row" spacing={0.75} alignItems="flex-start" sx={{ mt: 1 }}>
+        {value ? (
+          <CheckRoundedIcon sx={{ fontSize: 15, color: "#006E43", mt: "2px", flexShrink: 0 }} />
+        ) : (
+          <AutoAwesomeRoundedIcon sx={{ fontSize: 14, color: "#006E43", mt: "2px", flexShrink: 0 }} />
+        )}
+        <Typography variant="caption" sx={{ color: "#4E5968", lineHeight: 1.5 }}>
           {!value ? (
-            <>
-              <Stack direction="row" alignItems="center" gap={0.6} flexWrap="wrap">
-                <Typography sx={{ fontSize: 12.5, fontWeight: 800, color: "#121314" }}>
-                  고객을 연결해 두면 문서 관리가 훨씬 편해져요
-                </Typography>
-                <Box
-                  component="span"
-                  sx={{
-                    px: 0.75,
-                    py: 0.15,
-                    borderRadius: "6px",
-                    bgcolor: "#ECFDF5",
-                    color: "#006E43",
-                    fontSize: 11,
-                    fontWeight: 750,
-                  }}
-                >
-                  고객별 구분
-                </Box>
-                <Box
-                  component="span"
-                  sx={{
-                    px: 0.75,
-                    py: 0.15,
-                    borderRadius: "6px",
-                    bgcolor: "#ECFDF5",
-                    color: "#006E43",
-                    fontSize: 11,
-                    fontWeight: 750,
-                  }}
-                >
-                  문서 모아보기
-                </Box>
-              </Stack>
-              <Typography variant="caption" sx={{ display: "block", color: "#4E5968", lineHeight: 1.5, mt: 0.35 }}>
-                보고서 목록에서 누구의 제안서·보고서인지 한눈에 구분할 수 있고, 고객 상세(고객 문서함)에서 해당 고객의 제안서·보고서만 따로 모아 보거나 계약에 바로 연결할 수 있어요.
-              </Typography>
-            </>
+            "고객을 연결해 두면 보고서 목록에서 누구의 제안서·보고서인지 한눈에 구분할 수 있고, 고객 상세의 [문서] 탭에서 해당 고객의 문서만 따로 모아 보거나 계약에 바로 연결할 수 있어요."
           ) : (
             <>
-              <Typography sx={{ fontSize: 12.5, fontWeight: 800, color: "#006E43" }}>
+              <Box component="strong" sx={{ color: "#006E43", fontWeight: 800 }}>
                 {selectedCustomer?.name
-                  ? `${formatCustomerShortName(selectedCustomer)} 고객의 문서로 연결됩니다`
-                  : "선택한 고객의 문서로 연결됩니다"}
-              </Typography>
-              <Typography variant="caption" sx={{ display: "block", color: "#4E5968", lineHeight: 1.5, mt: 0.25 }}>
-                생성 후 보고서 목록에 고객 이름이 함께 표시되며, 우측 [고객 문서함]에서 이 고객의 제안서·보고서만 따로 모아 볼 수 있어요.
-              </Typography>
+                  ? `${formatCustomerShortName(selectedCustomer)} 고객의 문서로 연결됩니다.`
+                  : "선택한 고객의 문서로 연결됩니다."}
+              </Box>
+              {" 생성 후 보고서 목록에 고객 이름이 함께 표시되며, 우측 [고객 문서함]을 누르면 해당 고객의 문서 탭으로 바로 이동해요."}
             </>
           )}
-        </Box>
-      </Box>
-    </Box>
+        </Typography>
+      </Stack>
+    </Paper>
   );
 }

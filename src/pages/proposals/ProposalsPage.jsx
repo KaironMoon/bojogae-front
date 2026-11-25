@@ -36,7 +36,6 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  Divider,
   Drawer,
   FormControl,
   FormControlLabel,
@@ -343,6 +342,7 @@ function ProposalsPage() {
   const fileInputRef = useRef(null);
   const statusPanelRef = useRef(null);
   const documentRequest = useRef(0);
+  const detailRequest = useRef(0);
   const previewFrameRef = useRef(null);
   const snapshotRequests = useRef(new Map());
   const promptScrollerRef = useRef(null);
@@ -592,7 +592,7 @@ function ProposalsPage() {
     }
   };
 
-  const loadDocumentIntoWorkspace = useCallback(async (item, loadedDocument) => {
+  const loadDocumentIntoWorkspace = useCallback(async (item, loadedDocument, { openDetail = false } = {}) => {
     const request = ++documentRequest.current;
     const document = loadedDocument || await getProposal(item.id);
     if (request !== documentRequest.current) return;
@@ -606,7 +606,7 @@ function ProposalsPage() {
       summary: document.summary ?? item.summary ?? "",
     });
     setCanvasOpen(true);
-    setOpenedDocument(document);
+    setOpenedDocument(openDetail ? document : null);
   }, []);
 
   useEffect(() => {
@@ -1045,6 +1045,40 @@ function ProposalsPage() {
     }
   };
 
+  const toggleReportDetail = async (item) => {
+    setError("");
+    if (selectedReport?.id === item.id) {
+      detailRequest.current += 1;
+      setStatusItem(null);
+      setStatusMessage("");
+      setOpenedDocument(null);
+      return;
+    }
+    const requestId = ++detailRequest.current;
+    if (!isCompletedStatus(item.status)) {
+      setOpenedDocument(null);
+      setStatusMessage(item.error_message || "");
+      setStatusItem(item);
+      return;
+    }
+    setStatusItem(null);
+    setStatusMessage("");
+    setOpenedDocument(item);
+    requestAnimationFrame(() => {
+      statusPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    });
+    try {
+      const detailDoc = await getProposal(item.id);
+      if (detailRequest.current === requestId) {
+        setOpenedDocument(detailDoc);
+      }
+    } catch {
+      if (detailRequest.current === requestId) {
+        setError("선택한 문서 정보를 불러오지 못했습니다.");
+      }
+    }
+  };
+
   const openPreview = async (item) => {
     setError("");
     if (!isCompletedStatus(item.status)) {
@@ -1072,7 +1106,7 @@ function ProposalsPage() {
     getProposal(notificationGenerationId).then(async (item) => {
       if (!active) return;
       setItems((current) => [item, ...current.filter((row) => row.id !== item.id)]);
-      if (isCompletedStatus(item.status)) await loadDocumentIntoWorkspace(item, item);
+      if (isCompletedStatus(item.status)) await loadDocumentIntoWorkspace(item, item, { openDetail: true });
       else { setStatusItem(item); setStatusMessage(item.error_message || ''); }
     }).catch(() => { if (active) setError('대상이 삭제되었거나 접근 권한이 없습니다.'); });
     return () => { active = false; };
@@ -1930,8 +1964,7 @@ function ProposalsPage() {
               }}
               sx={{ mt: 2 }}
             />
-            <Divider sx={{ my: 2.5, borderColor: "divider" }} />
-            <Box>
+            <Box sx={{ mt: 2 }}>
               <ProposalCustomerField
                 value={customerId}
                 disabled={working}
@@ -2118,8 +2151,8 @@ function ProposalsPage() {
                 borderTop: "1px solid #f1f5f9",
                 borderRadius: "10px",
                 cursor: "default",
-                bgcolor: (statusItem?.id ?? previewItem?.id) === item.id ? "primary.light" : "transparent",
-                outline: (statusItem?.id ?? previewItem?.id) === item.id ? "2px solid var(--bojogae-accent-ink)" : "none",
+                bgcolor: (selectedReport?.id ?? previewItem?.id) === item.id ? "primary.light" : "transparent",
+                outline: (selectedReport?.id ?? previewItem?.id) === item.id ? "2px solid var(--bojogae-accent-ink)" : "none",
                 outlineOffset: "-2px",
                 transition: "background-color 150ms ease, outline-color 150ms ease",
                 "&:hover": { bgcolor: "#f8fafc" },
@@ -2129,14 +2162,38 @@ function ProposalsPage() {
               <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between" gap={{ xs: 0.5, md: 1.5 }}>
                 <Box sx={{ minWidth: 0 }}>
                   <Stack direction="row" alignItems="center" gap={0.75} flexWrap="wrap">
-                    <Typography variant="subtitle2" noWrap sx={{ fontWeight: 800, minWidth: 0, flex: { xs: 1, sm: "initial" } }}>{item.title}</Typography>
+                    <Typography
+                      component="button"
+                      type="button"
+                      variant="subtitle2"
+                      aria-expanded={selectedReport?.id === item.id}
+                      onClick={() => toggleReportDetail(item)}
+                      noWrap
+                      sx={{
+                        p: 0,
+                        m: 0,
+                        border: 0,
+                        background: "none",
+                        font: "inherit",
+                        fontWeight: 800,
+                        color: "text.primary",
+                        cursor: "pointer",
+                        textAlign: "left",
+                        minWidth: 0,
+                        flex: { xs: 1, sm: "initial" },
+                        "&:hover": { color: "primary.dark", textDecoration: "underline" },
+                        "&:focus-visible": { outline: "2px solid var(--bojogae-accent-ink)", borderRadius: "4px" },
+                      }}
+                    >
+                      {item.title}
+                    </Typography>
                     <Chip size="small" color={statusColor(item.status)} label={STATUS_LABELS[item.status] || item.status} />
                     {item.customer_id && (
                       <Tooltip title="클릭하면 이 고객의 제안서·보고서만 모아 볼 수 있어요" arrow>
                         <Chip
                           size="small"
                           component={Link}
-                          to={`/crm/customers/${item.customer_id}`}
+                          to={`/crm/customers/${item.customer_id}?tab=files`}
                           clickable
                           icon={<PersonOutlineRoundedIcon sx={{ fontSize: "14px !important", color: "#006E43 !important" }} />}
                           label={customerNames[item.customer_id] || `고객 #${item.customer_id}`}
@@ -2152,7 +2209,7 @@ function ProposalsPage() {
                     )}
                     {item.report_variant === "simple" && <Chip size="small" color="info" variant="outlined" label="간소화" />}
                     {item.point_status === "REFUNDED" && <Chip size="small" color="success" variant="outlined" label="꼬막 반환 완료" sx={{ display: { xs: "none", sm: "inline-flex" } }} />}
-                    {(statusItem?.id ?? previewItem?.id) === item.id && (
+                    {(selectedReport?.id ?? previewItem?.id) === item.id && (
                       <Chip size="small" color="primary" variant="outlined" label="선택됨" sx={{ display: { xs: "none", sm: "inline-flex" }, fontWeight: 750 }} />
                     )}
                   </Stack>
@@ -2219,7 +2276,7 @@ function ProposalsPage() {
                   <Chip
                     size="small"
                     component={Link}
-                    to={`/crm/customers/${selectedReport.customer_id}`}
+                    to={`/crm/customers/${selectedReport.customer_id}?tab=files`}
                     clickable
                     icon={<PersonOutlineRoundedIcon sx={{ fontSize: "14px !important", color: "#006E43 !important" }} />}
                     label={customerNames[selectedReport.customer_id] || `고객 #${selectedReport.customer_id}`}
@@ -2267,11 +2324,17 @@ function ProposalsPage() {
                 LLM 응답 다운로드
               </Button>
             )}
-            {statusItem && isCompletedStatus(statusItem.status) && <Button sx={{ alignSelf: "flex-start" }} onClick={() => {
-              const item = statusItem;
-              setStatusItem(null);
-              openPreview(item);
-            }}>보고서 열기</Button>}
+            {isCompletedStatus(selectedReport.status) && (
+              <Button
+                variant="contained"
+                size="small"
+                startIcon={<VisibilityOutlinedIcon />}
+                sx={{ alignSelf: "flex-start" }}
+                onClick={() => openPreview(selectedReport)}
+              >
+                캔버스에서 열기
+              </Button>
+            )}
           </Stack>
         </Paper>
       )}

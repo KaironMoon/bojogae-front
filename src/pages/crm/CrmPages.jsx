@@ -7,7 +7,7 @@ import useMediaQuery from "@mui/material/useMediaQuery";
 /* eslint-disable react/prop-types */
 import { CustomerDesignDrawer, CustomerConsultationTimeline, CustomerContractPreview } from "./CrmCustomerDesign";
 import ContractDesignIcon from "./ContractDesignIcon";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Alert,
   Box,
@@ -27,7 +27,7 @@ import {
   ToggleButton,
   ToggleButtonGroup,
 } from "@mui/material";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { crmGet, crmPost, crmPut, crmError, crmDeleteCustomers } from "@/services/crm-service";
 import {
   useCrm,
@@ -422,14 +422,61 @@ function CustomerInfoTile({ label, value, fullWidth = false }) {
     </Box>
   );
 }
+const CUSTOMER_DETAIL_TABS = new Set(["summary", "consultations", "contracts", "tasks", "files"]);
+
 export function CustomerDetailPage() {
   const { customerId } = useParams();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedTab = searchParams.get("tab");
+  const targetTab = CUSTOMER_DETAIL_TABS.has(requestedTab) ? requestedTab : null;
+  const scrollKey = targetTab ? `${customerId}:${targetTab}` : "";
   const resource = useCrm(`/customers/${customerId}`);
   const c = resource.data;
-  const [tab, setTab] = useState("summary");
+  const hasCustomer = Boolean(c);
+  const [tab, setTab] = useState(() => targetTab || "summary");
   const [editor, setEditor] = useState("");
   const [task, setTask] = useState(null);
+  const tabsAnchorRef = useRef(null);
+  const scrolledTabKeyRef = useRef("");
+
+  useEffect(() => {
+    if (targetTab) {
+      setTab(targetTab);
+    }
+  }, [customerId, targetTab]);
+
+  useEffect(() => {
+    if (!scrollKey) {
+      scrolledTabKeyRef.current = "";
+    }
+  }, [scrollKey]);
+
+  useEffect(() => {
+    if (!hasCustomer || !targetTab || tab !== targetTab || scrolledTabKeyRef.current === scrollKey) {
+      return undefined;
+    }
+    scrolledTabKeyRef.current = scrollKey;
+    const frame = window.requestAnimationFrame(() => {
+      const anchor = tabsAnchorRef.current;
+      if (!anchor) return;
+      const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+      anchor.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
+      const activeTab = anchor.querySelector('[role="tab"][aria-selected="true"]');
+      activeTab?.focus({ preventScroll: true });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [hasCustomer, scrollKey, tab, targetTab]);
+
+  const changeTab = (nextTab) => {
+    setTab(nextTab);
+    if (searchParams.has("tab")) {
+      const next = new URLSearchParams(searchParams);
+      if (nextTab === "summary") next.delete("tab");
+      else next.set("tab", nextTab);
+      setSearchParams(next, { replace: true });
+    }
+  };
   return (
     <div className="crm-customers-workspace crm-customer-detail-workspace"><CustomerWorkspace
       badges={<div className="crm-customer-header-badges"><span>CUSTOMER WORKSPACE</span><span>고객 정보 · 상담 · 계약 · 일정</span></div>}
@@ -514,28 +561,30 @@ export function CustomerDetailPage() {
               </Button>
             </Stack>
           </Panel>
-          <Tabs
-            className="crm-customer-detail-tabs"
-            value={tab}
-            onChange={(_, v) => setTab(v)}
-            variant="scrollable"
-            sx={{ mb: 2 }}
-          >
-            <Tab label="요약" value="summary" />
-            <Tab
-              label={`상담 (${c.consultations.length})`}
-              value="consultations"
-            />
-            <Tab label={`보험 계약 (${c.contracts.total})`} value="contracts" />
-            <Tab label="업무·일정" value="tasks" />
-            <Tab label="문서" value="files" />
-          </Tabs>
+          <Box ref={tabsAnchorRef} sx={{ scrollMarginTop: "24px" }}>
+            <Tabs
+              className="crm-customer-detail-tabs"
+              value={tab}
+              onChange={(_, v) => changeTab(v)}
+              variant="scrollable"
+              sx={{ mb: 2 }}
+            >
+              <Tab label="요약" value="summary" />
+              <Tab
+                label={`상담 (${c.consultations.length})`}
+                value="consultations"
+              />
+              <Tab label={`보험 계약 (${c.contracts.total})`} value="contracts" />
+              <Tab label="업무·일정" value="tasks" />
+              <Tab label="문서" value="files" />
+            </Tabs>
+          </Box>
           {tab === "summary" && (
             <>
               <Panel>
                 <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1}>
                   <Typography fontWeight={700}>최근 상담 내역</Typography>
-                  <Button onClick={() => setTab("consultations")}>전체 보기</Button>
+                  <Button onClick={() => changeTab("consultations")}>전체 보기</Button>
                 </Stack>
                 <CustomerConsultationTimeline items={(c.consultations || []).slice(0, 5)} />
               </Panel>
