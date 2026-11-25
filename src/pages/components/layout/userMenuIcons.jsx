@@ -25,6 +25,43 @@ export const ICON_TONES = {
   purple: ["#F3EEFF", "#6B38FB"],
 };
 
+export const BADGE_TONE_STYLES = {
+  green: ["#DCFCE7", "#15803D", "#86EFAC"],
+  rose: ["#FFE4E6", "#BE123C", "#FDA4AF"],
+  purple: ["#F3E8FF", "#6D28D9", "#D8B4FE"],
+  blue: ["#DBEAFE", "#1D4ED8", "#93C5FD"],
+  amber: ["#FEF3C7", "#B45309", "#FCD34D"],
+  slate: ["#E2E8F0", "#334155", "#CBD5E1"],
+};
+
+export function MenuBadge({ badge, onHero = false, compact = false }) {
+  if (!badge?.text) return null;
+  const [bg, color, border] = BADGE_TONE_STYLES[badge.tone] || BADGE_TONE_STYLES.green;
+  return (
+    <Box
+      component="span"
+      sx={{
+        display: "inline-flex",
+        alignItems: "center",
+        flexShrink: 0,
+        px: compact ? 0.6 : 0.75,
+        py: compact ? 0.1 : 0.2,
+        borderRadius: "999px",
+        fontSize: compact ? 9.5 : 10,
+        fontWeight: 800,
+        lineHeight: 1.2,
+        letterSpacing: "0.02em",
+        whiteSpace: "nowrap",
+        bgcolor: onHero ? "rgba(255,255,255,0.94)" : bg,
+        color,
+        border: onHero ? "1px solid rgba(255,255,255,0.5)" : `1px solid ${border}`,
+      }}
+    >
+      {badge.text}
+    </Box>
+  );
+}
+
 export const USER_MENU_ICONS = {
   auto_awesome: AutoAwesomeRoundedIcon,
   home: HomeOutlinedIcon,

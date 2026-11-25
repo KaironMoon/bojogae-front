@@ -2,11 +2,15 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  BADGE_PRESETS,
   DEFAULT_USER_MENU_ITEMS,
+  hasMenuChanges,
   isMenuEligibleForUser,
   mergeUserMenuConfig,
   moveItemByDrop,
   moveItemByOffset,
+  normalizeMenuBadge,
+  toUserMenuPayload,
 } from "../src/services/user-menu-config.js";
 
 test("mergeUserMenuConfig preserves saved order/labels/visibility and appends missing items", () => {
@@ -78,4 +82,35 @@ test("isMenuEligibleForUser respects visibility, group children, and audience ru
     children: claimsGroup.children.map((c) => ({ ...c, visible: false })),
   };
   assert.equal(isMenuEligibleForUser(hiddenChildrenGroup, normalUser), false);
+});
+
+test("normalizeMenuBadge and menu config preserve and detect top-level and child badge updates", () => {
+  assert.equal(normalizeMenuBadge(null), null);
+  assert.equal(normalizeMenuBadge({ text: "   ", tone: "green" }), null);
+  assert.deepEqual(normalizeMenuBadge({ text: " BETA_1234567 ", tone: "unknown" }), {
+    text: "BETA_12345",
+    tone: "green",
+  });
+  assert.ok(BADGE_PRESETS.some((p) => p.text === "BETA" && p.tone === "purple"));
+
+  const merged = mergeUserMenuConfig([
+    { key: "insurers", label: "보험사 정보·링크", visible: true, badge: { text: "NEW", tone: "green" } },
+    {
+      key: "claims",
+      label: "보험금 청구",
+      visible: true,
+      badge: { text: "BETA", tone: "purple" },
+      children: [{ key: "claims_new", label: "청구", visible: true, badge: { text: "HOT", tone: "rose" } }],
+    },
+    { key: "home", label: "Home", visible: true, badge: { text: "  ", tone: "blue" } },
+  ]);
+
+  assert.deepEqual(merged.find((i) => i.key === "insurers").badge, { text: "NEW", tone: "green" });
+  const claims = merged.find((i) => i.key === "claims");
+  assert.deepEqual(claims.badge, { text: "BETA", tone: "purple" });
+  assert.deepEqual(claims.children.find((c) => c.key === "claims_new").badge, { text: "HOT", tone: "rose" });
+  assert.equal(merged.find((i) => i.key === "home").badge, null);
+
+  assert.equal(hasMenuChanges(merged, DEFAULT_USER_MENU_ITEMS), true);
+  assert.equal(hasMenuChanges(merged, mergeUserMenuConfig(toUserMenuPayload(merged))), false);
 });

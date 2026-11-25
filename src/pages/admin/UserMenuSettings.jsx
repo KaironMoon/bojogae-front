@@ -5,6 +5,7 @@ import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
 import DragIndicatorRoundedIcon from "@mui/icons-material/DragIndicatorRounded";
 import ExpandLessRoundedIcon from "@mui/icons-material/ExpandLessRounded";
 import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
+import LocalOfferOutlinedIcon from "@mui/icons-material/LocalOfferOutlined";
 import RestartAltRoundedIcon from "@mui/icons-material/RestartAltRounded";
 import SaveRoundedIcon from "@mui/icons-material/SaveRounded";
 import VisibilityOffOutlinedIcon from "@mui/icons-material/VisibilityOffOutlined";
@@ -18,6 +19,7 @@ import {
   Divider,
   IconButton,
   Paper,
+  Popover,
   Stack,
   Switch,
   TextField,
@@ -28,8 +30,10 @@ import {
 } from "@mui/material";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { MenuIcon } from "@/pages/components/layout/userMenuIcons";
+import { BADGE_TONE_STYLES, MenuBadge, MenuIcon } from "@/pages/components/layout/userMenuIcons";
 import {
+  BADGE_PRESETS,
+  BADGE_TONES,
   DEFAULT_USER_MENU_ITEMS,
   hasMenuChanges,
   isMenuEligibleForUser,
@@ -45,6 +49,207 @@ const AUDIENCE_BADGES = {
 };
 
 const INTERACTIVE_SELECTOR = "input, textarea, button, a, .MuiSwitch-root, .MuiInputBase-root";
+
+/* eslint-disable react/prop-types */
+function BadgeEditorButton({ badge, targetLabel, onChange }) {
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [draftText, setDraftText] = useState("");
+  const [draftTone, setDraftTone] = useState("green");
+  const open = Boolean(anchorEl);
+
+  const handleOpen = (event) => {
+    setAnchorEl(event.currentTarget);
+    setDraftText(badge?.text || "");
+    setDraftTone(badge?.tone || "green");
+  };
+
+  const handleClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleApplyCustom = () => {
+    const trimmed = draftText.trim().slice(0, 10);
+    if (!trimmed) return;
+    onChange({ text: trimmed, tone: draftTone });
+    handleClose();
+  };
+
+  return (
+    <>
+      <Tooltip title="메뉴 뱃지(BETA, NEW, HOT 등) 설정">
+        <Button
+          size="small"
+          variant="outlined"
+          aria-label={`${targetLabel} 뱃지 설정`}
+          onClick={handleOpen}
+          sx={{
+            minWidth: 0,
+            px: badge ? 0.65 : 0.9,
+            py: 0.35,
+            borderRadius: "999px",
+            borderColor: badge ? "#CBD5E1" : "#E2E8F0",
+            bgcolor: "#FFFFFF",
+            color: "#475569",
+            fontSize: 11.5,
+            fontWeight: 650,
+            textTransform: "none",
+            flexShrink: 0,
+            lineHeight: 1.2,
+            gap: 0.4,
+            "&:hover": { borderColor: "#94A3B8", bgcolor: "#F8FAFC" },
+          }}
+        >
+          {badge ? (
+            <MenuBadge badge={badge} compact />
+          ) : (
+            <>
+              <LocalOfferOutlinedIcon sx={{ fontSize: 13 }} />
+              <span>뱃지</span>
+            </>
+          )}
+        </Button>
+      </Tooltip>
+      <Popover
+        open={open}
+        anchorEl={anchorEl}
+        onClose={handleClose}
+        anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+        transformOrigin={{ vertical: "top", horizontal: "left" }}
+        slotProps={{ paper: { sx: { p: 1.75, width: 280, borderRadius: 2.5 } } }}
+      >
+        <Stack spacing={1.25}>
+          <Stack direction="row" justifyContent="space-between" alignItems="center">
+            <Typography variant="subtitle2" fontWeight={800} noWrap>
+              뱃지 설정 · {targetLabel}
+            </Typography>
+            {badge && (
+              <Button
+                size="small"
+                color="inherit"
+                onClick={() => {
+                  onChange(null);
+                  handleClose();
+                }}
+                sx={{ minWidth: 0, px: 0.75, fontSize: 11.5, color: "text.secondary" }}
+              >
+                제거
+              </Button>
+            )}
+          </Stack>
+
+          <Box>
+            <Typography variant="caption" color="text.secondary" fontWeight={700} sx={{ display: "block", mb: 0.75 }}>
+              빠른 선택
+            </Typography>
+            <Stack direction="row" flexWrap="wrap" gap={0.6}>
+              <Chip
+                size="small"
+                label="없음"
+                variant={!badge ? "filled" : "outlined"}
+                onClick={() => {
+                  onChange(null);
+                  handleClose();
+                }}
+                sx={{ fontSize: 11.5, fontWeight: 700, cursor: "pointer" }}
+              />
+              {BADGE_PRESETS.map((preset) => {
+                const [bg, color, border] = BADGE_TONE_STYLES[preset.tone];
+                const active = badge?.text === preset.text && badge?.tone === preset.tone;
+                return (
+                  <Chip
+                    key={`${preset.text}-${preset.tone}`}
+                    size="small"
+                    label={preset.text}
+                    onClick={() => {
+                      onChange({ text: preset.text, tone: preset.tone });
+                      handleClose();
+                    }}
+                    sx={{
+                      fontSize: 11,
+                      fontWeight: 800,
+                      cursor: "pointer",
+                      bgcolor: bg,
+                      color,
+                      border: `1px solid ${active ? color : border}`,
+                      boxShadow: active ? `0 0 0 1px ${color}` : "none",
+                    }}
+                  />
+                );
+              })}
+            </Stack>
+          </Box>
+
+          <Divider />
+
+          <Stack spacing={1}>
+            <Typography variant="caption" color="text.secondary" fontWeight={700}>
+              직접 입력
+            </Typography>
+            <TextField
+              size="small"
+              fullWidth
+              placeholder="예: BETA, v2, 필독 (최대 10자)"
+              value={draftText}
+              inputProps={{ maxLength: 10, "aria-label": `${targetLabel} 직접 뱃지 문구` }}
+              onChange={(event) => setDraftText(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && draftText.trim()) {
+                  event.preventDefault();
+                  handleApplyCustom();
+                }
+              }}
+            />
+            <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
+              {BADGE_TONES.map((tone) => {
+                const [bg, color, border] = BADGE_TONE_STYLES[tone.key];
+                const selected = draftTone === tone.key;
+                return (
+                  <Chip
+                    key={tone.key}
+                    size="small"
+                    label={tone.label}
+                    onClick={() => setDraftTone(tone.key)}
+                    sx={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      bgcolor: bg,
+                      color,
+                      border: `1.5px solid ${selected ? color : border}`,
+                      boxShadow: selected ? `0 0 0 1px ${color}` : "none",
+                    }}
+                  />
+                );
+              })}
+            </Stack>
+            <Stack direction="row" justifyContent="space-between" alignItems="center" pt={0.5}>
+              <Box sx={{ minHeight: 22, display: "flex", alignItems: "center" }}>
+                {draftText.trim() ? (
+                  <MenuBadge badge={{ text: draftText.trim().slice(0, 10), tone: draftTone }} />
+                ) : (
+                  <Typography variant="caption" color="text.disabled">미리보기</Typography>
+                )}
+              </Box>
+              <Stack direction="row" spacing={0.75}>
+                <Button size="small" color="inherit" onClick={handleClose}>닫기</Button>
+                <Button
+                  size="small"
+                  variant="contained"
+                  disableElevation
+                  disabled={!draftText.trim()}
+                  onClick={handleApplyCustom}
+                >
+                  적용
+                </Button>
+              </Stack>
+            </Stack>
+          </Stack>
+        </Stack>
+      </Popover>
+    </>
+  );
+}
+/* eslint-enable react/prop-types */
 
 function findDropTarget(nodes, clientY, datasetField) {
   for (let i = 0; i < nodes.length; i += 1) {
@@ -265,7 +470,7 @@ export default function UserMenuSettings() {
 
   const handleResetDefaults = () => {
     setItems(DEFAULT_USER_MENU_ITEMS);
-    setMessage("기본 순서·이름·노출 상태로 초기화했습니다. 저장 버튼을 누르면 반영됩니다.");
+    setMessage("기본 순서·이름·노출·뱃지 상태로 초기화했습니다. 저장 버튼을 누르면 반영됩니다.");
     setError("");
   };
 
@@ -301,7 +506,7 @@ export default function UserMenuSettings() {
               <Box>
                 <Typography variant="h6" fontWeight={800}>좌측 유저 메뉴 구성</Typography>
                 <Typography variant="body2" color="text.secondary">
-                  카드를 드래그앤드롭하거나 화살표로 순서를 바꾸고, 스위치로 노출 여부를 제어하세요.
+                  카드를 드래그앤드롭하거나 화살표로 순서를 바꾸고, 뱃지(NEW·BETA 등)와 노출 여부를 제어하세요.
                 </Typography>
               </Box>
               <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
@@ -402,7 +607,7 @@ export default function UserMenuSettings() {
                         justifyContent="space-between"
                         gap={1.25}
                       >
-                        <Stack direction="row" alignItems="center" spacing={1} sx={{ flex: 1, minWidth: 0 }}>
+                        <Stack direction="row" alignItems="center" spacing={1} flexWrap="wrap" useFlexGap sx={{ flex: 1, minWidth: 0 }}>
                           <Tooltip title="드래그해서 순서 이동">
                             <Box
                               data-drag-handle="true"
@@ -454,6 +659,11 @@ export default function UserMenuSettings() {
                               </IconButton>
                             </Tooltip>
                           )}
+                          <BadgeEditorButton
+                            badge={item.badge}
+                            targetLabel={item.label}
+                            onChange={(nextBadge) => updateItem(item.key, (prev) => ({ ...prev, badge: nextBadge }))}
+                          />
                         </Stack>
 
                         <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={0.75} flexWrap="wrap" useFlexGap>
@@ -593,7 +803,7 @@ export default function UserMenuSettings() {
                                       opacity: isChildDragging ? 0.45 : child.visible ? 1 : 0.6,
                                     }}
                                   >
-                                    <Stack direction="row" alignItems="center" spacing={1} sx={{ flex: 1, minWidth: 0 }}>
+                                    <Stack direction="row" alignItems="center" spacing={1} flexWrap="wrap" useFlexGap sx={{ flex: 1, minWidth: 0 }}>
                                       <Box
                                         data-drag-handle="true"
                                         aria-label={`${child.label} 하위 메뉴 드래그`}
@@ -624,6 +834,11 @@ export default function UserMenuSettings() {
                                           updateChild(item.key, child.key, (prev) => ({ ...prev, label: nextLabel }));
                                         }}
                                         sx={{ minWidth: 140, maxWidth: 210, bgcolor: "#fff" }}
+                                      />
+                                      <BadgeEditorButton
+                                        badge={child.badge}
+                                        targetLabel={child.label}
+                                        onChange={(nextBadge) => updateChild(item.key, child.key, (prev) => ({ ...prev, badge: nextBadge }))}
                                       />
                                       <Typography variant="caption" color="text.secondary" sx={{ fontFamily: "monospace" }}>
                                         {child.path}
@@ -738,7 +953,10 @@ export default function UserMenuSettings() {
                       </Box>
                       <Box sx={{ minWidth: 0 }}>
                         <Box sx={{ ...reportHeroBadge, width: "fit-content", fontSize: 9 }}>CORE FEATURE</Box>
-                        <Typography fontSize={13} fontWeight={850} noWrap>{item.label}</Typography>
+                        <Stack direction="row" alignItems="center" spacing={0.6}>
+                          <Typography fontSize={13} fontWeight={850} noWrap>{item.label}</Typography>
+                          <MenuBadge badge={item.badge} onHero compact />
+                        </Stack>
                       </Box>
                       <ChevronRightRoundedIcon sx={{ ml: "auto", fontSize: 16 }} />
                     </Box>
@@ -753,6 +971,7 @@ export default function UserMenuSettings() {
                       <Typography fontSize={13} fontWeight={650} noWrap sx={{ flex: 1 }}>
                         {item.label}
                       </Typography>
+                      <MenuBadge badge={item.badge} compact />
                       {item.kind === "group" && (
                         <Typography variant="caption" color="text.secondary">▾</Typography>
                       )}
@@ -760,9 +979,12 @@ export default function UserMenuSettings() {
                     {item.kind === "group" && visibleChildren.length > 0 && (
                       <Stack spacing={0.25} sx={{ pl: 4.25, pt: 0.35, pb: 0.25 }}>
                         {visibleChildren.map((child) => (
-                          <Typography key={child.key} fontSize={12} color="text.secondary" noWrap>
-                            · {child.label}
-                          </Typography>
+                          <Stack key={child.key} direction="row" alignItems="center" spacing={0.5}>
+                            <Typography fontSize={12} color="text.secondary" noWrap>
+                              · {child.label}
+                            </Typography>
+                            <MenuBadge badge={child.badge} compact />
+                          </Stack>
                         ))}
                       </Stack>
                     )}

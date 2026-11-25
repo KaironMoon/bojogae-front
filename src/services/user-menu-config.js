@@ -1,3 +1,31 @@
+export const BADGE_TONES = [
+  { key: "green", label: "초록" },
+  { key: "rose", label: "빨강" },
+  { key: "purple", label: "보라" },
+  { key: "blue", label: "파랑" },
+  { key: "amber", label: "주황" },
+  { key: "slate", label: "회색" },
+];
+
+const VALID_BADGE_TONES = new Set(BADGE_TONES.map((t) => t.key));
+
+export const BADGE_PRESETS = [
+  { text: "NEW", tone: "green" },
+  { text: "HOT", tone: "rose" },
+  { text: "BETA", tone: "purple" },
+  { text: "UP", tone: "blue" },
+  { text: "PRO", tone: "amber" },
+  { text: "추천", tone: "blue" },
+];
+
+export function normalizeMenuBadge(rawBadge) {
+  if (!rawBadge || typeof rawBadge !== "object") return null;
+  const text = typeof rawBadge.text === "string" ? rawBadge.text.trim().slice(0, 10) : "";
+  if (!text) return null;
+  const tone = VALID_BADGE_TONES.has(rawBadge.tone) ? rawBadge.tone : "green";
+  return { text, tone };
+}
+
 export const DEFAULT_USER_MENU_ITEMS = [
   {
     key: "proposals",
@@ -10,6 +38,7 @@ export const DEFAULT_USER_MENU_ITEMS = [
     tone: "slate",
     audience: "ALL",
     visible: true,
+    badge: null,
     children: [],
   },
   {
@@ -23,6 +52,7 @@ export const DEFAULT_USER_MENU_ITEMS = [
     tone: "slate",
     audience: "ALL",
     visible: true,
+    badge: null,
     children: [],
   },
   {
@@ -36,6 +66,7 @@ export const DEFAULT_USER_MENU_ITEMS = [
     tone: "blue",
     audience: "ALL",
     visible: true,
+    badge: null,
     children: [],
   },
   {
@@ -49,6 +80,7 @@ export const DEFAULT_USER_MENU_ITEMS = [
     tone: "slate",
     audience: "ALL",
     visible: true,
+    badge: null,
     children: [],
   },
   {
@@ -62,9 +94,10 @@ export const DEFAULT_USER_MENU_ITEMS = [
     tone: "green",
     audience: "ALL",
     visible: true,
+    badge: null,
     children: [
-      { key: "claims_new", label: "청구", default_label: "청구", path: "/claims/new", visible: true },
-      { key: "claims_history", label: "청구내역", default_label: "청구내역", path: "/claims/history", visible: true },
+      { key: "claims_new", label: "청구", default_label: "청구", path: "/claims/new", visible: true, badge: null },
+      { key: "claims_history", label: "청구내역", default_label: "청구내역", path: "/claims/history", visible: true, badge: null },
     ],
   },
   {
@@ -78,9 +111,10 @@ export const DEFAULT_USER_MENU_ITEMS = [
     tone: "indigo",
     audience: "ALL",
     visible: true,
+    badge: null,
     children: [
-      { key: "crm_customers", label: "내 고객", default_label: "내 고객", path: "/crm/customers", visible: true },
-      { key: "crm_contracts", label: "내 계약", default_label: "내 계약", path: "/crm/contracts", visible: true },
+      { key: "crm_customers", label: "내 고객", default_label: "내 고객", path: "/crm/customers", visible: true, badge: null },
+      { key: "crm_contracts", label: "내 계약", default_label: "내 계약", path: "/crm/contracts", visible: true, badge: null },
     ],
   },
   {
@@ -94,9 +128,10 @@ export const DEFAULT_USER_MENU_ITEMS = [
     tone: "amber",
     audience: "ALL",
     visible: true,
+    badge: null,
     children: [
-      { key: "kakao_snippets", label: "상용구", default_label: "상용구", path: "/kakao-message-templates/snippets", visible: true },
-      { key: "kakao_signatures", label: "서명", default_label: "서명", path: "/kakao-message-templates/signatures", visible: true },
+      { key: "kakao_snippets", label: "상용구", default_label: "상용구", path: "/kakao-message-templates/snippets", visible: true, badge: null },
+      { key: "kakao_signatures", label: "서명", default_label: "서명", path: "/kakao-message-templates/signatures", visible: true, badge: null },
     ],
   },
   {
@@ -110,6 +145,7 @@ export const DEFAULT_USER_MENU_ITEMS = [
     tone: "rose",
     audience: "ALL",
     visible: true,
+    badge: null,
     children: [],
   },
   {
@@ -123,9 +159,10 @@ export const DEFAULT_USER_MENU_ITEMS = [
     tone: "purple",
     audience: "ALL",
     visible: true,
+    badge: null,
     children: [
-      { key: "refund_requests", label: "환불 요청 내역", default_label: "환불 요청 내역", path: "/refund-requests", visible: true },
-      { key: "document_suggestions", label: "문서 개선 건의", default_label: "문서 개선 건의", path: "/document-suggestions", visible: true },
+      { key: "refund_requests", label: "환불 요청 내역", default_label: "환불 요청 내역", path: "/refund-requests", visible: true, badge: null },
+      { key: "document_suggestions", label: "문서 개선 건의", default_label: "문서 개선 건의", path: "/document-suggestions", visible: true, badge: null },
     ],
   },
   {
@@ -139,9 +176,10 @@ export const DEFAULT_USER_MENU_ITEMS = [
     tone: "slate",
     audience: "ALL",
     visible: true,
+    badge: null,
     children: [
-      { key: "profile_edit", label: "정보수정·결제", default_label: "정보수정·결제", path: "/profile", visible: true },
-      { key: "my_coins", label: "내꼬막", default_label: "내꼬막", path: "/my-coins", visible: true },
+      { key: "profile_edit", label: "정보수정·결제", default_label: "정보수정·결제", path: "/profile", visible: true, badge: null },
+      { key: "my_coins", label: "내꼬막", default_label: "내꼬막", path: "/my-coins", visible: true, badge: null },
     ],
   },
   {
@@ -155,10 +193,11 @@ export const DEFAULT_USER_MENU_ITEMS = [
     tone: "slate",
     audience: "ALL",
     visible: true,
+    badge: null,
     children: [
-      { key: "boards_notices", label: "공지사항", default_label: "공지사항", path: "/boards/notices", visible: true },
-      { key: "boards_industry_news", label: "업계소식", default_label: "업계소식", path: "/boards/industry-news", visible: true },
-      { key: "boards_insurance_knowledge", label: "보험 지식", default_label: "보험 지식", path: "/boards/insurance-knowledge", visible: true },
+      { key: "boards_notices", label: "공지사항", default_label: "공지사항", path: "/boards/notices", visible: true, badge: null },
+      { key: "boards_industry_news", label: "업계소식", default_label: "업계소식", path: "/boards/industry-news", visible: true, badge: null },
+      { key: "boards_insurance_knowledge", label: "보험 지식", default_label: "보험 지식", path: "/boards/insurance-knowledge", visible: true, badge: null },
     ],
   },
   {
@@ -172,9 +211,10 @@ export const DEFAULT_USER_MENU_ITEMS = [
     tone: "slate",
     audience: "ALL",
     visible: true,
+    badge: null,
     children: [
-      { key: "help_faq", label: "FAQ", default_label: "FAQ", path: "/help/faq", visible: true },
-      { key: "help_contact", label: "1:1 문의", default_label: "1:1 문의", path: "/help/contact", visible: true },
+      { key: "help_faq", label: "FAQ", default_label: "FAQ", path: "/help/faq", visible: true, badge: null },
+      { key: "help_contact", label: "1:1 문의", default_label: "1:1 문의", path: "/help/contact", visible: true, badge: null },
     ],
   },
   {
@@ -188,6 +228,7 @@ export const DEFAULT_USER_MENU_ITEMS = [
     tone: "slate",
     audience: "GROUP_LEADER",
     visible: true,
+    badge: null,
     children: [],
   },
   {
@@ -201,6 +242,7 @@ export const DEFAULT_USER_MENU_ITEMS = [
     tone: "slate",
     audience: "GROUP_MEMBER",
     visible: true,
+    badge: null,
     children: [],
   },
   {
@@ -214,6 +256,7 @@ export const DEFAULT_USER_MENU_ITEMS = [
     tone: "green",
     audience: "ALL",
     visible: true,
+    badge: null,
     children: [],
   },
 ];
@@ -228,6 +271,7 @@ function cloneChild(spec, savedChild) {
     default_label: spec.default_label,
     path: spec.path,
     visible: typeof savedChild?.visible === "boolean" ? savedChild.visible : true,
+    badge: normalizeMenuBadge(savedChild?.badge ?? spec.badge),
   };
 }
 
@@ -262,6 +306,7 @@ function cloneItem(spec, savedItem) {
     tone: spec.tone,
     audience: spec.audience,
     visible: typeof savedItem?.visible === "boolean" ? savedItem.visible : true,
+    badge: normalizeMenuBadge(savedItem?.badge ?? spec.badge),
     children,
   };
 }
@@ -292,6 +337,7 @@ export function toUserMenuPayload(items) {
       key: item.key,
       label: label.slice(0, 40),
       visible: Boolean(item.visible),
+      badge: normalizeMenuBadge(item.badge),
     };
     if (item.kind === "group") {
       entry.children = (item.children || []).map((child) => {
@@ -302,6 +348,7 @@ export function toUserMenuPayload(items) {
           key: child.key,
           label: childLabel.slice(0, 40),
           visible: Boolean(child.visible),
+          badge: normalizeMenuBadge(child.badge),
         };
       });
     }

@@ -43,7 +43,7 @@ import {
 } from "@/services/user-menu-service";
 import { reportHero, reportHeroBadge, reportHeroIcon } from "@/styles/reportTheme";
 
-import { MenuIcon } from "./userMenuIcons";
+import { MenuBadge, MenuIcon } from "./userMenuIcons";
 
 const ADMIN_POINT_MENU = [
   { label: "꼬막 지급·회수·내역", path: "/admin/points" },
@@ -134,7 +134,7 @@ function PageLeftMenu({ onNavigate }) { // eslint-disable-line react/prop-types
 
   const isActive = (path) => pathMatches(location.pathname, path);
 
-  const renderMenuItem = ({ key, label, path, icon, icon_key: iconKey, tone }) => {
+  const renderMenuItem = ({ key, label, path, icon, icon_key: iconKey, tone, badge }) => {
     const active = isActive(path);
     return (
       <ListItem key={key || path} disablePadding sx={{ px: 1.25, mb: 0.35 }}>
@@ -171,18 +171,20 @@ function PageLeftMenu({ onNavigate }) { // eslint-disable-line react/prop-types
           <MenuIcon icon={icon} iconKey={iconKey} tone={tone} />
           <ListItemText
             primary={label}
+            sx={{ minWidth: 0, mr: badge ? 0.75 : 0 }}
             primaryTypographyProps={{
               fontSize: 14,
               fontWeight: active ? 750 : 550,
               letterSpacing: "-0.01em",
             }}
           />
+          <MenuBadge badge={badge} />
         </ListItemButton>
       </ListItem>
     );
   };
 
-  const renderMenuGroup = ({ label, icon, icon_key: iconKey, tone, items, open, onToggle, prefix }) => {
+  const renderMenuGroup = ({ label, icon, icon_key: iconKey, tone, badge, items, open, onToggle, prefix }) => {
     const active = items.some((item) => isActive(item.path));
     return (
       <Box key={prefix}>
@@ -201,7 +203,16 @@ function PageLeftMenu({ onNavigate }) { // eslint-disable-line react/prop-types
             }}
           >
             <MenuIcon icon={icon} iconKey={iconKey} tone={tone} />
-            <ListItemText primary={label} primaryTypographyProps={{ fontSize: 14, fontWeight: active ? 750 : 550 }} />
+            <ListItemText
+              primary={label}
+              sx={{ minWidth: 0, mr: badge ? 0.5 : 0 }}
+              primaryTypographyProps={{ fontSize: 14, fontWeight: active ? 750 : 550 }}
+            />
+            {badge ? (
+              <Box component="span" sx={{ mr: 0.5, display: "inline-flex" }}>
+                <MenuBadge badge={badge} compact />
+              </Box>
+            ) : null}
             {open ? <ExpandLessRoundedIcon fontSize="small" /> : <ExpandMoreRoundedIcon fontSize="small" />}
           </ListItemButton>
         </ListItem>
@@ -228,8 +239,10 @@ function PageLeftMenu({ onNavigate }) { // eslint-disable-line react/prop-types
                   >
                     <ListItemText
                       primary={item.label}
+                      sx={{ minWidth: 0, mr: item.badge ? 0.75 : 0 }}
                       primaryTypographyProps={{ fontSize: 13.5, fontWeight: childActive ? 750 : 500 }}
                     />
+                    <MenuBadge badge={item.badge} compact />
                   </ListItemButton>
                 </ListItem>
               );
@@ -280,7 +293,10 @@ function PageLeftMenu({ onNavigate }) { // eslint-disable-line react/prop-types
                     sx={{ display: "grid", justifyItems: "start", gap: 0.25, fontSize: 15, fontWeight: 900, letterSpacing: "-0.025em" }}
                   >
                     <Box component="span" aria-hidden="true" sx={reportHeroBadge}>CORE FEATURE</Box>
-                    {item.label}
+                    <Box component="span" sx={{ display: "inline-flex", alignItems: "center", gap: 0.75, flexWrap: "wrap" }}>
+                      {item.label}
+                      <MenuBadge badge={item.badge} onHero compact />
+                    </Box>
                   </Box>
                   <ChevronRightRoundedIcon aria-hidden="true" sx={{ ml: "auto", fontSize: 18 }} />
                 </Button>
@@ -294,6 +310,7 @@ function PageLeftMenu({ onNavigate }) { // eslint-disable-line react/prop-types
               label: item.label,
               icon_key: item.icon_key,
               tone: item.tone,
+              badge: item.badge,
               items: visibleChildren,
               open: Boolean(openGroups[item.key]),
               onToggle: () => setOpenGroups((prev) => ({ ...prev, [item.key]: !prev[item.key] })),
