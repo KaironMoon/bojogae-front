@@ -27,7 +27,7 @@ export function CustomerConsultationTimeline({ items = [] }) {
 
 export function CustomerContractPreview({ contracts, customerId, onAdd, disabled = false }) {
   return <div className="crm-customer-contract-preview">
-    {onAdd && <Button variant="outlined" disabled={disabled} onClick={onAdd} startIcon={<Icon name="folder_plus" />}>보험 계약 추가</Button>}
+    {onAdd && <Button variant="outlined" size="small" sx={{ alignSelf: "flex-start" }} disabled={disabled} onClick={onAdd} startIcon={<Icon name="folder_plus" />}>보험 계약 추가</Button>}
     {!contracts?.total && <p className="crm-customer-timeline-empty">연결된 보험 계약이 없습니다.</p>}
     {contracts?.items?.slice(0, 5).map(c => <Link className="crm-customer-contract-item" key={c.id} to={`/crm/contracts/${c.id}`}>
       <div><small>{c.insurer}</small><strong>{c.product || "상품명 미등록"}</strong><span>{c.premium == null ? "보험료 미확인" : `${money(c.premium)}원`} · {CYCLES[c.payment_cycle] || "납입주기 미확인"}</span></div>

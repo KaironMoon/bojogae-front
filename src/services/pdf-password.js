@@ -2,6 +2,33 @@ let pdfLibrary;
 
 const isPdfFile = (file) => /\.pdf$/i.test(file?.name || "");
 const PDF_READ_ERROR = "PDF를 읽지 못했습니다. 파일을 확인하고 다시 첨부해 주세요.";
+const PDF_HEADER = [0x25, 0x50, 0x44, 0x46, 0x2d]; // %PDF-
+
+export function hasPdfHeader(bytes) {
+  if (!(bytes instanceof Uint8Array) || bytes.length < PDF_HEADER.length) return false;
+  const limit = Math.min(bytes.length - PDF_HEADER.length, 1024);
+  for (let offset = 0; offset <= limit; offset += 1) {
+    if (
+      bytes[offset] === PDF_HEADER[0]
+      && bytes[offset + 1] === PDF_HEADER[1]
+      && bytes[offset + 2] === PDF_HEADER[2]
+      && bytes[offset + 3] === PDF_HEADER[3]
+      && bytes[offset + 4] === PDF_HEADER[4]
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function isCorruptPdfError(error) {
+  return error?.name === "InvalidPDFException" || error?.name === "FormatError";
+}
+
+function isWorkerLoadError(error) {
+  const message = String(error?.message || "");
+  return /worker/i.test(message) || /dynamically imported module|failed to fetch|loading chunk/i.test(message);
+}
 
 export function preloadPdfLibrary() {
   pdfLibrary ||= Promise.all([
@@ -21,12 +48,31 @@ export function preloadPdfLibrary() {
 
 // Parse locally: no upload, rendering, or password guessing during selection.
 export async function needsPdfPassword(file) {
-  const { getDocument } = await preloadPdfLibrary();
-  const task = getDocument({ data: new Uint8Array(await file.arrayBuffer()), isEvalSupported: false });
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  if (!hasPdfHeader(bytes)) {
+    throw new Error("invalid_pdf_header");
+  }
+  let pdf;
+  try {
+    pdf = await preloadPdfLibrary();
+  } catch {
+    // 워커·라이브러리 로드 실패는 파일 자체 손상이 아니므로 제출 시 백엔드 검증에 맡긴다.
+    return false;
+  }
+  const task = pdf.getDocument({ data: bytes, isEvalSupported: false });
   try {
     return await new Promise((resolve, reject) => {
       task.onPassword = () => resolve(true);
-      task.promise.then(() => resolve(false), reject);
+      task.promise.then(
+        () => resolve(false),
+        (error) => {
+          if (!isCorruptPdfError(error) && isWorkerLoadError(error)) {
+            resolve(false);
+            return;
+          }
+          reject(error);
+        },
+      );
     });
   } finally {
     await task.destroy().catch(() => {});

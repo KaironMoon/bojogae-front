@@ -1,6 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createPdfPasswordTracker } from "../src/services/pdf-password.js";
+import { createPdfPasswordTracker, hasPdfHeader } from "../src/services/pdf-password.js";
+
+test("hasPdfHeader는 %PDF- 시그니처가 있는 정상 PDF와 손상·빈 파일을 구분한다", () => {
+  assert.equal(hasPdfHeader(new TextEncoder().encode("%PDF-1.7\n...")), true);
+  assert.equal(hasPdfHeader(new Uint8Array([0xef, 0xbb, 0xbf, ...new TextEncoder().encode("%PDF-1.4")])), true);
+  assert.equal(hasPdfHeader(new Uint8Array([])), false);
+  assert.equal(hasPdfHeader(new TextEncoder().encode("<html>not a pdf</html>")), false);
+});
 
 test("무암호 PDF 검사 중 제출해도 완료까지 대기한 뒤 경고 없이 통과한다", async () => {
   let calls = 0;

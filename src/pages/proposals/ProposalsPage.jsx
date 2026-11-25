@@ -36,6 +36,7 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  Divider,
   Drawer,
   FormControl,
   FormControlLabel,
@@ -1929,7 +1930,8 @@ function ProposalsPage() {
               }}
               sx={{ mt: 2 }}
             />
-            <Box sx={{ mt: 1.5 }}>
+            <Divider sx={{ my: 2.5, borderColor: "divider" }} />
+            <Box>
               <ProposalCustomerField
                 value={customerId}
                 disabled={working}

@@ -390,6 +390,38 @@ function Consultations({ customerId }) {
     </>
   );
 }
+function CustomerInfoTile({ label, value, fullWidth = false }) {
+  const hasValue = Boolean(value && String(value).trim());
+  return (
+    <Box
+      sx={{
+        px: 1.75,
+        py: 1.35,
+        borderRadius: "12px",
+        border: "1px solid",
+        borderColor: hasValue ? "#E2E8F0" : "#F1F5F9",
+        bgcolor: hasValue ? "#FFFFFF" : "#F8FAFC",
+        gridColumn: fullWidth ? "1 / -1" : undefined,
+      }}
+    >
+      <Typography sx={{ fontSize: 11.5, fontWeight: 700, color: "#64748B", mb: 0.4 }}>
+        {label}
+      </Typography>
+      <Typography
+        sx={{
+          fontSize: hasValue ? 14 : 13,
+          fontWeight: hasValue ? 750 : 500,
+          color: hasValue ? "#121314" : "#94A3B8",
+          lineHeight: 1.45,
+          whiteSpace: "pre-wrap",
+          overflowWrap: "anywhere",
+        }}
+      >
+        {hasValue ? value : "미확인"}
+      </Typography>
+    </Box>
+  );
+}
 export function CustomerDetailPage() {
   const { customerId } = useParams();
   const navigate = useNavigate();
@@ -437,8 +469,18 @@ export function CustomerDetailPage() {
               )}
               {c.groups?.map(group => <Chip key={group.id} label={group.name} size="small" sx={{ color: "#5b21b6", bgcolor: "#f5f3ff" }} />)}
             </Stack>
-            <Typography mt={2}>{c.phone || "연락처 미등록"}</Typography>
-            <Typography>
+            <Typography
+              mt={2}
+              sx={{
+                fontSize: 16,
+                fontWeight: c.phone ? 800 : 500,
+                color: c.phone ? "#121314" : "#94A3B8",
+                fontVariantNumeric: "tabular-nums",
+              }}
+            >
+              {c.phone ? formatPhone(c.phone) : "연락처 미등록"}
+            </Typography>
+            <Typography mt={0.75} sx={{ color: "#334155", fontWeight: 500 }}>
               {c.location.address} {c.address_detail}
               {c.address_resolution?.status === "UNRESOLVED" && <Chip size="small" color="warning" label="미확정 주소" sx={{ ml: 1 }} />}
               {["PENDING", "PROCESSING"].includes(c.address_resolution?.status) && <Chip size="small" label="주소 확인 대기·진행" sx={{ ml: 1 }} />}
@@ -498,8 +540,13 @@ export function CustomerDetailPage() {
                 <CustomerConsultationTimeline items={(c.consultations || []).slice(0, 5)} />
               </Panel>
               <Panel>
-                <Typography fontWeight={700} mb={1}>보유 보험 계약 ({c.contracts.total}건)</Typography>
-                <CustomerContractPreview contracts={c.contracts} customerId={c.id} disabled={c.archived} onAdd={() => setEditor("contract")} />
+                <Stack direction="row" alignItems="center" justifyContent="space-between" gap={1} mb={1.25}>
+                  <Typography fontWeight={800}>보유 보험 계약 ({c.contracts.total}건)</Typography>
+                  <Button size="small" variant="outlined" disabled={c.archived} onClick={() => setEditor("contract")}>
+                    보험 계약 추가
+                  </Button>
+                </Stack>
+                <CustomerContractPreview contracts={c.contracts} customerId={c.id} disabled={c.archived} />
               </Panel>
               <Panel>
                 <Typography fontWeight={700}>보험료 요약</Typography>
@@ -513,27 +560,81 @@ export function CustomerDetailPage() {
                 </Typography>
               </Panel>
               <Panel>
-                <Typography fontWeight={700}>연락·방문 참고</Typography>
-                {[
-                  ["통화 가능 시간", c.call_preference],
-                  ["방문 가능 시간", c.visit_preference],
-                  ["방문 참고", c.visit_note],
-                  ["카톡대화명", c.alias],
-                  ["직업", c.occupation],
-                  ["주민번호 앞 6자리·뒤 첫 1자리", c.resident_number],
-                  ["유입", c.source],
-                  ["접수일", c.received_display || c.received_date || c.received_raw],
-                  ["생년월일", c.birth_display || c.birth_date || c.birth_raw],
-                  ["상담 참고 보험료", c.premium_note],
-                  ["메모", c.memo],
-                ].map(([label, text]) => (
-                  <Typography
-                    key={label}
-                    sx={{ my: 1, whiteSpace: "pre-wrap" }}
-                  >
-                    <strong>{label}</strong> {text || "미확인"}
+                <Stack direction="row" alignItems="center" justifyContent="space-between" gap={1} mb={2}>
+                  <Typography fontWeight={800} fontSize={16}>고객 상세 정보 · 연락 참고</Typography>
+                  {!c.archived && (
+                    <Button size="small" variant="outlined" onClick={() => setEditor("customer")}>
+                      정보 수정
+                    </Button>
+                  )}
+                </Stack>
+                <Typography sx={{ fontSize: 12, fontWeight: 800, color: "#4E5968", mb: 1 }}>
+                  기본 인적 · 유입 정보
+                </Typography>
+                <Box
+                  sx={{
+                    display: "grid",
+                    gridTemplateColumns: { xs: "1fr", sm: "repeat(2, minmax(0, 1fr))", md: "repeat(3, minmax(0, 1fr))" },
+                    gap: 1.25,
+                  }}
+                >
+                  {[
+                    ["카톡대화명", c.alias],
+                    ["생년월일", c.birth_display || c.birth_date || c.birth_raw],
+                    ["주민번호 앞 6자리·뒤 첫 1자리", c.resident_number],
+                    ["직업", c.occupation],
+                    ["유입", c.source],
+                    ["접수일", c.received_display || c.received_date || c.received_raw],
+                  ].map(([label, value]) => (
+                    <CustomerInfoTile key={label} label={label} value={value} />
+                  ))}
+                </Box>
+                <Divider sx={{ my: 2, borderColor: "#F1F5F9" }} />
+                <Typography sx={{ fontSize: 12, fontWeight: 800, color: "#4E5968", mb: 1 }}>
+                  연락 · 방문 · 상담 참고
+                </Typography>
+                <Box
+                  sx={{
+                    display: "grid",
+                    gridTemplateColumns: { xs: "1fr", sm: "repeat(2, minmax(0, 1fr))", md: "repeat(3, minmax(0, 1fr))" },
+                    gap: 1.25,
+                  }}
+                >
+                  {[
+                    ["통화 가능 시간", c.call_preference, false],
+                    ["방문 가능 시간", c.visit_preference, false],
+                    ["상담 참고 보험료", c.premium_note, false],
+                    ["방문 참고", c.visit_note, true],
+                  ].map(([label, value, fullWidth]) => (
+                    <CustomerInfoTile key={label} label={label} value={value} fullWidth={fullWidth} />
+                  ))}
+                </Box>
+                <Box
+                  sx={{
+                    mt: 1.5,
+                    p: 1.75,
+                    borderRadius: "12px",
+                    bgcolor: c.memo ? "#FFFBEB" : "#F8FAFC",
+                    border: "1px solid",
+                    borderColor: c.memo ? "#FDE68A" : "#F1F5F9",
+                  }}
+                >
+                  <Typography sx={{ fontSize: 12, fontWeight: 800, color: c.memo ? "#92400E" : "#64748B", mb: 0.5 }}>
+                    메모
                   </Typography>
-                ))}
+                  <Typography
+                    sx={{
+                      fontSize: 13.5,
+                      fontWeight: c.memo ? 600 : 500,
+                      color: c.memo ? "#1E293B" : "#94A3B8",
+                      lineHeight: 1.65,
+                      whiteSpace: "pre-wrap",
+                      overflowWrap: "anywhere",
+                    }}
+                  >
+                    {c.memo || "미확인"}
+                  </Typography>
+                </Box>
               </Panel>
               {c.tasks.items
                 .filter((t) => t.status === "PENDING")
