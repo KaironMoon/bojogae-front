@@ -11,3 +11,10 @@ export async function listTalkErrorReports({ page, receiptId, memberName, signal
 export function talkErrorLogUrl(id) {
   return apiUrl(`${adminPath}/${id}/log`);
 }
+
+export async function listTalkDiagnostics(page, signal) {
+  return (await api.get("/api/v1/admin/talk/diagnostics", { page }, { signal })).data;
+}
+export function talkDiagnosticUrl(id) {
+  return apiUrl(`/api/v1/admin/talk/diagnostics/${id}/bundle`);
+}

@@ -2,6 +2,7 @@ import { Alert, Button, Divider, Paper, Stack, TextField, Typography } from "@mu
 import { useEffect, useState } from "react";
 import { listTalkErrorReports, talkErrorLogUrl } from "@/services/talk-error-reports";
 import { formatTalkFileSize } from "@/services/talk-releases";
+import TalkDiagnosticsPanel from "./TalkDiagnosticsPanel";
 
 const receiptPattern = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
 const dateFormat = new Intl.DateTimeFormat("ko-KR", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Seoul" });
@@ -74,6 +75,8 @@ export default function TalkErrorReportsPage() {
         <Typography variant="body2">{query.page} 페이지</Typography>
         <Button disabled={!data?.has_more} onClick={() => applyQuery({ ...query, page: query.page + 1 })}>다음</Button>
       </Stack>}
+      <Divider />
+      <TalkDiagnosticsPanel />
     </Stack>
   );
 }
