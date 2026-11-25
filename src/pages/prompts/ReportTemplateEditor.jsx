@@ -252,6 +252,32 @@ export default function ReportTemplateEditor({ value, onChange, disabled, title 
     }
   };
 
+  const showSimplePreview = async () => {
+    const simpleTemplate = value?.simple_template;
+    if (!simpleTemplate) return;
+    setPreviewLoading(true);
+    setError("");
+    try {
+      const shellId = simpleTemplate.shell_version_id ?? value.shell_version_id ?? null;
+      const payload = {
+        html: shellId ? simpleTemplate.html : simpleTemplate.html,
+        fragment_html: shellId ? (simpleTemplate.fragment_html || null) : null,
+        shell_version_id: shellId,
+        schema_document: simpleTemplate.schema_document,
+        example_data: simpleTemplate.example_data,
+        html_filename: simpleTemplate.html_filename || "template.html",
+        schema_filename: simpleTemplate.schema_filename || "schema.json",
+        example_filename: simpleTemplate.example_filename || "sample.json",
+      };
+      const result = await previewReportTemplate(`${title.trim() || "보고서"} (간소화)`, payload);
+      setPreview(previewDocument(result.html));
+    } catch (exception) {
+      setError(reportTemplateError(exception, "간소화 조립 미리보기를 불러오지 못했습니다."));
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
   const upload = async (definition, files) => {
     if (disabled || !files?.length) return;
     try {
@@ -308,6 +334,32 @@ export default function ReportTemplateEditor({ value, onChange, disabled, title 
     {assembled && <Button variant="outlined" onClick={showPreview}
       disabled={previewLoading || !value.fragment_html || !value.schema_document || !value.example_data}
       sx={{ alignSelf: "flex-start" }}>예시 데이터로 조립 미리보기</Button>}
+    {value?.simple_template && (
+      <Paper variant="outlined" sx={{ p: 1.5, borderRadius: 2, bgcolor: "grey.50" }}>
+        <Stack direction={{ xs: "column", sm: "row" }} alignItems={{ sm: "center" }} justifyContent="space-between" gap={1}>
+          <Box sx={{ minWidth: 0 }}>
+            <Typography variant="subtitle2" fontWeight={750}>간소화 버전(simple/) 템플릿 포함</Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+              {[
+                value.simple_template.body_filename,
+                value.simple_template.html_filename,
+                value.simple_template.schema_filename,
+                value.simple_template.example_data ? value.simple_template.example_filename : null,
+              ].filter(Boolean).join(" · ")}
+            </Typography>
+          </Box>
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={showSimplePreview}
+            disabled={previewLoading || !(value.simple_template.fragment_html || value.simple_template.html) || !value.simple_template.schema_document || !value.simple_template.example_data}
+            sx={{ alignSelf: { xs: "flex-start", sm: "center" }, flexShrink: 0 }}
+          >
+            간소화 예시 데이터로 조립 미리보기
+          </Button>
+        </Stack>
+      </Paper>
+    )}
     {error && <Alert severity="error">{error}</Alert>}
     {preview && <Dialog open fullWidth maxWidth="xl" onClose={() => setPreview(null)}>
       <DialogTitle>조립 미리보기</DialogTitle>

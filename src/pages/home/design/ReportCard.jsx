@@ -47,12 +47,19 @@ export default function ReportCard({ prompt, updated, onPreview }) {
       </button>
       <div className="p-3.5 flex-1 flex flex-col justify-between space-y-2.5">
         <div className="space-y-1.5">
-          <div className="flex items-center justify-between">
-            <span
-              className={`px-2 py-0.5 rounded-md text-[10.5px] font-black ${updated ? "bg-sub-soft text-sub" : "bg-primary-soft text-primary"}`}
-            >
-              {updated ? "업데이트" : "신규"}
-            </span>
+          <div className="flex items-center justify-between gap-1.5">
+            <div className="flex items-center gap-1 min-w-0">
+              <span
+                className={`px-2 py-0.5 rounded-md text-[10.5px] font-black ${updated ? "bg-sub-soft text-sub" : "bg-primary-soft text-primary"}`}
+              >
+                {updated ? "업데이트" : "신규"}
+              </span>
+              {prompt.simple_template_available && (
+                <span className="px-1.5 py-0.5 rounded-md text-[10px] font-black bg-[#ecfdf5] text-[#006e43] border border-[#a7f3d0]">
+                  간소화
+                </span>
+              )}
+            </div>
             <button
               type="button"
               onClick={() => onPreview(prompt)}

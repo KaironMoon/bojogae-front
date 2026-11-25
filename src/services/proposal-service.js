@@ -18,6 +18,14 @@ async function getPromptOptions() {
   return response.data;
 }
 
+async function getSimplePromptPreviewHtml(promptId, versionId = null) {
+  const response = await apiCaller.get(
+    `/api/v1/proposals/prompt-options/${promptId}/simple-preview`,
+    versionId ? { version_id: versionId } : undefined,
+  );
+  return response.data;
+}
+
 async function setPromptFavorite(promptId, isFavorite) {
   const response = await apiCaller.put(`/api/v1/proposals/prompt-options/${promptId}/favorite`, {
     is_favorite: isFavorite,
@@ -34,6 +42,7 @@ async function createProposal({
   title, promptId, files, idempotencyKey, inputValues = {}, fileFields = [],
   attachedGenerationIds = [], attachedGenerationFields = [], promptVersionId, pdfPasswords = [],
   customerId,
+  reportVariant = "detailed",
 }) {
   const form = new FormData();
   form.append("title", title);
@@ -46,6 +55,7 @@ async function createProposal({
   form.append("attached_generation_ids", JSON.stringify(attachedGenerationIds));
   form.append("attached_generation_fields", JSON.stringify(attachedGenerationFields));
   if (promptVersionId) form.append("prompt_version_id", String(promptVersionId));
+  if (reportVariant && reportVariant !== "detailed") form.append("report_variant", reportVariant);
   const response = await apiCaller.post("/api/v1/proposals", form, {
     headers: { "Idempotency-Key": idempotencyKey },
     timeout: 120000,
@@ -184,6 +194,7 @@ export {
   getPointBalance,
   getPromptPointCosts,
   getPromptOptions,
+  getSimplePromptPreviewHtml,
   setPromptFavorite,
   getProposal,
   getProposals,

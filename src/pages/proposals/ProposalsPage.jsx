@@ -36,10 +36,14 @@ import {
   DialogContent,
   DialogTitle,
   Drawer,
+  FormControl,
+  FormControlLabel,
   IconButton,
   MenuItem,
   Pagination,
   Paper,
+  Radio,
+  RadioGroup,
   Stack,
   Tab,
   Tabs,
@@ -61,6 +65,7 @@ import FolderOpenRoundedIcon from "@mui/icons-material/FolderOpenRounded";
 import OpenInNewRoundedIcon from "@mui/icons-material/OpenInNewRounded";
 import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
 import ReplayRoundedIcon from "@mui/icons-material/ReplayRounded";
+import SummarizeOutlinedIcon from "@mui/icons-material/SummarizeOutlined";
 import TaskAltRoundedIcon from "@mui/icons-material/TaskAltRounded";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import ZoomInRoundedIcon from "@mui/icons-material/ZoomInRounded";
@@ -78,6 +83,7 @@ import {
   createProposal,
   deleteProposal,
   getPromptOptions,
+  getSimplePromptPreviewHtml,
   setPromptFavorite,
   getPointBalance,
   getProposal,
@@ -95,6 +101,64 @@ const MAX_FILE_BYTES = 100 * 1024 * 1024;
 const ACTIVE = new Set(["QUEUED", "RUNNING", "CANCEL_REQUESTED"]);
 const PREVIEW_WIDTH = 794;
 const PREVIEW_HEIGHT = 1123;
+
+function sanitizeSimplePreviewHtml(html) {
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const csp = doc.createElement("meta");
+  csp.httpEquiv = "Content-Security-Policy";
+  csp.content = "default-src 'none'; script-src 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; font-src data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src data: blob:; base-uri 'none'; form-action 'none'";
+  doc.head.prepend(csp);
+  return "<!doctype html>\n" + doc.documentElement.outerHTML;
+}
+
+// eslint-disable-next-line react/prop-types
+function PreviewIconButton({ variant = "detailed", title, ariaLabel, disabled, onClick }) {
+  const isSimple = variant === "simple";
+  return (
+    <Tooltip
+      title={title}
+      arrow
+      placement="top"
+      enterDelay={0}
+      enterNextDelay={0}
+      disableInteractive
+    >
+      <span style={{ display: "inline-flex" }}>
+        <IconButton
+          size="small"
+          aria-label={ariaLabel}
+          disabled={disabled}
+          onClick={onClick}
+          sx={{
+            width: 30,
+            height: 30,
+            border: 1,
+            borderRadius: "8px",
+            ...(isSimple
+              ? {
+                  color: "success.main",
+                  borderColor: "rgba(22, 163, 74, 0.4)",
+                  bgcolor: "rgba(236, 253, 245, 0.75)",
+                  "&:hover": { bgcolor: "#D1FAE5" },
+                }
+              : {
+                  color: "text.primary",
+                  borderColor: "divider",
+                  bgcolor: "background.paper",
+                  "&:hover": { bgcolor: "action.hover" },
+                }),
+          }}
+        >
+          {isSimple ? (
+            <SummarizeOutlinedIcon sx={{ fontSize: 18 }} />
+          ) : (
+            <VisibilityOutlinedIcon sx={{ fontSize: 18 }} />
+          )}
+        </IconButton>
+      </span>
+    </Tooltip>
+  );
+}
 
 const CATEGORY_ACCENTS = {
   "알릴의무": "#e11d48",
@@ -236,6 +300,12 @@ function ProposalsPage() {
   const [failureModal, setFailureModal] = useState(null);
   const [detail, setDetail] = useState(null);
   const [promptPreviewOption, setPromptPreviewOption] = useState(null);
+  const [promptPreviewVariant, setPromptPreviewVariant] = useState("detailed");
+  const [simplePreviewHtml, setSimplePreviewHtml] = useState("");
+  const [simplePreviewLoading, setSimplePreviewLoading] = useState(false);
+  const [simplePreviewError, setSimplePreviewError] = useState("");
+  const [reportVariant, setReportVariant] = useState("detailed");
+  const simplePreviewRequest = useRef(0);
   const [statusItem, setStatusItem] = useState(null);
   const [statusMessage, setStatusMessage] = useState("");
   const [previewItem, setPreviewItem] = useState(null);
@@ -351,6 +421,7 @@ function ProposalsPage() {
     current_version_no: chosenVersion.version_no,
     input_schema: chosenVersion.input_schema,
     max_input_files: chosenVersion.max_input_files,
+    simple_template_available: Boolean(chosenVersion.simple_template_available),
   } : promptOption;
   const selectedReport = statusItem || openedDocument;
   const displayedPromptOptions = filteredPromptOptions;
@@ -389,8 +460,42 @@ function ProposalsPage() {
     setInputValues({});
     setFieldUploads({});
     setFieldDocuments({});
+    setReportVariant("detailed");
     submissionKey.current = null;
   }, [promptId, selectedPrompt?.current_version_id]);
+
+  const closePromptPreview = () => {
+    simplePreviewRequest.current += 1;
+    setPromptPreviewOption(null);
+    setSimplePreviewLoading(false);
+    setSimplePreviewError("");
+  };
+
+  const openPromptPreview = async (option, variant = "detailed", versionId = null) => {
+    if (!option) return;
+    const nextVariant = variant === "simple" && option.simple_template_available ? "simple" : "detailed";
+    setPromptPreviewOption(option);
+    setPromptPreviewVariant(nextVariant);
+    setSimplePreviewHtml("");
+    setSimplePreviewError("");
+    if (nextVariant !== "simple" || option.simple_preview_image_available || !option.simple_preview_html_available) {
+      setSimplePreviewLoading(false);
+      return;
+    }
+    const requestId = ++simplePreviewRequest.current;
+    setSimplePreviewLoading(true);
+    try {
+      const resolvedVersionId = versionId ?? (option.id === promptId && chosenVersion ? chosenVersion.id : null);
+      const html = await getSimplePromptPreviewHtml(option.id, resolvedVersionId);
+      if (simplePreviewRequest.current !== requestId) return;
+      setSimplePreviewHtml(sanitizeSimplePreviewHtml(html));
+    } catch {
+      if (simplePreviewRequest.current !== requestId) return;
+      setSimplePreviewError("간소화 미리보기를 불러오지 못했습니다.");
+    } finally {
+      if (simplePreviewRequest.current === requestId) setSimplePreviewLoading(false);
+    }
+  };
 
   const selectedPointCost = useMemo(
     () => promptOptions.find((option) => option.id === promptId)?.point_cost || 0,
@@ -795,6 +900,7 @@ function ProposalsPage() {
         attachedGenerationIds: selectedDocuments.map((doc) => doc.id),
         attachedGenerationFields: documentFields,
         promptVersionId,
+        reportVariant: selectedPrompt?.simple_template_available ? reportVariant : "detailed",
         idempotencyKey: submissionKey.current,
       });
       let job;
@@ -846,6 +952,8 @@ function ProposalsPage() {
             ? "선택한 고객을 연결할 수 없습니다. 고객 목록에서 다시 선택해 주세요."
           : detailCode === "prompt_version_changed"
             ? "프롬프트가 변경되었습니다. 페이지를 새로고침한 후 입력해 주세요."
+          : detailCode === "simple_template_not_available"
+            ? "선택한 프롬프트 버전에서는 간소화 버전을 사용할 수 없습니다."
           : ["unsupported_input_file_type", "invalid_input_values", "invalid_input_files", "required_input_missing", "required_input_group_missing", "invalid_input_file_type", "invalid_attached_generation_fields"].includes(detailCode)
             ? "입력 항목과 필수 자료, 파일 형식을 확인해 주세요."
           : detailCode === "invalid_image_file"
@@ -1006,6 +1114,7 @@ function ProposalsPage() {
     setTitle("");
     setTitleTouched(false);
     setError("");
+    setReportVariant("detailed");
     const initialTab = defaultPromptTab(promptOptions);
     setPromptTab(initialTab);
     setPromptId(promptsForTab(promptOptions, initialTab)[0]?.id || "");
@@ -1422,14 +1531,14 @@ function ProposalsPage() {
                     }}
                   >
                     <Box sx={{ minWidth: 0 }}>
-                      <Stack direction="row" justifyContent="space-between" alignItems="flex-start" gap={0.75}>
-                        <Stack direction="row" alignItems="center" gap={0.75} sx={{ minWidth: 0 }}>
-                        <Chip label={`${index + 1}순위`} size="small"
-                          sx={{ ...(index < 3 && { bgcolor: "#F04452", color: "white" }), height: 22, fontSize: 10, fontWeight: 850, borderRadius: "5px", flexShrink: 0 }} />
+                      <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={0.75} flexWrap="nowrap">
+                        <Stack direction="row" alignItems="flex-start" gap={0.75} sx={{ minWidth: 0, flex: 1 }}>
+                          <Chip label={`${index + 1}순위`} size="small"
+                            sx={{ ...(index < 3 && { bgcolor: "#F04452", color: "white" }), height: 22, fontSize: 10, fontWeight: 850, borderRadius: "5px", flexShrink: 0, mt: 0.1 }} />
                           <Tooltip title={option.is_default_favorite
                             ? option.is_favorite ? "기본 즐겨찾기에서 제외" : "기본 즐겨찾기에 다시 추가"
                             : option.is_favorite ? "즐겨찾기 해제" : "즐겨찾기 등록"}>
-                            <span><IconButton
+                            <span style={{ flexShrink: 0 }}><IconButton
                               size="small"
                               aria-label={`${option.title} ${option.is_favorite ? "즐겨찾기 해제" : "즐겨찾기 등록"}`}
                               aria-pressed={Boolean(option.is_favorite)}
@@ -1440,29 +1549,39 @@ function ProposalsPage() {
                               {favoriteSavingId === option.id ? <CircularProgress size={18} /> : option.is_favorite ? <StarRoundedIcon fontSize="small" /> : <StarBorderRoundedIcon fontSize="small" />}
                             </IconButton></span>
                           </Tooltip>
-                          <Typography variant="body2" fontWeight={800} sx={{ minWidth: 0, overflowWrap: "anywhere" }}>
+                          <Typography variant="body2" fontWeight={800} sx={{ minWidth: 0, flex: 1, overflowWrap: "anywhere", pt: 0.15 }}>
                             {option.title} <Typography component="span" variant="caption" color="text.secondary">v{option.current_version_no}</Typography>
                           </Typography>
                         </Stack>
-                        <Tooltip title="미리보기">
-                          <span>
-                            <IconButton
-                              size="small"
-                              aria-label={`${option.title} 결과 미리보기`}
-                              disabled={!option.preview_image_available}
-                              onClick={(event) => { event.stopPropagation(); setPromptPreviewOption(option); }}
-                              sx={{ display: { xs: "inline-flex", sm: "none" }, flexShrink: 0, border: 1, borderColor: "divider", borderRadius: "8px" }}
-                            >
-                              <VisibilityOutlinedIcon fontSize="small" />
-                            </IconButton>
-                          </span>
-                        </Tooltip>
-                        <Button type="button" size="small" variant="outlined" startIcon={<VisibilityOutlinedIcon />}
-                          disabled={!option.preview_image_available}
-                          onClick={(event) => { event.stopPropagation(); setPromptPreviewOption(option); }}
-                          sx={{ display: { xs: "none", sm: "inline-flex" }, borderRadius: "8px", minHeight: 36, flexShrink: 0, whiteSpace: "nowrap" }}>
-                          미리보기
-                        </Button>
+                        <Stack
+                          direction="row"
+                          spacing={0.5}
+                          sx={{ flexShrink: 0, alignSelf: "flex-start" }}
+                          onClick={(event) => event.stopPropagation()}
+                        >
+                          <PreviewIconButton
+                            variant="detailed"
+                            title={
+                              option.simple_template_available
+                                ? (option.preview_image_available ? "상세 버전 미리보기" : "상세 버전 미리보기 없음")
+                                : (option.preview_image_available ? "결과 미리보기" : "결과 미리보기 없음")
+                            }
+                            ariaLabel={`${option.title} ${option.simple_template_available ? "상세 버전 " : ""}결과 미리보기`}
+                            disabled={!option.preview_image_available}
+                            onClick={(event) => { event.stopPropagation(); openPromptPreview(option, "detailed"); }}
+                          />
+                          {option.simple_template_available && (
+                            <PreviewIconButton
+                              variant="simple"
+                              title={(option.simple_preview_image_available || option.simple_preview_html_available)
+                                ? "간소화 버전 미리보기 (담보·보험료 요약)"
+                                : "간소화 버전 미리보기 없음"}
+                              ariaLabel={`${option.title} 간소화 버전 미리보기`}
+                              disabled={!option.simple_preview_image_available && !option.simple_preview_html_available}
+                              onClick={(event) => { event.stopPropagation(); openPromptPreview(option, "simple"); }}
+                            />
+                          )}
+                        </Stack>
                       </Stack>
                       {option.description && (
                         <Typography variant="caption" color="text.secondary" sx={{ display: "-webkit-box", mt: 0.65, lineHeight: 1.4, WebkitBoxOrient: "vertical", WebkitLineClamp: { xs: 2, sm: "unset" }, overflow: "hidden", whiteSpace: "pre-line" }}>
@@ -1471,6 +1590,9 @@ function ProposalsPage() {
                       )}
                       <Stack direction="row" alignItems="center" gap={0.6} flexWrap="wrap" sx={{ mt: 0.75, overflowX: { xs: "auto", sm: "visible" }, scrollbarWidth: "none", "&::-webkit-scrollbar": { display: "none" }, "& .MuiChip-root": { flexShrink: 0 } }}>
                           <Chip icon={<KkomakIcon size={18} />} label={`${option.point_cost.toLocaleString()}꼬막`} size="small" color="warning" variant="outlined" />
+                          {option.simple_template_available && (
+                            <Chip label="간소화 제공" size="small" color="success" variant="outlined" />
+                          )}
                           {(option.categories || []).map((category) => (
                             <Chip key={category.id} label={`${category.parent_name} · ${category.name}`} size="small" />
                           ))}
@@ -1532,12 +1654,92 @@ function ProposalsPage() {
                   {promptOption.versions.map((version) => (
                     <MenuItem key={version.id} value={version.id}>
                       v{version.version_no} · {version.template_based ? "템플릿" : "HTML 전체"}
+                      {version.simple_template_available ? " · 간소화" : ""}
                       {version.id === promptOption.published_version_id ? " · 제공 중" : ""}
                     </MenuItem>
                   ))}
                 </TextField>
               )}
             </Stack>}
+            {selectedPrompt?.simple_template_available && (
+              <Paper variant="outlined" sx={{ p: { xs: 1.25, sm: 1.5 }, mb: 2, borderRadius: "12px", bgcolor: "#F8FAFC", borderColor: "divider" }}>
+                <FormControl component="fieldset" disabled={working} sx={{ width: "100%" }}>
+                  <Stack direction="row" alignItems="center" justifyContent="space-between" gap={1} sx={{ mb: 1 }}>
+                    <Typography component="legend" variant="subtitle2" fontWeight={800}>
+                      보고서 버전 선택
+                    </Typography>
+                    <PreviewIconButton
+                      variant="simple"
+                      title={(selectedPrompt.simple_preview_image_available || selectedPrompt.simple_preview_html_available)
+                        ? "간소화 버전 미리보기 (담보·보험료 요약)"
+                        : "간소화 버전 미리보기 없음"}
+                      ariaLabel={`${selectedPrompt.title} 간소화 버전 미리보기`}
+                      disabled={!selectedPrompt.simple_preview_image_available && !selectedPrompt.simple_preview_html_available}
+                      onClick={() => openPromptPreview(selectedPrompt, "simple", selectedPrompt.current_version_id)}
+                    />
+                  </Stack>
+                  <RadioGroup
+                    value={reportVariant}
+                    onChange={(event) => {
+                      setReportVariant(event.target.value);
+                      submissionKey.current = null;
+                    }}
+                    sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, minmax(0, 1fr))" }, gap: 1 }}
+                  >
+                    <Paper
+                      variant="outlined"
+                      sx={{
+                        px: 1.25,
+                        py: 0.75,
+                        borderRadius: "10px",
+                        borderWidth: reportVariant === "detailed" ? 2 : 1,
+                        borderColor: reportVariant === "detailed" ? "primary.main" : "divider",
+                        bgcolor: reportVariant === "detailed" ? "#ECFDF5" : "background.paper",
+                      }}
+                    >
+                      <FormControlLabel
+                        value="detailed"
+                        control={<Radio size="small" />}
+                        sx={{ m: 0, width: "100%", alignItems: "flex-start" }}
+                        label={(
+                          <Box sx={{ py: 0.25 }}>
+                            <Typography variant="body2" fontWeight={800}>상세 버전 (기본)</Typography>
+                            <Typography variant="caption" color="text.secondary" sx={{ display: "block", lineHeight: 1.35 }}>
+                              담보·보험료·부가서비스·설계사 의견까지 포함한 전체 리포트
+                            </Typography>
+                          </Box>
+                        )}
+                      />
+                    </Paper>
+                    <Paper
+                      variant="outlined"
+                      sx={{
+                        px: 1.25,
+                        py: 0.75,
+                        borderRadius: "10px",
+                        borderWidth: reportVariant === "simple" ? 2 : 1,
+                        borderColor: reportVariant === "simple" ? "success.main" : "divider",
+                        bgcolor: reportVariant === "simple" ? "#ECFDF5" : "background.paper",
+                      }}
+                    >
+                      <FormControlLabel
+                        value="simple"
+                        control={<Radio size="small" color="success" />}
+                        sx={{ m: 0, width: "100%", alignItems: "flex-start" }}
+                        label={(
+                          <Box sx={{ py: 0.25 }}>
+                            <Typography variant="body2" fontWeight={800}>간소화 버전</Typography>
+                            <Typography variant="caption" color="text.secondary" sx={{ display: "block", lineHeight: 1.35 }}>
+                              대표 월 보험료 1줄 · 담보별 한도 · 종수술비 종별금액 · 통합보장 특성 요약 (1~2장)
+                            </Typography>
+                          </Box>
+                        )}
+                      />
+                    </Paper>
+                  </RadioGroup>
+                </FormControl>
+              </Paper>
+            )}
             {customInputs ? <PromptInputForm maxInputFiles={maxInputFiles} fields={inputSchema} values={inputValues} uploads={fieldUploads} pdfPasswords={pdfPasswords}
               documents={fieldDocuments} documentOptions={generatedDocumentOptions} disabled={working}
               onValue={(key, value) => {
@@ -1885,6 +2087,7 @@ function ProposalsPage() {
                   <Stack direction="row" alignItems="center" gap={0.75} flexWrap="wrap">
                     <Typography variant="subtitle2" noWrap sx={{ fontWeight: 800, minWidth: 0, flex: { xs: 1, sm: "initial" } }}>{item.title}</Typography>
                     <Chip size="small" color={statusColor(item.status)} label={STATUS_LABELS[item.status] || item.status} />
+                    {item.report_variant === "simple" && <Chip size="small" color="info" variant="outlined" label="간소화" />}
                     {item.point_status === "REFUNDED" && <Chip size="small" color="success" variant="outlined" label="꼬막 반환 완료" sx={{ display: { xs: "none", sm: "inline-flex" } }} />}
                     {(statusItem?.id ?? previewItem?.id) === item.id && (
                       <Chip size="small" color="primary" variant="outlined" label="선택됨" sx={{ display: { xs: "none", sm: "inline-flex" }, fontWeight: 750 }} />
@@ -1945,7 +2148,7 @@ function ProposalsPage() {
                 <CloseRoundedIcon />
               </IconButton>
             </Stack>
-            <Typography variant="body2">선택한 프롬프트: {selectedReport.prompt_title} v{selectedReport.prompt_version_no}</Typography>
+            <Typography variant="body2">선택한 프롬프트: {selectedReport.prompt_title} v{selectedReport.prompt_version_no}{selectedReport.report_variant === "simple" ? " · 간소화 버전" : ""}</Typography>
               <Stack spacing={1.25}>
                 <Typography variant="subtitle2" fontWeight={800}>첨부파일</Typography>
                 {!selectedReport.files ? (
@@ -1998,21 +2201,72 @@ function ProposalsPage() {
       {helpStep !== null && <ReportHelpTour step={helpStep} rootRef={helpRootRef}
         onNext={() => setHelpStep((current) => current + 1)} onClose={() => setHelpStep(null)} />}
 
-      <Dialog open={Boolean(promptPreviewOption)} onClose={() => setPromptPreviewOption(null)} fullWidth maxWidth="xl"
+      <Dialog open={Boolean(promptPreviewOption)} onClose={closePromptPreview} fullWidth maxWidth="xl"
         PaperProps={{ sx: { height: "calc(100dvh - 48px)", maxHeight: "calc(100dvh - 48px)", m: 3, overflow: "hidden" } }}>
         <DialogTitle sx={{ flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1 }}>
-          <Box component="span" sx={{ minWidth: 0, overflowWrap: "anywhere" }}>{promptPreviewOption?.title} · 결과 미리보기</Box>
-          <IconButton aria-label="결과 미리보기 닫기" onClick={() => setPromptPreviewOption(null)} sx={{ flexShrink: 0 }}>
+          <Box component="span" sx={{ minWidth: 0, overflowWrap: "anywhere" }}>
+            {promptPreviewOption?.title} · {promptPreviewVariant === "simple" ? "간소화 미리보기" : "상세 미리보기"}
+          </Box>
+          <IconButton aria-label="결과 미리보기 닫기" onClick={closePromptPreview} sx={{ flexShrink: 0 }}>
             <CloseRoundedIcon />
           </IconButton>
         </DialogTitle>
+        {promptPreviewOption?.simple_template_available && (
+          <Tabs
+            value={promptPreviewVariant}
+            onChange={(_, value) => openPromptPreview(promptPreviewOption, value)}
+            sx={{ px: 3, borderBottom: 1, borderColor: "divider", flexShrink: 0 }}
+          >
+            <Tab value="detailed" label="상세 버전" />
+            <Tab value="simple" label="간소화 버전" />
+          </Tabs>
+        )}
         <DialogContent sx={{ display: "flex", minHeight: 0, overflow: "hidden", pb: 0 }}>
-          {promptPreviewOption && <PreviewImageCarousel key={promptPreviewOption.id} title={promptPreviewOption.title}
-            slides={(promptPreviewOption.preview_images?.length ? promptPreviewOption.preview_images : [{ id: "legacy" }]).map((image) => ({
-              ...image, url: promptPreviewImageUrl(promptPreviewOption.id, promptPreviewOption.preview_image_revision, image.id),
-            }))} />}
+          {promptPreviewOption && promptPreviewVariant === "simple" ? (
+            promptPreviewOption.simple_preview_image_available ? (
+              <PreviewImageCarousel
+                key={`${promptPreviewOption.id}-simple`}
+                title={`${promptPreviewOption.title} (간소화)`}
+                slides={(promptPreviewOption.simple_preview_images || []).map((image) => ({
+                  ...image,
+                  url: promptPreviewImageUrl(promptPreviewOption.id, promptPreviewOption.preview_image_revision, image.id, "simple"),
+                }))}
+              />
+            ) : simplePreviewLoading ? (
+              <Box sx={{ flex: 1, display: "grid", placeItems: "center", py: 6 }}>
+                <CircularProgress />
+              </Box>
+            ) : simplePreviewError ? (
+              <Box sx={{ flex: 1, p: 2 }}>
+                <Alert severity="error">{simplePreviewError}</Alert>
+              </Box>
+            ) : simplePreviewHtml ? (
+              <Box
+                component="iframe"
+                title={`${promptPreviewOption.title} 간소화 미리보기`}
+                sandbox="allow-scripts"
+                srcDoc={simplePreviewHtml}
+                sx={{ width: "100%", height: "100%", border: 0, bgcolor: "#e2e8f0" }}
+              />
+            ) : (
+              <Box sx={{ flex: 1, p: 2 }}>
+                <Alert severity="info">간소화 버전 미리보기를 사용할 수 없습니다.</Alert>
+              </Box>
+            )
+          ) : promptPreviewOption && (
+            promptPreviewOption.preview_image_available ? (
+              <PreviewImageCarousel key={promptPreviewOption.id} title={promptPreviewOption.title}
+                slides={(promptPreviewOption.preview_images?.length ? promptPreviewOption.preview_images : [{ id: "legacy" }]).map((image) => ({
+                  ...image, url: promptPreviewImageUrl(promptPreviewOption.id, promptPreviewOption.preview_image_revision, image.id),
+                }))} />
+            ) : (
+              <Box sx={{ flex: 1, p: 2 }}>
+                <Alert severity="info">상세 버전 미리보기 이미지가 아직 등록되지 않았습니다.</Alert>
+              </Box>
+            )
+          )}
         </DialogContent>
-        <DialogActions sx={{ flexShrink: 0 }}><Button onClick={() => setPromptPreviewOption(null)}>닫기</Button></DialogActions>
+        <DialogActions sx={{ flexShrink: 0 }}><Button onClick={closePromptPreview}>닫기</Button></DialogActions>
       </Dialog>
 
       <Dialog open={Boolean(detail)} onClose={() => setDetail(null)} fullWidth maxWidth="sm">

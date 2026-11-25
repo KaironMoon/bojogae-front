@@ -86,6 +86,8 @@ function PromptsPage() {
   const [draft, setDraft] = useState(EMPTY_PROMPT);
   const [previewFile, setPreviewFile] = useState(null);
   const [previewRemoved, setPreviewRemoved] = useState([]);
+  const [simplePreviewFile, setSimplePreviewFile] = useState(null);
+  const [simplePreviewRemoved, setSimplePreviewRemoved] = useState([]);
   const [versions, setVersions] = useState([]);
   const [includeDeleted, setIncludeDeleted] = useState(false);
   const [includeDeletedVersions, setIncludeDeletedVersions] = useState(false);
@@ -145,7 +147,7 @@ function PromptsPage() {
 
   const isNew = selectedId === "new";
   const isDirty = useMemo(() => {
-    if (previewFile?.length || previewRemoved.length) return true;
+    if (previewFile?.length || previewRemoved.length || simplePreviewFile?.length || simplePreviewRemoved.length) return true;
     if (isNew) return Boolean(draft.report_template || draft.is_new || draft.is_recently_updated || draft.title || draft.description || draft.body || draft.category_ids.length || draft.input_schema.length || draft.common_prompt_ids.length || draft.max_input_files !== 10);
     if (!selectedPrompt || selectedPrompt.is_deleted) return false;
     return JSON.stringify(draft.common_prompt_ids) !== JSON.stringify(selectedPrompt.common_prompt_ids || [])
@@ -159,7 +161,7 @@ function PromptsPage() {
       || JSON.stringify(draft.input_schema) !== JSON.stringify(selectedPrompt.input_schema || [])
       || JSON.stringify([...draft.category_ids].sort((a, b) => a - b))
         !== JSON.stringify(categoryIds(selectedPrompt));
-  }, [draft, isNew, selectedPrompt, previewFile, previewRemoved]);
+  }, [draft, isNew, selectedPrompt, previewFile, previewRemoved, simplePreviewFile, simplePreviewRemoved]);
 
   const hasUnsavedChanges = isDirty || commonDirty;
 
@@ -207,6 +209,8 @@ function PromptsPage() {
         setSelectedPrompt(prompt);
         setPreviewFile(null);
         setPreviewRemoved([]);
+        setSimplePreviewFile(null);
+        setSimplePreviewRemoved([]);
         setDraft({ report_template: prompt.report_template ?? null, is_new: Boolean(prompt.is_new), is_recently_updated: Boolean(prompt.is_recently_updated), title: prompt.title, body: prompt.body, category_ids: categoryIds(prompt), input_schema: prompt.input_schema || [], max_input_files: prompt.max_input_files ?? 10, description: prompt.description || "", common_prompt_ids: prompt.common_prompt_ids || [] });
         setVersions(versionRows);
       } catch {
@@ -287,6 +291,8 @@ function PromptsPage() {
     if (!canLeaveDraft()) return;
     setPreviewFile(null);
     setPreviewRemoved([]);
+    setSimplePreviewFile(null);
+    setSimplePreviewRemoved([]);
     setSelectedId("new");
     setSelectedPrompt(null);
     setDraft({ ...EMPTY_PROMPT });
@@ -340,9 +346,20 @@ function PromptsPage() {
           : selectedPrompt?.preview_image_available ? [{ id: "legacy" }] : [];
         saved = await uploadPromptPreviewImage(saved.id, previewFile || [], existing.filter((image) => !previewRemoved.includes(image.id)).map((image) => image.id));
       }
+      if (simplePreviewFile?.length || simplePreviewRemoved.length) {
+        const existingSimple = selectedPrompt?.simple_preview_images || [];
+        saved = await uploadPromptPreviewImage(
+          saved.id,
+          simplePreviewFile || [],
+          existingSimple.filter((image) => !simplePreviewRemoved.includes(image.id)).map((image) => image.id),
+          "simple",
+        );
+      }
       setSelectedPrompt(saved);
       setPreviewFile(null);
       setPreviewRemoved([]);
+      setSimplePreviewFile(null);
+      setSimplePreviewRemoved([]);
       setDraft({ report_template: saved.report_template ?? null, is_new: Boolean(saved.is_new), is_recently_updated: Boolean(saved.is_recently_updated), title: saved.title, body: saved.body, category_ids: categoryIds(saved), input_schema: saved.input_schema || [], max_input_files: saved.max_input_files ?? 10, description: saved.description || "", common_prompt_ids: saved.common_prompt_ids || [] });
       await Promise.all([
         loadVersions(saved.id, includeDeletedVersions),
@@ -735,6 +752,19 @@ function PromptsPage() {
                 disabled={selectedPrompt?.is_deleted || working}
                 onFile={setPreviewFile}
                 onRemove={(id) => setPreviewRemoved((current) => [...current, id])} />
+              {Boolean(draft.report_template?.simple_template || selectedPrompt?.simple_preview_image_available) && (
+                <PreviewImageEditor
+                  prompt={selectedPrompt}
+                  file={simplePreviewFile}
+                  removed={simplePreviewRemoved}
+                  variant="simple"
+                  title="간소화 버전 미리보기 이미지 (선택)"
+                  description={`미리보기 이미지가 없어도 간소화 예시 데이터 기반 HTML 미리보기가 제공됩니다. PNG·JPG·WebP 최대 20장, 장당 10MB.`}
+                  disabled={selectedPrompt?.is_deleted || working}
+                  onFile={setSimplePreviewFile}
+                  onRemove={(id) => setSimplePreviewRemoved((current) => [...current, id])}
+                />
+              )}
               <InputSchemaEditor value={draft.input_schema} maxInputFiles={draft.max_input_files}
                 onMaxInputFilesChange={(max_input_files) => setDraft((current) => ({ ...current, max_input_files }))}
                 disabled={selectedPrompt?.is_deleted || working}
@@ -759,6 +789,9 @@ function PromptsPage() {
                   </Typography>
                   {selectedPrompt.report_folder && !selectedPrompt.report_folder_confirmed && (
                     <Chip label="폴더 확인 대기" size="small" variant="outlined" />
+                  )}
+                  {selectedPrompt.report_template?.simple_template && (
+                    <Chip label="간소화 포함" size="small" color="info" variant="outlined" />
                   )}
                   {!selectedPrompt.is_deleted && (
                     <Button size="small" disabled={working} onClick={() => {
@@ -869,6 +902,9 @@ function PromptsPage() {
                     {version.is_current && <Chip label="최신 편집" size="small" color="primary" />}
                     {version.is_published && <Chip label="제공 중" size="small" color="success" />}
                     <Chip label={version.report_template ? "템플릿" : "HTML 전체"} size="small" variant="outlined" />
+                    {version.report_template?.simple_template && (
+                      <Chip label="간소화 포함" size="small" color="info" variant="outlined" />
+                    )}
                     {version.is_deleted && <Chip label="삭제됨" size="small" />}
                   </Stack>
                   <Typography noWrap>{version.title}</Typography>
@@ -970,6 +1006,19 @@ function PromptsPage() {
               "HTML 템플릿": viewVersion.report_template.html,
               "출력 데이터 스키마": JSON.stringify(viewVersion.report_template.schema_document, null, 2),
               "템플릿 점검용 예시 데이터": viewVersion.report_template.example_data && JSON.stringify(viewVersion.report_template.example_data, null, 2),
+            }).filter(([, value]) => value).map(([label, value]) => <details key={label}>
+              <summary>{label}</summary>
+              <Box component="pre" sx={{ overflow: "auto", maxHeight: 300 }}>{value}</Box>
+            </details>)}
+          </Box>}
+          {viewVersion?.report_template?.simple_template && <Box sx={{ mt: 2 }}>
+            <Typography variant="subtitle2">간소화 버전(simple/) 템플릿</Typography>
+            {Object.entries({
+              "간소화 프롬프트 본문": viewVersion.report_template.simple_template.body,
+              "간소화 유형별 HTML 템플릿": viewVersion.report_template.simple_template.fragment_html,
+              "간소화 HTML 템플릿": viewVersion.report_template.simple_template.html,
+              "간소화 출력 데이터 스키마": JSON.stringify(viewVersion.report_template.simple_template.schema_document, null, 2),
+              "간소화 점검용 예시 데이터": viewVersion.report_template.simple_template.example_data && JSON.stringify(viewVersion.report_template.simple_template.example_data, null, 2),
             }).filter(([, value]) => value).map(([label, value]) => <details key={label}>
               <summary>{label}</summary>
               <Box component="pre" sx={{ overflow: "auto", maxHeight: 300 }}>{value}</Box>

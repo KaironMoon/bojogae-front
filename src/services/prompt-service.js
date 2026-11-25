@@ -2,20 +2,29 @@ import apiCaller from "@/services/api-caller";
 
 export const MAX_PREVIEW_IMAGES = 20;
 
-function promptPreviewImageUrl(promptId, revision = "", imageId = "") {
+function promptPreviewImageUrl(promptId, revision = "", imageId = "", variant = "detailed") {
   const base = import.meta.env.VITE_API_BASE_URL || "";
-  return `${base}/api/v1/prompts/${promptId}/preview-image?revision=${encodeURIComponent(revision || "")}&image_id=${encodeURIComponent(imageId || "")}`;
+  const variantParam = variant && variant !== "detailed" ? `&variant=${encodeURIComponent(variant)}` : "";
+  return `${base}/api/v1/prompts/${promptId}/preview-image?revision=${encodeURIComponent(revision || "")}&image_id=${encodeURIComponent(imageId || "")}${variantParam}`;
 }
 
-async function uploadPromptPreviewImage(promptId, images, retainedIds = []) {
+async function uploadPromptPreviewImage(promptId, images, retainedIds = [], variant = "detailed") {
   const data = new FormData();
   images.forEach((image) => data.append("images", image));
   data.append("retained_ids", JSON.stringify(retainedIds));
+  if (variant && variant !== "detailed") {
+    data.append("variant", variant);
+  }
   return (await apiCaller.put(`/api/v1/admin/prompts/${promptId}/preview-images`, data)).data;
 }
 
-async function deletePromptPreviewImage(promptId) {
-  return (await apiCaller.delete(`/api/v1/admin/prompts/${promptId}/preview-image`)).data;
+async function deletePromptPreviewImage(promptId, variant = "detailed") {
+  return (
+    await apiCaller.delete(
+      `/api/v1/admin/prompts/${promptId}/preview-image`,
+      variant && variant !== "detailed" ? { variant } : undefined,
+    )
+  ).data;
 }
 
 async function getPrompts(includeDeleted = false, page = 1, pageSize = 20) {

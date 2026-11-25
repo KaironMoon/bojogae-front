@@ -4,20 +4,33 @@ import { Alert, Box, Button, Stack, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
 import { MAX_PREVIEW_IMAGES, promptPreviewImageUrl } from "@/services/prompt-service";
 
-export default function PreviewImageEditor({ prompt, file, removed, disabled, onFile, onRemove }) {
+export default function PreviewImageEditor({
+  prompt,
+  file,
+  removed,
+  disabled,
+  onFile,
+  onRemove,
+  variant = "detailed",
+  title = "결과 미리보기 이미지 (선택)",
+  description,
+}) {
   const [localUrls, setLocalUrls] = useState([]);
   const [error, setError] = useState("");
   const [dragging, setDragging] = useState(false);
   const files = file || [];
-  const existing = (prompt?.preview_images?.length ? prompt.preview_images : prompt?.preview_image_available
-    ? [{ id: "legacy", filename: prompt.preview_image_filename }] : []).filter((image) => !(removed || []).includes(image.id));
+  const sourceImages = variant === "simple"
+    ? (prompt?.simple_preview_images || [])
+    : (prompt?.preview_images?.length ? prompt.preview_images : prompt?.preview_image_available
+      ? [{ id: "legacy", filename: prompt.preview_image_filename }] : []);
+  const existing = sourceImages.filter((image) => !(removed || []).includes(image.id));
   useEffect(() => {
     const urls = (file || []).map((image) => URL.createObjectURL(image));
     setLocalUrls(urls);
     return () => urls.forEach((url) => URL.revokeObjectURL(url));
   }, [file]);
-  useEffect(() => { setError(""); }, [prompt?.id]);
-  const slides = [...existing.map((image) => ({ ...image, url: promptPreviewImageUrl(prompt.id, prompt.preview_image_revision, image.id) })),
+  useEffect(() => { setError(""); }, [prompt?.id, variant]);
+  const slides = [...existing.map((image) => ({ ...image, url: promptPreviewImageUrl(prompt.id, prompt.preview_image_revision, image.id, variant) })),
     ...files.map((image, position) => ({ filename: image.name, url: localUrls[position], position }))];
   const addFiles = (selection) => {
     if (disabled) return;
@@ -31,8 +44,10 @@ export default function PreviewImageEditor({ prompt, file, removed, disabled, on
   };
   return (
     <Stack spacing={1.25}>
-      <Typography variant="subtitle2" fontWeight={750}>결과 미리보기 이미지 (선택)</Typography>
-      <Typography variant="body2" color="text.secondary">이미지 없이도 저장할 수 있습니다. PNG·JPG·WebP 최대 {MAX_PREVIEW_IMAGES}장, 장당 10MB.</Typography>
+      <Typography variant="subtitle2" fontWeight={750}>{title}</Typography>
+      <Typography variant="body2" color="text.secondary">
+        {description || `이미지 없이도 저장할 수 있습니다. PNG·JPG·WebP 최대 ${MAX_PREVIEW_IMAGES}장, 장당 10MB.`}
+      </Typography>
       {error && <Alert severity="error" onClose={() => setError("")}>{error}</Alert>}
       <Box onDragEnter={(event) => { event.preventDefault(); if (!disabled) setDragging(true); }}
         onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = disabled ? "none" : "copy"; }}
@@ -48,7 +63,7 @@ export default function PreviewImageEditor({ prompt, file, removed, disabled, on
         </Stack>
       </Box>
       {slides.length > 0 && <Box sx={{ height: "clamp(220px, calc(100dvh - 330px), 640px)", minHeight: 0 }}>
-        <PreviewImageCarousel key={prompt?.id || "new"} slides={slides} disabled={disabled}
+        <PreviewImageCarousel key={`${prompt?.id || "new"}-${variant}`} slides={slides} disabled={disabled}
           onRemove={(slide) => { setError(""); if (slide.id) onRemove(slide.id); else onFile(files.filter((_, position) => position !== slide.position)); }} />
       </Box>}
       {(files.length > 0 || removed?.length > 0) && <Typography variant="caption" color="text.secondary">저장 버튼을 누르면 이미지 변경사항이 반영됩니다.</Typography>}
