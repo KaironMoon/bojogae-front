@@ -131,7 +131,7 @@ function ContractDrawerContent({ contract, onClose, onSchedule, onPrevious, onNe
     setBusy(true); setError("");
     try {
       const keys = ["origin", "insurer", "product", "category", "policy_number", "parties", "premium", "payment_cycle", "application_date", "establishment_date", "coverage_start", "coverage_end", "payment_end", "payment_period", "period_note", "coverage_note", "progress", "maintenance", "information_source", "verified", "verified_date", "version"];
-      const data = Object.fromEntries(keys.filter(key => loaded[key] !== undefined).map(key => [key, loaded[key]]));
+      const data = Object.fromEntries([...keys, "proposal_generation_id"].filter(key => loaded[key] !== undefined).map(key => [key, loaded[key]]));
       await crmPut(`/contracts/${contract.id}`, { ...data, ...draft, coverage_start: draft.coverage_start || null });
       onSaved();
     } catch (e) { setError(crmError(e)); } finally { setBusy(false); }
@@ -163,6 +163,7 @@ function ContractDrawerContent({ contract, onClose, onSchedule, onPrevious, onNe
       </div>
     </header>
     <div className="crm-contract-drawer-content">
+      {loaded?.proposal_generation_id && <Button component={Link} to={`/proposals?generationId=${loaded.proposal_generation_id}`}>계약에 선택한 문서 보기</Button>}
       <section className="crm-contract-drawer-reminders" aria-labelledby="crm-contract-drawer-reminders">
         <div className="crm-contract-drawer-reminder-heading"><Typography component="h3" id="crm-contract-drawer-reminders"><ContractDesignIcon name="bell" />보조개 자동 산출 4대 고객 터치 일정</Typography><span>성립일 · 보장개시일 · 생년월일 기준</span></div>
         <div className="crm-contract-drawer-dates">

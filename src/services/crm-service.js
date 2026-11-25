@@ -26,6 +26,8 @@ const errors = {
   proposal_contract_draft_empty: "제안서에서 보험 상품 정보를 찾지 못했습니다. 제안서 내용을 확인해 주세요.",
   proposal_contract_draft_failed: "계약 정보 자동 입력에 실패했습니다. 잠시 후 다시 시도해 주세요.",
   proposal_contract_draft_size: "제안서가 너무 길거나 비어 있어 자동 입력할 수 없습니다.",
+  crm_document_draft_unavailable: "고객에게 연결된 생성 완료 문서의 계약 정보만 불러올 수 있습니다.",
+  crm_contract_document_mismatch: "계약에 연결된 고객의 생성 완료 문서를 선택해 주세요.",
   crm_customer_extract_unavailable: "AI 서버에 연결하지 못했습니다. 잠시 후 다시 시도하거나 직접 입력해 주세요.",
   crm_customer_delete_linked: "계약 또는 첨부파일이 연결된 고객이 있어 삭제하지 않았습니다. 연결 정보를 먼저 정리해 주세요.",
   crm_delete_confirmation_required: "고객 영구 삭제 확인이 필요합니다.",

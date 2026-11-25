@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 import { Alert, Button, Drawer } from "@mui/material";
 import { Link } from "react-router-dom";
 import Icon from "./ContractDesignIcon";
+import CustomerDocuments from "./CustomerDocuments";
+import { ContractForm } from "./CrmForms";
 import { Directions, LocationFields } from "./CrmShared";
 import { customerDefaults } from "./customer-defaults";
 import { STAGES, METHODS, RESULTS, MAINTENANCE, CYCLES, money, dateTime, formatPhone } from "./crm-utils";
@@ -23,8 +25,9 @@ export function CustomerConsultationTimeline({ items = [] }) {
   </div>;
 }
 
-export function CustomerContractPreview({ contracts, customerId }) {
+export function CustomerContractPreview({ contracts, customerId, onAdd, disabled = false }) {
   return <div className="crm-customer-contract-preview">
+    {onAdd && <Button variant="outlined" disabled={disabled} onClick={onAdd} startIcon={<Icon name="folder_plus" />}>보험 계약 추가</Button>}
     {!contracts?.total && <p className="crm-customer-timeline-empty">연결된 보험 계약이 없습니다.</p>}
     {contracts?.items?.slice(0, 5).map(c => <Link className="crm-customer-contract-item" key={c.id} to={`/crm/contracts/${c.id}`}>
       <div><small>{c.insurer}</small><strong>{c.product || "상품명 미등록"}</strong><span>{c.premium == null ? "보험료 미확인" : `${money(c.premium)}원`} · {CYCLES[c.payment_cycle] || "납입주기 미확인"}</span></div>
@@ -44,6 +47,7 @@ function CustomerDrawerContent({ customer, onClose, onSaved, onDelete, onPreviou
   const [groups, setGroups] = useState([]);
   const [history, setHistory] = useState([]);
   const [contracts, setContracts] = useState(null);
+  const [contractFormOpen, setContractFormOpen] = useState(false);
   const [method, setMethod] = useState("PHONE");
   const [result, setResult] = useState("CONNECTED");
   const [note, setNote] = useState("");
@@ -101,10 +105,18 @@ function CustomerDrawerContent({ customer, onClose, onSaved, onDelete, onPreviou
         </div></section>
         <section><div className="customer-popup-section-heading"><h3><Icon name="pin" />방문 주소 및 길찾기 좌표 설정</h3><span className="crm-customer-address-status" data-state={address.state}>{address.label}</span></div><LocationFields customerDesign compact value={data.location} onChange={v => set('location', v)} /><div className="crm-customer-form-grid"><CustomerField inputProps={{ "aria-label": "통화 가능 시간" }} placeholder="예: 평일 12~1시" value={data.call_preference} onChange={v => set('call_preference', v)} /><CustomerField inputProps={{ "aria-label": "방문 가능 시간" }} placeholder="예: 목요일 오후" value={data.visit_preference} onChange={v => set('visit_preference', v)} /></div></section>
         <section><div className="customer-popup-section-heading"><h3><Icon name="message_plus" />상담 메모 및 최근 상담 이력</h3><small>최근 상담: {dateTime(history[0]?.occurred_at)}</small></div><details className="customer-ref-consultation-options"><summary>상담 방식·결과: {METHODS[method]} · {RESULTS[result]}</summary><div className="crm-customer-form-grid"><CustomerField label="상담 방식" options={METHODS} value={method} onChange={setMethod} /><CustomerField label="상담 결과" options={RESULTS} value={result} onChange={setResult} /></div></details><div className="crm-customer-note"><CustomerField multiline minRows={2} inputProps={{ "aria-label": "새 상담 내용" }} placeholder="새로운 상담 내용이나 보장 리모델링 포인트를 입력해 주세요." value={note} onChange={setNote} /><button type="button" disabled={busy || customer.archived || !note.trim()} onClick={addNote}>상담 일지<br />추가</button></div><CustomerConsultationTimeline items={history} /></section>
-        <section><h3><Icon name="clipboard" />보유 보험 계약<small>{contracts?.total ?? 0}건</small></h3><CustomerContractPreview contracts={contracts} customerId={customer.id} /></section>
+        <section><h3><Icon name="clipboard" />보유 보험 계약<small>{contracts?.total ?? 0}건</small></h3><CustomerContractPreview contracts={contracts} customerId={customer.id} disabled={busy || customer.archived} onAdd={() => setContractFormOpen(true)} /></section>
       </>}
+      <section><CustomerDocuments customerId={customer.id} disabled={customer.archived} onSaved={onSaved} /></section>
       <Button component={Link} to={`/crm/customers/${customer.id}`}>전체 고객 상세</Button>
     </div>
+    {contractFormOpen && <ContractForm customerId={customer.id} onClose={() => setContractFormOpen(false)} onSave={async payload => {
+      await crmPost("/contracts", payload);
+      try {
+        const refreshed = await crmGet(`/customers/${customer.id}`);
+        setContracts(refreshed.contracts);
+      } catch (e) { setError(crmError(e)); }
+    }} />}
     <footer className="customer-popup-drawer-footer"><button type="button" disabled={busy} onClick={onDelete} className="customer-popup-delete"><Icon name="trash" />고객 삭제</button><div><button type="button" disabled={busy} onClick={onClose}>닫기</button><button type="button" disabled={busy || customer.archived || !data || !data.name.trim()} onClick={save} className="customer-popup-primary"><Icon name="check" />{busy ? "처리 중…" : "변경사항 저장"}</button></div></footer>
   </Drawer>;
 }

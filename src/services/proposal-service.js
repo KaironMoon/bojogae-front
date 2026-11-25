@@ -33,10 +33,12 @@ async function getPointBalance() {
 async function createProposal({
   title, promptId, files, idempotencyKey, inputValues = {}, fileFields = [],
   attachedGenerationIds = [], attachedGenerationFields = [], promptVersionId, pdfPasswords = [],
+  customerId,
 }) {
   const form = new FormData();
   form.append("title", title);
   form.append("prompt_id", String(promptId));
+  if (customerId) form.append("customer_id", String(customerId));
   files.forEach((file) => form.append("files", file));
   form.append("input_values", JSON.stringify(inputValues));
   form.append("file_fields", JSON.stringify(fileFields));

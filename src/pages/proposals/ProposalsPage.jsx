@@ -10,6 +10,7 @@ import ReportHelpTour from "@/pages/components/ReportHelpTour";
 import { hasSeenReportHelp, markReportHelpSeen } from "@/services/report-help-storage";
 import PreviewImageCarousel from "@/pages/components/PreviewImageCarousel";
 import PromptInputForm from "@/pages/components/PromptInputForm";
+import { CustomerPicker } from "@/pages/crm/CrmShared";
 import PdfPasswordInput from "@/pages/components/PdfPasswordInput";
 import usePdfPasswords from "@/pages/components/usePdfPasswords";
 import { promptPreviewImageUrl } from "@/services/prompt-service";
@@ -208,6 +209,10 @@ function ProposalsPage() {
   const [selectedCategoryId, setSelectedCategoryId] = useState(null);
   const selectedCategoryIds = useMemo(() => categoryIdsFromSingle(selectedCategoryId), [selectedCategoryId]);
   const [title, setTitle] = useState("");
+  const [customerId, setCustomerId] = useState(() => {
+    const id = Number(searchParams.get("customerId"));
+    return Number.isSafeInteger(id) && id > 0 ? id : null;
+  });
   const [titleTouched, setTitleTouched] = useState(false);
   const [files, setFiles] = useState([]);
   const [filesDragging, setFilesDragging] = useState(false);
@@ -781,6 +786,7 @@ function ProposalsPage() {
       submissionKey.current ||= createIdempotencyKey();
       const buildPayload = (promptVersionId) => ({
         title: title.trim(),
+        customerId,
         promptId,
         files: selectedFiles,
         inputValues: values,
@@ -836,6 +842,8 @@ function ProposalsPage() {
           ? "동시에 진행할 수 있는 작업 수를 초과했습니다."
           : detailCode === "insufficient_points"
             ? "꼬막이 부족합니다. 잔액을 확인해 주세요."
+          : detailCode === "proposal_customer_unavailable"
+            ? "선택한 고객을 연결할 수 없습니다. 고객 목록에서 다시 선택해 주세요."
           : detailCode === "prompt_version_changed"
             ? "프롬프트가 변경되었습니다. 페이지를 새로고침한 후 입력해 주세요."
           : ["unsupported_input_file_type", "invalid_input_values", "invalid_input_files", "required_input_missing", "required_input_group_missing", "invalid_input_file_type", "invalid_attached_generation_fields"].includes(detailCode)
@@ -1666,6 +1674,14 @@ function ProposalsPage() {
               ))}
             </Stack>
             </>}
+            <Box sx={{ mt: 2 }}>
+              <CustomerPicker label="고객 (선택 사항)" value={customerId} allowEmpty disabled={working}
+                onChange={(id) => { setCustomerId(id); submissionKey.current = null; }} />
+              <Typography variant="caption" color="text.secondary">
+                고객을 선택하면 제안 중인 고객으로 처리하고, 고객 상세에서 생성 문서를 조회하거나 계약에 연결할 수 있습니다.
+              </Typography>
+              {customerId && <Button component={Link} to={`/crm/customers/${customerId}`}>고객 문서 보기</Button>}
+            </Box>
             <TextField
               fullWidth
               size="small"

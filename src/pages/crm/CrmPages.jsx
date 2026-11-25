@@ -1,5 +1,6 @@
 import { CustomerWorkspace, CustomerField } from "./CustomerReference";
 import CrmCustomerList from "./CrmCustomerList";
+import CustomerDocuments from "./CustomerDocuments";
 import { useCustomerSelection } from "./use-customer-selection";
 import { CUSTOMER_SORTS } from "./customer-group-options";
 import useMediaQuery from "@mui/material/useMediaQuery";
@@ -498,7 +499,7 @@ export function CustomerDetailPage() {
               </Panel>
               <Panel>
                 <Typography fontWeight={700} mb={1}>보유 보험 계약 ({c.contracts.total}건)</Typography>
-                <CustomerContractPreview contracts={c.contracts} customerId={c.id} />
+                <CustomerContractPreview contracts={c.contracts} customerId={c.id} disabled={c.archived} onAdd={() => setEditor("contract")} />
               </Panel>
               <Panel>
                 <Typography fontWeight={700}>보험료 요약</Typography>
@@ -590,7 +591,11 @@ export function CustomerDetailPage() {
             </>
           )}
           {tab === "files" && (
-            <Attachments customerId={c.id} disabled={c.archived} />
+            <Stack gap={3}>
+              <CustomerDocuments customerId={c.id} disabled={c.archived} onSaved={resource.reload} />
+              <Typography fontWeight={700}>첨부 문서</Typography>
+              <Attachments customerId={c.id} disabled={c.archived} />
+            </Stack>
           )}
           {editor === "customer" && (
             <CustomerForm
@@ -915,6 +920,10 @@ export function ContractDetailPage() {
       {c && (
         <>
           <ContractCard contract={c} />
+          {c.proposal_generation_id && <Panel>
+            <Typography fontWeight={700}>계약에 연결된 생성 문서</Typography>
+            <Button component={Link} to={`/proposals?generationId=${c.proposal_generation_id}`}>선택 문서 #{c.proposal_generation_id} 보기</Button>
+          </Panel>}
           <ContractReminderDetails events={c.reminders} />
           {c.archived && <Alert severity="info">보관된 계약입니다.</Alert>}
           <Panel>

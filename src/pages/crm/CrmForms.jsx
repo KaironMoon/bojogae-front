@@ -3,6 +3,7 @@ import { CustomerField, CustomerModal } from "./CustomerReference";
 import { customerDefaults } from "./customer-defaults";
 /* eslint-disable react/prop-types */
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   Alert,
   Box,
@@ -15,6 +16,7 @@ import {
 } from "@mui/material";
 import ContractDesignIcon from "./ContractDesignIcon";
 import ContractParty from "./CrmContractParty";
+import ContractDocumentAutofill from "./ContractDocumentAutofill";
 import { ContractReminderPreview } from "./CrmContractReminders";
 import { crmError, crmGet, crmPost, residentNumberHelp } from "@/services/crm-service";
 import {
@@ -24,6 +26,9 @@ import {
   LocationFields,
   emptyLocation,
   CustomerPicker,
+  useCrm,
+  State,
+  Pages,
 } from "./CrmShared";
 import {
   STAGES,
@@ -372,6 +377,7 @@ export function CustomerForm({ open = true, value, onSave, onClose, spreadsheet,
   );
 }
 const contractDefaults = {
+  proposal_generation_id: null,
   origin: "EXISTING",
   insurer: "",
   product: "",
@@ -394,9 +400,39 @@ const contractDefaults = {
   verified: false,
   verified_date: null,
 };
-export function ContractForm({ value, initialDraft, applicationDraft = false, customerId, onSave, onClose }) {
+function ContractDocumentPicker({ data, setData, initialDocument }) {
+  const ids = [...new Set(data.parties.map(p => p.customer_id).filter(Boolean))];
+  const [chosenCustomer, setChosenCustomer] = useState(null);
+  const [page, setPage] = useState(1);
+  const customer = ids.includes(chosenCustomer) ? chosenCustomer : ids[0];
+  const resource = useCrm(customer ? `/customers/${customer}/documents` : null,
+    { page, completed_only: true });
+  const documents = resource.data?.items || [];
+  const selected = data.proposal_generation_id;
+  return <Stack gap={1} sx={{ mb: 2 }}>
+    <Typography fontWeight={700}>계약에 연결할 생성 문서 (선택 사항)</Typography>
+    {ids.length > 1 && <Field label="문서 조회 고객" value={customer || ""}
+      options={Object.fromEntries(ids.map(id => [id, `고객 #${id}`]))}
+      onChange={id => { setChosenCustomer(Number(id)); setPage(1); }} />}
+    <State resource={resource} />
+    <Field label="생성 완료 문서" value={selected || ""}
+      disabled={!customer || resource.loading}
+      options={{ "": "연결하지 않음", ...(selected && !documents.some(d => d.id === selected)
+        ? { [selected]: initialDocument?.id === selected ? initialDocument.title : `연결 문서 #${selected}` } : {}),
+        ...Object.fromEntries(documents.map(d => [d.id, `${d.title} (#${d.id})`])) }}
+      onChange={id => setData(old => ({ ...old, proposal_generation_id: id ? Number(id) : null }))} />
+    <Pages data={resource.data} onChange={setPage} />
+    {selected && <Button component={Link} to={`/proposals?generationId=${selected}`} target="_blank" rel="noopener noreferrer">선택 문서 확인</Button>}
+  </Stack>;
+}
+
+export function ContractForm({ value, initialDraft, applicationDraft = false, customerId, initialDocument, onSave, onClose }) {
   const [data, setData] = useState(() => ({
     ...pick(value || initialDraft, contractDefaults),
+    ...(!value && !initialDraft && initialDocument ? {
+      proposal_generation_id: initialDocument.id,
+      origin: "NEW", progress: "ESTABLISHED", maintenance: "ACTIVE", establishment_date: null,
+    } : {}),
     parties: value?.parties || initialDraft?.parties || [
       { role: "HOLDER", customer_id: customerId || null, name: "" },
       { role: "INSURED", customer_id: null, name: "", same_as_holder: false },
@@ -466,6 +502,9 @@ export function ContractForm({ value, initialDraft, applicationDraft = false, cu
       {...state}
     >
       {applicationDraft && <Alert severity="info">제안서에서 자동 입력한 내용입니다. 보험사·상품·보험료와 계약자·피보험자를 확인해 주세요. 최소 한 명을 내고객에 연결한 뒤 등록할 수 있습니다. 등록하면 내 계약에 청약 접수 상태로 저장됩니다.</Alert>}
+      <ContractDocumentPicker data={data} setData={setData} initialDocument={initialDocument} />
+      <ContractDocumentAutofill data={data} setData={setData} existingGenerationId={value?.proposal_generation_id}
+        editing={!!value} />
       <Stack component="section" gap={1.5} className="crm-contract-form-section" aria-labelledby="crm-contract-base">
         <div className="crm-contract-section-heading">
           <Typography component="h3" id="crm-contract-base"><ContractDesignIcon name="shield_plain" />1. 등록 구분 및 보험 상품 기본 정보</Typography>
