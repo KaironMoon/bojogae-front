@@ -214,6 +214,27 @@ function ProposalSettingsPage() {
                   />
                 ))}
               </Box>
+              <Paper variant="outlined" sx={{ p: 2, borderRadius: 2.5 }}>
+                <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ sm: "center" }} gap={1}>
+                  <Box>
+                    <Typography variant="subtitle2" fontWeight={750}>간소화 버전 기능 제공</Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      끄면 간소화 템플릿이 있는 모든 보고서에서 간소화 미리보기와 생성 선택지를 숨깁니다.
+                    </Typography>
+                  </Box>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        color="success"
+                        checked={Boolean(values.simple_report_enabled ?? true)}
+                        onChange={(event) => setValues({ ...values, simple_report_enabled: event.target.checked })}
+                      />
+                    }
+                    label={values.simple_report_enabled !== false ? "켜짐" : "꺼짐"}
+                    sx={{ mr: 0 }}
+                  />
+                </Stack>
+              </Paper>
               <Stack direction="row" justifyContent="flex-end">
                 <Button variant="contained" onClick={save} disabled={working}>
                   {working ? "저장 중..." : "설정 저장"}

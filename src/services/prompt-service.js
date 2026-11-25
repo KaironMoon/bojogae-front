@@ -53,6 +53,7 @@ async function createPrompt(title, body, categoryIds = [], inputSchema = [], des
     report_template: reportTemplate,
     is_new: releaseFlags.is_new ?? false,
     is_recently_updated: releaseFlags.is_recently_updated ?? false,
+    is_simple_enabled: releaseFlags.is_simple_enabled ?? true,
   });
   return response.data;
 }
@@ -69,6 +70,7 @@ async function updatePrompt(promptId, title, body, categoryIds = [], inputSchema
     report_template: reportTemplate,
     is_new: releaseFlags.is_new ?? false,
     is_recently_updated: releaseFlags.is_recently_updated ?? false,
+    is_simple_enabled: releaseFlags.is_simple_enabled ?? true,
   });
   return response.data;
 }
@@ -76,6 +78,25 @@ async function updatePrompt(promptId, title, body, categoryIds = [], inputSchema
 async function setPromptDefaultFavorite(promptId, isDefaultFavorite) {
   const response = await apiCaller.put(`/api/v1/admin/prompts/${promptId}/default-favorite`, {
     is_default_favorite: isDefaultFavorite,
+  });
+  return response.data;
+}
+
+async function getSimpleFeatureState() {
+  const response = await apiCaller.get("/api/v1/admin/prompts/simple-feature");
+  return response.data;
+}
+
+async function setSimpleFeatureState(simpleReportEnabled) {
+  const response = await apiCaller.put("/api/v1/admin/prompts/simple-feature", {
+    simple_report_enabled: simpleReportEnabled,
+  });
+  return response.data;
+}
+
+async function setPromptSimpleEnabled(promptId, isSimpleEnabled) {
+  const response = await apiCaller.put(`/api/v1/admin/prompts/${promptId}/simple-enabled`, {
+    is_simple_enabled: isSimpleEnabled,
   });
   return response.data;
 }
@@ -149,10 +170,13 @@ export {
   getPromptCategories,
   getPrompts,
   getPromptVersions,
+  getSimpleFeatureState,
   recoverPrompt,
   recoverPromptVersion,
   restorePromptVersion,
   setPromptDefaultFavorite,
+  setPromptSimpleEnabled,
+  setSimpleFeatureState,
   updatePrompt,
   updatePromptCategory,
 };

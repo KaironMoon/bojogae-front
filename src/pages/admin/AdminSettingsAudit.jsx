@@ -23,6 +23,7 @@ const FIELDS = {
   max_pdf_bytes: "파일당 최대 바이트",
   max_active_jobs_per_user: "사용자당 활성 작업",
   max_global_running_jobs: "전체 동시 생성",
+  simple_report_enabled: "간소화 버전 기능",
   point_cost: "소진 꼬막",
   recipients: "수신자",
   enabled_events: "알림 항목",

@@ -53,19 +53,22 @@ import {
   getPromptCategories,
   getPrompts,
   getPromptVersions,
+  getSimpleFeatureState,
   recoverPrompt,
   recoverPromptVersion,
   restorePromptVersion,
   publishPromptVersion,
   setPromptReportMapping,
+  setSimpleFeatureState,
   updatePrompt,
 } from "@/services/prompt-service";
 import PromptCategoriesPanel from "./PromptCategoriesPanel";
 import PromptCategoryList from "./PromptCategoryList";
 import DefaultPromptFavoritesPanel from "./DefaultPromptFavoritesPanel";
+import SimplePromptsPanel from "./SimplePromptsPanel";
 
 
-const EMPTY_PROMPT = { report_template: null, is_new: false, is_recently_updated: false, title: "", description: "", body: "", category_ids: [], input_schema: [], max_input_files: 10, common_prompt_ids: [] };
+const EMPTY_PROMPT = { report_template: null, is_new: false, is_recently_updated: false, is_simple_enabled: true, title: "", description: "", body: "", category_ids: [], input_schema: [], max_input_files: 10, common_prompt_ids: [] };
 
 function categoryIds(prompt) {
   return (prompt?.categories || []).map((category) => category.id).sort((a, b) => a - b);
@@ -104,6 +107,8 @@ function PromptsPage() {
   const [confirmAction, setConfirmAction] = useState(null);
   const [categories, setCategories] = useState([]);
   const [activeTab, setActiveTab] = useState(0);
+  const [simpleFeatureEnabled, setSimpleFeatureEnabled] = useState(true);
+  const [simpleFeatureSaving, setSimpleFeatureSaving] = useState(false);
   const [commonPrompts, setCommonPrompts] = useState([]);
   const [commonLoading, setCommonLoading] = useState(true);
   const [commonError, setCommonError] = useState("");
@@ -145,14 +150,36 @@ function PromptsPage() {
     });
   }, [categoryGroup, categoryOptions, categorySearch]);
 
+  useEffect(() => {
+    getSimpleFeatureState()
+      .then((res) => setSimpleFeatureEnabled(Boolean(res.simple_report_enabled)))
+      .catch(() => {});
+  }, []);
+
+  const handleToggleSimpleFeature = async (checked) => {
+    setSimpleFeatureSaving(true);
+    setError("");
+    try {
+      const updated = await setSimpleFeatureState(checked);
+      setSimpleFeatureEnabled(Boolean(updated.simple_report_enabled));
+    } catch (requestError) {
+      setError(requestError.response?.data?.detail === "simple_report_toggle_schema_required"
+        ? "간소화 기능 설정을 위한 DB 설정(105_simple_report_toggle.sql)이 필요합니다."
+        : "간소화 기능 상태를 변경하지 못했습니다.");
+    } finally {
+      setSimpleFeatureSaving(false);
+    }
+  };
+
   const isNew = selectedId === "new";
   const isDirty = useMemo(() => {
     if (previewFile?.length || previewRemoved.length || simplePreviewFile?.length || simplePreviewRemoved.length) return true;
-    if (isNew) return Boolean(draft.report_template || draft.is_new || draft.is_recently_updated || draft.title || draft.description || draft.body || draft.category_ids.length || draft.input_schema.length || draft.common_prompt_ids.length || draft.max_input_files !== 10);
+    if (isNew) return Boolean(draft.report_template || draft.is_new || draft.is_recently_updated || draft.is_simple_enabled === false || draft.title || draft.description || draft.body || draft.category_ids.length || draft.input_schema.length || draft.common_prompt_ids.length || draft.max_input_files !== 10);
     if (!selectedPrompt || selectedPrompt.is_deleted) return false;
     return JSON.stringify(draft.common_prompt_ids) !== JSON.stringify(selectedPrompt.common_prompt_ids || [])
       || draft.is_new !== Boolean(selectedPrompt.is_new)
       || draft.is_recently_updated !== Boolean(selectedPrompt.is_recently_updated)
+      || Boolean(draft.is_simple_enabled ?? true) !== Boolean(selectedPrompt.is_simple_enabled ?? true)
       || draft.title !== selectedPrompt.title
       || draft.description !== (selectedPrompt.description || "")
       || draft.body !== selectedPrompt.body
@@ -211,7 +238,7 @@ function PromptsPage() {
         setPreviewRemoved([]);
         setSimplePreviewFile(null);
         setSimplePreviewRemoved([]);
-        setDraft({ report_template: prompt.report_template ?? null, is_new: Boolean(prompt.is_new), is_recently_updated: Boolean(prompt.is_recently_updated), title: prompt.title, body: prompt.body, category_ids: categoryIds(prompt), input_schema: prompt.input_schema || [], max_input_files: prompt.max_input_files ?? 10, description: prompt.description || "", common_prompt_ids: prompt.common_prompt_ids || [] });
+        setDraft({ report_template: prompt.report_template ?? null, is_new: Boolean(prompt.is_new), is_recently_updated: Boolean(prompt.is_recently_updated), is_simple_enabled: Boolean(prompt.is_simple_enabled ?? true), title: prompt.title, body: prompt.body, category_ids: categoryIds(prompt), input_schema: prompt.input_schema || [], max_input_files: prompt.max_input_files ?? 10, description: prompt.description || "", common_prompt_ids: prompt.common_prompt_ids || [] });
         setVersions(versionRows);
       } catch {
         setError("프롬프트를 불러오지 못했습니다.");
@@ -337,8 +364,8 @@ function PromptsPage() {
     setError("");
     try {
       let saved = isNew
-        ? await createPrompt(title, draft.body, draft.category_ids, draft.input_schema, draft.description, draft.common_prompt_ids, draft.max_input_files, { is_new: draft.is_new, is_recently_updated: draft.is_recently_updated }, draft.report_template)
-        : await updatePrompt(selectedPrompt.id, title, draft.body, draft.category_ids, draft.input_schema, draft.description, draft.common_prompt_ids, draft.max_input_files, { is_new: draft.is_new, is_recently_updated: draft.is_recently_updated }, draft.report_template);
+        ? await createPrompt(title, draft.body, draft.category_ids, draft.input_schema, draft.description, draft.common_prompt_ids, draft.max_input_files, { is_new: draft.is_new, is_recently_updated: draft.is_recently_updated, is_simple_enabled: draft.is_simple_enabled }, draft.report_template)
+        : await updatePrompt(selectedPrompt.id, title, draft.body, draft.category_ids, draft.input_schema, draft.description, draft.common_prompt_ids, draft.max_input_files, { is_new: draft.is_new, is_recently_updated: draft.is_recently_updated, is_simple_enabled: draft.is_simple_enabled }, draft.report_template);
       setSelectedPrompt(saved);
       setSelectedId(saved.id);
       if (previewFile?.length || previewRemoved.length) {
@@ -360,7 +387,7 @@ function PromptsPage() {
       setPreviewRemoved([]);
       setSimplePreviewFile(null);
       setSimplePreviewRemoved([]);
-      setDraft({ report_template: saved.report_template ?? null, is_new: Boolean(saved.is_new), is_recently_updated: Boolean(saved.is_recently_updated), title: saved.title, body: saved.body, category_ids: categoryIds(saved), input_schema: saved.input_schema || [], max_input_files: saved.max_input_files ?? 10, description: saved.description || "", common_prompt_ids: saved.common_prompt_ids || [] });
+      setDraft({ report_template: saved.report_template ?? null, is_new: Boolean(saved.is_new), is_recently_updated: Boolean(saved.is_recently_updated), is_simple_enabled: Boolean(saved.is_simple_enabled ?? true), title: saved.title, body: saved.body, category_ids: categoryIds(saved), input_schema: saved.input_schema || [], max_input_files: saved.max_input_files ?? 10, description: saved.description || "", common_prompt_ids: saved.common_prompt_ids || [] });
       await Promise.all([
         loadVersions(saved.id, includeDeletedVersions),
         loadList(saved.id),
@@ -418,9 +445,10 @@ function PromptsPage() {
         version_id: publication.version.id,
         is_new: publication.is_new,
         is_recently_updated: publication.is_recently_updated,
+        ...(publication.is_simple_enabled !== undefined ? { is_simple_enabled: publication.is_simple_enabled } : {}),
       });
       setSelectedPrompt(updated);
-      setDraft((current) => ({ ...current, is_new: updated.is_new, is_recently_updated: updated.is_recently_updated }));
+      setDraft((current) => ({ ...current, is_new: updated.is_new, is_recently_updated: updated.is_recently_updated, is_simple_enabled: Boolean(updated.is_simple_enabled ?? true) }));
       setPublication(null);
       await Promise.all([loadVersions(updated.id, includeDeletedVersions), loadList(updated.id)]);
     } catch {
@@ -449,7 +477,7 @@ function PromptsPage() {
           action.version.id,
         );
         setSelectedPrompt(restored);
-        setDraft({ report_template: restored.report_template ?? null, is_new: Boolean(restored.is_new), is_recently_updated: Boolean(restored.is_recently_updated), title: restored.title, body: restored.body, category_ids: categoryIds(restored), input_schema: restored.input_schema || [], max_input_files: restored.max_input_files ?? 10, description: restored.description || "", common_prompt_ids: restored.common_prompt_ids || [] });
+        setDraft({ report_template: restored.report_template ?? null, is_new: Boolean(restored.is_new), is_recently_updated: Boolean(restored.is_recently_updated), is_simple_enabled: Boolean(restored.is_simple_enabled ?? true), title: restored.title, body: restored.body, category_ids: categoryIds(restored), input_schema: restored.input_schema || [], max_input_files: restored.max_input_files ?? 10, description: restored.description || "", common_prompt_ids: restored.common_prompt_ids || [] });
         await Promise.all([
           loadVersions(restored.id, includeDeletedVersions),
           loadList(restored.id),
@@ -473,7 +501,7 @@ function PromptsPage() {
     try {
       const recovered = await recoverPrompt(selectedPrompt.id);
       setSelectedPrompt(recovered);
-      setDraft({ report_template: recovered.report_template ?? null, is_new: Boolean(recovered.is_new), is_recently_updated: Boolean(recovered.is_recently_updated), title: recovered.title, body: recovered.body, category_ids: categoryIds(recovered), input_schema: recovered.input_schema || [], max_input_files: recovered.max_input_files ?? 10, description: recovered.description || "", common_prompt_ids: recovered.common_prompt_ids || [] });
+      setDraft({ report_template: recovered.report_template ?? null, is_new: Boolean(recovered.is_new), is_recently_updated: Boolean(recovered.is_recently_updated), is_simple_enabled: Boolean(recovered.is_simple_enabled ?? true), title: recovered.title, body: recovered.body, category_ids: categoryIds(recovered), input_schema: recovered.input_schema || [], max_input_files: recovered.max_input_files ?? 10, description: recovered.description || "", common_prompt_ids: recovered.common_prompt_ids || [] });
       await loadList(recovered.id);
     } catch {
       setError("프롬프트를 복구하지 못했습니다.");
@@ -521,15 +549,43 @@ function PromptsPage() {
             프롬프트를 작성하고 저장된 버전을 관리합니다.
           </Typography>
         </div>
-        {activeTab === 0 && (
-          <Button
-            variant="contained"
-            startIcon={<AddRoundedIcon />}
-            onClick={startNewPrompt}
-          >
-            새 프롬프트
-          </Button>
-        )}
+        <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap">
+          <Paper variant="outlined" sx={{ px: 1.5, py: 0.5, borderRadius: 2.5 }}>
+            <FormControlLabel
+              control={
+                <Switch
+                  size="small"
+                  color="success"
+                  checked={Boolean(simpleFeatureEnabled)}
+                  disabled={simpleFeatureSaving}
+                  onChange={(event) => handleToggleSimpleFeature(event.target.checked)}
+                  inputProps={{ "aria-label": "간소화 기능 전체 켜기/끄기" }}
+                />
+              }
+              label={
+                <Stack direction="row" spacing={0.75} alignItems="center">
+                  <Typography variant="body2" fontWeight={700}>간소화 기능</Typography>
+                  <Chip
+                    size="small"
+                    color={simpleFeatureEnabled ? "success" : "default"}
+                    variant={simpleFeatureEnabled ? "filled" : "outlined"}
+                    label={simpleFeatureEnabled ? "전체 켜짐" : "전체 꺼짐"}
+                  />
+                </Stack>
+              }
+              sx={{ m: 0 }}
+            />
+          </Paper>
+          {activeTab === 0 && (
+            <Button
+              variant="contained"
+              startIcon={<AddRoundedIcon />}
+              onClick={startNewPrompt}
+            >
+              새 프롬프트
+            </Button>
+          )}
+        </Stack>
       </Stack>
 
       <Paper variant="outlined" sx={{ borderRadius: 3, mb: 2, px: 1 }}>
@@ -542,6 +598,7 @@ function PromptsPage() {
           aria-label="프롬프트 관리 메뉴"
         >
           <Tab label="프롬프트" />
+          <Tab label="간소화 버전 관리" />
           <Tab label="카테고리 관리" />
           <Tab label="기본 즐겨찾기 관리" />
           <Tab label="공통 프롬프트 관리" />
@@ -710,6 +767,27 @@ function PromptsPage() {
                   각각 설정할 수 있습니다. 신규는 생성일, 최근 업데이트는 제공 전환일 기준으로 최대 6개 표시됩니다.
                 </Typography>
               </Box>
+              {Boolean(draft.report_template?.simple_template || selectedPrompt?.has_simple_template) && (
+                <Box>
+                  <Typography variant="subtitle2" fontWeight={750}>간소화 버전 사용자 노출</Typography>
+                  <FormControlLabel
+                    label={draft.is_simple_enabled ? "이 프롬프트의 간소화 미리보기·생성을 사용자에게 노출합니다." : "이 프롬프트의 간소화 미리보기·생성을 사용자에게 숨깁니다."}
+                    control={
+                      <Switch
+                        color="success"
+                        checked={Boolean(draft.is_simple_enabled)}
+                        disabled={selectedPrompt?.is_deleted || working}
+                        onChange={(event) => setDraft((current) => ({ ...current, is_simple_enabled: event.target.checked }))}
+                      />
+                    }
+                  />
+                  {!simpleFeatureEnabled && (
+                    <Alert severity="info" sx={{ mt: 0.5 }}>
+                      현재 상단의 전체 <b>간소화 기능</b>이 꺼져 있어 모든 프롬프트의 간소화 버전이 사용자에게 숨겨져 있습니다.
+                    </Alert>
+                  )}
+                </Box>
+              )}
               <Box>
                 <Typography variant="subtitle2" fontWeight={750} sx={{ mb: 1 }}>
                   카테고리 (다중 선택)
@@ -790,8 +868,13 @@ function PromptsPage() {
                   {selectedPrompt.report_folder && !selectedPrompt.report_folder_confirmed && (
                     <Chip label="폴더 확인 대기" size="small" variant="outlined" />
                   )}
-                  {selectedPrompt.report_template?.simple_template && (
-                    <Chip label="간소화 포함" size="small" color="info" variant="outlined" />
+                  {(selectedPrompt.report_template?.simple_template || selectedPrompt.has_simple_template) && (
+                    <Chip
+                      label={simpleFeatureEnabled && selectedPrompt.is_simple_enabled !== false ? "간소화 노출 중" : "간소화 숨김"}
+                      size="small"
+                      color={simpleFeatureEnabled && selectedPrompt.is_simple_enabled !== false ? "success" : "default"}
+                      variant="outlined"
+                    />
                   )}
                   {!selectedPrompt.is_deleted && (
                     <Button size="small" disabled={working} onClick={() => {
@@ -849,10 +932,25 @@ function PromptsPage() {
         </Paper>
       </Box>
       ) : activeTab === 1 ? (
-        <PromptCategoriesPanel />
+        <SimplePromptsPanel
+          simpleFeatureEnabled={simpleFeatureEnabled}
+          simpleFeatureSaving={simpleFeatureSaving}
+          onToggleSimpleFeature={handleToggleSimpleFeature}
+          onPromptSimpleChanged={(promptId, enabled) => {
+            setPrompts((current) => current.map((item) => (
+              item.id === promptId ? { ...item, is_simple_enabled: enabled } : item
+            )));
+            if (selectedPrompt?.id === promptId) {
+              setSelectedPrompt((current) => (current ? { ...current, is_simple_enabled: enabled } : current));
+              setDraft((current) => ({ ...current, is_simple_enabled: enabled }));
+            }
+          }}
+        />
       ) : activeTab === 2 ? (
-        <DefaultPromptFavoritesPanel />
+        <PromptCategoriesPanel />
       ) : activeTab === 3 ? (
+        <DefaultPromptFavoritesPanel />
+      ) : activeTab === 4 ? (
         <Stack spacing={2}>
           {commonError && <Alert severity="warning">{commonError}</Alert>}
           <CommonPromptsPanel items={commonPrompts} loading={commonLoading || Boolean(commonError)}
@@ -935,7 +1033,12 @@ function PromptsPage() {
                       <Button size="small" disabled={working || selectedPrompt?.is_deleted}
                         onClick={() => {
                           setPublicationError("");
-                          setPublication({ version, is_new: Boolean(selectedPrompt?.is_new), is_recently_updated: Boolean(selectedPrompt?.is_recently_updated) });
+                          setPublication({
+                            version,
+                            is_new: Boolean(selectedPrompt?.is_new),
+                            is_recently_updated: Boolean(selectedPrompt?.is_recently_updated),
+                            is_simple_enabled: Boolean(selectedPrompt?.is_simple_enabled ?? true),
+                          });
                         }}>
                         {version.is_published ? "노출 설정" : "일반 사용자에게 제공"}
                       </Button>
@@ -1199,6 +1302,10 @@ function PromptsPage() {
               disabled={working} onChange={(e) => setPublication((current) => ({ ...current, is_new: e.target.checked }))} />} />
             <FormControlLabel label="최근 업데이트된 보고서에 노출" control={<Checkbox checked={Boolean(publication?.is_recently_updated)}
               disabled={working} onChange={(e) => setPublication((current) => ({ ...current, is_recently_updated: e.target.checked }))} />} />
+            {Boolean(publication?.version?.report_template?.simple_template) && (
+              <FormControlLabel label="간소화 버전 함께 노출" control={<Checkbox checked={Boolean(publication?.is_simple_enabled ?? true)}
+                disabled={working} onChange={(e) => setPublication((current) => ({ ...current, is_simple_enabled: e.target.checked }))} />} />
+            )}
           </Stack>
         </DialogContent>
         <DialogActions>
