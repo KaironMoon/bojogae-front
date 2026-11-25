@@ -7,84 +7,47 @@ import {
   List,
   ListItem,
   ListItemButton,
-  ListItemIcon,
   ListItemText,
   Typography,
 } from "@mui/material";
-import AccountCircleOutlinedIcon from "@mui/icons-material/AccountCircleOutlined";
-import AutoAwesomeRoundedIcon from "@mui/icons-material/AutoAwesomeRounded";
-import CalendarMonthOutlinedIcon from "@mui/icons-material/CalendarMonthOutlined";
-import ContactPageOutlinedIcon from "@mui/icons-material/ContactPageOutlined";
-import AccountBalanceOutlinedIcon from "@mui/icons-material/AccountBalanceOutlined";
-import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
-import RateReviewOutlinedIcon from "@mui/icons-material/RateReviewOutlined";
-import ReplayRoundedIcon from "@mui/icons-material/ReplayRounded";
-import LibraryBooksOutlinedIcon from "@mui/icons-material/LibraryBooksOutlined";
-import EditNoteRoundedIcon from "@mui/icons-material/EditNoteRounded";
 import AnalyticsOutlinedIcon from "@mui/icons-material/AnalyticsOutlined";
-import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
-import GroupOutlinedIcon from "@mui/icons-material/GroupOutlined";
-import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
-import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
-import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
-import AccountBalanceWalletOutlinedIcon from "@mui/icons-material/AccountBalanceWalletOutlined";
 import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
+import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
+import AutoAwesomeRoundedIcon from "@mui/icons-material/AutoAwesomeRounded";
 import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
+import ChatBubbleOutlineRoundedIcon from "@mui/icons-material/ChatBubbleOutlineRounded";
+import ContactPhoneOutlinedIcon from "@mui/icons-material/ContactPhoneOutlined";
+import EditNoteRoundedIcon from "@mui/icons-material/EditNoteRounded";
 import ExpandLessRoundedIcon from "@mui/icons-material/ExpandLessRounded";
 import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
-import NewspaperOutlinedIcon from "@mui/icons-material/NewspaperOutlined";
-import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
-import ViewCarouselOutlinedIcon from "@mui/icons-material/ViewCarouselOutlined";
-import ContactPhoneOutlinedIcon from "@mui/icons-material/ContactPhoneOutlined";
+import GroupOutlinedIcon from "@mui/icons-material/GroupOutlined";
 import HelpOutlineOutlinedIcon from "@mui/icons-material/HelpOutlineOutlined";
-import ChatBubbleOutlineRoundedIcon from "@mui/icons-material/ChatBubbleOutlineRounded";
-import DownloadRoundedIcon from "@mui/icons-material/DownloadRounded";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import LibraryBooksOutlinedIcon from "@mui/icons-material/LibraryBooksOutlined";
+import NewspaperOutlinedIcon from "@mui/icons-material/NewspaperOutlined";
+import ReplayRoundedIcon from "@mui/icons-material/ReplayRounded";
+import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
+import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
+import ViewCarouselOutlinedIcon from "@mui/icons-material/ViewCarouselOutlined";
+import AccountBalanceWalletOutlinedIcon from "@mui/icons-material/AccountBalanceWalletOutlined";
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { planName } from "@/constants/plans";
 
 import { useAuth } from "@/auth/AuthContext";
+import { planName } from "@/constants/plans";
+import { isMenuEligibleForUser } from "@/services/user-menu-config";
+import {
+  getCachedUserMenu,
+  getUserMenu,
+  subscribeUserMenuChanges,
+} from "@/services/user-menu-service";
 import { reportHero, reportHeroBadge, reportHeroIcon } from "@/styles/reportTheme";
 
-
-const ICON_TONES = {
-  slate: ["#EEF2F6", "#475569"], blue: ["#EAF3FF", "#2563EB"], green: ["#E6F9EF", "#087A43"],
-  indigo: ["#EEF2FF", "#4338CA"], amber: ["#FFFBEB", "#92400E"], rose: ["#FFF0F2", "#B42347"],
-  purple: ["#F3EEFF", "#6B38FB"],
-};
-
-function MenuIcon({ icon: Icon, tone = "slate" }) { // eslint-disable-line react/prop-types
-  const [background, color] = ICON_TONES[tone];
-  return <ListItemIcon sx={{ minWidth: 36 }}><Box sx={{
-    width: 28, height: 28, borderRadius: "10px", display: "grid", placeItems: "center", bgcolor: background, color,
-  }}><Icon sx={{ fontSize: 17 }} /></Box></ListItemIcon>;
-}
-
-const PRIMARY_MENU = [
-  { label: "Home", path: "/home", icon: HomeOutlinedIcon, tone: "slate" },
-  { label: "보험사 정보·링크", path: "/insurers", icon: AccountBalanceOutlinedIcon, tone: "blue" },
-  { label: "요금 안내", path: "/plans", icon: InfoOutlinedIcon },
-];
-
-const CUSTOMER_MENU = [
-  { label: "내 고객", path: "/crm/customers" },
-  { label: "내 계약", path: "/crm/contracts" },
-];
-
-const KAKAO_TEMPLATE_PATH = "/kakao-message-templates/";
-const KAKAO_TEMPLATE_MENU = [
-  { label: "상용구", path: `${KAKAO_TEMPLATE_PATH}snippets` },
-  { label: "서명", path: `${KAKAO_TEMPLATE_PATH}signatures` },
-];
-
-const CLAIM_MENU = [
-  { label: "청구", path: "/claims/new" },
-  { label: "청구내역", path: "/claims/history" },
-];
+import { MenuIcon } from "./userMenuIcons";
 
 const ADMIN_POINT_MENU = [
-  { label: '꼬막 지급·회수·내역', path: '/admin/points' },
-  { label: '결제·환불 처리', path: '/admin/payment-support' },
+  { label: "꼬막 지급·회수·내역", path: "/admin/points" },
+  { label: "결제·환불 처리", path: "/admin/payment-support" },
 ];
 
 const ADMIN_MENU = [
@@ -103,75 +66,78 @@ const ADMIN_MENU = [
   { label: "단체 문의 관리", path: "/admin/group-inquiries", icon: ContactPhoneOutlinedIcon },
 ];
 
-const BOARD_MENU = [
-  { label: "공지사항", path: "/boards/notices", icon: CampaignOutlinedIcon },
-  { label: "업계소식", path: "/boards/industry-news", icon: NewspaperOutlinedIcon },
-  { label: "보험 지식", path: "/boards/insurance-knowledge", icon: SchoolOutlinedIcon },
-];
-
-const REPORT_MENU = [
-  { label: "환불 요청 내역", path: "/refund-requests", icon: AccountBalanceWalletOutlinedIcon },
-  { label: "문서 개선 건의", path: "/document-suggestions", icon: EditNoteRoundedIcon, tone: "purple" },
-];
-
-const HELP_MENU = [
-  { label: "FAQ", path: "/help/faq", icon: HelpOutlineOutlinedIcon },
-  { label: "1:1 문의", path: "/help/contact", icon: ContactPhoneOutlinedIcon },
-];
-
-const PROFILE_MENU = [
-  { label: "정보수정·결제", path: "/profile", icon: AccountCircleOutlinedIcon },
-  { label: "내꼬막", path: "/my-coins", icon: AccountBalanceWalletOutlinedIcon },
-];
-
 const ADMIN_BOARD_MENU = [
   { label: "공지사항 관리", path: "/admin/boards/notices", icon: CampaignOutlinedIcon },
   { label: "업계소식 관리", path: "/admin/boards/industry-news", icon: NewspaperOutlinedIcon },
   { label: "보험 지식 관리", path: "/admin/boards/insurance-knowledge", icon: SchoolOutlinedIcon },
 ];
 
+function pathMatches(pathname, targetPath) {
+  return pathname === targetPath || (targetPath !== "/home" && pathname.startsWith(`${targetPath}/`));
+}
+
+function isGroupRouteActive(pathname, item) {
+  if (item.prefix && pathname.startsWith(item.prefix)) return true;
+  if (item.key === "requests" && pathname.startsWith("/proposals/")) return true;
+  if (item.key === "profile" && pathname.startsWith("/my-coins")) return true;
+  return (item.children || []).some((child) => pathMatches(pathname, child.path));
+}
+
 function PageLeftMenu({ onNavigate }) { // eslint-disable-line react/prop-types
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
-  const [reportOpen, setReportOpen] = useState(
-    location.pathname.startsWith("/proposals")
-      || location.pathname.startsWith("/refund-requests")
-      || location.pathname.startsWith("/document-suggestions"),
-  );
-  const [profileOpen, setProfileOpen] = useState(
-    location.pathname === "/profile" || location.pathname.startsWith("/my-coins"),
-  );
-  const [boardsOpen, setBoardsOpen] = useState(location.pathname.startsWith("/boards/"));
-  const [helpOpen, setHelpOpen] = useState(location.pathname.startsWith("/help/"));
-  const [customersOpen, setCustomersOpen] = useState(CUSTOMER_MENU.some(item => location.pathname.startsWith(item.path)));
-  const [kakaoTemplatesOpen, setKakaoTemplatesOpen] = useState(location.pathname.startsWith(KAKAO_TEMPLATE_PATH));
-  const [claimsOpen, setClaimsOpen] = useState(location.pathname.startsWith("/claims"));
+  const [userMenuItems, setUserMenuItems] = useState(() => getCachedUserMenu());
+  const [openGroups, setOpenGroups] = useState(() => {
+    const initial = {};
+    for (const item of getCachedUserMenu()) {
+      if (item.kind === "group" && isGroupRouteActive(location.pathname, item)) {
+        initial[item.key] = true;
+      }
+    }
+    return initial;
+  });
   const [adminBoardsOpen, setAdminBoardsOpen] = useState(location.pathname.startsWith("/admin/boards/"));
-  const [adminPointsOpen, setAdminPointsOpen] = useState(ADMIN_POINT_MENU.some(item => location.pathname === item.path));
+  const [adminPointsOpen, setAdminPointsOpen] = useState(ADMIN_POINT_MENU.some((item) => location.pathname === item.path));
 
   useEffect(() => {
-    if (location.pathname.startsWith("/proposals")
-        || location.pathname.startsWith("/refund-requests")
-        || location.pathname.startsWith("/document-suggestions")) setReportOpen(true);
-    if (location.pathname === "/profile" || location.pathname.startsWith("/my-coins")) setProfileOpen(true);
-    if (location.pathname.startsWith("/boards/")) setBoardsOpen(true);
-    if (location.pathname.startsWith("/help/")) setHelpOpen(true);
-    if (location.pathname.startsWith("/claims")) setClaimsOpen(true);
-    if (CUSTOMER_MENU.some(item => location.pathname.startsWith(item.path))) setCustomersOpen(true);
-    if (location.pathname.startsWith(KAKAO_TEMPLATE_PATH)) setKakaoTemplatesOpen(true);
+    let active = true;
+    getUserMenu()
+      .then((items) => {
+        if (active) setUserMenuItems(items);
+      })
+      .catch(() => {});
+    const unsubscribe = subscribeUserMenuChanges((items) => {
+      if (active) setUserMenuItems(items);
+    });
+    return () => {
+      active = false;
+      unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    setOpenGroups((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      for (const item of userMenuItems) {
+        if (item.kind === "group" && isGroupRouteActive(location.pathname, item) && !next[item.key]) {
+          next[item.key] = true;
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
     if (location.pathname.startsWith("/admin/boards/")) setAdminBoardsOpen(true);
-    if (ADMIN_POINT_MENU.some(item => location.pathname === item.path)) setAdminPointsOpen(true);
-  }, [location.pathname]);
+    if (ADMIN_POINT_MENU.some((item) => location.pathname === item.path)) setAdminPointsOpen(true);
+  }, [location.pathname, userMenuItems]);
 
-  const isActive = (path) => (
-    location.pathname === path || (path !== "/home" && location.pathname.startsWith(`${path}/`))
-  );
+  const isActive = (path) => pathMatches(location.pathname, path);
 
-  const renderMenuItem = ({ label, path, icon, tone }) => {
+  const renderMenuItem = ({ key, label, path, icon, icon_key: iconKey, tone }) => {
     const active = isActive(path);
     return (
-      <ListItem key={path} disablePadding sx={{ px: 1.25, mb: 0.35 }}>
+      <ListItem key={key || path} disablePadding sx={{ px: 1.25, mb: 0.35 }}>
         <ListItemButton
           selected={active}
           onClick={() => {
@@ -202,7 +168,7 @@ function PageLeftMenu({ onNavigate }) { // eslint-disable-line react/prop-types
             "&:hover": { bgcolor: "var(--bojogae-canvas)", color: "var(--bojogae-ink)" },
           }}
         >
-          <MenuIcon icon={icon} tone={tone} />
+          <MenuIcon icon={icon} iconKey={iconKey} tone={tone} />
           <ListItemText
             primary={label}
             primaryTypographyProps={{
@@ -216,15 +182,15 @@ function PageLeftMenu({ onNavigate }) { // eslint-disable-line react/prop-types
     );
   };
 
-  const renderMenuGroup = ({ label, icon, tone, items, open, setOpen, prefix }) => {
-    const active = items.some(item => isActive(item.path));
+  const renderMenuGroup = ({ label, icon, icon_key: iconKey, tone, items, open, onToggle, prefix }) => {
+    const active = items.some((item) => isActive(item.path));
     return (
       <Box key={prefix}>
         <ListItem disablePadding sx={{ px: 1.25, mb: 0.35 }}>
           <ListItemButton
             selected={active}
             aria-expanded={open}
-            onClick={() => setOpen(value => !value)}
+            onClick={onToggle}
             sx={{
               minHeight: 42,
               px: 1.5,
@@ -234,23 +200,36 @@ function PageLeftMenu({ onNavigate }) { // eslint-disable-line react/prop-types
               "&:hover": { bgcolor: "var(--bojogae-canvas)", color: "var(--bojogae-ink)" },
             }}
           >
-            <MenuIcon icon={icon} tone={tone} />
+            <MenuIcon icon={icon} iconKey={iconKey} tone={tone} />
             <ListItemText primary={label} primaryTypographyProps={{ fontSize: 14, fontWeight: active ? 750 : 550 }} />
             {open ? <ExpandLessRoundedIcon fontSize="small" /> : <ExpandMoreRoundedIcon fontSize="small" />}
           </ListItemButton>
         </ListItem>
         <Collapse in={open} timeout="auto" unmountOnExit>
           <List disablePadding>
-            {items.map(item => {
+            {items.map((item) => {
               const childActive = isActive(item.path);
               return (
-                <ListItem key={item.path} disablePadding sx={{ px: 1.25, mb: 0.25 }}>
+                <ListItem key={item.key || item.path} disablePadding sx={{ px: 1.25, mb: 0.25 }}>
                   <ListItemButton
                     selected={childActive}
-                    onClick={() => { navigate(item.path); onNavigate?.(); }}
-                    sx={{ minHeight: 38, pl: 5.75, pr: 1.5, borderRadius: 1.5, color: childActive ? "primary.dark" : "var(--bojogae-muted)", "&.Mui-selected": { bgcolor: "var(--bojogae-tint)" } }}
+                    onClick={() => {
+                      navigate(item.path);
+                      onNavigate?.();
+                    }}
+                    sx={{
+                      minHeight: 38,
+                      pl: 5.75,
+                      pr: 1.5,
+                      borderRadius: 1.5,
+                      color: childActive ? "primary.dark" : "var(--bojogae-muted)",
+                      "&.Mui-selected": { bgcolor: "var(--bojogae-tint)" },
+                    }}
                   >
-                    <ListItemText primary={item.label} primaryTypographyProps={{ fontSize: 13.5, fontWeight: childActive ? 750 : 500 }} />
+                    <ListItemText
+                      primary={item.label}
+                      primaryTypographyProps={{ fontSize: 13.5, fontWeight: childActive ? 750 : 500 }}
+                    />
                   </ListItemButton>
                 </ListItem>
               );
@@ -260,6 +239,8 @@ function PageLeftMenu({ onNavigate }) { // eslint-disable-line react/prop-types
       </Box>
     );
   };
+
+  const visibleUserMenus = userMenuItems.filter((item) => isMenuEligibleForUser(item, user));
 
   return (
     <Box
@@ -277,30 +258,51 @@ function PageLeftMenu({ onNavigate }) { // eslint-disable-line react/prop-types
       }}
     >
       <List sx={{ pt: 2, pb: 1 }}>
-        <ListItem disablePadding sx={{ px: 1.25, mb: 1.25 }}>
-          <Button component={Link} to="/proposals" onClick={onNavigate} aria-current={isActive("/proposals") ? "page" : undefined}
-            variant="contained" fullWidth disableElevation
-            sx={{ ...reportHero, justifyContent: "flex-start", minHeight: 68, px: 1.75, gap: 1.25, borderRadius: "16px" }}>
-            <Box component="span" sx={{ ...reportHeroIcon, width: 40, height: 40, borderRadius: "12px" }}><AutoAwesomeRoundedIcon sx={{ fontSize: 20 }} /></Box>
-            <Box component="span" sx={{ display: "grid", justifyItems: "start", gap: 0.25, fontSize: 15, fontWeight: 900, letterSpacing: "-0.025em" }}>
-              <Box component="span" aria-hidden="true" sx={reportHeroBadge}>CORE FEATURE</Box>
-              보고서 만들기
-            </Box>
-            <ChevronRightRoundedIcon aria-hidden="true" sx={{ ml: "auto", fontSize: 18 }} />
-          </Button>
-        </ListItem>
-        {PRIMARY_MENU.map(renderMenuItem)}
-        {renderMenuGroup({ label: "보험금 청구", icon: ReceiptLongOutlinedIcon, tone: "green", items: CLAIM_MENU, open: claimsOpen, setOpen: setClaimsOpen, prefix: "/claims/" })}
-        {renderMenuGroup({ label: "고객관리", icon: ContactPageOutlinedIcon, tone: "indigo", items: CUSTOMER_MENU, open: customersOpen, setOpen: setCustomersOpen, prefix: "/crm/customer-menu/" })}
-        {renderMenuGroup({ label: "카톡 상용구/서명 관리", icon: ChatBubbleOutlineRoundedIcon, tone: "amber", items: KAKAO_TEMPLATE_MENU, open: kakaoTemplatesOpen, setOpen: setKakaoTemplatesOpen, prefix: KAKAO_TEMPLATE_PATH })}
-        {renderMenuItem({ label: "할 일·방문 일정", path: "/crm/tasks", icon: CalendarMonthOutlinedIcon, tone: "rose" })}
-        {renderMenuGroup({ label: "요청하기", icon: RateReviewOutlinedIcon, tone: "purple", items: REPORT_MENU, open: reportOpen, setOpen: setReportOpen, prefix: "/report-menu/" })}
-        {renderMenuGroup({ label: "내 정보", icon: AccountCircleOutlinedIcon, items: PROFILE_MENU, open: profileOpen, setOpen: setProfileOpen, prefix: "/account/" })}
-        {renderMenuGroup({ label: "게시판", icon: ArticleOutlinedIcon, items: BOARD_MENU, open: boardsOpen, setOpen: setBoardsOpen, prefix: "/boards/" })}
-        {renderMenuGroup({ label: "도움말 센터", icon: HelpOutlineOutlinedIcon, items: HELP_MENU, open: helpOpen, setOpen: setHelpOpen, prefix: "/help/" })}
-        {user?.group_role === "LEADER" && renderMenuItem({ label: "조직 관리", path: "/group", icon: GroupOutlinedIcon })}
-        {user?.group_id && renderMenuItem({ label: "비밀번호 변경", path: "/group/change-password", icon: AccountCircleOutlinedIcon })}
-        {renderMenuItem({ label: "보조개톡 다운로드", path: "/talk/download", icon: DownloadRoundedIcon, tone: "green" })}
+        {visibleUserMenus.map((item) => {
+          if (item.kind === "hero") {
+            return (
+              <ListItem key={item.key} disablePadding sx={{ px: 1.25, mb: 1.25 }}>
+                <Button
+                  component={Link}
+                  to={item.path}
+                  onClick={onNavigate}
+                  aria-current={isActive(item.path) ? "page" : undefined}
+                  variant="contained"
+                  fullWidth
+                  disableElevation
+                  sx={{ ...reportHero, justifyContent: "flex-start", minHeight: 68, px: 1.75, gap: 1.25, borderRadius: "16px" }}
+                >
+                  <Box component="span" sx={{ ...reportHeroIcon, width: 40, height: 40, borderRadius: "12px" }}>
+                    <AutoAwesomeRoundedIcon sx={{ fontSize: 20 }} />
+                  </Box>
+                  <Box
+                    component="span"
+                    sx={{ display: "grid", justifyItems: "start", gap: 0.25, fontSize: 15, fontWeight: 900, letterSpacing: "-0.025em" }}
+                  >
+                    <Box component="span" aria-hidden="true" sx={reportHeroBadge}>CORE FEATURE</Box>
+                    {item.label}
+                  </Box>
+                  <ChevronRightRoundedIcon aria-hidden="true" sx={{ ml: "auto", fontSize: 18 }} />
+                </Button>
+              </ListItem>
+            );
+          }
+
+          if (item.kind === "group") {
+            const visibleChildren = (item.children || []).filter((child) => child.visible);
+            return renderMenuGroup({
+              label: item.label,
+              icon_key: item.icon_key,
+              tone: item.tone,
+              items: visibleChildren,
+              open: Boolean(openGroups[item.key]),
+              onToggle: () => setOpenGroups((prev) => ({ ...prev, [item.key]: !prev[item.key] })),
+              prefix: item.prefix || item.key,
+            });
+          }
+
+          return renderMenuItem(item);
+        })}
       </List>
 
       {user?.role === "ADMIN" && (
@@ -313,10 +315,22 @@ function PageLeftMenu({ onNavigate }) { // eslint-disable-line react/prop-types
             MANAGEMENT
           </Typography>
           <List sx={{ py: 0 }}>
-            {ADMIN_MENU.map(item => item.items
-              ? renderMenuGroup({ ...item, open: adminPointsOpen, setOpen: setAdminPointsOpen, prefix: '/admin/point-menu/' })
-              : renderMenuItem(item))}
-            {renderMenuGroup({ label: "게시판 관리", icon: ArticleOutlinedIcon, items: ADMIN_BOARD_MENU, open: adminBoardsOpen, setOpen: setAdminBoardsOpen, prefix: "/admin/boards/" })}
+            {ADMIN_MENU.map((item) => (item.items
+              ? renderMenuGroup({
+                ...item,
+                open: adminPointsOpen,
+                onToggle: () => setAdminPointsOpen((value) => !value),
+                prefix: "/admin/point-menu/",
+              })
+              : renderMenuItem(item)))}
+            {renderMenuGroup({
+              label: "게시판 관리",
+              icon: ArticleOutlinedIcon,
+              items: ADMIN_BOARD_MENU,
+              open: adminBoardsOpen,
+              onToggle: () => setAdminBoardsOpen((value) => !value),
+              prefix: "/admin/boards/",
+            })}
             {renderMenuItem({ label: "Info", path: "/admin/info", icon: InfoOutlinedIcon })}
             {renderMenuItem({ label: "FAQ 관리", path: "/admin/faqs", icon: HelpOutlineOutlinedIcon })}
             {renderMenuItem({ label: "보조개톡 오류 보고", path: "/admin/talk-error-reports", icon: HelpOutlineOutlinedIcon })}
