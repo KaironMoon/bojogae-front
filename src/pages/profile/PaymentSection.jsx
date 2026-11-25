@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Box, Button, Checkbox, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, Radio, RadioGroup, Paper, Stack, TextField, Typography } from '@mui/material';
 import { Link } from 'react-router-dom';
 import ProfileIcon from './design/ProfileIcon';
+import PaymentTransferNotice from './PaymentTransferNotice';
 import { REFUND_NOTICE } from '@/constants/refund-policy';
 import { getMyProfile, savePaymentContact } from '@/services/profile-service';
 import { getPayments, getPaymentMethods, getTerminationPreview, createPaymentPopup, openBillingKey, completeMobilpayRegistration, paymentError, paymentPost } from '@/services/payment-service';
@@ -22,6 +23,7 @@ export default function PaymentSection({ config, onChanged, onContactSaved, sect
   const [message, setMessage] = useState('');
   const [accepted, setAccepted] = useState(false);
   const [dialog, setDialog] = useState(null);
+  const [transferNotice, setTransferNotice] = useState(false);
   const [cancelMode, setCancelMode] = useState('period_end');
   const [terminationQuote, setTerminationQuote] = useState(null);
   const [plan, setPlan] = useState('STANDARD');
@@ -106,6 +108,7 @@ export default function PaymentSection({ config, onChanged, onContactSaved, sect
       } finally { setBusy(false); }
     }
     setDialog(mode);
+    if (mode === 'subscribe') setTransferNotice(true);
   };
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -131,6 +134,7 @@ export default function PaymentSection({ config, onChanged, onContactSaved, sect
       setCustomer({ fullName:profile.name || '', phoneNumber:profile.phone || '', email:profile.pending_email || profile.email || '' });
       if (canRetry) retryKey.current = crypto.randomUUID();
       setDialog(canRetry ? 'retry' : 'subscribe');
+      if (!canRetry) setTransferNotice(true);
       if (fromSignup) setMessage('가입이 완료되었습니다. 선택한 요금제의 결제를 완료하면 유료 이용이 시작됩니다.');
     }).catch((e) => setError(paymentError(e)))
       .finally(() => setBusy(false));
@@ -211,7 +215,8 @@ export default function PaymentSection({ config, onChanged, onContactSaved, sect
       <Button disabled={busy} onClick={() => perform(load)}>새로고침</Button>
     </Stack>
   </Paper>
-    <Dialog slotProps={{ paper: { className: "profile-payment-modal" } }} open={Boolean(dialog)} onClose={() => { if (!busy) setDialog(null); }} fullWidth maxWidth="sm" aria-labelledby="payment-dialog-title">
+    <Dialog slotProps={{ paper: { className: "profile-payment-modal", sx: { display: 'flex', flexDirection: { xs: 'column', md: 'row' }, overflowY: 'auto' } } }} open={Boolean(dialog)} onClose={() => { if (!busy) setDialog(null); }} fullWidth maxWidth={transferNotice && dialog === 'subscribe' ? 'md' : 'sm'} aria-labelledby="payment-dialog-title">
+      <Box sx={{ display: 'flex', flexDirection: 'column', flex: { md: 1 }, flexShrink: 0, minWidth: 0, minHeight: 0 }}>
       <DialogTitle id="payment-dialog-title" className="profile-payment-title"><span><ProfileIcon name="credit-card"/>{dialog === 'cancel' ? '구독 해지' : dialog === 'change' ? '요금제 변경' : dialog === 'retry' ? '요금제 선택·첫 결제 재시도' : hasRegisteredCards ? '구독 시작' : '구독 시작·카드 등록'}</span><button type="button" aria-label="결제 팝업 닫기" disabled={busy} onClick={() => setDialog(null)}><ProfileIcon name="x"/></button></DialogTitle>
       <DialogContent dividers>
         <Stack spacing={2}>
@@ -279,6 +284,8 @@ export default function PaymentSection({ config, onChanged, onContactSaved, sect
           setDialog(null);
         })}>{busy ? '처리 중…' : dialog === 'cancel' ? cancelMode === 'immediate' ? '즉시 종료·환불 확인' : '이용기간 종료 후 해지' : upgrading ? upgradeQuote ? `${upgradeQuote.amount.toLocaleString()}원 결제·즉시 변경` : '업그레이드 견적 확인' : dialog === 'change' ? '다음 결제부터 변경' : dialog === 'retry' ? `${config.products[plan].amount.toLocaleString()}원 재결제` : '첫 구독 결제'}</Button>
       </DialogActions>
+      </Box>
+      <PaymentTransferNotice open={transferNotice && dialog === 'subscribe'} onClose={() => setTransferNotice(false)} />
     </Dialog>
   </>;
 }

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Box, Button, Checkbox, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, MenuItem, Paper, Stack, TextField, Typography } from '@mui/material';
 import { Link } from 'react-router-dom';
+import PaymentTransferNotice from './PaymentTransferNotice';
 import api from '@/services/api-caller';
 import { getMyProfile } from '@/services/profile-service';
 import { getPaymentConfig, createPaymentPopup, openBillingKey, completeMobilpayRegistration, paymentError, paymentPost } from '@/services/payment-service';
@@ -15,6 +16,7 @@ export default function PaymentMethodsPage() {
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [dialog, setDialog] = useState(null);
+  const [transferNotice, setTransferNotice] = useState(false);
   const [target, setTarget] = useState(null);
   const [accepted, setAccepted] = useState(false);
   const [alias, setAlias] = useState('');
@@ -79,6 +81,7 @@ export default function PaymentMethodsPage() {
       const profile = await getMyProfile();
       setCustomer({ fullName:profile.name || '', phoneNumber:profile.phone || '', email:profile.pending_email || profile.email || '' });
       setDialog('card');
+      setTransferNotice(true);
     } catch (e) { setError(paymentError(e)); }
     finally { setBusy(false); }
   };
@@ -147,7 +150,9 @@ export default function PaymentMethodsPage() {
       <Stack direction="row" spacing={1}><Button disabled={busy} onClick={() => { if (new URLSearchParams(window.location.search).has('mobilpayIssue')) window.location.reload(); else perform(load); }}>새로고침</Button><Button component={Link} to="/payment-history">결제내역 보기</Button></Stack>
     </>}
   </Stack>
-  <Dialog open={Boolean(dialog)} onClose={() => { if (!busy) setDialog(null); }} fullWidth maxWidth="sm">
+  <Dialog open={Boolean(dialog)} onClose={() => { if (!busy) setDialog(null); }} fullWidth maxWidth={transferNotice && dialog === 'card' ? 'md' : 'sm'}
+    slotProps={{ paper: { sx: { display: 'flex', flexDirection: { xs: 'column', md: 'row' }, overflowY: 'auto' } } }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', flex: { md: 1 }, flexShrink: 0, minWidth: 0, minHeight: 0 }}>
     <DialogTitle>{dialog === 'alias' ? '카드 별칭 변경' : dialog === 'retry' ? '첫 구독 결제 재시도' : dialog === 'select' ? '결제수단 변경' : dialog === 'delete' ? '카드 삭제' : '카드 등록'}</DialogTitle>
     <DialogContent dividers><Stack spacing={2}>
       {error && <Alert severity="error">{error}</Alert>}
@@ -185,5 +190,8 @@ export default function PaymentMethodsPage() {
         setDialog(null);
       } else await register();
     })}>{busy ? '처리 중…' : dialog === 'retry' ? `${config?.products[plan].amount.toLocaleString()}원 결제` : dialog === 'select' ? '결제수단 변경' : dialog === 'delete' ? '카드 삭제' : dialog === 'alias' ? '별칭 저장' : '카드 등록'}</Button></DialogActions>
-  </Dialog></Box>;
+    </Box>
+  <PaymentTransferNotice open={transferNotice && dialog === 'card'} onClose={() => setTransferNotice(false)} />
+  </Dialog>
+  </Box>;
 }
