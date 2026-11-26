@@ -508,6 +508,114 @@ function AutoContractApplyDemo() {
   );
 }
 
+function ReportSubtitleDemo() {
+  return (
+    <Stack
+      spacing={1}
+      sx={{
+        "@keyframes searchGlow": {
+          "0%, 100%": { borderColor: "#CBD5E1", boxShadow: "none" },
+          "30%, 65%": { borderColor: "#03C75A", boxShadow: "0 0 0 3px rgba(3, 199, 90, 0.14)" },
+        },
+        "@keyframes subtitlePulse": {
+          "0%, 20%": { bgcolor: "#F8FAFC" },
+          "40%, 75%": { bgcolor: "#ECFDF5" },
+          "100%": { bgcolor: "#F8FAFC" },
+        },
+      }}
+    >
+      <Paper
+        variant="outlined"
+        sx={{
+          px: 1.25,
+          py: 0.75,
+          borderRadius: "10px",
+          bgcolor: "#fff",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 1,
+          animation: "searchGlow 4.8s ease-in-out infinite",
+          ...REDUCED_MOTION_SX,
+        }}
+      >
+        <Typography variant="caption" sx={{ color: "#0F172A", fontWeight: 750, fontSize: 11.5 }}>
+          🔍 검색: &ldquo;서혜미&rdquo; 또는 &ldquo;삼성화재 · 65,973원&rdquo;
+        </Typography>
+        <Chip size="small" label="부제목 검색 지원" sx={{ height: 20, fontSize: 10.5, fontWeight: 800, bgcolor: "#ECFDF5", color: "#006E43" }} />
+      </Paper>
+
+      <Paper
+        variant="outlined"
+        sx={{
+          p: 1.15,
+          borderRadius: "12px",
+          bgcolor: "#fff",
+          borderColor: "rgba(3, 199, 90, 0.35)",
+        }}
+      >
+        <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={1}>
+          <Box sx={{ minWidth: 0 }}>
+            <Stack direction="row" alignItems="center" spacing={0.6} flexWrap="wrap">
+              <DescriptionRoundedIcon sx={{ fontSize: 14, color: "#475569" }} />
+              <Typography variant="caption" fontWeight={800} color="text.secondary" noWrap>
+                삼성화재_가설계_가입제안서.pdf
+              </Typography>
+              <Chip size="small" label="서혜미" sx={{ height: 18, fontSize: 10, fontWeight: 800, bgcolor: "#ECFDF5", color: "#006E43" }} />
+            </Stack>
+            <Box
+              sx={{
+                mt: 0.5,
+                px: 0.9,
+                py: 0.45,
+                borderRadius: "7px",
+                animation: "subtitlePulse 4.8s ease-in-out infinite",
+                ...REDUCED_MOTION_SX,
+              }}
+            >
+              <Typography variant="caption" sx={{ color: "#0F172A", fontWeight: 850, fontSize: 11.5 }}>
+                서혜미님 · 삼성화재 · 종합건강 · 월 65,973원
+              </Typography>
+            </Box>
+          </Box>
+          <Box
+            sx={{
+              px: 0.9,
+              py: 0.45,
+              borderRadius: "8px",
+              bgcolor: "#F5F3FF",
+              color: "#6B38FB",
+              fontSize: 11,
+              fontWeight: 850,
+              whiteSpace: "nowrap",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 0.35,
+            }}
+          >
+            <AutoAwesomeRoundedIcon sx={{ fontSize: 12 }} />
+            청약
+          </Box>
+        </Stack>
+      </Paper>
+
+      <Paper variant="outlined" sx={{ p: 1.15, borderRadius: "12px", bgcolor: "#fff" }}>
+        <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={1}>
+          <Box sx={{ minWidth: 0 }}>
+            <Typography variant="caption" fontWeight={800} color="text.secondary" noWrap>
+              태아보험_비교요청.pdf
+            </Typography>
+            <Typography variant="caption" sx={{ display: "block", mt: 0.35, color: "#0F172A", fontWeight: 850, fontSize: 11.5 }}>
+              박윤정님 · 태아보험 2사 비교 (KB손해보험·현대해상)
+            </Typography>
+          </Box>
+          <Chip size="small" label="비교·분석용 (청약 미노출)" sx={{ height: 20, fontSize: 10, fontWeight: 750, bgcolor: "#F1F5F9", color: "#475569" }} />
+        </Stack>
+      </Paper>
+    </Stack>
+  );
+}
+
 export default function ProposalFeatureDemoVisual({ demoKey, highlight }) {
   return (
     <Paper
@@ -531,6 +639,7 @@ export default function ProposalFeatureDemoVisual({ demoKey, highlight }) {
       {demoKey === "customer-ai-fill" && <CustomerAiFillDemo />}
       {demoKey === "customer-docs-box" && <CustomerDocsBoxDemo />}
       {demoKey === "auto-contract-apply" && <AutoContractApplyDemo />}
+      {demoKey === "report-subtitle" && <ReportSubtitleDemo />}
     </Paper>
   );
 }

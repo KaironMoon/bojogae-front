@@ -35,7 +35,10 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import { useAuth } from "@/auth/AuthContext";
 import { planName } from "@/constants/plans";
-import { isMenuEligibleForUser } from "@/services/user-menu-config";
+import {
+  isChildEligibleForUser,
+  isMenuEligibleForUser,
+} from "@/services/user-menu-config";
 import {
   getCachedUserMenu,
   getUserMenu,
@@ -305,7 +308,7 @@ function PageLeftMenu({ onNavigate }) { // eslint-disable-line react/prop-types
           }
 
           if (item.kind === "group") {
-            const visibleChildren = (item.children || []).filter((child) => child.visible);
+            const visibleChildren = (item.children || []).filter((child) => isChildEligibleForUser(child, user));
             return renderMenuGroup({
               label: item.label,
               icon_key: item.icon_key,

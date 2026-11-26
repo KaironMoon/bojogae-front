@@ -5,11 +5,14 @@ import {
   BADGE_PRESETS,
   DEFAULT_USER_MENU_ITEMS,
   hasMenuChanges,
+  isChildEligibleForUser,
   isMenuEligibleForUser,
   mergeUserMenuConfig,
   moveItemByDrop,
   moveItemByOffset,
+  moveMenuNode,
   normalizeMenuBadge,
+  promoteChildToTop,
   toUserMenuPayload,
 } from "../src/services/user-menu-config.js";
 
@@ -113,4 +116,70 @@ test("normalizeMenuBadge and menu config preserve and detect top-level and child
 
   assert.equal(hasMenuChanges(merged, DEFAULT_USER_MENU_ITEMS), true);
   assert.equal(hasMenuChanges(merged, mergeUserMenuConfig(toUserMenuPayload(merged))), false);
+});
+
+test("mergeUserMenuConfig, moveMenuNode, promoteChildToTop, and isChildEligibleForUser handle 1st-to-2nd nesting", () => {
+  let tree = mergeUserMenuConfig([]);
+
+  // 1차 leaf (crm_tasks) -> group-inside (customers)
+  tree = moveMenuNode(tree, { scope: "top", key: "crm_tasks" }, { kind: "group-inside", groupKey: "customers" });
+  assert.equal(tree.some((i) => i.key === "crm_tasks"), false);
+  const customers = tree.find((i) => i.key === "customers");
+  assert.deepEqual(customers.children.map((c) => c.key), ["crm_customers", "crm_contracts", "crm_tasks"]);
+
+  // 1차 leaf (insurers) -> before specific child inside claims
+  tree = moveMenuNode(
+    tree,
+    { scope: "top", key: "insurers" },
+    { kind: "child", groupKey: "claims", key: "claims_history", position: "before" },
+  );
+  assert.equal(tree.some((i) => i.key === "insurers"), false);
+  const claims = tree.find((i) => i.key === "claims");
+  assert.deepEqual(claims.children.map((c) => c.key), ["claims_new", "insurers", "claims_history"]);
+
+  // 1차 group (boards) cannot nest into another group
+  const unchanged = moveMenuNode(tree, { scope: "top", key: "boards" }, { kind: "group-inside", groupKey: "customers" });
+  assert.equal(unchanged.some((i) => i.key === "boards"), true);
+
+  // 2차 child -> another group
+  tree = moveMenuNode(
+    tree,
+    { scope: "child", groupKey: "claims", key: "claims_new" },
+    { kind: "group-inside", groupKey: "customers" },
+  );
+  assert.deepEqual(tree.find((i) => i.key === "claims").children.map((c) => c.key), ["insurers", "claims_history"]);
+  assert.deepEqual(tree.find((i) => i.key === "customers").children.map((c) => c.key), [
+    "crm_customers",
+    "crm_contracts",
+    "crm_tasks",
+    "claims_new",
+  ]);
+
+  // Promote 2차 child back out to 1차
+  tree = promoteChildToTop(tree, "customers", "crm_tasks");
+  const idxCustomers = tree.findIndex((i) => i.key === "customers");
+  assert.equal(tree[idxCustomers + 1].key, "crm_tasks");
+  assert.equal(tree[idxCustomers + 1].kind, "item");
+  assert.equal(tree[idxCustomers + 1].path, "/crm/tasks");
+
+  // Save payload -> merge round-trip preserves nested insurers & claims_new without duplication
+  const rehydrated = mergeUserMenuConfig(toUserMenuPayload(tree));
+  assert.equal(rehydrated.filter((i) => i.key === "insurers").length, 0);
+  assert.deepEqual(rehydrated.find((i) => i.key === "claims").children.map((c) => c.key), ["insurers", "claims_history"]);
+  assert.deepEqual(rehydrated.find((i) => i.key === "customers").children.map((c) => c.key), [
+    "crm_customers",
+    "crm_contracts",
+    "claims_new",
+  ]);
+
+  // Audience check inside nested children (group_manage inside group)
+  let leaderNested = moveMenuNode(
+    mergeUserMenuConfig([]),
+    { scope: "top", key: "group_manage" },
+    { kind: "group-inside", groupKey: "profile" },
+  );
+  const profile = leaderNested.find((i) => i.key === "profile");
+  const nestedLeaderChild = profile.children.find((c) => c.key === "group_manage");
+  assert.equal(isChildEligibleForUser(nestedLeaderChild, { group_role: null }), false);
+  assert.equal(isChildEligibleForUser(nestedLeaderChild, { group_role: "LEADER" }), true);
 });

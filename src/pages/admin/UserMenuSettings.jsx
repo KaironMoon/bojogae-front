@@ -6,6 +6,7 @@ import DragIndicatorRoundedIcon from "@mui/icons-material/DragIndicatorRounded";
 import ExpandLessRoundedIcon from "@mui/icons-material/ExpandLessRounded";
 import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
 import LocalOfferOutlinedIcon from "@mui/icons-material/LocalOfferOutlined";
+import NorthWestRoundedIcon from "@mui/icons-material/NorthWestRounded";
 import RestartAltRoundedIcon from "@mui/icons-material/RestartAltRounded";
 import SaveRoundedIcon from "@mui/icons-material/SaveRounded";
 import VisibilityOffOutlinedIcon from "@mui/icons-material/VisibilityOffOutlined";
@@ -36,9 +37,11 @@ import {
   BADGE_TONES,
   DEFAULT_USER_MENU_ITEMS,
   hasMenuChanges,
+  isChildEligibleForUser,
   isMenuEligibleForUser,
-  moveItemByDrop,
   moveItemByOffset,
+  moveMenuNode,
+  promoteChildToTop,
 } from "@/services/user-menu-config";
 import { getAdminUserMenu, updateAdminUserMenu } from "@/services/user-menu-service";
 import { reportHero, reportHeroBadge, reportHeroIcon } from "@/styles/reportTheme";
@@ -251,17 +254,78 @@ function BadgeEditorButton({ badge, targetLabel, onChange }) {
 }
 /* eslint-enable react/prop-types */
 
-function findDropTarget(nodes, clientY, datasetField) {
-  for (let i = 0; i < nodes.length; i += 1) {
-    const el = nodes[i];
-    const rect = el.getBoundingClientRect();
-    const key = el.dataset[datasetField];
-    if (!key) continue;
-    if (clientY < rect.top + rect.height / 2) {
-      return { key, position: "before" };
+function sameDropTarget(a, b) {
+  if (!a && !b) return true;
+  if (!a || !b) return false;
+  return a.kind === b.kind && a.groupKey === b.groupKey && a.key === b.key && a.position === b.position;
+}
+
+function findMenuDropTarget(container, clientY, clientX, active) {
+  const draggedIsGroup = active.draggedKind === "group";
+
+  if (!draggedIsGroup) {
+    const childNodes = container.querySelectorAll("[data-parent-key][data-child-key]");
+    for (let i = 0; i < childNodes.length; i += 1) {
+      const el = childNodes[i];
+      const rect = el.getBoundingClientRect();
+      if (clientY >= rect.top - 5 && clientY <= rect.bottom + 5 && clientX >= rect.left - 24 && clientX <= rect.right + 24) {
+        const groupKey = el.dataset.parentKey;
+        const key = el.dataset.childKey;
+        if (!groupKey || !key) continue;
+        return {
+          kind: "child",
+          groupKey,
+          key,
+          position: clientY < rect.top + rect.height / 2 ? "before" : "after",
+        };
+      }
     }
-    if (clientY <= rect.bottom || i === nodes.length - 1) {
-      return { key, position: "after" };
+
+    const dropzones = container.querySelectorAll("[data-group-dropzone]");
+    for (let i = 0; i < dropzones.length; i += 1) {
+      const el = dropzones[i];
+      const rect = el.getBoundingClientRect();
+      if (clientY >= rect.top && clientY <= rect.bottom && clientX >= rect.left - 24 && clientX <= rect.right + 24) {
+        const groupKey = el.dataset.groupDropzone;
+        if (groupKey && (active.scope === "top" || groupKey !== active.groupKey)) {
+          return { kind: "group-inside", groupKey };
+        }
+      }
+    }
+  }
+
+  const topNodes = container.querySelectorAll("[data-menu-key]");
+  for (let i = 0; i < topNodes.length; i += 1) {
+    const el = topNodes[i];
+    const rect = el.getBoundingClientRect();
+    const key = el.dataset.menuKey;
+    const isGroup = el.dataset.menuKind === "group";
+    if (!key) continue;
+
+    const canDropInsideGroup = !draggedIsGroup
+      && isGroup
+      && (active.scope === "top" ? key !== active.key : key !== active.groupKey);
+
+    if (canDropInsideGroup) {
+      const headerEl = el.querySelector(`[data-group-header-key="${key}"]`) || el;
+      const hRect = headerEl.getBoundingClientRect();
+      if (clientY < hRect.top + hRect.height * 0.28) {
+        return { kind: "top", key, position: "before" };
+      }
+      if (clientY <= hRect.top + hRect.height * 0.75) {
+        return { kind: "group-inside", groupKey: key };
+      }
+      if (clientY <= rect.bottom || i === topNodes.length - 1) {
+        return { kind: "top", key, position: "after" };
+      }
+      continue;
+    }
+
+    if (clientY < rect.top + rect.height / 2) {
+      return { kind: "top", key, position: "before" };
+    }
+    if (clientY <= rect.bottom || i === topNodes.length - 1) {
+      return { kind: "top", key, position: "after" };
     }
   }
   return null;
@@ -280,7 +344,6 @@ export default function UserMenuSettings() {
 
   const [dragState, setDragState] = useState(null);
   const [dropTarget, setDropTarget] = useState(null);
-  const [childDropTarget, setChildDropTarget] = useState(null);
 
   const editorRef = useRef(null);
   const dragSessionRef = useRef(null);
@@ -324,7 +387,7 @@ export default function UserMenuSettings() {
     }));
   }, [updateItem]);
 
-  const startPointerDrag = useCallback((event, { scope, groupKey = null, key, label }) => {
+  const startPointerDrag = useCallback((event, { scope, draggedKind = "item", groupKey = null, key, label }) => {
     if (event.pointerType === "mouse" && event.button !== 0) return;
 
     const fromHandle = Boolean(event.target.closest?.('[data-drag-handle="true"]'));
@@ -341,14 +404,14 @@ export default function UserMenuSettings() {
 
     const session = {
       scope,
+      draggedKind,
       groupKey,
       key,
       label,
       startX: event.clientX,
       startY: event.clientY,
       started: false,
-      targetKey: null,
-      targetPos: "before",
+      target: null,
     };
     dragSessionRef.current = session;
 
@@ -357,7 +420,6 @@ export default function UserMenuSettings() {
       dragSessionRef.current = null;
       setDragState(null);
       setDropTarget(null);
-      setChildDropTarget(null);
     };
 
     const handlePointerMove = (moveEvent) => {
@@ -379,6 +441,7 @@ export default function UserMenuSettings() {
 
       setDragState({
         scope: active.scope,
+        draggedKind: active.draggedKind,
         groupKey: active.groupKey,
         key: active.key,
         label: active.label,
@@ -389,27 +452,9 @@ export default function UserMenuSettings() {
       const container = editorRef.current;
       if (!container) return;
 
-      if (active.scope === "top") {
-        const nodes = container.querySelectorAll("[data-menu-key]");
-        const hit = findDropTarget(nodes, moveEvent.clientY, "menuKey");
-        active.targetKey = hit?.key || null;
-        active.targetPos = hit?.position || "before";
-        setDropTarget((prev) => (
-          prev?.key === active.targetKey && prev?.position === active.targetPos
-            ? prev
-            : (hit ? { key: hit.key, position: hit.position } : null)
-        ));
-      } else {
-        const nodes = container.querySelectorAll(`[data-parent-key="${active.groupKey}"][data-child-key]`);
-        const hit = findDropTarget(nodes, moveEvent.clientY, "childKey");
-        active.targetKey = hit?.key || null;
-        active.targetPos = hit?.position || "before";
-        setChildDropTarget((prev) => (
-          prev?.groupKey === active.groupKey && prev?.key === active.targetKey && prev?.position === active.targetPos
-            ? prev
-            : (hit ? { groupKey: active.groupKey, key: hit.key, position: hit.position } : null)
-        ));
-      }
+      const hit = findMenuDropTarget(container, moveEvent.clientY, moveEvent.clientX, active);
+      active.target = hit;
+      setDropTarget((prev) => (sameDropTarget(prev, hit) ? prev : hit));
     };
 
     const finishPointerDrag = () => {
@@ -417,17 +462,18 @@ export default function UserMenuSettings() {
       cleanupListenersRef.current?.();
       cleanupListenersRef.current = null;
 
-      if (active?.started && active.targetKey && active.targetKey !== active.key) {
-        if (active.scope === "top") {
-          setItems((current) => moveItemByDrop(current, active.key, active.targetKey, active.targetPos));
-          setMessage("");
-          setError("");
-        } else {
-          updateItem(active.groupKey, (group) => ({
-            ...group,
-            children: moveItemByDrop(group.children, active.key, active.targetKey, active.targetPos),
-          }));
+      if (active?.started && active.target) {
+        const target = active.target;
+        setItems((current) => moveMenuNode(current, {
+          scope: active.scope,
+          groupKey: active.groupKey,
+          key: active.key,
+        }, target));
+        if ((target.kind === "group-inside" || target.kind === "child") && target.groupKey) {
+          setExpandedGroups((prev) => ({ ...prev, [target.groupKey]: true }));
         }
+        setMessage("");
+        setError("");
       }
       clearDrag();
     };
@@ -442,7 +488,7 @@ export default function UserMenuSettings() {
       window.removeEventListener("pointercancel", finishPointerDrag);
       document.body.style.userSelect = "";
     };
-  }, [updateItem]);
+  }, []);
 
   const handleSave = async () => {
     setSaving(true);
@@ -506,7 +552,7 @@ export default function UserMenuSettings() {
               <Box>
                 <Typography variant="h6" fontWeight={800}>좌측 유저 메뉴 구성</Typography>
                 <Typography variant="body2" color="text.secondary">
-                  카드를 드래그앤드롭하거나 화살표로 순서를 바꾸고, 뱃지(NEW·BETA 등)와 노출 여부를 제어하세요.
+                  카드를 드래그해 1차 순서를 바꾸거나 그룹 카드·하위 목록 위로 끌어 2차 하위 메뉴로 넣고 뺄 수 있습니다.
                 </Typography>
               </Box>
               <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
@@ -569,8 +615,23 @@ export default function UserMenuSettings() {
               const isGroup = item.kind === "group";
               const isExpanded = Boolean(expandedGroups[item.key]);
               const isDragging = dragState?.scope === "top" && dragState.key === item.key;
-              const isDropBefore = dropTarget?.key === item.key && dropTarget.position === "before" && dragState?.key !== item.key;
-              const isDropAfter = dropTarget?.key === item.key && dropTarget.position === "after" && dragState?.key !== item.key;
+              const isDropBefore = (
+                dropTarget?.kind === "top"
+                && dropTarget.key === item.key
+                && dropTarget.position === "before"
+                && dragState?.key !== item.key
+              );
+              const isDropAfter = (
+                dropTarget?.kind === "top"
+                && dropTarget.key === item.key
+                && dropTarget.position === "after"
+                && dragState?.key !== item.key
+              );
+              const isGroupInsideTarget = (
+                isGroup
+                && dropTarget?.kind === "group-inside"
+                && dropTarget.groupKey === item.key
+              );
               const visibleChildrenCount = (item.children || []).filter((c) => c.visible).length;
               const effectiveGroupVisible = !isGroup || (item.visible && visibleChildrenCount > 0);
 
@@ -579,8 +640,10 @@ export default function UserMenuSettings() {
                   key={item.key}
                   sx={{ position: "relative" }}
                   data-menu-key={item.key}
+                  data-menu-kind={item.kind}
                   onPointerDown={(event) => startPointerDrag(event, {
                     scope: "top",
+                    draggedKind: item.kind,
                     key: item.key,
                     label: item.label,
                   })}
@@ -595,13 +658,16 @@ export default function UserMenuSettings() {
                       p: 1.75,
                       borderRadius: 2.5,
                       opacity: isDragging ? 0.45 : item.visible && effectiveGroupVisible ? 1 : 0.62,
-                      bgcolor: isDragging ? "#F8FAFC" : "#FFFFFF",
-                      borderColor: isDropBefore || isDropAfter ? "#03C75A" : "var(--bojogae-line)",
-                      transition: "opacity 150ms ease, border-color 150ms ease",
+                      bgcolor: isGroupInsideTarget ? "#ECFDF5" : isDragging ? "#F8FAFC" : "#FFFFFF",
+                      borderColor: isDropBefore || isDropAfter || isGroupInsideTarget ? "#03C75A" : "var(--bojogae-line)",
+                      borderStyle: isGroupInsideTarget ? "dashed" : "solid",
+                      boxShadow: isGroupInsideTarget ? "0 0 0 2px rgba(3, 199, 90, 0.16)" : "none",
+                      transition: "opacity 150ms ease, border-color 150ms ease, background-color 150ms ease",
                     }}
                   >
                     <Stack spacing={1.25}>
                       <Stack
+                        data-group-header-key={isGroup ? item.key : undefined}
                         direction={{ xs: "column", md: "row" }}
                         alignItems={{ xs: "stretch", md: "center" }}
                         justifyContent="space-between"
@@ -679,6 +745,9 @@ export default function UserMenuSettings() {
                                 color={visibleChildrenCount === 0 ? "warning" : "default"}
                               />
                             )}
+                            {isGroupInsideTarget && (
+                              <Chip size="small" color="success" label="여기에 놓아 하위 메뉴로 넣기" />
+                            )}
                             {AUDIENCE_BADGES[item.audience] && (
                               <Chip size="small" color="info" label={AUDIENCE_BADGES[item.audience]} />
                             )}
@@ -749,10 +818,36 @@ export default function UserMenuSettings() {
                       {isGroup && (
                         <Collapse in={isExpanded} timeout="auto" unmountOnExit>
                           <Divider sx={{ my: 0.75 }} />
-                          <Stack spacing={0.75} sx={{ pl: { xs: 1, sm: 4 }, pt: 0.5 }}>
+                          <Stack
+                            spacing={0.75}
+                            data-group-dropzone={item.key}
+                            sx={{
+                              pl: { xs: 1, sm: 4 },
+                              pt: 0.5,
+                              pb: 0.5,
+                              borderRadius: 2,
+                              bgcolor: isGroupInsideTarget ? "rgba(3, 199, 90, 0.06)" : "transparent",
+                            }}
+                          >
                             <Typography variant="caption" color="text.secondary" fontWeight={700}>
-                              하위 메뉴 ({item.children.length}개 · 드래그 또는 화살표로 순서 변경)
+                              하위 메뉴 ({item.children.length}개 · 드래그로 1차/2차 자유 이동 가능)
                             </Typography>
+                            {item.children.length === 0 && (
+                              <Box
+                                sx={{
+                                  p: 1.5,
+                                  borderRadius: 1.5,
+                                  border: "1px dashed",
+                                  borderColor: isGroupInsideTarget ? "#03C75A" : "#CBD5E1",
+                                  bgcolor: isGroupInsideTarget ? "#ECFDF5" : "#F8FAFC",
+                                  textAlign: "center",
+                                }}
+                              >
+                                <Typography variant="caption" color="text.secondary" fontWeight={650}>
+                                  하위 메뉴가 없습니다. 1차 메뉴나 다른 하위 메뉴를 여기로 드래그해 넣으세요.
+                                </Typography>
+                              </Box>
+                            )}
                             {item.children.map((child, childIndex) => {
                               const isChildDragging = (
                                 dragState?.scope === "child"
@@ -760,15 +855,17 @@ export default function UserMenuSettings() {
                                 && dragState.key === child.key
                               );
                               const isChildBefore = (
-                                childDropTarget?.groupKey === item.key
-                                && childDropTarget.key === child.key
-                                && childDropTarget.position === "before"
+                                dropTarget?.kind === "child"
+                                && dropTarget.groupKey === item.key
+                                && dropTarget.key === child.key
+                                && dropTarget.position === "before"
                                 && dragState?.key !== child.key
                               );
                               const isChildAfter = (
-                                childDropTarget?.groupKey === item.key
-                                && childDropTarget.key === child.key
-                                && childDropTarget.position === "after"
+                                dropTarget?.kind === "child"
+                                && dropTarget.groupKey === item.key
+                                && dropTarget.key === child.key
+                                && dropTarget.position === "after"
                                 && dragState?.key !== child.key
                               );
 
@@ -780,6 +877,7 @@ export default function UserMenuSettings() {
                                   data-child-key={child.key}
                                   onPointerDown={(event) => startPointerDrag(event, {
                                     scope: "child",
+                                    draggedKind: "item",
                                     groupKey: item.key,
                                     key: child.key,
                                     label: child.label,
@@ -840,12 +938,28 @@ export default function UserMenuSettings() {
                                         targetLabel={child.label}
                                         onChange={(nextBadge) => updateChild(item.key, child.key, (prev) => ({ ...prev, badge: nextBadge }))}
                                       />
+                                      {AUDIENCE_BADGES[child.audience] && (
+                                        <Chip size="small" color="info" label={AUDIENCE_BADGES[child.audience]} />
+                                      )}
                                       <Typography variant="caption" color="text.secondary" sx={{ fontFamily: "monospace" }}>
                                         {child.path}
                                       </Typography>
                                     </Stack>
 
                                     <Stack direction="row" alignItems="center" spacing={0.25}>
+                                      <Tooltip title="1차 메뉴로 꺼내기">
+                                        <IconButton
+                                          size="small"
+                                          aria-label={`${child.label} 1차 메뉴로 이동`}
+                                          onClick={() => {
+                                            setItems((current) => promoteChildToTop(current, item.key, child.key));
+                                            setMessage("");
+                                            setError("");
+                                          }}
+                                        >
+                                          <NorthWestRoundedIcon fontSize="small" />
+                                        </IconButton>
+                                      </Tooltip>
                                       <IconButton
                                         size="small"
                                         aria-label={`${child.label} 위로 이동`}
@@ -963,7 +1077,7 @@ export default function UserMenuSettings() {
                   );
                 }
 
-                const visibleChildren = (item.children || []).filter((c) => c.visible);
+                const visibleChildren = (item.children || []).filter((c) => isChildEligibleForUser(c, previewUser));
                 return (
                   <Box key={item.key} sx={{ flexShrink: 0, py: 0.35, px: 0.75, borderRadius: 1.5, bgcolor: "#F8FAFC" }}>
                     <Stack direction="row" alignItems="center" spacing={0.5}>
@@ -999,29 +1113,45 @@ export default function UserMenuSettings() {
         </Stack>
       </Paper>
 
-      {dragState && (
-        <Paper
-          elevation={6}
-          sx={{
-            position: "fixed",
-            left: dragState.x + 12,
-            top: dragState.y - 16,
-            zIndex: 1500,
-            pointerEvents: "none",
-            px: 1.5,
-            py: 0.75,
-            borderRadius: 2,
-            border: "1.5px solid #03C75A",
-            bgcolor: "#FFFFFF",
-            display: "flex",
-            alignItems: "center",
-            gap: 0.75,
-          }}
-        >
-          <DragIndicatorRoundedIcon fontSize="small" sx={{ color: "#03C75A" }} />
-          <Typography fontSize={13} fontWeight={750}>{dragState.label}</Typography>
-        </Paper>
-      )}
+      {dragState && (() => {
+        const targetGroup = dropTarget?.groupKey ? items.find((i) => i.key === dropTarget.groupKey) : null;
+        let hint = "";
+        if (dropTarget?.kind === "group-inside" && targetGroup) {
+          hint = `→ ${targetGroup.label} 하위 메뉴로 넣기`;
+        } else if (dropTarget?.kind === "child" && targetGroup) {
+          hint = `→ ${targetGroup.label} 하위 위치로 이동`;
+        } else if (dropTarget?.kind === "top") {
+          hint = dragState.scope === "child" ? "→ 1차 메뉴로 꺼내기" : "→ 1차 메뉴 순서 이동";
+        }
+        return (
+          <Paper
+            elevation={6}
+            sx={{
+              position: "fixed",
+              left: dragState.x + 12,
+              top: dragState.y - 16,
+              zIndex: 1500,
+              pointerEvents: "none",
+              px: 1.5,
+              py: 0.75,
+              borderRadius: 2,
+              border: "1.5px solid #03C75A",
+              bgcolor: "#FFFFFF",
+              display: "flex",
+              alignItems: "center",
+              gap: 0.75,
+            }}
+          >
+            <DragIndicatorRoundedIcon fontSize="small" sx={{ color: "#03C75A" }} />
+            <Typography fontSize={13} fontWeight={750}>{dragState.label}</Typography>
+            {hint && (
+              <Typography fontSize={11.5} fontWeight={700} sx={{ color: "#059669" }}>
+                {hint}
+              </Typography>
+            )}
+          </Paper>
+        );
+      })()}
     </Box>
   );
 }

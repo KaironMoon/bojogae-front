@@ -2251,7 +2251,7 @@ function ProposalsPage() {
           </Stack>
         </Stack>
         <Stack component="form" direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ mb: 2 }} onSubmit={(event) => { event.preventDefault(); searchReports(draftListQuery); }}>
-          <TextField size="small" fullWidth label="보고서 검색" placeholder="제목, 프롬프트명, 보고서 번호" value={draftListQuery} inputProps={{ maxLength: 100 }} onChange={(event) => setDraftListQuery(event.target.value)}
+          <TextField size="small" fullWidth label="보고서 검색" placeholder="제목·부제목(고객명·보험사·보험료)·프롬프트 검색" value={draftListQuery} inputProps={{ maxLength: 100 }} onChange={(event) => setDraftListQuery(event.target.value)}
             sx={{ "& .MuiOutlinedInput-root .MuiOutlinedInput-notchedOutline": { border: "2px solid #03C75A" } }} />
           <Button type="submit" variant="outlined">검색</Button>
           {listQuery && <Button onClick={() => { setDraftListQuery(""); searchReports(""); }}>초기화</Button>}
@@ -2329,7 +2329,22 @@ function ProposalsPage() {
                       <Chip size="small" color="primary" variant="outlined" label="선택됨" sx={{ display: { xs: "none", sm: "inline-flex" }, fontWeight: 750 }} />
                     )}
                   </Stack>
-                  <Typography variant="caption" color="text.secondary" noWrap sx={{ display: { xs: "none", sm: "block" }, mt: 0.5 }}>
+                  {item.summary && (
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        mt: 0.4,
+                        fontWeight: 700,
+                        color: "#1E293B",
+                        fontSize: { xs: 12.5, sm: 13.5 },
+                        lineHeight: 1.45,
+                        wordBreak: "keep-all",
+                      }}
+                    >
+                      {item.summary}
+                    </Typography>
+                  )}
+                  <Typography variant="caption" color="text.secondary" noWrap sx={{ display: { xs: "none", sm: "block" }, mt: 0.45 }}>
                     {item.prompt_title} v{item.prompt_version_no} · 입력 자료 {item.input_file_count}개 ({formatBytes(item.total_input_bytes)}) · {formatDate(item.created_at)}
                   </Typography>
                   <Typography variant="caption" color="text.secondary" noWrap sx={{ display: { xs: "block", sm: "none" }, mt: 0.25 }}>
@@ -2366,7 +2381,7 @@ function ProposalsPage() {
                   >
                     열기
                   </Button>
-                  {isCompletedStatus(item.status) && (
+                  {isCompletedStatus(item.status) && Boolean(item.is_contract_application_enabled) && (
                     <Tooltip
                       title={
                         !item.customer_id

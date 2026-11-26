@@ -54,6 +54,7 @@ async function createPrompt(title, body, categoryIds = [], inputSchema = [], des
     is_new: releaseFlags.is_new ?? false,
     is_recently_updated: releaseFlags.is_recently_updated ?? false,
     is_simple_enabled: releaseFlags.is_simple_enabled ?? true,
+    is_contract_application_enabled: releaseFlags.is_contract_application_enabled ?? false,
   });
   return response.data;
 }
@@ -71,6 +72,7 @@ async function updatePrompt(promptId, title, body, categoryIds = [], inputSchema
     is_new: releaseFlags.is_new ?? false,
     is_recently_updated: releaseFlags.is_recently_updated ?? false,
     is_simple_enabled: releaseFlags.is_simple_enabled ?? true,
+    is_contract_application_enabled: releaseFlags.is_contract_application_enabled ?? false,
   });
   return response.data;
 }
@@ -97,6 +99,13 @@ async function setSimpleFeatureState(simpleReportEnabled) {
 async function setPromptSimpleEnabled(promptId, isSimpleEnabled) {
   const response = await apiCaller.put(`/api/v1/admin/prompts/${promptId}/simple-enabled`, {
     is_simple_enabled: isSimpleEnabled,
+  });
+  return response.data;
+}
+
+async function setPromptContractApplicationEnabled(promptId, isContractApplicationEnabled) {
+  const response = await apiCaller.put(`/api/v1/admin/prompts/${promptId}/contract-application-enabled`, {
+    is_contract_application_enabled: isContractApplicationEnabled,
   });
   return response.data;
 }
@@ -174,6 +183,7 @@ export {
   recoverPrompt,
   recoverPromptVersion,
   restorePromptVersion,
+  setPromptContractApplicationEnabled,
   setPromptDefaultFavorite,
   setPromptSimpleEnabled,
   setSimpleFeatureState,

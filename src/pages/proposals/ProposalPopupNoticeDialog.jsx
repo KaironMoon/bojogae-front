@@ -24,6 +24,7 @@ const DEMO_HIGHLIGHTS = {
   "customer-ai-fill": "내고객 > 고객 추가 > AI 자동 채우기",
   "customer-docs-box": "보고서 만들기 > 연결할 고객 선택 > 고객 문서함",
   "auto-contract-apply": "보고서 리스트 > 청약 버튼 > 내 계약 자동 입력",
+  "report-subtitle": "보고서 만들기 · 내 고객 > 문서(생성 문서)",
 };
 
 const CATEGORY_META = {

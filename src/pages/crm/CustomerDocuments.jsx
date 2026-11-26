@@ -29,7 +29,12 @@ export default function CustomerDocuments({ customerId, disabled = false, onSave
           <Typography fontWeight={700}>{doc.title}</Typography>
           <Chip size="small" label={labels[doc.status] || doc.status} />
         </Stack>
-        <Typography variant="body2">{doc.prompt_title} · {dateTime(doc.created_at)}</Typography>
+        {doc.summary && (
+          <Typography variant="body2" sx={{ fontWeight: 700, color: "#1E293B" }}>
+            {doc.summary}
+          </Typography>
+        )}
+        <Typography variant="body2" color="text.secondary">{doc.prompt_title} · {dateTime(doc.created_at)}</Typography>
         {doc.contracts?.map(contract => <Button key={contract.id} component={Link} to={`/crm/contracts/${contract.id}`}>
           {contract.product} · {PROGRESS[contract.progress] || "등록 계약"}
         </Button>)}

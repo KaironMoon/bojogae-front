@@ -68,7 +68,7 @@ import DefaultPromptFavoritesPanel from "./DefaultPromptFavoritesPanel";
 import SimplePromptsPanel from "./SimplePromptsPanel";
 
 
-const EMPTY_PROMPT = { report_template: null, is_new: false, is_recently_updated: false, is_simple_enabled: true, title: "", description: "", body: "", category_ids: [], input_schema: [], max_input_files: 10, common_prompt_ids: [] };
+const EMPTY_PROMPT = { report_template: null, is_new: false, is_recently_updated: false, is_simple_enabled: true, is_contract_application_enabled: false, title: "", description: "", body: "", category_ids: [], input_schema: [], max_input_files: 10, common_prompt_ids: [] };
 
 function categoryIds(prompt) {
   return (prompt?.categories || []).map((category) => category.id).sort((a, b) => a - b);
@@ -174,12 +174,13 @@ function PromptsPage() {
   const isNew = selectedId === "new";
   const isDirty = useMemo(() => {
     if (previewFile?.length || previewRemoved.length || simplePreviewFile?.length || simplePreviewRemoved.length) return true;
-    if (isNew) return Boolean(draft.report_template || draft.is_new || draft.is_recently_updated || draft.is_simple_enabled === false || draft.title || draft.description || draft.body || draft.category_ids.length || draft.input_schema.length || draft.common_prompt_ids.length || draft.max_input_files !== 10);
+    if (isNew) return Boolean(draft.report_template || draft.is_new || draft.is_recently_updated || draft.is_simple_enabled === false || draft.is_contract_application_enabled || draft.title || draft.description || draft.body || draft.category_ids.length || draft.input_schema.length || draft.common_prompt_ids.length || draft.max_input_files !== 10);
     if (!selectedPrompt || selectedPrompt.is_deleted) return false;
     return JSON.stringify(draft.common_prompt_ids) !== JSON.stringify(selectedPrompt.common_prompt_ids || [])
       || draft.is_new !== Boolean(selectedPrompt.is_new)
       || draft.is_recently_updated !== Boolean(selectedPrompt.is_recently_updated)
       || Boolean(draft.is_simple_enabled ?? true) !== Boolean(selectedPrompt.is_simple_enabled ?? true)
+      || Boolean(draft.is_contract_application_enabled) !== Boolean(selectedPrompt.is_contract_application_enabled)
       || draft.title !== selectedPrompt.title
       || draft.description !== (selectedPrompt.description || "")
       || draft.body !== selectedPrompt.body
@@ -238,7 +239,7 @@ function PromptsPage() {
         setPreviewRemoved([]);
         setSimplePreviewFile(null);
         setSimplePreviewRemoved([]);
-        setDraft({ report_template: prompt.report_template ?? null, is_new: Boolean(prompt.is_new), is_recently_updated: Boolean(prompt.is_recently_updated), is_simple_enabled: Boolean(prompt.is_simple_enabled ?? true), title: prompt.title, body: prompt.body, category_ids: categoryIds(prompt), input_schema: prompt.input_schema || [], max_input_files: prompt.max_input_files ?? 10, description: prompt.description || "", common_prompt_ids: prompt.common_prompt_ids || [] });
+        setDraft({ report_template: prompt.report_template ?? null, is_new: Boolean(prompt.is_new), is_recently_updated: Boolean(prompt.is_recently_updated), is_simple_enabled: Boolean(prompt.is_simple_enabled ?? true), is_contract_application_enabled: Boolean(prompt.is_contract_application_enabled), title: prompt.title, body: prompt.body, category_ids: categoryIds(prompt), input_schema: prompt.input_schema || [], max_input_files: prompt.max_input_files ?? 10, description: prompt.description || "", common_prompt_ids: prompt.common_prompt_ids || [] });
         setVersions(versionRows);
       } catch {
         setError("프롬프트를 불러오지 못했습니다.");
@@ -364,8 +365,8 @@ function PromptsPage() {
     setError("");
     try {
       let saved = isNew
-        ? await createPrompt(title, draft.body, draft.category_ids, draft.input_schema, draft.description, draft.common_prompt_ids, draft.max_input_files, { is_new: draft.is_new, is_recently_updated: draft.is_recently_updated, is_simple_enabled: draft.is_simple_enabled }, draft.report_template)
-        : await updatePrompt(selectedPrompt.id, title, draft.body, draft.category_ids, draft.input_schema, draft.description, draft.common_prompt_ids, draft.max_input_files, { is_new: draft.is_new, is_recently_updated: draft.is_recently_updated, is_simple_enabled: draft.is_simple_enabled }, draft.report_template);
+        ? await createPrompt(title, draft.body, draft.category_ids, draft.input_schema, draft.description, draft.common_prompt_ids, draft.max_input_files, { is_new: draft.is_new, is_recently_updated: draft.is_recently_updated, is_simple_enabled: draft.is_simple_enabled, is_contract_application_enabled: draft.is_contract_application_enabled }, draft.report_template)
+        : await updatePrompt(selectedPrompt.id, title, draft.body, draft.category_ids, draft.input_schema, draft.description, draft.common_prompt_ids, draft.max_input_files, { is_new: draft.is_new, is_recently_updated: draft.is_recently_updated, is_simple_enabled: draft.is_simple_enabled, is_contract_application_enabled: draft.is_contract_application_enabled }, draft.report_template);
       setSelectedPrompt(saved);
       setSelectedId(saved.id);
       if (previewFile?.length || previewRemoved.length) {
@@ -387,7 +388,7 @@ function PromptsPage() {
       setPreviewRemoved([]);
       setSimplePreviewFile(null);
       setSimplePreviewRemoved([]);
-      setDraft({ report_template: saved.report_template ?? null, is_new: Boolean(saved.is_new), is_recently_updated: Boolean(saved.is_recently_updated), is_simple_enabled: Boolean(saved.is_simple_enabled ?? true), title: saved.title, body: saved.body, category_ids: categoryIds(saved), input_schema: saved.input_schema || [], max_input_files: saved.max_input_files ?? 10, description: saved.description || "", common_prompt_ids: saved.common_prompt_ids || [] });
+      setDraft({ report_template: saved.report_template ?? null, is_new: Boolean(saved.is_new), is_recently_updated: Boolean(saved.is_recently_updated), is_simple_enabled: Boolean(saved.is_simple_enabled ?? true), is_contract_application_enabled: Boolean(saved.is_contract_application_enabled), title: saved.title, body: saved.body, category_ids: categoryIds(saved), input_schema: saved.input_schema || [], max_input_files: saved.max_input_files ?? 10, description: saved.description || "", common_prompt_ids: saved.common_prompt_ids || [] });
       await Promise.all([
         loadVersions(saved.id, includeDeletedVersions),
         loadList(saved.id),
@@ -446,9 +447,12 @@ function PromptsPage() {
         is_new: publication.is_new,
         is_recently_updated: publication.is_recently_updated,
         ...(publication.is_simple_enabled !== undefined ? { is_simple_enabled: publication.is_simple_enabled } : {}),
+        ...(publication.is_contract_application_enabled !== undefined
+          ? { is_contract_application_enabled: publication.is_contract_application_enabled }
+          : {}),
       });
       setSelectedPrompt(updated);
-      setDraft((current) => ({ ...current, is_new: updated.is_new, is_recently_updated: updated.is_recently_updated, is_simple_enabled: Boolean(updated.is_simple_enabled ?? true) }));
+      setDraft((current) => ({ ...current, is_new: updated.is_new, is_recently_updated: updated.is_recently_updated, is_simple_enabled: Boolean(updated.is_simple_enabled ?? true), is_contract_application_enabled: Boolean(updated.is_contract_application_enabled) }));
       setPublication(null);
       await Promise.all([loadVersions(updated.id, includeDeletedVersions), loadList(updated.id)]);
     } catch {
@@ -477,7 +481,7 @@ function PromptsPage() {
           action.version.id,
         );
         setSelectedPrompt(restored);
-        setDraft({ report_template: restored.report_template ?? null, is_new: Boolean(restored.is_new), is_recently_updated: Boolean(restored.is_recently_updated), is_simple_enabled: Boolean(restored.is_simple_enabled ?? true), title: restored.title, body: restored.body, category_ids: categoryIds(restored), input_schema: restored.input_schema || [], max_input_files: restored.max_input_files ?? 10, description: restored.description || "", common_prompt_ids: restored.common_prompt_ids || [] });
+        setDraft({ report_template: restored.report_template ?? null, is_new: Boolean(restored.is_new), is_recently_updated: Boolean(restored.is_recently_updated), is_simple_enabled: Boolean(restored.is_simple_enabled ?? true), is_contract_application_enabled: Boolean(restored.is_contract_application_enabled), title: restored.title, body: restored.body, category_ids: categoryIds(restored), input_schema: restored.input_schema || [], max_input_files: restored.max_input_files ?? 10, description: restored.description || "", common_prompt_ids: restored.common_prompt_ids || [] });
         await Promise.all([
           loadVersions(restored.id, includeDeletedVersions),
           loadList(restored.id),
@@ -501,7 +505,7 @@ function PromptsPage() {
     try {
       const recovered = await recoverPrompt(selectedPrompt.id);
       setSelectedPrompt(recovered);
-      setDraft({ report_template: recovered.report_template ?? null, is_new: Boolean(recovered.is_new), is_recently_updated: Boolean(recovered.is_recently_updated), is_simple_enabled: Boolean(recovered.is_simple_enabled ?? true), title: recovered.title, body: recovered.body, category_ids: categoryIds(recovered), input_schema: recovered.input_schema || [], max_input_files: recovered.max_input_files ?? 10, description: recovered.description || "", common_prompt_ids: recovered.common_prompt_ids || [] });
+      setDraft({ report_template: recovered.report_template ?? null, is_new: Boolean(recovered.is_new), is_recently_updated: Boolean(recovered.is_recently_updated), is_simple_enabled: Boolean(recovered.is_simple_enabled ?? true), is_contract_application_enabled: Boolean(recovered.is_contract_application_enabled), title: recovered.title, body: recovered.body, category_ids: categoryIds(recovered), input_schema: recovered.input_schema || [], max_input_files: recovered.max_input_files ?? 10, description: recovered.description || "", common_prompt_ids: recovered.common_prompt_ids || [] });
       await loadList(recovered.id);
     } catch {
       setError("프롬프트를 복구하지 못했습니다.");
@@ -765,6 +769,23 @@ function PromptsPage() {
                 </Stack>
                 <Typography variant="caption" color="text.secondary">
                   각각 설정할 수 있습니다. 신규는 생성일, 최근 업데이트는 제공 전환일 기준으로 최대 6개 표시됩니다.
+                </Typography>
+              </Box>
+              <Box>
+                <Typography variant="subtitle2" fontWeight={750}>보고서 리스트 &lsquo;청약&rsquo; 버튼 노출</Typography>
+                <FormControlLabel
+                  label={draft.is_contract_application_enabled ? "고객 연결 후 보고서 리스트에서 '청약' 자동 입력 버튼을 노출합니다." : "고객을 연결해도 보고서 리스트에 '청약' 버튼을 노출하지 않습니다."}
+                  control={
+                    <Switch
+                      color="success"
+                      checked={Boolean(draft.is_contract_application_enabled)}
+                      disabled={selectedPrompt?.is_deleted || working}
+                      onChange={(event) => setDraft((current) => ({ ...current, is_contract_application_enabled: event.target.checked }))}
+                    />
+                  }
+                />
+                <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+                  단일 제안서를 요약해 내 계약에 자동 입력할 수 있는 템플릿에만 켜두는 것을 권장합니다.
                 </Typography>
               </Box>
               {Boolean(draft.report_template?.simple_template || selectedPrompt?.has_simple_template) && (
@@ -1038,6 +1059,7 @@ function PromptsPage() {
                             is_new: Boolean(selectedPrompt?.is_new),
                             is_recently_updated: Boolean(selectedPrompt?.is_recently_updated),
                             is_simple_enabled: Boolean(selectedPrompt?.is_simple_enabled ?? true),
+                            is_contract_application_enabled: Boolean(selectedPrompt?.is_contract_application_enabled),
                           });
                         }}>
                         {version.is_published ? "노출 설정" : "일반 사용자에게 제공"}
@@ -1302,6 +1324,8 @@ function PromptsPage() {
               disabled={working} onChange={(e) => setPublication((current) => ({ ...current, is_new: e.target.checked }))} />} />
             <FormControlLabel label="최근 업데이트된 보고서에 노출" control={<Checkbox checked={Boolean(publication?.is_recently_updated)}
               disabled={working} onChange={(e) => setPublication((current) => ({ ...current, is_recently_updated: e.target.checked }))} />} />
+            <FormControlLabel label="보고서 리스트 '청약' 버튼 노출" control={<Checkbox checked={Boolean(publication?.is_contract_application_enabled)}
+              disabled={working} onChange={(e) => setPublication((current) => ({ ...current, is_contract_application_enabled: e.target.checked }))} />} />
             {Boolean(publication?.version?.report_template?.simple_template) && (
               <FormControlLabel label="간소화 버전 함께 노출" control={<Checkbox checked={Boolean(publication?.is_simple_enabled ?? true)}
                 disabled={working} onChange={(e) => setPublication((current) => ({ ...current, is_simple_enabled: e.target.checked }))} />} />
