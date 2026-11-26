@@ -36,7 +36,7 @@ export function CustomerModal({ open, title, titleId, description, onClose, onSu
     <form onSubmit={event => { event.preventDefault(); if (!busy) onSubmit?.(); }}>
       <header className="customer-ref-modal-header">
         <span className="customer-ref-modal-icon"><Icon name="user_plus" /></span>
-        <div className="customer-ref-modal-heading"><div><h2 id={titleId}>{title}</h2>{!description && <span className={title === "고객 등록" ? "customer-ref-ai-badge" : undefined}>{title === "고객 등록" ? "✨ AI 텍스트·이미지 자동 파싱 탑재" : "생년월일·성별 → 주민번호 7자리 자동완성"}</span>}</div><p>{description ?? (title === "고객 등록" ? "상단 AI 입력창에 카톡 대화·메모 텍스트나 명함·스크린샷 이미지를 올리면 고객정보가 자동 입력됩니다." : "카톡대화명과 주소를 입력하면 보조개톡 및 주변 고객 지도와 연동됩니다.")}</p></div>
+        <div className="customer-ref-modal-heading"><div><h2 id={titleId}>{title}</h2>{!description && <span className={title === "고객 등록" ? "customer-ref-ai-badge" : undefined}>{title === "고객 등록" ? "✨ AI 텍스트·이미지 자동 파싱 탑재" : "생년월일·성별 → 주민번호 7자리 자동완성"}</span>}</div><p>{description ?? (title === "고객 등록" ? "상단 AI 입력창에 제공받은 고객 DB 텍스트를 붙여넣거나 이미지를 첨부하면 고객정보가 자동 입력됩니다." : "카톡대화명과 주소를 입력하면 보조개톡 및 주변 고객 지도와 연동됩니다.")}</p></div>
         <button className="customer-ref-close" type="button" disabled={busy} onClick={onClose} aria-label="닫기"><Icon name="close" /></button>
       </header>
       <div className="customer-ref-modal-body">{error && <p className="customer-ref-error" role="alert">{error}</p>}{children}</div>

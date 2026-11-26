@@ -81,11 +81,10 @@ export default function CustomerAiFill({ onApply, onBusy, spreadsheet, disabled 
           </span>
           <div>
             <strong>
-              AI 고객정보 자동 추출 · 입력 (텍스트 붙여넣기 또는 명함·캡처
-              이미지 첨부)
+              AI 고객정보 자동 추출 · 입력 (고객 DB 텍스트 붙여넣기 또는 이미지 첨부)
             </strong>
             <p>
-              카톡 프로필·상담 메모 텍스트나 명함·캡처 이미지를 첨부하면 고객
+              제공받은 고객 DB 텍스트를 붙여넣거나 DB·명함 캡처 이미지를 첨부하면 고객
               등록 입력칸을 자동으로 채워줍니다.
             </p>
           </div>
@@ -96,18 +95,18 @@ export default function CustomerAiFill({ onApply, onBusy, spreadsheet, disabled 
             disabled={busy || disabled}
             onClick={() =>
               setText(
-                "예시 고객 홍길동 / 010-0000-0000 / 카톡대화명: 홍길동 상담 / 직업: 사무직 / 점심시간 통화 가능 / 보험 리모델링 상담 희망",
+                "고객명: 홍길동 / 19850307-1 / 010-0000-0000 / 서울 강남구 / 직업: 사무직 / 점심시간 통화 가능 / 보험 리모델링 상담 희망",
               )
             }
           >
-            💬 카톡메모 예시 넣기
+            📋 고객 DB 예시 넣기
           </button>
           <button
             type="button"
             disabled={busy || disabled}
             onClick={() => input.current?.click()}
           >
-            🖼️ 명함사진 첨부
+            🖼️ 고객 DB 이미지 첨부
           </button>
         </div>
       </div>
@@ -117,7 +116,7 @@ export default function CustomerAiFill({ onApply, onBusy, spreadsheet, disabled 
           rows={2}
           maxLength={10000}
           aria-label="AI 고객정보 입력"
-          placeholder="고객명, 연락처, 카톡대화명, 상담 메모를 붙여넣거나 명함·캡처 이미지를 첨부해 주세요."
+          placeholder="제공받은 고객 DB 텍스트를 붙여넣거나 고객 DB 캡처·명함 이미지를 첨부해 주세요."
           value={text}
           onChange={(e) => setText(e.target.value)}
           disabled={busy || disabled}
@@ -146,7 +145,7 @@ export default function CustomerAiFill({ onApply, onBusy, spreadsheet, disabled 
             <div className="customer-ai-image-action">
               <button type="button" disabled={busy || disabled} onClick={() => input.current?.click()}>
                 <Icon name="image_plus" />
-                이미지 첨부 (명함·카톡캡처)
+                이미지 첨부 (고객 DB 캡처·명함)
               </button>
               <small>JPG, PNG, WEBP 지원</small>
             </div>

@@ -1,5 +1,6 @@
 /* eslint-disable react/prop-types */
 import { Fragment, useEffect, useState } from "react";
+import { Link as RouterLink } from "react-router-dom";
 import {
   Box,
   Button,
@@ -17,6 +18,13 @@ import {
 import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import VisibilityOffOutlinedIcon from "@mui/icons-material/VisibilityOffOutlined";
+import ProposalFeatureDemoVisual from "./ProposalFeatureDemoVisual";
+
+const DEMO_HIGHLIGHTS = {
+  "customer-ai-fill": "내고객 > 고객 추가 > AI 자동 채우기",
+  "customer-docs-box": "보고서 만들기 > 연결할 고객 선택 > 고객 문서함",
+  "auto-contract-apply": "보고서 리스트 > 청약 버튼 > 내 계약 자동 입력",
+};
 
 const CATEGORY_META = {
   UPDATE: { label: "업데이트 노트", bgcolor: "#ECFDF5", color: "#006E43", border: "rgba(3, 199, 90, 0.28)" },
@@ -36,9 +44,54 @@ function formatDateLabel(value) {
   }).format(date);
 }
 
-function renderInlineMarkdown(text) {
-  const parts = String(text || "").split(/(\*\*[^*]+\*\*|`[^`]+`)/g);
+function renderInlineMarkdown(text, onNavigate) {
+  const parts = String(text || "").split(/(\[[^[\]]+\]\([^()\s]+\)|\*\*[^*]+\*\*|`[^`]+`)/g);
   return parts.map((part, idx) => {
+    const linkMatch = part.match(/^\[([^[\]]+)\]\(([^()\s]+)\)$/);
+    if (linkMatch) {
+      const [, label, href] = linkMatch;
+      const linkSx = {
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 0.4,
+        px: 0.85,
+        py: 0.2,
+        borderRadius: "8px",
+        bgcolor: "#ECFDF5",
+        color: "#006E43",
+        border: "1px solid rgba(3, 199, 90, 0.32)",
+        fontWeight: 850,
+        textDecoration: "none",
+        "&:hover": { bgcolor: "#D1FAE5" },
+      };
+      if (href.startsWith("/")) {
+        return (
+          <Box
+            component={RouterLink}
+            key={idx}
+            to={href}
+            onClick={() => onNavigate?.()}
+            sx={linkSx}
+          >
+            {label}
+          </Box>
+        );
+      }
+      if (/^https?:\/\//i.test(href)) {
+        return (
+          <Box
+            component="a"
+            key={idx}
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            sx={linkSx}
+          >
+            {label}
+          </Box>
+        );
+      }
+    }
     if (part.startsWith("**") && part.endsWith("**") && part.length > 4) {
       return (
         <Box component="strong" key={idx} sx={{ fontWeight: 850, color: "#0F172A" }}>
@@ -71,13 +124,23 @@ function renderInlineMarkdown(text) {
   });
 }
 
-function BlogArticleBody({ content }) {
+function BlogArticleBody({ content, onNavigate }) {
   const lines = String(content || "").replace(/\r\n/g, "\n").split("\n");
   return (
     <Stack spacing={1.25}>
       {lines.map((rawLine, index) => {
         const line = rawLine.trim();
         if (!line) return <Box key={index} sx={{ height: 4 }} />;
+        const demoMatch = line.match(/^\[demo:([a-z0-9-]+)(?:\|([^\]]+))?\]$/i);
+        if (demoMatch) {
+          const demoKey = demoMatch[1];
+          const highlight = demoMatch[2] || DEMO_HIGHLIGHTS[demoKey];
+          return (
+            <Box key={index} sx={{ my: 0.75 }}>
+              <ProposalFeatureDemoVisual demoKey={demoKey} highlight={highlight} />
+            </Box>
+          );
+        }
         if (line.startsWith("### ")) {
           return (
             <Typography
@@ -85,7 +148,7 @@ function BlogArticleBody({ content }) {
               variant="subtitle1"
               sx={{ fontWeight: 850, color: "#0F172A", pt: 0.75 }}
             >
-              {renderInlineMarkdown(line.slice(4))}
+              {renderInlineMarkdown(line.slice(4), onNavigate)}
             </Typography>
           );
         }
@@ -105,7 +168,7 @@ function BlogArticleBody({ content }) {
                 lineHeight: 1.4,
               }}
             >
-              {renderInlineMarkdown(text)}
+              {renderInlineMarkdown(text, onNavigate)}
             </Typography>
           );
         }
@@ -124,14 +187,14 @@ function BlogArticleBody({ content }) {
                 }}
               />
               <Typography variant="body2" sx={{ color: "#334155", lineHeight: 1.75, wordBreak: "keep-all" }}>
-                {renderInlineMarkdown(line.slice(2))}
+                {renderInlineMarkdown(line.slice(2), onNavigate)}
               </Typography>
             </Stack>
           );
         }
         return (
           <Typography key={index} variant="body2" sx={{ color: "#334155", lineHeight: 1.8, wordBreak: "keep-all" }}>
-            {renderInlineMarkdown(line)}
+            {renderInlineMarkdown(line, onNavigate)}
           </Typography>
         );
       })}
@@ -288,7 +351,7 @@ export default function ProposalPopupNoticeDialog({
             </>
           )}
 
-          <BlogArticleBody content={active.content} />
+          <BlogArticleBody content={active.content} onNavigate={onClose} />
         </Paper>
       </DialogContent>
 

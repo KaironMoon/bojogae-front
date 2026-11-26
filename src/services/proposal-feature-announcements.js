@@ -12,7 +12,7 @@ export const PROPOSAL_FEATURE_ANNOUNCEMENTS = [
         demoKey: "customer-ai-fill",
         title: "먼저 고객을 10초 만에 등록해 두세요",
         description:
-          "카톡 대화나 고객 메모를 그대로 붙여넣기만 하면 AI가 이름·연락처·생년월일을 알아서 정리해 등록해 줘요. 일일이 입력할 필요가 없어요.",
+          "제공받은 고객 DB 텍스트를 붙여넣거나 이미지를 첨부하기만 하면 AI가 이름·연락처·생년월일을 알아서 정리해 등록해 줘요. 일일이 입력할 필요가 없어요.",
         highlight: "내고객 > 고객 추가 > AI 자동 채우기",
       },
       {

@@ -81,9 +81,9 @@ function CustomerAiFillDemo() {
         }}
       >
         <Stack direction="row" alignItems="center" spacing={0.6} sx={{ mb: 0.75 }}>
-          <ContentPasteRoundedIcon sx={{ fontSize: 15, color: "#475569" }} />
+          <ContentPasteRoundedIcon sx={{ fontSize: 15, color: "#475569", flexShrink: 0 }} />
           <Typography variant="caption" fontWeight={800} color="text.secondary">
-            카톡·메모 붙여넣기
+            고객 DB 텍스트 붙여넣기 · 이미지 첨부
           </Typography>
         </Stack>
         <Box
@@ -104,6 +104,9 @@ function CustomerAiFillDemo() {
           <br />
           롯데손보 76 서울
         </Box>
+        <Typography variant="caption" sx={{ display: "block", mt: 0.6, color: "#64748B", fontSize: 10.5, fontWeight: 700 }}>
+          또는 고객 DB 캡처 이미지 첨부
+        </Typography>
       </Paper>
 
       <Stack
