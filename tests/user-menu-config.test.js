@@ -183,3 +183,36 @@ test("mergeUserMenuConfig, moveMenuNode, promoteChildToTop, and isChildEligibleF
   assert.equal(isChildEligibleForUser(nestedLeaderChild, { group_role: null }), false);
   assert.equal(isChildEligibleForUser(nestedLeaderChild, { group_role: "LEADER" }), true);
 });
+
+test("any childless 1st-level item can host 2nd-level children while depth stays capped at 2", () => {
+  let tree = mergeUserMenuConfig([]);
+
+  // Nest 1차 leaf (plans) under childless 1차 leaf (insurers)
+  tree = moveMenuNode(tree, { scope: "top", key: "plans" }, { kind: "group-inside", groupKey: "insurers" });
+  assert.equal(tree.some((i) => i.key === "plans"), false);
+  const insurers = tree.find((i) => i.key === "insurers");
+  assert.deepEqual(insurers.children.map((c) => c.key), ["plans"]);
+
+  // Now insurers has children, so it cannot be nested under another 1차 menu (depth <= 2)
+  const blocked = moveMenuNode(tree, { scope: "top", key: "insurers" }, { kind: "group-inside", groupKey: "home" });
+  assert.equal(blocked.some((i) => i.key === "insurers"), true);
+  assert.deepEqual(blocked.find((i) => i.key === "home").children, []);
+
+  // Reordering insurers at top level preserves its nested children
+  const insurersIdx = tree.findIndex((i) => i.key === "insurers");
+  tree = moveMenuNode(tree, { scope: "top", key: "insurers" }, { kind: "top", key: tree[insurersIdx - 1].key, position: "before" });
+  assert.deepEqual(tree.find((i) => i.key === "insurers").children.map((c) => c.key), ["plans"]);
+
+  // Save payload -> merge round-trip preserves children on non-group 1차 items
+  const rehydrated = mergeUserMenuConfig(toUserMenuPayload(tree));
+  assert.equal(rehydrated.some((i) => i.key === "plans"), false);
+  assert.deepEqual(rehydrated.find((i) => i.key === "insurers").children.map((c) => c.key), ["plans"]);
+
+  // Promote plans back out; insurers becomes childless and nestable again
+  tree = promoteChildToTop(rehydrated, "insurers", "plans");
+  assert.equal(tree.some((i) => i.key === "plans"), true);
+  assert.deepEqual(tree.find((i) => i.key === "insurers").children, []);
+  const nowNestable = moveMenuNode(tree, { scope: "top", key: "insurers" }, { kind: "group-inside", groupKey: "home" });
+  assert.equal(nowNestable.some((i) => i.key === "insurers"), false);
+  assert.deepEqual(nowNestable.find((i) => i.key === "home").children.map((c) => c.key), ["insurers"]);
+});

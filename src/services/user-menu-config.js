@@ -308,7 +308,7 @@ function cloneChild(spec, savedChild) {
 function cloneItem(spec, savedItem, seen = null) {
   const rawLabel = typeof savedItem?.label === "string" ? savedItem.label.trim() : "";
   const children = [];
-  if (spec.kind === "group" && Array.isArray(savedItem?.children)) {
+  if (Array.isArray(savedItem?.children)) {
     for (const rawChild of savedItem.children) {
       const childKey = rawChild?.key;
       const childSpec = childKey ? LEAF_BY_KEY[childKey] : null;
@@ -383,7 +383,7 @@ function toTopLevelNode(node) {
     label: node.label,
     visible: Boolean(node.visible),
     badge: normalizeMenuBadge(node.badge),
-    children: [],
+    children: Array.isArray(node.children) ? node.children : [],
   };
 }
 
@@ -406,7 +406,7 @@ export function toUserMenuPayload(items) {
       visible: Boolean(item.visible),
       badge: normalizeMenuBadge(item.badge),
     };
-    if (item.kind === "group") {
+    if (item.kind === "group" || (item.children && item.children.length > 0)) {
       entry.children = (item.children || []).map((child) => {
         const childLabel = typeof child.label === "string" && child.label.trim()
           ? child.label.trim()
@@ -443,11 +443,10 @@ export function moveItemByDrop(list, draggedKey, targetKey, position = "before")
 export function moveMenuNode(items, dragSource, dropTarget) {
   if (!Array.isArray(items) || !dragSource?.key || !dropTarget) return items;
 
-  const next = items.map((item) => (
-    item.kind === "group"
-      ? { ...item, children: [...(item.children || [])] }
-      : { ...item }
-  ));
+  const next = items.map((item) => ({
+    ...item,
+    children: [...(item.children || [])],
+  }));
 
   let movedNode = null;
   let sourceIndex = -1;
@@ -455,7 +454,8 @@ export function moveMenuNode(items, dragSource, dropTarget) {
     sourceIndex = next.findIndex((item) => item.key === dragSource.key);
     if (sourceIndex < 0) return items;
     movedNode = next[sourceIndex];
-    if (movedNode.kind === "group" && dropTarget.kind !== "top") {
+    const hasOwnChildren = (movedNode.children || []).length > 0;
+    if ((movedNode.kind === "group" || hasOwnChildren) && dropTarget.kind !== "top") {
       return items;
     }
     if (dropTarget.kind === "top" && dropTarget.key === dragSource.key) {
@@ -466,7 +466,7 @@ export function moveMenuNode(items, dragSource, dropTarget) {
     }
     next.splice(sourceIndex, 1);
   } else if (dragSource.scope === "child") {
-    const parentGroup = next.find((item) => item.key === dragSource.groupKey && item.kind === "group");
+    const parentGroup = next.find((item) => item.key === dragSource.groupKey);
     if (!parentGroup) return items;
     const childIndex = parentGroup.children.findIndex((c) => c.key === dragSource.key);
     if (childIndex < 0) return items;
@@ -490,17 +490,19 @@ export function moveMenuNode(items, dragSource, dropTarget) {
   }
 
   if (dropTarget.kind === "group-inside") {
-    const targetGroup = next.find((item) => item.key === dropTarget.groupKey && item.kind === "group");
+    const targetGroup = next.find((item) => item.key === dropTarget.groupKey);
     const childNode = toChildNode(movedNode);
     if (!targetGroup || !childNode) return items;
+    targetGroup.children = targetGroup.children || [];
     targetGroup.children.push(childNode);
     return next;
   }
 
   if (dropTarget.kind === "child") {
-    const targetGroup = next.find((item) => item.key === dropTarget.groupKey && item.kind === "group");
+    const targetGroup = next.find((item) => item.key === dropTarget.groupKey);
     const childNode = toChildNode(movedNode);
     if (!targetGroup || !childNode) return items;
+    targetGroup.children = targetGroup.children || [];
     const targetChildIndex = targetGroup.children.findIndex((c) => c.key === dropTarget.key);
     if (targetChildIndex < 0) return items;
     const insertIndex = dropTarget.position === "after" ? targetChildIndex + 1 : targetChildIndex;

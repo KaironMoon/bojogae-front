@@ -4,6 +4,7 @@ import {
   Button,
   Collapse,
   Divider,
+  IconButton,
   List,
   ListItem,
   ListItemButton,
@@ -94,7 +95,8 @@ function PageLeftMenu({ onNavigate }) { // eslint-disable-line react/prop-types
   const [openGroups, setOpenGroups] = useState(() => {
     const initial = {};
     for (const item of getCachedUserMenu()) {
-      if (item.kind === "group" && isGroupRouteActive(location.pathname, item)) {
+      const hasChildren = item.kind === "group" || (item.children || []).length > 0;
+      if (hasChildren && isGroupRouteActive(location.pathname, item)) {
         initial[item.key] = true;
       }
     }
@@ -124,7 +126,8 @@ function PageLeftMenu({ onNavigate }) { // eslint-disable-line react/prop-types
       let changed = false;
       const next = { ...prev };
       for (const item of userMenuItems) {
-        if (item.kind === "group" && isGroupRouteActive(location.pathname, item) && !next[item.key]) {
+        const hasChildren = item.kind === "group" || (item.children || []).length > 0;
+        if (hasChildren && isGroupRouteActive(location.pathname, item) && !next[item.key]) {
           next[item.key] = true;
           changed = true;
         }
@@ -187,15 +190,25 @@ function PageLeftMenu({ onNavigate }) { // eslint-disable-line react/prop-types
     );
   };
 
-  const renderMenuGroup = ({ label, icon, icon_key: iconKey, tone, badge, items, open, onToggle, prefix }) => {
-    const active = items.some((item) => isActive(item.path));
+  const renderMenuGroup = ({ label, icon, icon_key: iconKey, tone, badge, path, items, open, onToggle, prefix }) => {
+    const hasOwnPath = typeof path === "string" && path.length > 0;
+    const active = (hasOwnPath && isActive(path)) || items.some((item) => isActive(item.path));
     return (
       <Box key={prefix}>
         <ListItem disablePadding sx={{ px: 1.25, mb: 0.35 }}>
           <ListItemButton
             selected={active}
+            aria-current={hasOwnPath && isActive(path) ? "page" : undefined}
             aria-expanded={open}
-            onClick={onToggle}
+            onClick={() => {
+              if (hasOwnPath) {
+                navigate(path);
+                onNavigate?.();
+                if (!open) onToggle();
+              } else {
+                onToggle();
+              }
+            }}
             sx={{
               minHeight: 42,
               px: 1.5,
@@ -216,7 +229,21 @@ function PageLeftMenu({ onNavigate }) { // eslint-disable-line react/prop-types
                 <MenuBadge badge={badge} compact />
               </Box>
             ) : null}
-            {open ? <ExpandLessRoundedIcon fontSize="small" /> : <ExpandMoreRoundedIcon fontSize="small" />}
+            {hasOwnPath ? (
+              <IconButton
+                size="small"
+                aria-label={`${label} 하위 메뉴 ${open ? "접기" : "펼치기"}`}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onToggle();
+                }}
+                sx={{ p: 0.25, ml: 0.25, color: "inherit" }}
+              >
+                {open ? <ExpandLessRoundedIcon fontSize="small" /> : <ExpandMoreRoundedIcon fontSize="small" />}
+              </IconButton>
+            ) : (
+              open ? <ExpandLessRoundedIcon fontSize="small" /> : <ExpandMoreRoundedIcon fontSize="small" />
+            )}
           </ListItemButton>
         </ListItem>
         <Collapse in={open} timeout="auto" unmountOnExit>
@@ -275,45 +302,81 @@ function PageLeftMenu({ onNavigate }) { // eslint-disable-line react/prop-types
     >
       <List sx={{ pt: 2, pb: 1 }}>
         {visibleUserMenus.map((item) => {
+          const visibleChildren = (item.children || []).filter((child) => isChildEligibleForUser(child, user));
           if (item.kind === "hero") {
             return (
-              <ListItem key={item.key} disablePadding sx={{ px: 1.25, mb: 1.25 }}>
-                <Button
-                  component={Link}
-                  to={item.path}
-                  onClick={onNavigate}
-                  aria-current={isActive(item.path) ? "page" : undefined}
-                  variant="contained"
-                  fullWidth
-                  disableElevation
-                  sx={{ ...reportHero, justifyContent: "flex-start", minHeight: 68, px: 1.75, gap: 1.25, borderRadius: "16px" }}
-                >
-                  <Box component="span" sx={{ ...reportHeroIcon, width: 40, height: 40, borderRadius: "12px" }}>
-                    <AutoAwesomeRoundedIcon sx={{ fontSize: 20 }} />
-                  </Box>
-                  <Box
-                    component="span"
-                    sx={{ display: "grid", justifyItems: "start", gap: 0.25, fontSize: 15, fontWeight: 900, letterSpacing: "-0.025em" }}
+              <Box key={item.key} sx={{ mb: 1.25 }}>
+                <ListItem disablePadding sx={{ px: 1.25, mb: visibleChildren.length > 0 ? 0.5 : 0 }}>
+                  <Button
+                    component={Link}
+                    to={item.path}
+                    onClick={onNavigate}
+                    aria-current={isActive(item.path) ? "page" : undefined}
+                    variant="contained"
+                    fullWidth
+                    disableElevation
+                    sx={{ ...reportHero, justifyContent: "flex-start", minHeight: 68, px: 1.75, gap: 1.25, borderRadius: "16px" }}
                   >
-                    <Box component="span" aria-hidden="true" sx={reportHeroBadge}>CORE FEATURE</Box>
-                    <Box component="span" sx={{ display: "inline-flex", alignItems: "center", gap: 0.75, flexWrap: "wrap" }}>
-                      {item.label}
-                      <MenuBadge badge={item.badge} onHero compact />
+                    <Box component="span" sx={{ ...reportHeroIcon, width: 40, height: 40, borderRadius: "12px" }}>
+                      <AutoAwesomeRoundedIcon sx={{ fontSize: 20 }} />
                     </Box>
-                  </Box>
-                  <ChevronRightRoundedIcon aria-hidden="true" sx={{ ml: "auto", fontSize: 18 }} />
-                </Button>
-              </ListItem>
+                    <Box
+                      component="span"
+                      sx={{ display: "grid", justifyItems: "start", gap: 0.25, fontSize: 15, fontWeight: 900, letterSpacing: "-0.025em" }}
+                    >
+                      <Box component="span" aria-hidden="true" sx={reportHeroBadge}>CORE FEATURE</Box>
+                      <Box component="span" sx={{ display: "inline-flex", alignItems: "center", gap: 0.75, flexWrap: "wrap" }}>
+                        {item.label}
+                        <MenuBadge badge={item.badge} onHero compact />
+                      </Box>
+                    </Box>
+                    <ChevronRightRoundedIcon aria-hidden="true" sx={{ ml: "auto", fontSize: 18 }} />
+                  </Button>
+                </ListItem>
+                {visibleChildren.length > 0 && (
+                  <List disablePadding>
+                    {visibleChildren.map((child) => {
+                      const childActive = isActive(child.path);
+                      return (
+                        <ListItem key={child.key || child.path} disablePadding sx={{ px: 1.25, mb: 0.25 }}>
+                          <ListItemButton
+                            selected={childActive}
+                            onClick={() => {
+                              navigate(child.path);
+                              onNavigate?.();
+                            }}
+                            sx={{
+                              minHeight: 38,
+                              pl: 4,
+                              pr: 1.5,
+                              borderRadius: 1.5,
+                              color: childActive ? "primary.dark" : "var(--bojogae-muted)",
+                              "&.Mui-selected": { bgcolor: "var(--bojogae-tint)" },
+                            }}
+                          >
+                            <ListItemText
+                              primary={child.label}
+                              sx={{ minWidth: 0, mr: child.badge ? 0.75 : 0 }}
+                              primaryTypographyProps={{ fontSize: 13.5, fontWeight: childActive ? 750 : 500 }}
+                            />
+                            <MenuBadge badge={child.badge} compact />
+                          </ListItemButton>
+                        </ListItem>
+                      );
+                    })}
+                  </List>
+                )}
+              </Box>
             );
           }
 
-          if (item.kind === "group") {
-            const visibleChildren = (item.children || []).filter((child) => isChildEligibleForUser(child, user));
+          if (item.kind === "group" || visibleChildren.length > 0) {
             return renderMenuGroup({
               label: item.label,
               icon_key: item.icon_key,
               tone: item.tone,
               badge: item.badge,
+              path: item.kind === "group" ? undefined : item.path,
               items: visibleChildren,
               open: Boolean(openGroups[item.key]),
               onToggle: () => setOpenGroups((prev) => ({ ...prev, [item.key]: !prev[item.key] })),

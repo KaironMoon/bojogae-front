@@ -261,9 +261,9 @@ function sameDropTarget(a, b) {
 }
 
 function findMenuDropTarget(container, clientY, clientX, active) {
-  const draggedIsGroup = active.draggedKind === "group";
+  const draggedHasChildren = Boolean(active.draggedHasChildren);
 
-  if (!draggedIsGroup) {
+  if (!draggedHasChildren) {
     const childNodes = container.querySelectorAll("[data-parent-key][data-child-key]");
     for (let i = 0; i < childNodes.length; i += 1) {
       const el = childNodes[i];
@@ -287,7 +287,7 @@ function findMenuDropTarget(container, clientY, clientX, active) {
       const rect = el.getBoundingClientRect();
       if (clientY >= rect.top && clientY <= rect.bottom && clientX >= rect.left - 24 && clientX <= rect.right + 24) {
         const groupKey = el.dataset.groupDropzone;
-        if (groupKey && (active.scope === "top" || groupKey !== active.groupKey)) {
+        if (groupKey && (active.scope === "top" ? groupKey !== active.key : groupKey !== active.groupKey)) {
           return { kind: "group-inside", groupKey };
         }
       }
@@ -299,15 +299,13 @@ function findMenuDropTarget(container, clientY, clientX, active) {
     const el = topNodes[i];
     const rect = el.getBoundingClientRect();
     const key = el.dataset.menuKey;
-    const isGroup = el.dataset.menuKind === "group";
     if (!key) continue;
 
-    const canDropInsideGroup = !draggedIsGroup
-      && isGroup
+    const canDropInsideTarget = !draggedHasChildren
       && (active.scope === "top" ? key !== active.key : key !== active.groupKey);
 
-    if (canDropInsideGroup) {
-      const headerEl = el.querySelector(`[data-group-header-key="${key}"]`) || el;
+    if (canDropInsideTarget) {
+      const headerEl = el.querySelector(`[data-card-header-key="${key}"]`) || el;
       const hRect = headerEl.getBoundingClientRect();
       if (clientY < hRect.top + hRect.height * 0.28) {
         return { kind: "top", key, position: "before" };
@@ -387,7 +385,14 @@ export default function UserMenuSettings() {
     }));
   }, [updateItem]);
 
-  const startPointerDrag = useCallback((event, { scope, draggedKind = "item", groupKey = null, key, label }) => {
+  const startPointerDrag = useCallback((event, {
+    scope,
+    draggedKind = "item",
+    draggedHasChildren = false,
+    groupKey = null,
+    key,
+    label,
+  }) => {
     if (event.pointerType === "mouse" && event.button !== 0) return;
 
     const fromHandle = Boolean(event.target.closest?.('[data-drag-handle="true"]'));
@@ -405,6 +410,7 @@ export default function UserMenuSettings() {
     const session = {
       scope,
       draggedKind,
+      draggedHasChildren,
       groupKey,
       key,
       label,
@@ -613,6 +619,8 @@ export default function UserMenuSettings() {
           <Stack spacing={1.25}>
             {items.map((item, index) => {
               const isGroup = item.kind === "group";
+              const hasChildren = (item.children || []).length > 0;
+              const canHaveSubmenuPanel = isGroup || hasChildren;
               const isExpanded = Boolean(expandedGroups[item.key]);
               const isDragging = dragState?.scope === "top" && dragState.key === item.key;
               const isDropBefore = (
@@ -628,8 +636,7 @@ export default function UserMenuSettings() {
                 && dragState?.key !== item.key
               );
               const isGroupInsideTarget = (
-                isGroup
-                && dropTarget?.kind === "group-inside"
+                dropTarget?.kind === "group-inside"
                 && dropTarget.groupKey === item.key
               );
               const visibleChildrenCount = (item.children || []).filter((c) => c.visible).length;
@@ -644,6 +651,7 @@ export default function UserMenuSettings() {
                   onPointerDown={(event) => startPointerDrag(event, {
                     scope: "top",
                     draggedKind: item.kind,
+                    draggedHasChildren: canHaveSubmenuPanel,
                     key: item.key,
                     label: item.label,
                   })}
@@ -667,7 +675,7 @@ export default function UserMenuSettings() {
                   >
                     <Stack spacing={1.25}>
                       <Stack
-                        data-group-header-key={isGroup ? item.key : undefined}
+                        data-card-header-key={item.key}
                         direction={{ xs: "column", md: "row" }}
                         alignItems={{ xs: "stretch", md: "center" }}
                         justifyContent="space-between"
@@ -737,11 +745,11 @@ export default function UserMenuSettings() {
                             {item.kind === "hero" && (
                               <Chip size="small" color="success" label="핵심 CTA" />
                             )}
-                            {isGroup && (
+                            {canHaveSubmenuPanel && (
                               <Chip
                                 size="small"
                                 variant="outlined"
-                                label={`그룹 · 노출 ${visibleChildrenCount}/${item.children.length}`}
+                                label={`${isGroup ? "그룹" : "하위"} · 노출 ${visibleChildrenCount}/${item.children.length}`}
                                 color={visibleChildrenCount === 0 ? "warning" : "default"}
                               />
                             )}
@@ -789,7 +797,7 @@ export default function UserMenuSettings() {
                                 </IconButton>
                               </span>
                             </Tooltip>
-                            {isGroup && (
+                            {canHaveSubmenuPanel && (
                               <Tooltip title={isExpanded ? "하위 메뉴 접기" : "하위 메뉴 펼치기"}>
                                 <IconButton
                                   size="small"
@@ -815,7 +823,7 @@ export default function UserMenuSettings() {
                         </Stack>
                       </Stack>
 
-                      {isGroup && (
+                      {canHaveSubmenuPanel && (
                         <Collapse in={isExpanded} timeout="auto" unmountOnExit>
                           <Divider sx={{ my: 0.75 }} />
                           <Stack
@@ -1045,39 +1053,52 @@ export default function UserMenuSettings() {
           <Box sx={{ maxHeight: 580, overflowY: "auto", pr: 0.5 }}>
             <Stack spacing={0.5}>
               {previewVisibleMenus.map((item) => {
+                const visibleChildren = (item.children || []).filter((c) => isChildEligibleForUser(c, previewUser));
+                const hasSubmenus = item.kind === "group" || visibleChildren.length > 0;
                 if (item.kind === "hero") {
                   return (
-                    <Box
-                      key={item.key}
-                      sx={{
-                        ...reportHero,
-                        flexShrink: 0,
-                        minHeight: 56,
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 1,
-                        px: 1.25,
-                        py: 1,
-                        mb: 0.75,
-                        borderRadius: "12px",
-                      }}
-                    >
-                      <Box component="span" sx={{ ...reportHeroIcon, width: 32, height: 32, borderRadius: "10px" }}>
-                        <AutoAwesomeRoundedIcon sx={{ fontSize: 16 }} />
+                    <Box key={item.key} sx={{ flexShrink: 0, mb: 0.75 }}>
+                      <Box
+                        sx={{
+                          ...reportHero,
+                          flexShrink: 0,
+                          minHeight: 56,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 1,
+                          px: 1.25,
+                          py: 1,
+                          borderRadius: "12px",
+                        }}
+                      >
+                        <Box component="span" sx={{ ...reportHeroIcon, width: 32, height: 32, borderRadius: "10px" }}>
+                          <AutoAwesomeRoundedIcon sx={{ fontSize: 16 }} />
+                        </Box>
+                        <Box sx={{ minWidth: 0 }}>
+                          <Box sx={{ ...reportHeroBadge, width: "fit-content", fontSize: 9 }}>CORE FEATURE</Box>
+                          <Stack direction="row" alignItems="center" spacing={0.6}>
+                            <Typography fontSize={13} fontWeight={850} noWrap>{item.label}</Typography>
+                            <MenuBadge badge={item.badge} onHero compact />
+                          </Stack>
+                        </Box>
+                        <ChevronRightRoundedIcon sx={{ ml: "auto", fontSize: 16 }} />
                       </Box>
-                      <Box sx={{ minWidth: 0 }}>
-                        <Box sx={{ ...reportHeroBadge, width: "fit-content", fontSize: 9 }}>CORE FEATURE</Box>
-                        <Stack direction="row" alignItems="center" spacing={0.6}>
-                          <Typography fontSize={13} fontWeight={850} noWrap>{item.label}</Typography>
-                          <MenuBadge badge={item.badge} onHero compact />
+                      {visibleChildren.length > 0 && (
+                        <Stack spacing={0.25} sx={{ pl: 2, pt: 0.4, pb: 0.25 }}>
+                          {visibleChildren.map((child) => (
+                            <Stack key={child.key} direction="row" alignItems="center" spacing={0.5}>
+                              <Typography fontSize={12} color="text.secondary" noWrap>
+                                · {child.label}
+                              </Typography>
+                              <MenuBadge badge={child.badge} compact />
+                            </Stack>
+                          ))}
                         </Stack>
-                      </Box>
-                      <ChevronRightRoundedIcon sx={{ ml: "auto", fontSize: 16 }} />
+                      )}
                     </Box>
                   );
                 }
 
-                const visibleChildren = (item.children || []).filter((c) => isChildEligibleForUser(c, previewUser));
                 return (
                   <Box key={item.key} sx={{ flexShrink: 0, py: 0.35, px: 0.75, borderRadius: 1.5, bgcolor: "#F8FAFC" }}>
                     <Stack direction="row" alignItems="center" spacing={0.5}>
@@ -1086,11 +1107,11 @@ export default function UserMenuSettings() {
                         {item.label}
                       </Typography>
                       <MenuBadge badge={item.badge} compact />
-                      {item.kind === "group" && (
+                      {hasSubmenus && (
                         <Typography variant="caption" color="text.secondary">▾</Typography>
                       )}
                     </Stack>
-                    {item.kind === "group" && visibleChildren.length > 0 && (
+                    {hasSubmenus && visibleChildren.length > 0 && (
                       <Stack spacing={0.25} sx={{ pl: 4.25, pt: 0.35, pb: 0.25 }}>
                         {visibleChildren.map((child) => (
                           <Stack key={child.key} direction="row" alignItems="center" spacing={0.5}>
