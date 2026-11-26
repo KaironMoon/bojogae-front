@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { Alert, Button, Dialog, Snackbar } from "@mui/material";
 import { faqError, listFaqs } from "@/services/faq-service";
 import FaqReference from "./design/FaqReference";
@@ -27,6 +28,7 @@ const categoryOf = ({ question }) =>
         ? "CRM"
         : "REPORT";
 export default function FaqPage() {
+  const { hash } = useLocation();
   const templates = {
     REPORT:
       "[보고서 생성 문의]\n- 이용한 메뉴: \n- 문서 제목 / 생성 시각: \n- 발생한 상황 및 오류 메시지: ",
@@ -68,6 +70,18 @@ export default function FaqPage() {
       clearTimeout(timer);
     };
   }, [query, reload]);
+
+  useEffect(() => {
+    if (hash !== "#youtubeGalleryGrid") return undefined;
+    const frame = window.requestAnimationFrame(() => {
+      const grid = document.getElementById("youtubeGalleryGrid");
+      const target = grid?.closest(".ns-card") || grid?.closest("section") || grid;
+      if (!target) return;
+      const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+      target.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [hash]);
   const items = data.items.filter(
       (x) => category === "ALL" || categoryOf(x) === category,
     ),

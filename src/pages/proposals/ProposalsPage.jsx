@@ -1,4 +1,5 @@
 import ProposalApplicationDialog, { applicationButtonStyle } from "./ProposalApplicationDialog";
+import ProposalFeatureAnnouncementDialog from "./ProposalFeatureAnnouncementDialog";
 import { crmGet, crmPost, crmError } from "@/services/crm-service";
 import AutoAwesomeRoundedIcon from "@mui/icons-material/AutoAwesomeRounded";
 import { reportGradient, reportHero, reportHeroBadge, reportHeroIcon } from "@/styles/reportTheme";
@@ -8,6 +9,11 @@ import { Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/auth/AuthContext";
 import ReportHelpTour from "@/pages/components/ReportHelpTour";
 import { hasSeenReportHelp, markReportHelpSeen } from "@/services/report-help-storage";
+import {
+  getUnseenAnnouncements,
+  markAnnouncementsDismissed,
+  PROPOSAL_FEATURE_ANNOUNCEMENTS,
+} from "@/services/proposal-feature-announcements";
 import PreviewImageCarousel from "@/pages/components/PreviewImageCarousel";
 import PromptInputForm from "@/pages/components/PromptInputForm";
 import ProposalCustomerField from "./ProposalCustomerField";
@@ -65,6 +71,7 @@ import FactCheckRoundedIcon from "@mui/icons-material/FactCheckRounded";
 import FolderOpenRoundedIcon from "@mui/icons-material/FolderOpenRounded";
 import OpenInNewRoundedIcon from "@mui/icons-material/OpenInNewRounded";
 import PersonOutlineRoundedIcon from "@mui/icons-material/PersonOutlineRounded";
+import PlayCircleFilledRoundedIcon from "@mui/icons-material/PlayCircleFilledRounded";
 import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
 import ReplayRoundedIcon from "@mui/icons-material/ReplayRounded";
 import SummarizeOutlinedIcon from "@mui/icons-material/SummarizeOutlined";
@@ -243,12 +250,20 @@ function ProposalsPage() {
   const [application, setApplication] = useState(null);
   const applicationBusy = useRef(false);
   async function prepareApplication(item) {
-    if (applicationBusy.current) return;
+    if (!item?.customer_id || applicationBusy.current) return;
     applicationBusy.current = true;
     setApplication({ item, loading: true });
     try {
-      const { drafts } = await crmPost(`/contracts/from-proposal/${item.id}/preview`, {}, { timeout: 120000 });
-      setApplication({ item, drafts, draft: drafts.length === 1 ? drafts[0] : null });
+      const { drafts = [], empty_draft: emptyDraft = null } = await crmGet(
+        `/documents/${item.id}/contract-draft`,
+        { mode: "application" },
+      );
+      setApplication({
+        item,
+        drafts,
+        draft: drafts.length === 1 ? drafts[0] : null,
+        emptyDraft,
+      });
     } catch (error) {
       setApplication({ item, error: crmError(error) });
     } finally {
@@ -261,7 +276,10 @@ function ProposalsPage() {
   const { user } = useAuth();
   const helpRootRef = useRef(null);
   const helpStartedRef = useRef(false);
+  const pendingAnnouncementAfterTour = useRef(false);
   const [helpStep, setHelpStep] = useState(null);
+  const [announcementOpen, setAnnouncementOpen] = useState(false);
+  const [unseenAnnouncementIds, setUnseenAnnouncementIds] = useState([]);
   const theme = useTheme();
   const mobilePreview = useMediaQuery(theme.breakpoints.down("sm"));
   const listPageSize = mobilePreview ? 5 : 10;
@@ -351,16 +369,35 @@ function ProposalsPage() {
 
   const startHelp = () => {
     helpStartedRef.current = true;
+    pendingAnnouncementAfterTour.current = false;
     markReportHelpSeen(user.id);
     setHelpStep(0);
+  };
+
+  const openHelpDialog = () => {
+    setUnseenAnnouncementIds(getUnseenAnnouncements(user?.id).map((entry) => entry.id));
+    setAnnouncementOpen(true);
+  };
+
+  const closeAnnouncementDialog = () => {
+    if (user?.id) {
+      markAnnouncementsDismissed(user.id);
+    }
+    setUnseenAnnouncementIds([]);
+    setAnnouncementOpen(false);
   };
 
   useEffect(() => {
     if (loading || error || !user?.id || helpStartedRef.current) return;
     helpStartedRef.current = true;
+    const unseenIds = getUnseenAnnouncements(user.id).map((entry) => entry.id);
+    setUnseenAnnouncementIds(unseenIds);
     if (!hasSeenReportHelp(user.id)) {
       markReportHelpSeen(user.id);
+      pendingAnnouncementAfterTour.current = unseenIds.length > 0;
       setHelpStep(0);
+    } else if (unseenIds.length > 0) {
+      setAnnouncementOpen(true);
     }
   }, [loading, error, user?.id]);
 
@@ -1208,8 +1245,49 @@ function ProposalsPage() {
           <Box>
             <Stack direction="row" alignItems="center" flexWrap="wrap" gap={1}>
               <Typography variant="h4" component="h1" sx={{ fontSize: { xs: 20, sm: 24 }, fontWeight: 900, letterSpacing: "-0.025em" }}>보고서 만들기</Typography>
-              <Button size="small" startIcon={<HelpOutlineRoundedIcon />} onClick={startHelp}
+              <Button size="small" startIcon={<HelpOutlineRoundedIcon />} onClick={openHelpDialog}
                 sx={{ bgcolor: "background.default", px: 1, fontSize: 12, fontWeight: 800, borderRadius: "8px" }}>도움말 보기</Button>
+              <Button
+                size="small"
+                component={Link}
+                to="/help/faq#youtubeGalleryGrid"
+                data-report-help="guide-video"
+                startIcon={<PlayCircleFilledRoundedIcon />}
+                sx={{
+                  bgcolor: "#DC2626",
+                  color: "#fff",
+                  px: 1.4,
+                  py: 0.5,
+                  fontSize: 12,
+                  fontWeight: 900,
+                  borderRadius: "999px",
+                  boxShadow: "0 4px 12px rgba(220, 38, 38, 0.28)",
+                  "@keyframes videoGuidePulse": {
+                    "0%, 100%": { boxShadow: "0 4px 12px rgba(220, 38, 38, 0.28)" },
+                    "50%": { boxShadow: "0 0 0 5px rgba(220, 38, 38, 0.16), 0 6px 16px rgba(220, 38, 38, 0.36)" },
+                  },
+                  animation: "videoGuidePulse 2.8s ease-in-out infinite",
+                  "@media (prefers-reduced-motion: reduce)": { animation: "none" },
+                  "&:hover": { bgcolor: "#B91C1C" },
+                }}
+              >
+                기능 설명 영상
+                <Box
+                  component="span"
+                  sx={{
+                    ml: 0.75,
+                    px: 0.7,
+                    py: 0.1,
+                    borderRadius: 99,
+                    bgcolor: "rgba(255,255,255,0.22)",
+                    fontSize: 10,
+                    fontWeight: 800,
+                    lineHeight: 1.4,
+                  }}
+                >
+                  영상 가이드
+                </Box>
+              </Button>
             </Stack>
             <Typography color="text.secondary" sx={{ mt: 0.5, fontSize: 12, fontWeight: 500, lineHeight: 1.55 }}>
               문서 유형을 선택하고 필요한 자료를 입력하면, 선택한 프롬프트로 문서를 생성합니다.
@@ -2250,7 +2328,28 @@ function ProposalsPage() {
                   >
                     열기
                   </Button>
-                  {isCompletedStatus(item.status) && <Button size="small" startIcon={<AutoAwesomeRoundedIcon />} sx={applicationButtonStyle} disabled={!!application?.loading} onClick={() => prepareApplication(item)}>청약</Button>}
+                  {isCompletedStatus(item.status) && (
+                    <Tooltip
+                      title={
+                        !item.customer_id
+                          ? "보고서 생성 시 고객을 연결한 경우에만 청약 자동 입력을 사용할 수 있어요"
+                          : "제안서 정보로 내 계약을 자동 입력합니다"
+                      }
+                      arrow
+                    >
+                      <span>
+                        <Button
+                          size="small"
+                          startIcon={<AutoAwesomeRoundedIcon />}
+                          sx={applicationButtonStyle}
+                          disabled={!item.customer_id || !!application?.loading}
+                          onClick={() => prepareApplication(item)}
+                        >
+                          청약
+                        </Button>
+                      </span>
+                    </Tooltip>
+                  )}
                   {ACTIVE.has(item.status) && <Button size="small" color="warning" startIcon={<CancelOutlinedIcon />} onClick={() => runAction("cancel", item)}>취소</Button>}
                   {item.status === "FAILED" && item.retryable && <Button size="small" startIcon={<ReplayRoundedIcon />} onClick={() => runAction("retry", item)}>재시도</Button>}
                   {!ACTIVE.has(item.status) && <Button size="small" color="error" startIcon={<DeleteOutlineRoundedIcon />} onClick={() => runAction("delete", item)}>삭제</Button>}
@@ -2345,8 +2444,28 @@ function ProposalsPage() {
         {totalPages > 1 && <Pagination count={totalPages} page={page} onChange={(_, value) => loadList(value)} sx={{ mt: 3 }} />}
       </Paper>
 
-      {helpStep !== null && <ReportHelpTour step={helpStep} rootRef={helpRootRef}
-        onNext={() => setHelpStep((current) => current + 1)} onClose={() => setHelpStep(null)} />}
+      {helpStep !== null && (
+        <ReportHelpTour
+          step={helpStep}
+          rootRef={helpRootRef}
+          onNext={() => setHelpStep((current) => current + 1)}
+          onClose={() => {
+            setHelpStep(null);
+            if (pendingAnnouncementAfterTour.current) {
+              pendingAnnouncementAfterTour.current = false;
+              setAnnouncementOpen(true);
+            }
+          }}
+        />
+      )}
+
+      <ProposalFeatureAnnouncementDialog
+        open={announcementOpen}
+        announcements={PROPOSAL_FEATURE_ANNOUNCEMENTS}
+        unseenIds={unseenAnnouncementIds}
+        onClose={closeAnnouncementDialog}
+        onOpenTour={startHelp}
+      />
 
       <Dialog open={Boolean(promptPreviewOption)} onClose={closePromptPreview} fullWidth maxWidth="xl"
         PaperProps={{ sx: { height: "calc(100dvh - 48px)", maxHeight: "calc(100dvh - 48px)", m: 3, overflow: "hidden" } }}>

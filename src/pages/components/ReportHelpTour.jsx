@@ -1,6 +1,8 @@
 /* eslint-disable react/prop-types */
+import { Link as RouterLink } from 'react-router-dom';
 import { Box, Button, IconButton, Modal, Paper, Stack, Typography } from '@mui/material';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
+import PlayCircleFilledRoundedIcon from '@mui/icons-material/PlayCircleFilledRounded';
 import { useLayoutEffect, useRef, useState } from 'react';
 
 const STEPS = [
@@ -19,6 +21,14 @@ const STEPS = [
   {
     target: 'generate', title: '보고서 생성',
     message: '보고서 생성을 누르시면 보고서가 생성됩니다. 생성되는 데 30초~1분가량 걸려요. 완료되면 리스트에서 선택해서 보실 수 있습니다.',
+  },
+  {
+    target: 'guide-video',
+    title: '기능 설명 영상 보기',
+    message:
+      '처음이시거나 사용법이 헷갈릴 때는 상단의 [기능 설명 영상] 버튼을 언제든 눌러 보세요! 제안서 요약·보험사 비교·리모델링·고지사항·보장분석 등 실전 설명 영상을 바로 보실 수 있습니다.',
+    actionLabel: '영상 보러가기',
+    actionTo: '/help/faq#youtubeGalleryGrid',
   },
 ];
 
@@ -123,7 +133,24 @@ export default function ReportHelpTour({ step, rootRef, onNext, onClose }) {
             현재 선택한 보고서는 파일 첨부 없이 입력 항목을 작성합니다. 파일 첨부가 필요한 보고서를 선택하면 업로드 영역이 표시됩니다.
           </Typography>}
         </Box>
-        <Stack direction="row" justifyContent="flex-end" sx={{ mt: 2 }}>
+        <Stack direction="row" justifyContent="flex-end" spacing={1} flexWrap="wrap" sx={{ mt: 2 }}>
+          {current.actionTo && (
+            <Button
+              component={RouterLink}
+              to={current.actionTo}
+              variant="outlined"
+              startIcon={<PlayCircleFilledRoundedIcon />}
+              onClick={onClose}
+              sx={{
+                color: '#DC2626',
+                borderColor: '#FCA5A5',
+                fontWeight: 800,
+                '&:hover': { borderColor: '#DC2626', bgcolor: '#FEF2F2' },
+              }}
+            >
+              {current.actionLabel}
+            </Button>
+          )}
           <Button ref={nextRef} variant="contained" onClick={step === STEPS.length - 1 ? onClose : onNext}>
             {step === STEPS.length - 1 ? '도움말 종료' : '다음'}
           </Button>

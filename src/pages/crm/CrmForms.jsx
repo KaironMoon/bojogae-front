@@ -503,7 +503,7 @@ export function ContractForm({ value, initialDraft, applicationDraft = false, cu
     >
       {applicationDraft && <Alert severity="info">제안서에서 자동 입력한 내용입니다. 보험사·상품·보험료와 계약자·피보험자를 확인해 주세요. 최소 한 명을 내고객에 연결한 뒤 등록할 수 있습니다. 등록하면 내 계약에 청약 접수 상태로 저장됩니다.</Alert>}
       <ContractDocumentPicker data={data} setData={setData} initialDocument={initialDocument} />
-      <ContractDocumentAutofill data={data} setData={setData} existingGenerationId={value?.proposal_generation_id}
+      <ContractDocumentAutofill data={data} setData={setData} existingGenerationId={value?.proposal_generation_id ?? initialDraft?.proposal_generation_id}
         editing={!!value} />
       <Stack component="section" gap={1.5} className="crm-contract-form-section" aria-labelledby="crm-contract-base">
         <div className="crm-contract-section-heading">
