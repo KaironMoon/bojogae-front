@@ -1,5 +1,6 @@
 import ProposalApplicationDialog, { applicationButtonStyle } from "./ProposalApplicationDialog";
 import ProposalFeatureAnnouncementDialog from "./ProposalFeatureAnnouncementDialog";
+import ProposalPopupNoticeDialog from "./ProposalPopupNoticeDialog";
 import { crmGet, crmPost, crmError } from "@/services/crm-service";
 import AutoAwesomeRoundedIcon from "@mui/icons-material/AutoAwesomeRounded";
 import { reportGradient, reportHero, reportHeroBadge, reportHeroIcon } from "@/styles/reportTheme";
@@ -14,6 +15,11 @@ import {
   markAnnouncementsDismissed,
   PROPOSAL_FEATURE_ANNOUNCEMENTS,
 } from "@/services/proposal-feature-announcements";
+import {
+  filterVisibleTodayNotices,
+  getActivePopupNotices,
+  hideNoticesForToday,
+} from "@/services/proposal-popup-notice-service";
 import PreviewImageCarousel from "@/pages/components/PreviewImageCarousel";
 import PromptInputForm from "@/pages/components/PromptInputForm";
 import ProposalCustomerField from "./ProposalCustomerField";
@@ -280,6 +286,9 @@ function ProposalsPage() {
   const [helpStep, setHelpStep] = useState(null);
   const [announcementOpen, setAnnouncementOpen] = useState(false);
   const [unseenAnnouncementIds, setUnseenAnnouncementIds] = useState([]);
+  const [popupNotices, setPopupNotices] = useState([]);
+  const [popupNoticeOpen, setPopupNoticeOpen] = useState(false);
+  const popupShownRef = useRef(false);
   const theme = useTheme();
   const mobilePreview = useMediaQuery(theme.breakpoints.down("sm"));
   const listPageSize = mobilePreview ? 5 : 10;
@@ -400,6 +409,35 @@ function ProposalsPage() {
       setAnnouncementOpen(true);
     }
   }, [loading, error, user?.id]);
+
+  useEffect(() => {
+    if (loading || error || !user?.id || popupShownRef.current) return;
+    if (helpStep !== null || announcementOpen) return;
+    let active = true;
+    getActivePopupNotices()
+      .then((res) => {
+        if (!active || popupShownRef.current) return;
+        const visible = filterVisibleTodayNotices(user.id, res?.items || []);
+        if (visible.length > 0) {
+          popupShownRef.current = true;
+          setPopupNotices(visible);
+          setPopupNoticeOpen(true);
+        }
+      })
+      .catch(() => {
+        // Popup notices are optional; ignore network errors silently.
+      });
+    return () => { active = false; };
+  }, [loading, error, user?.id, helpStep, announcementOpen]);
+
+  const closePopupNoticeDialog = () => setPopupNoticeOpen(false);
+
+  const hidePopupNoticesToday = (ids) => {
+    if (user?.id) {
+      hideNoticesForToday(user.id, ids);
+    }
+    setPopupNoticeOpen(false);
+  };
 
   const tabPromptOptions = useMemo(() => promptsForTab(promptOptions, promptTab), [promptOptions, promptTab]);
   const categoryGroups = useMemo(() => groupPromptCategories(promptOptions), [promptOptions]);
@@ -2465,6 +2503,12 @@ function ProposalsPage() {
         unseenIds={unseenAnnouncementIds}
         onClose={closeAnnouncementDialog}
         onOpenTour={startHelp}
+      />
+      <ProposalPopupNoticeDialog
+        open={popupNoticeOpen}
+        notices={popupNotices}
+        onClose={closePopupNoticeDialog}
+        onHideToday={hidePopupNoticesToday}
       />
 
       <Dialog open={Boolean(promptPreviewOption)} onClose={closePromptPreview} fullWidth maxWidth="xl"

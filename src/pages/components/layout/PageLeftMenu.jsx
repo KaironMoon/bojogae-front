@@ -349,6 +349,7 @@ function PageLeftMenu({ onNavigate }) { // eslint-disable-line react/prop-types
               prefix: "/admin/boards/",
             })}
             {renderMenuItem({ label: "Info", path: "/admin/info", icon: InfoOutlinedIcon })}
+            {renderMenuItem({ label: "팝업 공지 관리", path: "/admin/popup-notices", icon: CampaignOutlinedIcon })}
             {renderMenuItem({ label: "FAQ 관리", path: "/admin/faqs", icon: HelpOutlineOutlinedIcon })}
             {renderMenuItem({ label: "보조개톡 오류 보고", path: "/admin/talk-error-reports", icon: HelpOutlineOutlinedIcon })}
             {renderMenuItem({ label: "보조개톡 배포 관리", path: "/admin/talk-releases", icon: ChatBubbleOutlineRoundedIcon })}

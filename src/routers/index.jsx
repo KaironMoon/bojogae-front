@@ -28,6 +28,7 @@ import EmailChangeVerificationPage from "../pages/profile/EmailChangeVerificatio
 import PromptsPage from "../pages/prompts/PromptsPage";
 import ProposalsPage from "../pages/proposals/ProposalsPage";
 import AdminProposalsPage from "../pages/admin/ProposalsPage";
+import AdminPopupNoticesPage from "../pages/admin/AdminPopupNoticesPage";
 import UsagePage from "../pages/admin/UsagePage";
 import ProposalSettingsPage from "../pages/admin/ProposalSettingsPage";
 import PointsPage from "../pages/admin/PointsPage";
@@ -198,6 +199,7 @@ const router = createBrowserRouter([
           { path: "/admin/proposals", element: <AdminProposalsPage /> },
           { path: "/admin/usage", element: <UsagePage /> },
           { path: "/admin/proposal-settings", element: <ProposalSettingsPage /> },
+          { path: "/admin/popup-notices", element: <AdminPopupNoticesPage /> },
           { path: "/admin/dashboard-banners", element: <DashboardBannersPage /> },
           { path: "/admin/talk-releases", element: <TalkReleasesPage /> },
           { path: "/admin/talk-error-reports", element: <TalkErrorReportsPage /> },
