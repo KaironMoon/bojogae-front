@@ -5,6 +5,11 @@ import ProposalApplicationDialog, {
 import ProposalFeatureAnnouncementDialog from "./ProposalFeatureAnnouncementDialog";
 import ProposalLatestNewsWidget from "./ProposalLatestNewsWidget";
 import ProposalPopupNoticeDialog from "./ProposalPopupNoticeDialog";
+import ProposalVideoGuideColumn from "./ProposalVideoGuideColumn";
+import {
+  isVideoColumnHidden,
+  persistVideoColumnHidden,
+} from "@/services/proposal-video-column-storage";
 import { crmGet, crmPost, crmError } from "@/services/crm-service";
 import AutoAwesomeRoundedIcon from "@mui/icons-material/AutoAwesomeRounded";
 import { reportGradient, reportHero, reportHeroBadge, reportHeroIcon } from "@/styles/reportTheme";
@@ -486,6 +491,31 @@ function ProposalsPage() {
   const [remodelingGuideArmed, setRemodelingGuideArmed] = useState(false);
   const [remodelingNoProposalGuideDismissed, setRemodelingNoProposalGuideDismissed] = useState(() => hasSeenRemodelingNoProposalGuide(user?.id));
   const [remodelingNoProposalGuideOpen, setRemodelingNoProposalGuideOpen] = useState(false);
+  const [videoColumnHidden, setVideoColumnHidden] = useState(() => isVideoColumnHidden(user?.id));
+  const [videoDrawerOpen, setVideoDrawerOpen] = useState(false);
+  const isWideForVideoColumn = useMediaQuery(theme.breakpoints.up("lg"));
+  const showInlineVideoColumn = isWideForVideoColumn && !videoColumnHidden;
+  useEffect(() => {
+    setVideoColumnHidden(isVideoColumnHidden(user?.id));
+  }, [user?.id]);
+  useEffect(() => {
+    if (isWideForVideoColumn) {
+      setVideoDrawerOpen(false);
+    }
+  }, [isWideForVideoColumn]);
+  const hideVideoColumn = useCallback(() => {
+    persistVideoColumnHidden(user?.id, true);
+    setVideoColumnHidden(true);
+    setVideoDrawerOpen(false);
+  }, [user?.id]);
+  const showVideoColumn = useCallback(() => {
+    if (isWideForVideoColumn) {
+      persistVideoColumnHidden(user?.id, false);
+      setVideoColumnHidden(false);
+    } else {
+      setVideoDrawerOpen(true);
+    }
+  }, [isWideForVideoColumn, user?.id]);
   const canvasPanelRef = useRef(null);
   const canvasStageRef = useRef(null);
   const submissionKey = useRef(null);
@@ -1668,7 +1698,7 @@ function ProposalsPage() {
   }
 
   return (
-    <Box ref={helpRootRef} sx={{ p: { xs: 1.75, sm: 2.5, lg: 3.5 }, width: "100%", maxWidth: 1440, mx: "auto", boxSizing: "border-box", overflowX: "hidden" }}>
+    <Box ref={helpRootRef} sx={{ p: { xs: 1.75, sm: 2.5, lg: 3.5 }, width: "100%", maxWidth: showInlineVideoColumn ? 1720 : 1440, mx: "auto", boxSizing: "border-box", overflowX: "hidden" }}>
       <Paper variant="outlined" sx={{ p: { xs: 2, sm: 2.5 }, mb: 2.5 }}>
         <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ xs: "stretch", sm: "center" }} gap={1.5}>
           <Box>
@@ -1717,6 +1747,26 @@ function ProposalsPage() {
                   영상 가이드
                 </Box>
               </Button>
+              {!showInlineVideoColumn && (
+                <Button
+                  size="small"
+                  variant="outlined"
+                  startIcon={<PlayCircleFilledRoundedIcon />}
+                  onClick={showVideoColumn}
+                  sx={{
+                    borderColor: "rgba(220, 38, 38, 0.45)",
+                    color: "#B91C1C",
+                    bgcolor: "#FFF5F5",
+                    px: 1.25,
+                    fontSize: 12,
+                    fontWeight: 800,
+                    borderRadius: "999px",
+                    "&:hover": { borderColor: "#DC2626", bgcolor: "#FEE2E2" },
+                  }}
+                >
+                  {isWideForVideoColumn ? "영상 컬럼 다시 보기" : "영상 가이드 열기"}
+                </Button>
+              )}
             </Stack>
             <Typography color="text.secondary" sx={{ mt: 0.5, fontSize: 12, fontWeight: 500, lineHeight: 1.55 }}>
               문서 유형을 선택하고 필요한 자료를 입력하면, 선택한 프롬프트로 문서를 생성합니다.
@@ -1737,7 +1787,9 @@ function ProposalsPage() {
       <Box
         sx={{
           display: "grid",
-          gridTemplateColumns: { xs: "minmax(0, 1fr)", md: "minmax(220px, 1fr) minmax(0, 3fr)" },
+          gridTemplateColumns: showInlineVideoColumn
+            ? { xs: "minmax(0, 1fr)", md: "minmax(220px, 1fr) minmax(0, 3fr)", lg: "minmax(220px, 1fr) minmax(0, 2.65fr) 312px", xl: "minmax(240px, 1fr) minmax(0, 2.9fr) 332px" }
+            : { xs: "minmax(0, 1fr)", md: "minmax(220px, 1fr) minmax(0, 3fr)" },
           gap: { xs: 2, md: 2.5 },
           alignItems: "start",
         }}
@@ -2521,7 +2573,297 @@ function ProposalsPage() {
               <Box component="span" aria-hidden="true" sx={reportHeroBadge}>CORE FEATURE</Box>
             </Box>
           </Button>
+
+          <Paper variant="outlined" sx={{ p: { xs: 2, md: 3 }, mt: 2.5, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.05)" }}>
+            <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ xs: "stretch", sm: "center" }} gap={1} sx={{ mb: { xs: 1, sm: 2 }, pb: 1.25, borderBottom: 1, borderColor: "divider" }}>
+              <Box>
+                <Stack direction="row" alignItems="center" spacing={1}>
+                  <Typography variant="h6" sx={{ fontWeight: 800 }}>보고서 리스트</Typography>
+                  <Button size="small" variant="outlined" startIcon={<AddRoundedIcon />} onClick={resetWorkspace}>
+                    신규
+                  </Button>
+                </Stack>
+                <Typography variant="caption" color="text.secondary">최근 생성한 맞춤 문서 보관함</Typography>
+              </Box>
+              <Stack direction="row" spacing={0.5} alignItems="center">
+                <Button size="small" variant={includeFailed ? "contained" : "outlined"} onClick={toggleFailedItems}>
+                  {includeFailed ? "실패 포함 중" : "실패 포함"}
+                </Button>
+                <IconButton aria-label="보고서 목록 새로고침" onClick={() => loadList(page)}><RefreshRoundedIcon /></IconButton>
+              </Stack>
+            </Stack>
+            <Stack component="form" direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ mb: 2 }} onSubmit={(event) => { event.preventDefault(); searchReports(draftListQuery); }}>
+              <TextField size="small" fullWidth label="보고서 검색" placeholder="제목·부제목(고객명·보험사·보험료)·프롬프트 검색" value={draftListQuery} inputProps={{ maxLength: 100 }} onChange={(event) => setDraftListQuery(event.target.value)}
+                sx={{ "& .MuiOutlinedInput-root .MuiOutlinedInput-notchedOutline": { border: "2px solid #03C75A" } }} />
+              <Button type="submit" variant="outlined">검색</Button>
+              {listQuery && <Button onClick={() => { setDraftListQuery(""); searchReports(""); }}>초기화</Button>}
+            </Stack>
+            {!items.length && <Typography color="text.secondary">{listQuery ? "검색 결과가 없습니다." : "생성한 보고서가 없습니다."}</Typography>}
+            <Stack>
+              {items.map((item, index) => (
+                <Box
+                  key={item.id}
+                  sx={{
+                    px: { xs: 0.5, sm: 1 },
+                    py: { xs: 1, sm: 1.5 },
+                    borderTop: "1px solid #f1f5f9",
+                    borderRadius: "10px",
+                    cursor: "default",
+                    bgcolor: (selectedReport?.id ?? previewItem?.id) === item.id ? "primary.light" : "transparent",
+                    outline: (selectedReport?.id ?? previewItem?.id) === item.id ? "2px solid var(--bojogae-accent-ink)" : "none",
+                    outlineOffset: "-2px",
+                    transition: "background-color 150ms ease, outline-color 150ms ease",
+                    "&:hover": { bgcolor: "#f8fafc" },
+                    "&:focus-visible": { outline: "2px solid var(--bojogae-accent-ink)", outlineOffset: "-2px" },
+                  }}
+                >
+                  <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between" gap={{ xs: 0.5, md: 1.5 }}>
+                    <Box sx={{ minWidth: 0 }}>
+                      <Stack direction="row" alignItems="center" gap={0.75} flexWrap="wrap">
+                        <Typography
+                          component="button"
+                          type="button"
+                          variant="subtitle2"
+                          data-report-list-help={index === 0 ? "first-title" : undefined}
+                          aria-expanded={selectedReport?.id === item.id}
+                          onClick={() => toggleReportDetail(item)}
+                          noWrap
+                          sx={{
+                            p: 0,
+                            m: 0,
+                            border: 0,
+                            background: "none",
+                            font: "inherit",
+                            fontWeight: 800,
+                            color: "text.primary",
+                            cursor: "pointer",
+                            textAlign: "left",
+                            minWidth: 0,
+                            flex: { xs: 1, sm: "initial" },
+                            "&:hover": { color: "primary.dark", textDecoration: "underline" },
+                            "&:focus-visible": { outline: "2px solid var(--bojogae-accent-ink)", borderRadius: "4px" },
+                          }}
+                        >
+                          {item.title}
+                        </Typography>
+                        <Chip size="small" color={statusColor(item.status)} label={STATUS_LABELS[item.status] || item.status} />
+                        {item.customer_id && (
+                          <Tooltip title="클릭하면 이 고객의 제안서·보고서만 모아 볼 수 있어요" arrow>
+                            <Chip
+                              size="small"
+                              component={Link}
+                              to={`/crm/customers/${item.customer_id}?tab=files`}
+                              clickable
+                              icon={<PersonOutlineRoundedIcon sx={{ fontSize: "14px !important", color: "#006E43 !important" }} />}
+                              label={customerNames[item.customer_id] || `고객 #${item.customer_id}`}
+                              onClick={(event) => event.stopPropagation()}
+                              sx={{
+                                bgcolor: "#ECFDF5",
+                                color: "#006E43",
+                                border: "1px solid rgba(3, 199, 90, 0.32)",
+                                fontWeight: 750,
+                              }}
+                            />
+                          </Tooltip>
+                        )}
+                        {item.report_variant === "simple" && <Chip size="small" color="info" variant="outlined" label="간소화" />}
+                        {item.point_status === "REFUNDED" && <Chip size="small" color="success" variant="outlined" label="꼬막 반환 완료" sx={{ display: { xs: "none", sm: "inline-flex" } }} />}
+                        {(selectedReport?.id ?? previewItem?.id) === item.id && (
+                          <Chip size="small" color="primary" variant="outlined" label="선택됨" sx={{ display: { xs: "none", sm: "inline-flex" }, fontWeight: 750 }} />
+                        )}
+                      </Stack>
+                      {item.summary && (
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            mt: 0.4,
+                            fontWeight: 700,
+                            color: "#1E293B",
+                            fontSize: { xs: 12.5, sm: 13.5 },
+                            lineHeight: 1.45,
+                            wordBreak: "keep-all",
+                          }}
+                        >
+                          {item.summary}
+                        </Typography>
+                      )}
+                      <Typography variant="caption" color="text.secondary" noWrap sx={{ display: { xs: "none", sm: "block" }, mt: 0.45 }}>
+                        {item.prompt_title} v{item.prompt_version_no} · 입력 자료 {item.input_file_count}개 ({formatBytes(item.total_input_bytes)}) · {formatDate(item.created_at)}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" noWrap sx={{ display: { xs: "block", sm: "none" }, mt: 0.25 }}>
+                        {item.prompt_title} · {formatDate(item.created_at)}{item.point_status === "REFUNDED" ? " · 꼬막 반환" : ""}
+                      </Typography>
+                      {item.error_message && <Typography color="error" variant="caption" noWrap sx={{ display: "block" }}>{item.error_message}</Typography>}
+                    </Box>
+                    <Stack
+                      direction="row"
+                      alignItems="center"
+                      justifyContent={{ xs: "flex-end", md: "flex-start" }}
+                      gap={0.25}
+                      flexWrap="wrap"
+                      sx={{
+                        width: { xs: "100%", md: "auto" },
+                        "& .MuiButton-root": {
+                          flexShrink: 0,
+                          minWidth: { xs: "auto", sm: 64 },
+                          px: { xs: 0.75, sm: 1 },
+                        },
+                      }}
+                      onClick={(event) => event.stopPropagation()}
+                      onKeyDown={(event) => event.stopPropagation()}
+                    >
+                      <Button size="small" onClick={() => showFiles(item)}>파일</Button>
+                      {item.status === "FAILED" && item.response_available && (
+                        <Button size="small" href={proposalRawResponseUrl(item.id, true, false)}>LLM 응답 다운로드</Button>
+                      )}
+                      <Button
+                        size="small"
+                        variant={isCompletedStatus(item.status) ? "contained" : "outlined"}
+                        startIcon={<VisibilityOutlinedIcon />}
+                        onClick={() => openPreview(item)}
+                      >
+                        열기
+                      </Button>
+                      {isCompletedStatus(item.status) && (Boolean(item.contract_id) || Number(item.contract_count || 0) > 0) ? (
+                        <Tooltip
+                          title="청약(계약) 등록 완료 · 클릭하면 등록된 계약 상세로 이동합니다"
+                          arrow
+                        >
+                          <span>
+                            <Button
+                              size="small"
+                              component={item.contract_id ? Link : undefined}
+                              to={item.contract_id ? `/crm/contracts/${item.contract_id}` : undefined}
+                              disabled={!item.contract_id}
+                              startIcon={<TaskAltRoundedIcon />}
+                              sx={applicationCompletedButtonStyle}
+                            >
+                              청약 완료
+                            </Button>
+                          </span>
+                        </Tooltip>
+                      ) : isCompletedStatus(item.status) && Boolean(item.is_contract_application_enabled) && (
+                        <Tooltip
+                          title={
+                            !item.customer_id
+                              ? "보고서 생성 시 고객을 연결한 경우에만 청약 자동 입력을 사용할 수 있어요"
+                              : "제안서 정보로 내 계약을 자동 입력합니다"
+                          }
+                          arrow
+                        >
+                          <span>
+                            <Button
+                              size="small"
+                              startIcon={<AutoAwesomeRoundedIcon />}
+                              sx={applicationButtonStyle}
+                              disabled={!item.customer_id || !!application?.loading}
+                              onClick={() => prepareApplication(item)}
+                            >
+                              청약
+                            </Button>
+                          </span>
+                        </Tooltip>
+                      )}
+                      {ACTIVE.has(item.status) && <Button size="small" color="warning" startIcon={<CancelOutlinedIcon />} onClick={() => runAction("cancel", item)}>취소</Button>}
+                      {item.status === "FAILED" && item.retryable && <Button size="small" startIcon={<ReplayRoundedIcon />} onClick={() => runAction("retry", item)}>재시도</Button>}
+                      {!ACTIVE.has(item.status) && <Button size="small" color="error" startIcon={<DeleteOutlineRoundedIcon />} onClick={() => runAction("delete", item)}>삭제</Button>}
+                    </Stack>
+                  </Stack>
+           {selectedReport?.id === item.id && (
+            <Paper onClick={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()} ref={statusPanelRef} variant="outlined" sx={{ p: { xs: 2, sm: 2.5 }, mt: 2, borderRadius: 3, scrollMarginTop: 80 }}>
+              <Stack spacing={2}>
+                <Stack direction="row" alignItems="flex-start" justifyContent="space-between" spacing={1}>
+                  <Typography variant="h6" sx={{ fontWeight: 800 }}>{selectedReport.title}</Typography>
+                  <IconButton aria-label="보고서 정보 닫기" onClick={() => {
+                    setStatusItem(null);
+                    setOpenedDocument(null);
+                  }} size="small">
+                    <CloseRoundedIcon />
+                  </IconButton>
+                </Stack>
+                <Typography variant="body2">선택한 프롬프트: {selectedReport.prompt_title} v{selectedReport.prompt_version_no}{selectedReport.report_variant === "simple" ? " · 간소화 버전" : ""}</Typography>
+                {selectedReport.customer_id && (
+                  <Stack direction="row" alignItems="center" gap={1} flexWrap="wrap">
+                    <Typography variant="body2" color="text.secondary">연결 고객:</Typography>
+                    <Tooltip title="클릭하면 이 고객의 제안서·보고서만 모아 볼 수 있어요" arrow>
+                      <Chip
+                        size="small"
+                        component={Link}
+                        to={`/crm/customers/${selectedReport.customer_id}?tab=files`}
+                        clickable
+                        icon={<PersonOutlineRoundedIcon sx={{ fontSize: "14px !important", color: "#006E43 !important" }} />}
+                        label={customerNames[selectedReport.customer_id] || `고객 #${selectedReport.customer_id}`}
+                        sx={{
+                          bgcolor: "#ECFDF5",
+                          color: "#006E43",
+                          border: "1px solid rgba(3, 199, 90, 0.32)",
+                          fontWeight: 750,
+                        }}
+                      />
+                    </Tooltip>
+                  </Stack>
+                )}
+                  <Stack spacing={1.25}>
+                    <Typography variant="subtitle2" fontWeight={800}>첨부파일</Typography>
+                    {!selectedReport.files ? (
+                      <Typography variant="body2" color="text.secondary">첨부파일을 불러오고 있습니다.</Typography>
+                    ) : selectedReport.files.length === 0 ? (
+                      <Typography variant="body2" color="text.secondary">첨부파일이 없습니다.</Typography>
+                    ) : selectedReport.files.map((file) => (
+                      <Paper key={file.id} variant="outlined" sx={{ p: 1.25, borderRadius: 2 }}>
+                        <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" gap={1}>
+                          <Box sx={{ minWidth: 0 }}>
+                            <Typography variant="body2" sx={{ overflowWrap: "anywhere" }}>{file.original_filename}</Typography>
+                            <Typography variant="caption" color="text.secondary">{formatBytes(file.size_bytes)}</Typography>
+                          </Box>
+                          <Stack direction="row" sx={{ flexShrink: 0 }}>
+                            <Button size="small" href={proposalFileUrl(selectedReport.id, "input", { fileId: file.id, download: true })}>다운로드</Button>
+                          </Stack>
+                        </Stack>
+                      </Paper>
+                    ))}
+                  </Stack>
+                <Stack direction="row" alignItems="center" spacing={1}>
+                  {ACTIVE.has(selectedReport.status) && <CircularProgress size={20} />}
+                  <Chip color={statusColor(selectedReport.status)} label={STATUS_LABELS[selectedReport.status] || selectedReport.status || "상태 확인 중"} />
+                </Stack>
+                {selectedReport.point_status === "REFUNDED" && <Alert severity="success">꼬막 반환 완료 · 이 문서 생성에 사용한 꼬막이 반환되었습니다.</Alert>}
+                {["COMPLETED", "FAILED"].includes(selectedReport.status) && ["CONSUMED", "REVIEW_REQUIRED"].includes(selectedReport.point_status) && <Button variant="outlined" color="warning" sx={{ alignSelf: "flex-start" }} component={Link} to={`/proposals/${selectedReport.id}/refund`}>환불 요청</Button>}
+                {statusItem && <Typography role="status" aria-live="polite" sx={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>
+                  {statusMessage || STATUS_LABELS[statusItem.status] || "진행 상태를 확인하고 있습니다."}
+                </Typography>}
+                {selectedReport.status === "FAILED" && selectedReport.response_available && (
+                  <Button variant="outlined" sx={{ alignSelf: "flex-start" }} href={proposalRawResponseUrl(selectedReport.id, true, false)}>
+                    LLM 응답 다운로드
+                  </Button>
+                )}
+                {isCompletedStatus(selectedReport.status) && (
+                  <Button
+                    variant="contained"
+                    size="small"
+                    startIcon={<VisibilityOutlinedIcon />}
+                    sx={{ alignSelf: "flex-start" }}
+                    onClick={() => openPreview(selectedReport)}
+                  >
+                    캔버스에서 열기
+                  </Button>
+                )}
+              </Stack>
+            </Paper>
+          )}
+                </Box>
+              ))}
+              {!items.length && <Typography color="text.secondary">생성한 문서가 없습니다.</Typography>}
+            </Stack>
+            {totalPages > 1 && <Pagination count={totalPages} page={page} onChange={(_, value) => loadList(value)} sx={{ mt: 3 }} />}
+          </Paper>
         </Stack>
+
+        {showInlineVideoColumn && (
+          <Stack component="aside" spacing={2} data-proposals-right-rail sx={{ minWidth: 0, alignSelf: "start" }}>
+            <ProposalVideoGuideColumn onHide={hideVideoColumn} />
+          </Stack>
+        )}
 
       </Box>
 
@@ -2540,6 +2882,47 @@ function ProposalsPage() {
           캔버스
         </Button>
       )}
+      {!showInlineVideoColumn && !canvasOpen && helpStep === null && (
+        <Button
+          variant="contained"
+          aria-label="기능 설명 영상 다시 보기"
+          onClick={showVideoColumn}
+          sx={{
+            position: "fixed",
+            right: 0,
+            top: "calc(50% + 72px)",
+            zIndex: (theme) => theme.zIndex.drawer - 1,
+            writingMode: "vertical-rl",
+            minWidth: 40,
+            px: 1,
+            py: 1.75,
+            borderRadius: "12px 0 0 12px",
+            letterSpacing: 2,
+            background: "linear-gradient(180deg, #DC2626 0%, #B91C1C 100%)",
+            color: "#FFFFFF",
+            boxShadow: "0 8px 22px rgba(220, 38, 38, 0.28)",
+            "&:hover": {
+              background: "linear-gradient(180deg, #B91C1C 0%, #991B1B 100%)",
+            },
+          }}
+        >
+          영상가이드
+        </Button>
+      )}
+      <Drawer
+        anchor="right"
+        open={!isWideForVideoColumn && videoDrawerOpen && !canvasOpen && helpStep === null}
+        onClose={() => setVideoDrawerOpen(false)}
+        sx={{ zIndex: (theme) => theme.zIndex.drawer + 2 }}
+        PaperProps={{
+          sx: {
+            width: { xs: "min(340px, 92vw)", sm: 360 },
+            overflow: "hidden",
+          },
+        }}
+      >
+        <ProposalVideoGuideColumn inDrawer onHide={() => setVideoDrawerOpen(false)} />
+      </Drawer>
       <Drawer
         anchor="right"
         open={canvasOpen && helpStep === null}
@@ -2682,290 +3065,6 @@ function ProposalsPage() {
             )}
           </Box>
       </Drawer>
-
-      <Paper variant="outlined" sx={{ p: { xs: 2, md: 3 }, mt: 2.5, ml: { md: "calc(max(220px, (100% - 20px) / 4) + 20px)" }, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.05)" }}>
-        <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ xs: "stretch", sm: "center" }} gap={1} sx={{ mb: { xs: 1, sm: 2 }, pb: 1.25, borderBottom: 1, borderColor: "divider" }}>
-          <Box>
-            <Stack direction="row" alignItems="center" spacing={1}>
-              <Typography variant="h6" sx={{ fontWeight: 800 }}>보고서 리스트</Typography>
-              <Button size="small" variant="outlined" startIcon={<AddRoundedIcon />} onClick={resetWorkspace}>
-                신규
-              </Button>
-            </Stack>
-            <Typography variant="caption" color="text.secondary">최근 생성한 맞춤 문서 보관함</Typography>
-          </Box>
-          <Stack direction="row" spacing={0.5} alignItems="center">
-            <Button size="small" variant={includeFailed ? "contained" : "outlined"} onClick={toggleFailedItems}>
-              {includeFailed ? "실패 포함 중" : "실패 포함"}
-            </Button>
-            <IconButton aria-label="보고서 목록 새로고침" onClick={() => loadList(page)}><RefreshRoundedIcon /></IconButton>
-          </Stack>
-        </Stack>
-        <Stack component="form" direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ mb: 2 }} onSubmit={(event) => { event.preventDefault(); searchReports(draftListQuery); }}>
-          <TextField size="small" fullWidth label="보고서 검색" placeholder="제목·부제목(고객명·보험사·보험료)·프롬프트 검색" value={draftListQuery} inputProps={{ maxLength: 100 }} onChange={(event) => setDraftListQuery(event.target.value)}
-            sx={{ "& .MuiOutlinedInput-root .MuiOutlinedInput-notchedOutline": { border: "2px solid #03C75A" } }} />
-          <Button type="submit" variant="outlined">검색</Button>
-          {listQuery && <Button onClick={() => { setDraftListQuery(""); searchReports(""); }}>초기화</Button>}
-        </Stack>
-        {!items.length && <Typography color="text.secondary">{listQuery ? "검색 결과가 없습니다." : "생성한 보고서가 없습니다."}</Typography>}
-        <Stack>
-          {items.map((item, index) => (
-            <Box
-              key={item.id}
-              sx={{
-                px: { xs: 0.5, sm: 1 },
-                py: { xs: 1, sm: 1.5 },
-                borderTop: "1px solid #f1f5f9",
-                borderRadius: "10px",
-                cursor: "default",
-                bgcolor: (selectedReport?.id ?? previewItem?.id) === item.id ? "primary.light" : "transparent",
-                outline: (selectedReport?.id ?? previewItem?.id) === item.id ? "2px solid var(--bojogae-accent-ink)" : "none",
-                outlineOffset: "-2px",
-                transition: "background-color 150ms ease, outline-color 150ms ease",
-                "&:hover": { bgcolor: "#f8fafc" },
-                "&:focus-visible": { outline: "2px solid var(--bojogae-accent-ink)", outlineOffset: "-2px" },
-              }}
-            >
-              <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between" gap={{ xs: 0.5, md: 1.5 }}>
-                <Box sx={{ minWidth: 0 }}>
-                  <Stack direction="row" alignItems="center" gap={0.75} flexWrap="wrap">
-                    <Typography
-                      component="button"
-                      type="button"
-                      variant="subtitle2"
-                      data-report-list-help={index === 0 ? "first-title" : undefined}
-                      aria-expanded={selectedReport?.id === item.id}
-                      onClick={() => toggleReportDetail(item)}
-                      noWrap
-                      sx={{
-                        p: 0,
-                        m: 0,
-                        border: 0,
-                        background: "none",
-                        font: "inherit",
-                        fontWeight: 800,
-                        color: "text.primary",
-                        cursor: "pointer",
-                        textAlign: "left",
-                        minWidth: 0,
-                        flex: { xs: 1, sm: "initial" },
-                        "&:hover": { color: "primary.dark", textDecoration: "underline" },
-                        "&:focus-visible": { outline: "2px solid var(--bojogae-accent-ink)", borderRadius: "4px" },
-                      }}
-                    >
-                      {item.title}
-                    </Typography>
-                    <Chip size="small" color={statusColor(item.status)} label={STATUS_LABELS[item.status] || item.status} />
-                    {item.customer_id && (
-                      <Tooltip title="클릭하면 이 고객의 제안서·보고서만 모아 볼 수 있어요" arrow>
-                        <Chip
-                          size="small"
-                          component={Link}
-                          to={`/crm/customers/${item.customer_id}?tab=files`}
-                          clickable
-                          icon={<PersonOutlineRoundedIcon sx={{ fontSize: "14px !important", color: "#006E43 !important" }} />}
-                          label={customerNames[item.customer_id] || `고객 #${item.customer_id}`}
-                          onClick={(event) => event.stopPropagation()}
-                          sx={{
-                            bgcolor: "#ECFDF5",
-                            color: "#006E43",
-                            border: "1px solid rgba(3, 199, 90, 0.32)",
-                            fontWeight: 750,
-                          }}
-                        />
-                      </Tooltip>
-                    )}
-                    {item.report_variant === "simple" && <Chip size="small" color="info" variant="outlined" label="간소화" />}
-                    {item.point_status === "REFUNDED" && <Chip size="small" color="success" variant="outlined" label="꼬막 반환 완료" sx={{ display: { xs: "none", sm: "inline-flex" } }} />}
-                    {(selectedReport?.id ?? previewItem?.id) === item.id && (
-                      <Chip size="small" color="primary" variant="outlined" label="선택됨" sx={{ display: { xs: "none", sm: "inline-flex" }, fontWeight: 750 }} />
-                    )}
-                  </Stack>
-                  {item.summary && (
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        mt: 0.4,
-                        fontWeight: 700,
-                        color: "#1E293B",
-                        fontSize: { xs: 12.5, sm: 13.5 },
-                        lineHeight: 1.45,
-                        wordBreak: "keep-all",
-                      }}
-                    >
-                      {item.summary}
-                    </Typography>
-                  )}
-                  <Typography variant="caption" color="text.secondary" noWrap sx={{ display: { xs: "none", sm: "block" }, mt: 0.45 }}>
-                    {item.prompt_title} v{item.prompt_version_no} · 입력 자료 {item.input_file_count}개 ({formatBytes(item.total_input_bytes)}) · {formatDate(item.created_at)}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" noWrap sx={{ display: { xs: "block", sm: "none" }, mt: 0.25 }}>
-                    {item.prompt_title} · {formatDate(item.created_at)}{item.point_status === "REFUNDED" ? " · 꼬막 반환" : ""}
-                  </Typography>
-                  {item.error_message && <Typography color="error" variant="caption" noWrap sx={{ display: "block" }}>{item.error_message}</Typography>}
-                </Box>
-                <Stack
-                  direction="row"
-                  alignItems="center"
-                  justifyContent={{ xs: "flex-end", md: "flex-start" }}
-                  gap={0.25}
-                  flexWrap="wrap"
-                  sx={{
-                    width: { xs: "100%", md: "auto" },
-                    "& .MuiButton-root": {
-                      flexShrink: 0,
-                      minWidth: { xs: "auto", sm: 64 },
-                      px: { xs: 0.75, sm: 1 },
-                    },
-                  }}
-                  onClick={(event) => event.stopPropagation()}
-                  onKeyDown={(event) => event.stopPropagation()}
-                >
-                  <Button size="small" onClick={() => showFiles(item)}>파일</Button>
-                  {item.status === "FAILED" && item.response_available && (
-                    <Button size="small" href={proposalRawResponseUrl(item.id, true, false)}>LLM 응답 다운로드</Button>
-                  )}
-                  <Button
-                    size="small"
-                    variant={isCompletedStatus(item.status) ? "contained" : "outlined"}
-                    startIcon={<VisibilityOutlinedIcon />}
-                    onClick={() => openPreview(item)}
-                  >
-                    열기
-                  </Button>
-                  {isCompletedStatus(item.status) && (Boolean(item.contract_id) || Number(item.contract_count || 0) > 0) ? (
-                    <Tooltip
-                      title="청약(계약) 등록 완료 · 클릭하면 등록된 계약 상세로 이동합니다"
-                      arrow
-                    >
-                      <span>
-                        <Button
-                          size="small"
-                          component={item.contract_id ? Link : undefined}
-                          to={item.contract_id ? `/crm/contracts/${item.contract_id}` : undefined}
-                          disabled={!item.contract_id}
-                          startIcon={<TaskAltRoundedIcon />}
-                          sx={applicationCompletedButtonStyle}
-                        >
-                          청약 완료
-                        </Button>
-                      </span>
-                    </Tooltip>
-                  ) : isCompletedStatus(item.status) && Boolean(item.is_contract_application_enabled) && (
-                    <Tooltip
-                      title={
-                        !item.customer_id
-                          ? "보고서 생성 시 고객을 연결한 경우에만 청약 자동 입력을 사용할 수 있어요"
-                          : "제안서 정보로 내 계약을 자동 입력합니다"
-                      }
-                      arrow
-                    >
-                      <span>
-                        <Button
-                          size="small"
-                          startIcon={<AutoAwesomeRoundedIcon />}
-                          sx={applicationButtonStyle}
-                          disabled={!item.customer_id || !!application?.loading}
-                          onClick={() => prepareApplication(item)}
-                        >
-                          청약
-                        </Button>
-                      </span>
-                    </Tooltip>
-                  )}
-                  {ACTIVE.has(item.status) && <Button size="small" color="warning" startIcon={<CancelOutlinedIcon />} onClick={() => runAction("cancel", item)}>취소</Button>}
-                  {item.status === "FAILED" && item.retryable && <Button size="small" startIcon={<ReplayRoundedIcon />} onClick={() => runAction("retry", item)}>재시도</Button>}
-                  {!ACTIVE.has(item.status) && <Button size="small" color="error" startIcon={<DeleteOutlineRoundedIcon />} onClick={() => runAction("delete", item)}>삭제</Button>}
-                </Stack>
-              </Stack>
-       {selectedReport?.id === item.id && (
-        <Paper onClick={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()} ref={statusPanelRef} variant="outlined" sx={{ p: { xs: 2, sm: 2.5 }, mt: 2, borderRadius: 3, scrollMarginTop: 80 }}>
-          <Stack spacing={2}>
-            <Stack direction="row" alignItems="flex-start" justifyContent="space-between" spacing={1}>
-              <Typography variant="h6" sx={{ fontWeight: 800 }}>{selectedReport.title}</Typography>
-              <IconButton aria-label="보고서 정보 닫기" onClick={() => {
-                setStatusItem(null);
-                setOpenedDocument(null);
-              }} size="small">
-                <CloseRoundedIcon />
-              </IconButton>
-            </Stack>
-            <Typography variant="body2">선택한 프롬프트: {selectedReport.prompt_title} v{selectedReport.prompt_version_no}{selectedReport.report_variant === "simple" ? " · 간소화 버전" : ""}</Typography>
-            {selectedReport.customer_id && (
-              <Stack direction="row" alignItems="center" gap={1} flexWrap="wrap">
-                <Typography variant="body2" color="text.secondary">연결 고객:</Typography>
-                <Tooltip title="클릭하면 이 고객의 제안서·보고서만 모아 볼 수 있어요" arrow>
-                  <Chip
-                    size="small"
-                    component={Link}
-                    to={`/crm/customers/${selectedReport.customer_id}?tab=files`}
-                    clickable
-                    icon={<PersonOutlineRoundedIcon sx={{ fontSize: "14px !important", color: "#006E43 !important" }} />}
-                    label={customerNames[selectedReport.customer_id] || `고객 #${selectedReport.customer_id}`}
-                    sx={{
-                      bgcolor: "#ECFDF5",
-                      color: "#006E43",
-                      border: "1px solid rgba(3, 199, 90, 0.32)",
-                      fontWeight: 750,
-                    }}
-                  />
-                </Tooltip>
-              </Stack>
-            )}
-              <Stack spacing={1.25}>
-                <Typography variant="subtitle2" fontWeight={800}>첨부파일</Typography>
-                {!selectedReport.files ? (
-                  <Typography variant="body2" color="text.secondary">첨부파일을 불러오고 있습니다.</Typography>
-                ) : selectedReport.files.length === 0 ? (
-                  <Typography variant="body2" color="text.secondary">첨부파일이 없습니다.</Typography>
-                ) : selectedReport.files.map((file) => (
-                  <Paper key={file.id} variant="outlined" sx={{ p: 1.25, borderRadius: 2 }}>
-                    <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" gap={1}>
-                      <Box sx={{ minWidth: 0 }}>
-                        <Typography variant="body2" sx={{ overflowWrap: "anywhere" }}>{file.original_filename}</Typography>
-                        <Typography variant="caption" color="text.secondary">{formatBytes(file.size_bytes)}</Typography>
-                      </Box>
-                      <Stack direction="row" sx={{ flexShrink: 0 }}>
-                        <Button size="small" href={proposalFileUrl(selectedReport.id, "input", { fileId: file.id, download: true })}>다운로드</Button>
-                      </Stack>
-                    </Stack>
-                  </Paper>
-                ))}
-              </Stack>
-            <Stack direction="row" alignItems="center" spacing={1}>
-              {ACTIVE.has(selectedReport.status) && <CircularProgress size={20} />}
-              <Chip color={statusColor(selectedReport.status)} label={STATUS_LABELS[selectedReport.status] || selectedReport.status || "상태 확인 중"} />
-            </Stack>
-            {selectedReport.point_status === "REFUNDED" && <Alert severity="success">꼬막 반환 완료 · 이 문서 생성에 사용한 꼬막이 반환되었습니다.</Alert>}
-            {["COMPLETED", "FAILED"].includes(selectedReport.status) && ["CONSUMED", "REVIEW_REQUIRED"].includes(selectedReport.point_status) && <Button variant="outlined" color="warning" sx={{ alignSelf: "flex-start" }} component={Link} to={`/proposals/${selectedReport.id}/refund`}>환불 요청</Button>}
-            {statusItem && <Typography role="status" aria-live="polite" sx={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>
-              {statusMessage || STATUS_LABELS[statusItem.status] || "진행 상태를 확인하고 있습니다."}
-            </Typography>}
-            {selectedReport.status === "FAILED" && selectedReport.response_available && (
-              <Button variant="outlined" sx={{ alignSelf: "flex-start" }} href={proposalRawResponseUrl(selectedReport.id, true, false)}>
-                LLM 응답 다운로드
-              </Button>
-            )}
-            {isCompletedStatus(selectedReport.status) && (
-              <Button
-                variant="contained"
-                size="small"
-                startIcon={<VisibilityOutlinedIcon />}
-                sx={{ alignSelf: "flex-start" }}
-                onClick={() => openPreview(selectedReport)}
-              >
-                캔버스에서 열기
-              </Button>
-            )}
-          </Stack>
-        </Paper>
-      )}
-            </Box>
-          ))}
-          {!items.length && <Typography color="text.secondary">생성한 문서가 없습니다.</Typography>}
-        </Stack>
-        {totalPages > 1 && <Pagination count={totalPages} page={page} onChange={(_, value) => loadList(value)} sx={{ mt: 3 }} />}
-      </Paper>
 
       {helpStep !== null && (
         <ReportHelpTour
