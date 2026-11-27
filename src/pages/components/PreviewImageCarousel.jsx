@@ -1,7 +1,6 @@
 /* eslint-disable react/prop-types */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, Box, Button, ButtonBase, Chip, Dialog, IconButton, Stack, Tooltip, Typography, useMediaQuery } from "@mui/material";
-import { useTheme } from "@mui/material/styles";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import CloseIcon from "@mui/icons-material/Close";
@@ -21,9 +20,9 @@ const DESKTOP_VISIBLE_IMAGES = 3;
 const IMAGE_GAP = 12;
 
 export default function PreviewImageCarousel({ slides, title = "결과 미리보기", onRemove, disabled = false }) {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-  const visibleImages = isMobile ? 1 : DESKTOP_VISIBLE_IMAGES;
+  const isMobile = useMediaQuery("(max-width: 767px)");
+  const maxVisible = isMobile ? 1 : DESKTOP_VISIBLE_IMAGES;
+  const visibleImages = Math.max(1, Math.min(maxVisible, slides.length));
   const [position, setPosition] = useState(0);
   const [expandedOpen, setExpandedOpen] = useState(false);
   const [activePage, setActivePage] = useState(0);
@@ -38,6 +37,7 @@ export default function PreviewImageCarousel({ slides, title = "결과 미리보
   const initialAlignDeadlineRef = useRef(0);
   const programmaticScrollUntilRef = useRef(0);
   const lastPosition = Math.max(0, slides.length - visibleImages);
+  const canSlide = lastPosition > 0;
   const index = Math.min(position, lastPosition);
   const currentExpandedPage = Math.min(activePage, Math.max(0, slides.length - 1));
   const move = (next) => setPosition(Math.max(0, Math.min(next, lastPosition)));
@@ -146,49 +146,96 @@ export default function PreviewImageCarousel({ slides, title = "결과 미리보
     window.requestAnimationFrame(() => scrollToPage(pageToKeep, "auto"));
   };
 
+  const blockBubble = (event) => {
+    pointerStart.current = null;
+    event.stopPropagation();
+  };
+
   const navigation = (direction) => {
     const previous = direction === "previous";
-    return <ButtonBase aria-label={previous ? "이전 이미지" : "다음 이미지"}
-      disabled={previous ? index === 0 : index === lastPosition}
-      onClick={() => move(index + (previous ? -1 : 1))}
-      sx={{ position: "absolute", zIndex: 2, top: 0, bottom: onRemove ? 64 : 0,
-        [previous ? "left" : "right"]: 0, width: { xs: 40, sm: 64 }, borderRadius: 2 }}>
-      <Box className="carousel-arrow" sx={{ opacity: { xs: 0.75, sm: 0.5 }, display: "flex", alignItems: "center", justifyContent: "center",
-        width: { xs: 34, sm: 44 }, height: { xs: 34, sm: 44 }, borderRadius: "50%",
-        bgcolor: "rgba(15,23,42,0.78)", color: "white", boxShadow: "0 2px 12px rgba(0,0,0,0.25)" }}>
-        {previous ? <ChevronLeftIcon /> : <ChevronRightIcon />}
+    const isDisabled = previous ? index === 0 : index === lastPosition;
+    return (
+      <Box
+        data-carousel-nav="true"
+        onClick={blockBubble}
+        onMouseDown={blockBubble}
+        onPointerDown={blockBubble}
+        onPointerUp={blockBubble}
+        onTouchStart={blockBubble}
+        onTouchEnd={blockBubble}
+        sx={{
+          position: "absolute",
+          zIndex: 5,
+          top: onRemove ? "calc(50% - 29px)" : "50%",
+          transform: "translateY(-50%)",
+          [previous ? "left" : "right"]: { xs: 8, sm: 14 },
+          pointerEvents: "auto",
+        }}
+      >
+        <IconButton
+          type="button"
+          aria-label={previous ? "이전 이미지" : "다음 이미지"}
+          disabled={isDisabled}
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            pointerStart.current = null;
+            suppressClick.current = false;
+            if (!isDisabled) move(index + (previous ? -1 : 1));
+          }}
+          sx={{
+            width: { xs: 38, sm: 44 },
+            height: { xs: 38, sm: 44 },
+            borderRadius: "50%",
+            bgcolor: "rgba(15,23,42,0.82)",
+            color: "white",
+            boxShadow: "0 2px 12px rgba(0,0,0,0.28)",
+            "&:hover": { bgcolor: "rgba(15,23,42,0.96)" },
+            "&.Mui-disabled": {
+              bgcolor: "rgba(15,23,42,0.28)",
+              color: "rgba(255,255,255,0.45)",
+              pointerEvents: "auto",
+              cursor: "default",
+            },
+          }}
+        >
+          {previous ? <ChevronLeftIcon /> : <ChevronRightIcon />}
+        </IconButton>
       </Box>
-    </ButtonBase>;
+    );
   };
   if (!slides.length) return null;
   const pageWidthPx = Math.round(BASE_PREVIEW_PAGE_WIDTH * zoom);
   return <>
     <Stack role="region" aria-label={`${title} 이미지 슬라이드`} tabIndex={0}
       onKeyDown={(event) => {
-        if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+        if (canSlide && (event.key === "ArrowLeft" || event.key === "ArrowRight")) {
           event.preventDefault(); move(index + (event.key === "ArrowLeft" ? -1 : 1));
         }
       }} sx={{ width: "100%", height: "100%", minHeight: 0, gap: 1.5 }}>
-      <Box sx={{ position: "relative", flex: 1, minHeight: 0, overflow: "hidden", borderRadius: 2 }}
+      <Box sx={{ position: "relative", flex: 1, minHeight: 0, width: "100%", mx: "auto",
+        maxWidth: !isMobile ? (slides.length === 1 ? 680 : slides.length === 2 ? 1080 : undefined) : undefined,
+        overflow: "hidden", borderRadius: 2 }}
         onPointerDown={(event) => {
+          if (!canSlide || event.target?.closest?.("[data-carousel-nav='true']")) return;
           suppressClick.current = false;
           pointerStart.current = { x: event.clientX, y: event.clientY };
         }}
         onPointerUp={(event) => {
           const start = pointerStart.current;
           pointerStart.current = null;
-          if (!start) return;
+          if (!start || !canSlide) return;
           const delta = event.clientX - start.x;
           if (Math.abs(delta) > 45 && Math.abs(delta) > Math.abs(event.clientY - start.y)) {
             suppressClick.current = true; move(index + (delta < 0 ? 1 : -1));
           }
         }} onPointerCancel={() => { pointerStart.current = null; }}>
         <Box sx={{ display: "flex", gap: "12px", height: "100%", touchAction: "pan-y",
-          transform: `translateX(calc(-${index * 100 / visibleImages}% - ${index * IMAGE_GAP / visibleImages}px))`,
+          transform: canSlide ? `translateX(calc(-${index * 100 / visibleImages}% - ${index * IMAGE_GAP / visibleImages}px))` : "none",
           transition: "transform 240ms ease", "@media (prefers-reduced-motion: reduce)": { transition: "none" } }}>
           {slides.map((slide, slideIndex) => <Stack key={slide.id || slide.url || slideIndex}
             aria-hidden={slideIndex < index || slideIndex >= index + visibleImages}
-            sx={{ flex: `0 0 calc((100% - ${IMAGE_GAP * (visibleImages - 1)}px) / ${visibleImages})`, minWidth: 0, height: "100%", gap: 0.75 }}>
+            sx={{ flex: visibleImages === 1 ? "0 0 100%" : `0 0 calc((100% - ${IMAGE_GAP * (visibleImages - 1)}px) / ${visibleImages})`, minWidth: 0, height: "100%", gap: 0.75 }}>
             <ButtonBase tabIndex={slideIndex >= index && slideIndex < index + visibleImages ? 0 : -1}
               aria-label={`${title} ${slideIndex + 1}번 이미지 확대`} onClick={() => {
                 if (suppressClick.current) { suppressClick.current = false; return; }
@@ -202,14 +249,16 @@ export default function PreviewImageCarousel({ slides, title = "결과 미리보
             {onRemove && <Stack alignItems="center" sx={{ flexShrink: 0, height: 58 }}>
               <Typography noWrap variant="caption" sx={{ maxWidth: "100%" }}>{slide.filename || `이미지 ${slideIndex + 1}`}</Typography>
               <Button size="small" color="error" disabled={disabled} tabIndex={slideIndex >= index && slideIndex < index + visibleImages ? 0 : -1}
-                aria-label={`${slideIndex + 1}번 이미지 삭제`} onClick={() => onRemove(slide)}>삭제</Button>
+                aria-label={`${slideIndex + 1}번 이미지 삭제`}
+                onPointerDown={(event) => event.stopPropagation()}
+                onClick={(event) => { event.stopPropagation(); onRemove(slide); }}>삭제</Button>
             </Stack>}
           </Stack>)}
         </Box>
-        {navigation("previous")}{navigation("next")}
+        {canSlide && navigation("previous")}{canSlide && navigation("next")}
       </Box>
       <Stack alignItems="center" spacing={0.5} sx={{ flexShrink: 0, minWidth: 0 }}>
-        <Box role="navigation" aria-label="미리보기 페이지 이동" sx={{ display: "flex", alignItems: "center", gap: 1,
+        {canSlide && <Box role="navigation" aria-label="미리보기 페이지 이동" sx={{ display: "flex", alignItems: "center", gap: 1,
           px: 2, py: 0.75, maxWidth: "100%", boxSizing: "border-box", overflowX: "auto", borderRadius: 99,
           bgcolor: "#0f172a", border: "1px solid #263247", scrollbarWidth: "none", "&::-webkit-scrollbar": { display: "none" } }}>
           {Array.from({ length: lastPosition + 1 }, (_, page) => <ButtonBase key={page}
@@ -220,7 +269,7 @@ export default function PreviewImageCarousel({ slides, title = "결과 미리보
               "&:hover, &:focus-visible": { bgcolor: page === index ? "#2563eb" : "#334155", borderColor: "#93c5fd" } }}>
             {page + 1}
           </ButtonBase>)}
-        </Box>
+        </Box>}
         <Stack direction="row" spacing={1.25} alignItems="center" flexWrap="wrap" justifyContent="center">
           <Typography variant="caption" color="text.secondary">
             {visibleImages === 1 ? `${index + 1} / ${slides.length}` : `${index + 1}–${Math.min(index + visibleImages, slides.length)} / ${slides.length}`}
@@ -324,7 +373,7 @@ export default function PreviewImageCarousel({ slides, title = "결과 미리보
             </IconButton>
           </Stack>
         </Stack>
-        <Stack
+        {slides.length > 1 && <Stack
           role="navigation"
           aria-label="확대 미리보기 페이지 선택"
           direction="row"
@@ -393,7 +442,7 @@ export default function PreviewImageCarousel({ slides, title = "결과 미리보
           >
             <ChevronRightIcon fontSize="small" />
           </IconButton>
-        </Stack>
+        </Stack>}
       </Stack>
       <Box
         ref={scrollContainerRef}

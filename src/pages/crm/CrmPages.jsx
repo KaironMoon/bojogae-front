@@ -1166,8 +1166,8 @@ export function ContractsPage() {
             <ToggleButton value="cards"><ContractDesignIcon name="grid" />2열 컴팩트 카드</ToggleButton>
           </ToggleButtonGroup>
         </div>} />
-      <Panel className="crm-contracts-filters css-cj0pfk">
-        <form className="crm-contract-search-row css-pyv44k" onSubmit={event => {
+      <Panel className="crm-contracts-filters">
+        <form className="crm-contract-search-row" onSubmit={event => {
           event.preventDefault(); setSearch(q); setPage(1);
         }}>
           <div className="crm-contract-search">
@@ -1183,7 +1183,7 @@ export function ContractsPage() {
             <option value="false">보기: 관리 계약</option><option value="true">보기: 보관 계약</option><option value="all">보기: 전체 계약</option>
           </select>
         </form>
-        <div className="crm-contract-filter-row css-94s6u9">
+        <div className="crm-contract-filter-row">
           <select id=":rbr:" aria-label="등록 구분" value={origin} onChange={event => { setOrigin(event.target.value); setPage(1); }}>
             <option value="">등록 구분: 전체</option><option value="EXISTING">기존 가입 보험</option><option value="NEW">신규 진행 계약</option>
           </select>

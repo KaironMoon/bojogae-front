@@ -2632,7 +2632,19 @@ function ProposalsPage() {
         onHideToday={hidePopupNoticesToday}
       />
 
-      <Dialog open={Boolean(promptPreviewOption)} onClose={closePromptPreview} fullWidth maxWidth="xl"
+      <Dialog
+        open={Boolean(promptPreviewOption)}
+        onClose={closePromptPreview}
+        fullWidth
+        maxWidth={(() => {
+          if (!promptPreviewOption) return "xl";
+          const slideCount = promptPreviewVariant === "simple"
+            ? (promptPreviewOption.simple_preview_image_available ? (promptPreviewOption.simple_preview_images || []).length : 0)
+            : (promptPreviewOption.preview_image_available ? (promptPreviewOption.preview_images?.length || 1) : 0);
+          if (slideCount === 1) return "md";
+          if (slideCount === 2) return "lg";
+          return "xl";
+        })()}
         PaperProps={{ sx: { height: "calc(100dvh - 48px)", maxHeight: "calc(100dvh - 48px)", m: 3, overflow: "hidden" } }}>
         <DialogTitle sx={{ flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1 }}>
           <Box component="span" sx={{ minWidth: 0, overflowWrap: "anywhere" }}>
