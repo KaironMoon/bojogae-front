@@ -109,7 +109,7 @@ import ZoomOutRoundedIcon from "@mui/icons-material/ZoomOutRounded";
 import IosShareRoundedIcon from "@mui/icons-material/IosShareRounded";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 import HelpOutlineRoundedIcon from "@mui/icons-material/HelpOutlineRounded";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useTheme } from "@mui/material/styles";
 import ExpiringPoints from "@/pages/components/ExpiringPoints";
 
@@ -213,71 +213,152 @@ function PreviewIconButton({ variant = "detailed", title, ariaLabel, disabled, o
 
 // eslint-disable-next-line react/prop-types
 function PromptCardDescription({ description }) {
+  const text = String(description || "");
   const [expanded, setExpanded] = useState(false);
-  const [overflows, setOverflows] = useState(false);
+  const [truncated, setTruncated] = useState(null);
   const textRef = useRef(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const el = textRef.current;
-    if (!el || expanded) return undefined;
+    if (!el || expanded || !text) {
+      if (!text) setTruncated(null);
+      return undefined;
+    }
+
     const measure = () => {
-      setOverflows(el.scrollHeight > el.clientHeight + 1);
+      const width = el.clientWidth;
+      if (!width) return;
+
+      const cs = window.getComputedStyle(el);
+      const fontSize = parseFloat(cs.fontSize) || 12;
+      const lineHeight = parseFloat(cs.lineHeight) || fontSize * 1.45;
+      const maxH = lineHeight * 3 + 1;
+
+      const probe = document.createElement("div");
+      probe.style.position = "fixed";
+      probe.style.left = "-99999px";
+      probe.style.top = "0";
+      probe.style.visibility = "hidden";
+      probe.style.pointerEvents = "none";
+      probe.style.boxSizing = "border-box";
+      probe.style.width = `${width}px`;
+      probe.style.fontFamily = cs.fontFamily;
+      probe.style.fontSize = cs.fontSize;
+      probe.style.fontWeight = cs.fontWeight;
+      probe.style.letterSpacing = cs.letterSpacing;
+      probe.style.lineHeight = cs.lineHeight;
+      probe.style.whiteSpace = "pre-line";
+      probe.style.wordBreak = cs.wordBreak;
+      probe.style.overflowWrap = cs.overflowWrap;
+
+      document.body.appendChild(probe);
+      try {
+        probe.textContent = text;
+        if (probe.scrollHeight <= maxH) {
+          setTruncated(null);
+          return;
+        }
+
+        const btnSpan = document.createElement("span");
+        btnSpan.textContent = "더보기";
+        btnSpan.style.fontFamily = cs.fontFamily;
+        btnSpan.style.fontSize = "11.5px";
+        btnSpan.style.fontWeight = "800";
+        btnSpan.style.lineHeight = cs.lineHeight;
+        btnSpan.style.whiteSpace = "nowrap";
+
+        let lo = 0;
+        let hi = text.length;
+        let best = 0;
+        while (lo <= hi) {
+          const mid = (lo + hi) >> 1;
+          const prefix = text.slice(0, mid).replace(/\s+$/, "");
+          probe.textContent = `${prefix}... `;
+          probe.appendChild(btnSpan);
+          if (probe.scrollHeight <= maxH) {
+            best = mid;
+            lo = mid + 1;
+          } else {
+            hi = mid - 1;
+          }
+        }
+        setTruncated(text.slice(0, best).replace(/\s+$/, ""));
+      } finally {
+        probe.remove();
+      }
     };
-    const frameId = requestAnimationFrame(measure);
+
+    measure();
     let observer;
     if (typeof ResizeObserver !== "undefined") {
       observer = new ResizeObserver(measure);
       observer.observe(el);
     }
     return () => {
-      cancelAnimationFrame(frameId);
       if (observer) observer.disconnect();
     };
-  }, [description, expanded]);
+  }, [text, expanded]);
+
+  const inlineButtonSx = {
+    display: "inline",
+    p: 0,
+    border: 0,
+    bgcolor: "transparent",
+    color: "primary.main",
+    fontFamily: "inherit",
+    fontSize: 11.5,
+    fontWeight: 800,
+    lineHeight: "inherit",
+    verticalAlign: "baseline",
+    whiteSpace: "nowrap",
+    cursor: "pointer",
+    "&:hover": { textDecoration: "underline" },
+  };
 
   return (
-    <Box sx={{ mt: 0.65 }}>
-      <Typography
-        ref={textRef}
-        variant="caption"
-        color="text.secondary"
-        sx={{
-          display: expanded ? "block" : "-webkit-box",
-          lineHeight: 1.45,
-          WebkitBoxOrient: "vertical",
-          ...(expanded ? {} : { WebkitLineClamp: 3 }),
-          overflow: "hidden",
-          whiteSpace: "pre-line",
-        }}
-      >
-        {description}
-      </Typography>
-      {(overflows || expanded) && (
-        <Box
-          component="button"
-          type="button"
-          aria-expanded={expanded}
-          onClick={(event) => {
-            event.stopPropagation();
-            setExpanded((current) => !current);
-          }}
-          sx={{
-            mt: 0.25,
-            p: 0,
-            border: 0,
-            bgcolor: "transparent",
-            color: "primary.main",
-            fontSize: 11.5,
-            fontWeight: 800,
-            cursor: "pointer",
-            lineHeight: 1.4,
-            "&:hover": { textDecoration: "underline" },
-          }}
-        >
-          {expanded ? "접기" : "더보기"}
-        </Box>
+    <Typography
+      ref={textRef}
+      component="div"
+      variant="caption"
+      color="text.secondary"
+      sx={{ mt: 0.65, display: "block", lineHeight: 1.45, whiteSpace: "pre-line" }}
+    >
+      {expanded ? (
+        <>
+          {description}{" "}
+          <Box
+            component="button"
+            type="button"
+            aria-expanded={true}
+            onClick={(event) => {
+              event.stopPropagation();
+              setExpanded(false);
+            }}
+            sx={inlineButtonSx}
+          >
+            접기
+          </Box>
+        </>
+      ) : truncated !== null ? (
+        <>
+          {truncated}...{" "}
+          <Box
+            component="button"
+            type="button"
+            aria-expanded={false}
+            onClick={(event) => {
+              event.stopPropagation();
+              setExpanded(true);
+            }}
+            sx={inlineButtonSx}
+          >
+            더보기
+          </Box>
+        </>
+      ) : (
+        description
       )}
-    </Box>
+    </Typography>
   );
 }
 
