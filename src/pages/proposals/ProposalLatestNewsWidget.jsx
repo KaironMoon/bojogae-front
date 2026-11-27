@@ -113,10 +113,9 @@ export default function ProposalLatestNewsWidget({ userId, hidden = false }) { /
             background: "linear-gradient(180deg, #1e293b 0%, #334155 100%)",
             color: "#f8fafc",
             boxShadow: "0 8px 24px rgba(15, 23, 42, 0.22)",
-            opacity: 0.85,
-            transition: "opacity 180ms ease, transform 180ms ease",
+            opacity: 1,
+            transition: "transform 180ms ease",
             "&:hover": {
-              opacity: 1,
               background: "linear-gradient(180deg, #0f172a 0%, #1e293b 100%)",
             },
           }}
@@ -137,16 +136,14 @@ export default function ProposalLatestNewsWidget({ userId, hidden = false }) { /
           width: { xs: "min(320px, 88vw)", sm: 340 },
           pointerEvents: open ? "auto" : "none",
           transform: open ? "translateX(0)" : "translateX(calc(100% + 16px))",
-          opacity: open ? 0.5 : 0,
+          opacity: open ? 1 : 0,
           transition: "transform 360ms cubic-bezier(0.22, 1, 0.36, 1), opacity 240ms ease",
-          "&:hover, &:focus-within": open ? { opacity: 0.96 } : undefined,
         }}
       >
         <Paper
           elevation={0}
           sx={{
-            bgcolor: "rgba(255, 255, 255, 0.94)",
-            backdropFilter: "blur(10px)",
+            bgcolor: "#FFFFFF",
             borderRadius: "14px 0 0 14px",
             border: "1px solid rgba(15, 23, 42, 0.14)",
             borderRight: "none",
@@ -158,7 +155,7 @@ export default function ProposalLatestNewsWidget({ userId, hidden = false }) { /
             direction="row"
             alignItems="center"
             justifyContent="space-between"
-            sx={{ px: 1.75, py: 1.1, bgcolor: "rgba(248, 250, 252, 0.9)" }}
+            sx={{ px: 1.75, py: 1.1, bgcolor: "#F8FAFC" }}
           >
             <Stack direction="row" alignItems="center" spacing={0.75}>
               <CampaignRoundedIcon sx={{ fontSize: 18, color: "primary.main" }} />
