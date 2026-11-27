@@ -54,6 +54,7 @@ import {
   TimeSeriesChart,
 } from "./analytics/AnalyticsCharts";
 import CompanyAliasDialog from "./analytics/CompanyAliasDialog";
+import IpGeoOverrideDialog from "./analytics/IpGeoOverrideDialog";
 
 function formatDuration(seconds) {
   const sec = Math.max(0, Math.round(Number(seconds) || 0));
@@ -177,6 +178,7 @@ function UsagePage() {
   const [traffic, setTraffic] = useState(null);
   const [trafficLoading, setTrafficLoading] = useState(false);
   const [backfillingGeo, setBackfillingGeo] = useState(false);
+  const [geoOverrideTarget, setGeoOverrideTarget] = useState(null);
 
   // Companies state
   const [companies, setCompanies] = useState(null);
@@ -905,7 +907,7 @@ function UsagePage() {
                 </Button>
               }
             >
-              실시간 텔레메트리와 기존 로그인 IP 세션을 통합해 접속 지역(시/도·도시)·유입 경로·체류시간·요일별 시간대를 분석합니다.
+              지역 통계는 IP 기반 추정치로, 국내 통신사(SKB·KT·LGU+) 유동·공용 IP는 인접 거점 지역(예: 대구 → 경상북도 경주)으로 표시될 수 있습니다. 아래 <strong>주요 접속 IP</strong> 목록에서 사무실·지점 IP의 실제 지역을 수동 고정할 수 있습니다.
             </Alert>
 
             <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "1fr 1fr" }, gap: 2 }}>
@@ -918,6 +920,71 @@ function UsagePage() {
                 <HorizontalBarList items={traffic.cities || []} color="#0EA5E9" unit="회" />
               </Paper>
             </Box>
+
+            <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 2.5 }}>
+              <Typography variant="h6" sx={{ fontWeight: 800, mb: 0.5 }}>
+                주요 접속 IP · 수동 지역 보정
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1.5 }}>
+                지점·사무실 공용 회선이 잘못된 지역으로 잡힌 경우 &quot;지역 보정&quot;을 눌러 실제 지역을 고정할 수 있습니다.
+              </Typography>
+              <TableContainer sx={{ maxHeight: 380 }}>
+                <Table size="small" stickyHeader>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>IP 주소</TableCell>
+                      <TableCell>현재 지역 · 도시</TableCell>
+                      <TableCell>출처</TableCell>
+                      <TableCell>주요 소속 회사</TableCell>
+                      <TableCell>통신사 / 메모</TableCell>
+                      <TableCell align="right">접속 (인원)</TableCell>
+                      <TableCell align="right">보정</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {(traffic.top_ips || []).map((row) => (
+                      <TableRow key={row.ip_address} hover>
+                        <TableCell sx={{ fontFamily: "monospace", fontWeight: 700 }}>{row.ip_address}</TableCell>
+                        <TableCell>
+                          <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                            {row.region_name}{row.city_name && row.city_name !== row.region_name ? ` · ${row.city_name}` : ""}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Chip
+                            size="small"
+                            color={row.geo_source === "manual" ? "success" : row.geo_source === "private" ? "default" : "warning"}
+                            variant={row.geo_source === "manual" ? "filled" : "outlined"}
+                            label={row.geo_source === "manual" ? "수동 고정" : row.geo_source === "private" ? "사설망" : "자동 추정"}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          {(row.top_companies || []).length > 0 ? row.top_companies.join(", ") : "-"}
+                        </TableCell>
+                        <TableCell sx={{ color: "text.secondary", fontSize: 12 }}>
+                          {row.isp_name || "-"}
+                        </TableCell>
+                        <TableCell align="right">
+                          {row.sessions.toLocaleString()}회 ({row.unique_users}명)
+                        </TableCell>
+                        <TableCell align="right">
+                          <Button size="small" variant="outlined" onClick={() => setGeoOverrideTarget(row)}>
+                            지역 보정
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {!(traffic.top_ips || []).length && (
+                      <TableRow>
+                        <TableCell colSpan={7} align="center" sx={{ py: 3, color: "text.secondary" }}>
+                          집계된 접속 IP가 없습니다.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </Paper>
 
             <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "1fr 1fr" }, gap: 2 }}>
               <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 2.5 }}>
@@ -1627,6 +1694,16 @@ function UsagePage() {
           loadOverview();
           if (activeTab === "kkomak") loadKkomak();
           if (activeTab === "segments") loadSegments();
+        }}
+      />
+
+      <IpGeoOverrideDialog
+        open={Boolean(geoOverrideTarget)}
+        onClose={() => setGeoOverrideTarget(null)}
+        ipEntry={geoOverrideTarget}
+        onChanged={() => {
+          loadTraffic();
+          loadOverview();
         }}
       />
     </Box>

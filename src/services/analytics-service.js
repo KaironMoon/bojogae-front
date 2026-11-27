@@ -73,9 +73,24 @@ async function backfillAnalyticsGeo(limit = 30) {
   return response.data;
 }
 
+async function upsertIpGeoOverride(payload) {
+  const response = await apiCaller.put("/api/v1/admin/analytics/geo/override", payload, {
+    timeout: 60000,
+  });
+  return response.data;
+}
+
+async function deleteIpGeoOverride(ipAddress) {
+  const response = await apiCaller.delete("/api/v1/admin/analytics/geo/override", { ip_address: ipAddress }, {
+    timeout: 60000,
+  });
+  return response.data;
+}
+
 export {
   backfillAnalyticsGeo,
   deleteCompanyAlias,
+  deleteIpGeoOverride,
   downloadAnalyticsSegmentsExport,
   getAnalyticsCompanies,
   getAnalyticsKkomak,
@@ -84,4 +99,5 @@ export {
   getAnalyticsTraffic,
   triggerAnalyticsRollup,
   upsertCompanyAlias,
+  upsertIpGeoOverride,
 };
