@@ -43,6 +43,7 @@ async function createProposal({
   attachedGenerationIds = [], attachedGenerationFields = [], promptVersionId, pdfPasswords = [],
   customerId,
   reportVariant = "detailed",
+  simpleOptions = null,
 }) {
   const form = new FormData();
   form.append("title", title);
@@ -55,7 +56,12 @@ async function createProposal({
   form.append("attached_generation_ids", JSON.stringify(attachedGenerationIds));
   form.append("attached_generation_fields", JSON.stringify(attachedGenerationFields));
   if (promptVersionId) form.append("prompt_version_id", String(promptVersionId));
-  if (reportVariant && reportVariant !== "detailed") form.append("report_variant", reportVariant);
+  if (reportVariant && reportVariant !== "detailed") {
+    form.append("report_variant", reportVariant);
+    if (simpleOptions && typeof simpleOptions === "object") {
+      form.append("simple_options", JSON.stringify(simpleOptions));
+    }
+  }
   const response = await apiCaller.post("/api/v1/proposals", form, {
     headers: { "Idempotency-Key": idempotencyKey },
     timeout: 120000,

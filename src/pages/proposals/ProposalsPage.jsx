@@ -42,6 +42,7 @@ import {
   Alert,
   Box,
   Button,
+  Checkbox,
   Chip,
   CircularProgress,
   Dialog,
@@ -116,6 +117,16 @@ const MAX_FILE_BYTES = 100 * 1024 * 1024;
 const ACTIVE = new Set(["QUEUED", "RUNNING", "CANCEL_REQUESTED"]);
 const PREVIEW_WIDTH = 794;
 const PREVIEW_HEIGHT = 1123;
+const SIMPLE_SECTION_OPTIONS = [
+  { key: "coverage_notes", label: "주계약/특약 부가 설명" },
+  { key: "waiver_support", label: "납입면제/납입지원" },
+  { key: "extra_services", label: "부가서비스 안내" },
+  { key: "contract_conversion", label: "계약전환 제도 안내" },
+  { key: "claim_simulations", label: "각종 보험금 수령 시뮬레이션" },
+];
+const DEFAULT_SIMPLE_OPTIONS = Object.fromEntries(
+  SIMPLE_SECTION_OPTIONS.map((item) => [item.key, true]),
+);
 
 function sanitizeSimplePreviewHtml(html) {
   const doc = new DOMParser().parseFromString(html, "text/html");
@@ -352,6 +363,7 @@ function ProposalsPage() {
   const [simplePreviewLoading, setSimplePreviewLoading] = useState(false);
   const [simplePreviewError, setSimplePreviewError] = useState("");
   const [reportVariant, setReportVariant] = useState("detailed");
+  const [simpleOptions, setSimpleOptions] = useState(() => ({ ...DEFAULT_SIMPLE_OPTIONS }));
   const simplePreviewRequest = useRef(0);
   const [statusItem, setStatusItem] = useState(null);
   const [statusMessage, setStatusMessage] = useState("");
@@ -518,6 +530,7 @@ function ProposalsPage() {
     input_schema: chosenVersion.input_schema,
     max_input_files: chosenVersion.max_input_files,
     simple_template_available: Boolean(chosenVersion.simple_template_available),
+    simple_options_configurable: Boolean(chosenVersion.simple_options_configurable),
   } : promptOption;
   const selectedReport = statusItem || openedDocument;
   const displayedPromptOptions = filteredPromptOptions;
@@ -557,6 +570,7 @@ function ProposalsPage() {
     setFieldUploads({});
     setFieldDocuments({});
     setReportVariant("detailed");
+    setSimpleOptions({ ...DEFAULT_SIMPLE_OPTIONS });
     submissionKey.current = null;
   }, [promptId, selectedPrompt?.current_version_id]);
 
@@ -1016,6 +1030,12 @@ function ProposalsPage() {
         attachedGenerationFields: documentFields,
         promptVersionId,
         reportVariant: selectedPrompt?.simple_template_available ? reportVariant : "detailed",
+        simpleOptions:
+          selectedPrompt?.simple_template_available
+          && selectedPrompt?.simple_options_configurable
+          && reportVariant === "simple"
+            ? simpleOptions
+            : null,
         idempotencyKey: submissionKey.current,
       });
       let job;
@@ -1920,13 +1940,71 @@ function ProposalsPage() {
                           <Box sx={{ py: 0.25 }}>
                             <Typography variant="body2" fontWeight={800}>간소화 버전</Typography>
                             <Typography variant="caption" color="text.secondary" sx={{ display: "block", lineHeight: 1.35 }}>
-                              대표 월 보험료 1줄 · 담보별 한도 · 종수술비 종별금액 · 통합보장 특성 요약 (1~2장)
+                              {selectedPrompt?.simple_options_configurable
+                                ? "핵심 담보·보험료 요약 + 아래에서 선택한 항목만 간결하게 구성"
+                                : "대표 월 보험료 1줄 · 담보별 한도 · 종수술비 종별금액 · 통합보장 특성 요약 (1~2장)"}
                             </Typography>
                           </Box>
                         )}
                       />
                     </Paper>
                   </RadioGroup>
+                  {reportVariant === "simple" && selectedPrompt?.simple_options_configurable && (
+                    <Box
+                      sx={{
+                        mt: 1.25,
+                        p: 1.25,
+                        borderRadius: 1.5,
+                        bgcolor: "#ffffff",
+                        border: "1px dashed rgba(21,128,61,0.35)",
+                      }}
+                    >
+                      <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1} sx={{ mb: 0.5 }}>
+                        <Typography variant="caption" fontWeight={800} sx={{ color: "#15803d" }}>
+                          포함할 항목 선택 (기본 전체 선택 · 체크 해제 시 보고서에서 제외)
+                        </Typography>
+                        {SIMPLE_SECTION_OPTIONS.some((item) => !simpleOptions[item.key]) && (
+                          <Button
+                            size="small"
+                            disabled={working}
+                            onClick={() => {
+                              setSimpleOptions({ ...DEFAULT_SIMPLE_OPTIONS });
+                              submissionKey.current = null;
+                            }}
+                            sx={{ minWidth: "auto", px: 0.75, py: 0, fontSize: "0.72rem", fontWeight: 700 }}
+                          >
+                            전체 선택
+                          </Button>
+                        )}
+                      </Stack>
+                      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 0.25 }}>
+                        {SIMPLE_SECTION_OPTIONS.map((item) => (
+                          <FormControlLabel
+                            key={item.key}
+                            sx={{ m: 0 }}
+                            control={(
+                              <Checkbox
+                                size="small"
+                                color="success"
+                                disabled={working}
+                                checked={Boolean(simpleOptions[item.key])}
+                                onChange={(event) => {
+                                  const checked = event.target.checked;
+                                  setSimpleOptions((current) => ({ ...current, [item.key]: checked }));
+                                  submissionKey.current = null;
+                                }}
+                              />
+                            )}
+                            label={(
+                              <Typography variant="caption" fontWeight={600} color="text.primary">
+                                {item.label}
+                              </Typography>
+                            )}
+                          />
+                        ))}
+                      </Box>
+                    </Box>
+                  )}
                 </FormControl>
               </Paper>
             )}
