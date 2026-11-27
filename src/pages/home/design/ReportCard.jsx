@@ -56,7 +56,7 @@ export default function ReportCard({ prompt, updated, onPreview }) {
               </span>
               {prompt.simple_template_available && (
                 <span className="px-1.5 py-0.5 rounded-md text-[10px] font-black bg-[#ecfdf5] text-[#006e43] border border-[#a7f3d0]">
-                  간소화
+                  간소화 BETA
                 </span>
               )}
             </div>

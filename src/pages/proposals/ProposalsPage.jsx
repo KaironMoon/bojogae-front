@@ -542,7 +542,7 @@ function ProposalsPage() {
     selectedPrompt?.simple_option_specs?.length
       ? selectedPrompt.simple_option_specs
       : SIMPLE_SECTION_OPTIONS
-  ), [selectedPrompt]);
+  ), [selectedPrompt?.simple_option_specs]);
   const selectedReport = statusItem || openedDocument;
   const displayedPromptOptions = filteredPromptOptions;
   const maxInputFiles = selectedPrompt?.max_input_files ?? 10;
@@ -1812,7 +1812,7 @@ function ProposalsPage() {
                       <Stack direction="row" alignItems="center" gap={0.6} flexWrap="wrap" sx={{ mt: 0.75, overflowX: { xs: "auto", sm: "visible" }, scrollbarWidth: "none", "&::-webkit-scrollbar": { display: "none" }, "& .MuiChip-root": { flexShrink: 0 } }}>
                           <Chip icon={<KkomakIcon size={18} />} label={`${option.point_cost.toLocaleString()}꼬막`} size="small" color="warning" variant="outlined" />
                           {option.simple_template_available && (
-                            <Chip label="간소화 제공" size="small" color="success" variant="outlined" />
+                            <Chip label="간소화 BETA" size="small" color="success" variant="outlined" />
                           )}
                           {(option.categories || []).map((category) => (
                             <Chip key={category.id} label={`${category.parent_name} · ${category.name}`} size="small" />
@@ -1949,7 +1949,22 @@ function ProposalsPage() {
                         sx={{ m: 0, width: "100%", alignItems: "flex-start" }}
                         label={(
                           <Box sx={{ py: 0.25 }}>
-                            <Typography variant="body2" fontWeight={800}>간소화 버전</Typography>
+                            <Stack direction="row" alignItems="center" spacing={0.75}>
+                              <Typography variant="body2" fontWeight={800}>간소화 버전</Typography>
+                              <Chip
+                                label="BETA"
+                                size="small"
+                                sx={{
+                                  height: 18,
+                                  fontSize: "0.65rem",
+                                  fontWeight: 900,
+                                  bgcolor: "#FEF3C7",
+                                  color: "#B45309",
+                                  border: "1px solid #FDE68A",
+                                  "& .MuiChip-label": { px: 0.75 },
+                                }}
+                              />
+                            </Stack>
                             <Typography variant="caption" color="text.secondary" sx={{ display: "block", lineHeight: 1.35 }}>
                               {selectedPrompt?.simple_options_configurable
                                 ? "핵심 담보·보험료 요약 + 아래에서 선택한 항목만 간결하게 구성"
@@ -2634,7 +2649,27 @@ function ProposalsPage() {
             sx={{ px: 3, borderBottom: 1, borderColor: "divider", flexShrink: 0 }}
           >
             <Tab value="detailed" label="상세 버전" />
-            <Tab value="simple" label="간소화 버전" />
+            <Tab
+              value="simple"
+              label={(
+                <Stack direction="row" alignItems="center" spacing={0.75}>
+                  <span>간소화 버전</span>
+                  <Chip
+                    label="BETA"
+                    size="small"
+                    sx={{
+                      height: 18,
+                      fontSize: "0.65rem",
+                      fontWeight: 900,
+                      bgcolor: "#FEF3C7",
+                      color: "#B45309",
+                      border: "1px solid #FDE68A",
+                      "& .MuiChip-label": { px: 0.75 },
+                    }}
+                  />
+                </Stack>
+              )}
+            />
           </Tabs>
         )}
         <DialogContent sx={{ display: "flex", minHeight: 0, overflow: "hidden", pb: 0 }}>
