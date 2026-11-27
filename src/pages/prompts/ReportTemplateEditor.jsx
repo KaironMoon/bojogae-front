@@ -364,7 +364,7 @@ export default function ReportTemplateEditor({ value, onChange, disabled, title 
     {preview && <Dialog open fullWidth maxWidth="xl" onClose={() => setPreview(null)}>
       <DialogTitle>조립 미리보기</DialogTitle>
       <DialogContent dividers>
-        <Box component="iframe" title="조립된 보고서" sandbox="allow-scripts" srcDoc={preview}
+        <Box component="iframe" title="조립된 보고서" sandbox="allow-scripts allow-downloads" srcDoc={preview}
           sx={{ width: "100%", height: "70vh", border: 0 }} />
       </DialogContent>
       <DialogActions><Button onClick={() => setPreview(null)}>닫기</Button></DialogActions>

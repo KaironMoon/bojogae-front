@@ -3,6 +3,7 @@ import ProposalApplicationDialog, {
   applicationCompletedButtonStyle,
 } from "./ProposalApplicationDialog";
 import ProposalFeatureAnnouncementDialog from "./ProposalFeatureAnnouncementDialog";
+import ProposalLatestNewsWidget from "./ProposalLatestNewsWidget";
 import ProposalPopupNoticeDialog from "./ProposalPopupNoticeDialog";
 import { crmGet, crmPost, crmError } from "@/services/crm-service";
 import AutoAwesomeRoundedIcon from "@mui/icons-material/AutoAwesomeRounded";
@@ -482,6 +483,7 @@ function ProposalsPage() {
   const [remodelingGuideDismissed, setRemodelingGuideDismissed] = useState(() => hasSeenRemodelingGuide(user?.id));
   const [remodelingGuideStep, setRemodelingGuideStep] = useState(0);
   const [remodelingGuideReady, setRemodelingGuideReady] = useState(false);
+  const [remodelingGuideArmed, setRemodelingGuideArmed] = useState(false);
   const [remodelingNoProposalGuideDismissed, setRemodelingNoProposalGuideDismissed] = useState(() => hasSeenRemodelingNoProposalGuide(user?.id));
   const [remodelingNoProposalGuideOpen, setRemodelingNoProposalGuideOpen] = useState(false);
   const canvasPanelRef = useRef(null);
@@ -730,6 +732,7 @@ function ProposalsPage() {
   useEffect(() => {
     if (!filteredPromptOptions.some((option) => option.id === promptId)) {
       setPromptId(filteredPromptOptions[0]?.id || "");
+      setRemodelingGuideArmed(false);
       submissionKey.current = null;
     }
   }, [filteredPromptOptions, promptId]);
@@ -833,6 +836,7 @@ function ProposalsPage() {
         setPromptTab(initialTab);
         setSelectedCategoryId(requestedPrompt?.categories?.[0]?.id ?? null);
         setPromptId(requestedPrompt?.id || promptsForTab(options, initialTab)[0]?.id || "");
+        setRemodelingGuideArmed(false);
         if (request === listRequest.current) {
           setItems(result.items);
           setPage(result.page);
@@ -1442,7 +1446,7 @@ function ProposalsPage() {
       && !popupNoticeOpen
       && !canvasOpen
       && !remodelingNoProposalGuideOpen
-      && !(isRemodelingPrompt && !remodelingGuideDismissed)
+      && !(remodelingGuideArmed && isRemodelingPrompt && !remodelingGuideDismissed)
       && !shareDialogOpen
       && !application
       && !promptPreviewOption
@@ -1465,6 +1469,7 @@ function ProposalsPage() {
     popupNoticeOpen,
     canvasOpen,
     remodelingNoProposalGuideOpen,
+    remodelingGuideArmed,
     isRemodelingPrompt,
     remodelingGuideDismissed,
     shareDialogOpen,
@@ -1479,6 +1484,7 @@ function ProposalsPage() {
       !loading
       && !error
       && Boolean(user?.id)
+      && remodelingGuideArmed
       && isRemodelingPrompt
       && !remodelingGuideDismissed
       && helpStep === null
@@ -1502,6 +1508,7 @@ function ProposalsPage() {
     loading,
     error,
     user?.id,
+    remodelingGuideArmed,
     isRemodelingPrompt,
     remodelingGuideDismissed,
     helpStep,
@@ -1540,6 +1547,7 @@ function ProposalsPage() {
     markRemodelingGuideSeen(user?.id);
     setRemodelingGuideDismissed(true);
     setRemodelingGuideReady(false);
+    setRemodelingGuideArmed(false);
     setRemodelingGuideStep(0);
   };
 
@@ -1649,6 +1657,7 @@ function ProposalsPage() {
     const initialTab = defaultPromptTab(promptOptions);
     setPromptTab(initialTab);
     setPromptId(promptsForTab(promptOptions, initialTab)[0]?.id || "");
+    setRemodelingGuideArmed(false);
     setSelectedCategoryId(null);
     submissionKey.current = null;
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -2025,6 +2034,7 @@ function ProposalsPage() {
                         clearReportSelection();
                       }
                       setPromptId(option.id);
+                      setRemodelingGuideArmed(/리모델링/.test(option.title || ""));
                       submissionKey.current = null;
                     }}
                     sx={{
@@ -2514,6 +2524,8 @@ function ProposalsPage() {
         </Stack>
 
       </Box>
+
+      <ProposalLatestNewsWidget userId={user?.id} hidden={canvasOpen || helpStep !== null} />
 
       {!canvasOpen && helpStep === null && (
         <Button
@@ -3005,6 +3017,7 @@ function ProposalsPage() {
           remodelingGuideReady
           && !loading
           && !error
+          && remodelingGuideArmed
           && isRemodelingPrompt
           && !remodelingGuideDismissed
           && helpStep === null
@@ -3040,7 +3053,7 @@ function ProposalsPage() {
           && !popupNoticeOpen
           && !canvasOpen
           && !remodelingNoProposalGuideOpen
-          && !(isRemodelingPrompt && !remodelingGuideDismissed)
+          && !(remodelingGuideArmed && isRemodelingPrompt && !remodelingGuideDismissed)
           && !shareDialogOpen
           && !application
           && !promptPreviewOption
