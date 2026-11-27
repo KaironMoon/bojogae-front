@@ -1,0 +1,1051 @@
+/* Scoped design system for Bojogae 3 Boards: 공지사항, 업계소식, 보험 지식 */
+.board-workspace {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 22px 16px 76px;
+  font-family: Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+}
+
+@media (min-width: 768px) {
+  .board-workspace {
+    padding: 32px 24px 88px;
+  }
+}
+
+/* Hero Banner */
+.board-hero {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 22px 24px;
+  margin-bottom: 16px;
+  border-radius: 22px;
+  border: 1px solid #e6eaee;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 58%, #ecfdf5 100%);
+  box-shadow: 0 6px 22px rgba(18, 19, 20, 0.04);
+}
+
+.board-hero--industry-news {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 56%, #eff6ff 100%);
+  border-color: #dbeafe;
+}
+
+.board-hero--insurance-knowledge {
+  background: linear-gradient(135deg, #ffffff 0%, #faf8ff 56%, #f5f3ff 100%);
+  border-color: #e9d5ff;
+}
+
+.board-hero-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  min-width: 0;
+  flex: 1 1 360px;
+}
+
+.board-hero-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: 16px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  color: #ffffff;
+  background: linear-gradient(135deg, #03c75a 0%, #008a49 100%);
+  box-shadow: 0 10px 20px -8px rgba(3, 199, 90, 0.52);
+}
+
+.board-hero--industry-news .board-hero-icon {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  box-shadow: 0 10px 20px -8px rgba(37, 99, 235, 0.5);
+}
+
+.board-hero--insurance-knowledge .board-hero-icon {
+  background: linear-gradient(135deg, #6b38fb 0%, #4f46e5 100%);
+  box-shadow: 0 10px 20px -8px rgba(107, 56, 251, 0.5);
+}
+
+.board-hero-pill-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 5px;
+}
+
+.board-hero-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 850;
+  letter-spacing: 0.04em;
+  background: #ecfdf5;
+  color: #006e43;
+  border: 1px solid #a7f3d0;
+}
+
+.board-hero--industry-news .board-hero-pill {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border-color: #bfdbfe;
+}
+
+.board-hero--insurance-knowledge .board-hero-pill {
+  background: #f5f3ff;
+  color: #5b21b6;
+  border-color: #ddd6fe;
+}
+
+.board-hero-title {
+  margin: 0;
+  font-size: 24px;
+  line-height: 1.24;
+  font-weight: 900;
+  color: #121314;
+  letter-spacing: -0.025em;
+}
+
+.board-hero-desc {
+  margin: 5px 0 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+  font-weight: 550;
+  color: #4e5968;
+}
+
+.board-hero-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.board-write-btn.MuiButton-root {
+  border-radius: 12px;
+  padding: 9px 18px;
+  font-size: 13px;
+  font-weight: 850;
+  box-shadow: 0 8px 18px -6px rgba(3, 199, 90, 0.45);
+}
+
+/* 3-Board Quick Switcher */
+.board-switcher {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+  padding: 6px;
+  border-radius: 16px;
+  background: #ffffff;
+  border: 1px solid #e6eaee;
+  box-shadow: 0 2px 10px rgba(18, 19, 20, 0.025);
+}
+
+.board-switch-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 15px;
+  border-radius: 11px;
+  font-size: 13.5px;
+  font-weight: 750;
+  color: #4e5968;
+  text-decoration: none;
+  transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.board-switch-tab:hover {
+  background: #f4f6f8;
+  color: #121314;
+}
+
+.board-switch-tab[aria-current="page"] {
+  background: #121314;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(18, 19, 20, 0.16);
+}
+
+/* Filter & Search Toolbar */
+.board-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 18px;
+  margin-bottom: 20px;
+  border-radius: 18px;
+  background: #ffffff;
+  border: 1px solid #e6eaee;
+  box-shadow: 0 2px 12px rgba(18, 19, 20, 0.025);
+}
+
+.board-filter-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.board-category-pills {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.board-category-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 13px;
+  border-radius: 999px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #475569;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 750;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.board-category-pill:hover {
+  border-color: #94a3b8;
+  background: #f8fafc;
+  color: #121314;
+}
+
+.board-category-pill[aria-pressed="true"] {
+  background: #006e43;
+  border-color: #006e43;
+  color: #ffffff;
+  box-shadow: 0 4px 12px -4px rgba(0, 110, 67, 0.45);
+}
+
+.board-workspace--industry-news .board-category-pill[aria-pressed="true"] {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+  box-shadow: 0 4px 12px -4px rgba(29, 78, 216, 0.45);
+}
+
+.board-workspace--insurance-knowledge .board-category-pill[aria-pressed="true"] {
+  background: #5b21b6;
+  border-color: #5b21b6;
+  box-shadow: 0 4px 12px -4px rgba(91, 33, 182, 0.45);
+}
+
+.board-total-count {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.board-search-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.board-search-btn.MuiButton-root {
+  flex: none;
+  border-radius: 10px;
+  padding: 7px 16px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+/* Badges / Chips */
+.board-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
+.board-badge--emerald {
+  background: #ecfdf5;
+  color: #006e43;
+  border: 1px solid #bbf7d0;
+}
+
+.board-badge--blue {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+
+.board-badge--indigo {
+  background: #eef2ff;
+  color: #3730a3;
+  border: 1px solid #c7d2fe;
+}
+
+.board-badge--violet {
+  background: #f5f3ff;
+  color: #5b21b6;
+  border: 1px solid #ddd6fe;
+}
+
+.board-badge--amber {
+  background: #fffbeb;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
+.board-badge--slate {
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #e2e8f0;
+}
+
+.board-badge--pin {
+  background: #121314;
+  color: #4ade80;
+  border: 1px solid #121314;
+}
+
+.board-badge--new {
+  background: #fff1f2;
+  color: #e11d48;
+  border: 1px solid #fecdd3;
+}
+
+/* ==========================================================================
+   1. INDUSTRY NEWS: Horizontal Editorial Cards (Thumbnail Left + Content Right)
+   ========================================================================== */
+.board-news-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.board-news-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr);
+  gap: 14px;
+  padding: 14px;
+  border-radius: 18px;
+  background: #ffffff;
+  border: 1px solid #e6eaee;
+  box-shadow: 0 2px 10px rgba(18, 19, 20, 0.025);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+@media (min-width: 600px) {
+  .board-news-card {
+    grid-template-columns: 204px minmax(0, 1fr);
+    gap: 18px;
+    padding: 16px;
+  }
+}
+
+@media (min-width: 900px) {
+  .board-news-card {
+    grid-template-columns: 256px minmax(0, 1fr);
+    gap: 22px;
+    padding: 18px;
+  }
+}
+
+.board-news-card:hover {
+  transform: translateY(-2px);
+  border-color: #93c5fd;
+  box-shadow: 0 12px 26px -10px rgba(37, 99, 235, 0.18);
+}
+
+.board-news-thumb {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: 12px;
+  overflow: hidden;
+  background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%);
+  border: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: stretch;
+}
+
+@media (min-width: 600px) {
+  .board-news-thumb {
+    aspect-ratio: 16 / 10;
+    align-self: center;
+  }
+}
+
+.board-news-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.3s ease;
+}
+
+.board-news-card:hover .board-news-thumb img {
+  transform: scale(1.03);
+}
+
+.board-news-thumb--fallback img {
+  width: 42%;
+  height: auto;
+  object-fit: contain;
+  opacity: 0.9;
+}
+
+.board-news-body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.board-news-meta-top {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.board-domain-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  background: #f8fafc;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+
+.board-meta-date {
+  font-size: 12px;
+  font-weight: 650;
+  color: #64748b;
+}
+
+.board-news-title {
+  margin: 0;
+  font-size: 15.5px;
+  line-height: 1.4;
+  font-weight: 850;
+  color: #121314;
+  letter-spacing: -0.02em;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 600px) {
+  .board-news-title {
+    font-size: 17.5px;
+  }
+}
+
+.board-news-card-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Stretched-link overlay so card click opens detail view without nesting <a> tags */
+.board-news-card-link::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  z-index: 1;
+}
+
+.board-news-card:hover .board-news-title {
+  color: #1d4ed8;
+}
+
+.board-news-summary {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.62;
+  font-weight: 500;
+  color: #4e5968;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+@media (min-width: 600px) {
+  .board-news-summary {
+    font-size: 13.75px;
+    -webkit-line-clamp: 3;
+  }
+}
+
+.board-news-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 6px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.board-news-stats {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  font-weight: 650;
+  color: #64748b;
+}
+
+.board-news-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.board-source-pill {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  color: #1d4ed8;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  text-decoration: none;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.board-source-pill:hover {
+  background: #1d4ed8;
+  color: #ffffff;
+  border-color: #1d4ed8;
+}
+
+.board-readmore-cue {
+  display: none;
+  align-items: center;
+  gap: 3px;
+  font-size: 12px;
+  font-weight: 750;
+  color: #475569;
+}
+
+@media (min-width: 600px) {
+  .board-readmore-cue {
+    display: inline-flex;
+  }
+}
+
+/* ==========================================================================
+   2. NOTICES: Structured Editorial Feed
+   ========================================================================== */
+.board-notice-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.board-notice-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+  border-radius: 16px;
+  background: #ffffff;
+  border: 1px solid #e6eaee;
+  color: inherit;
+  text-decoration: none;
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+.board-notice-row:hover {
+  transform: translateY(-1px);
+  border-color: #86efac;
+  background: #fbfefc;
+  box-shadow: 0 8px 20px -10px rgba(3, 199, 90, 0.25);
+}
+
+.board-notice-row--pinned {
+  background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);
+  border-color: #bbf7d0;
+}
+
+.board-notice-main {
+  min-width: 0;
+  flex: 1;
+}
+
+.board-notice-badges {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.board-notice-title {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.4;
+  font-weight: 850;
+  color: #121314;
+  overflow-wrap: anywhere;
+}
+
+.board-notice-row:hover .board-notice-title {
+  color: #006e43;
+}
+
+.board-notice-summary {
+  margin: 5px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #4e5968;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.board-notice-side {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 639px) {
+  .board-notice-row {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 14px 16px;
+    gap: 10px;
+  }
+
+  .board-notice-side {
+    width: 100%;
+    justify-content: space-between;
+    padding-top: 8px;
+    border-top: 1px solid #f1f5f9;
+  }
+}
+
+.board-notice-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  font-weight: 650;
+  color: #64748b;
+}
+
+.board-attach-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: #f1f5f9;
+  color: #334155;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+/* ==========================================================================
+   3. INSURANCE KNOWLEDGE: 3-Column Magazine Grid
+   ========================================================================== */
+.board-knowledge-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 18px;
+}
+
+@media (min-width: 600px) {
+  .board-knowledge-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 960px) {
+  .board-knowledge-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.board-knowledge-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border-radius: 18px;
+  overflow: hidden;
+  background: #ffffff;
+  border: 1px solid #e6eaee;
+  color: inherit;
+  text-decoration: none;
+  box-shadow: 0 2px 10px rgba(18, 19, 20, 0.025);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.board-knowledge-card:hover {
+  transform: translateY(-3px);
+  border-color: #c4b5fd;
+  box-shadow: 0 14px 28px -12px rgba(107, 56, 251, 0.22);
+}
+
+.board-knowledge-thumb {
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.board-knowledge-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.3s ease;
+}
+
+.board-knowledge-card:hover .board-knowledge-thumb img {
+  transform: scale(1.04);
+}
+
+.board-knowledge-thumb--fallback img {
+  width: 34%;
+  height: auto;
+  object-fit: contain;
+}
+
+.board-knowledge-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding: 16px 18px 18px;
+  gap: 8px;
+}
+
+.board-knowledge-title {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.42;
+  font-weight: 850;
+  color: #121314;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+.board-knowledge-card:hover .board-knowledge-title {
+  color: #5b21b6;
+}
+
+.board-knowledge-summary {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #4e5968;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.board-knowledge-footer {
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 650;
+  color: #64748b;
+}
+
+/* Empty State */
+.board-empty {
+  padding: 56px 24px;
+  text-align: center;
+  border-radius: 20px;
+  background: #ffffff;
+  border: 1px dashed #cbd5e1;
+}
+
+/* ==========================================================================
+   DETAIL PAGE & EDITORIAL PROSE
+   ========================================================================== */
+.board-detail-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.board-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #64748b;
+}
+
+.board-breadcrumb a {
+  color: #334155;
+  text-decoration: none;
+}
+
+.board-breadcrumb a:hover {
+  color: #006e43;
+  text-decoration: underline;
+}
+
+.board-detail-card {
+  border-radius: 22px;
+  overflow: hidden;
+  background: #ffffff;
+  border: 1px solid #e6eaee;
+  box-shadow: 0 8px 26px rgba(18, 19, 20, 0.04);
+}
+
+.board-detail-header {
+  padding: 26px 22px 20px;
+  background: linear-gradient(180deg, #fafbfc 0%, #ffffff 100%);
+  border-bottom: 1px solid #e6eaee;
+}
+
+@media (min-width: 768px) {
+  .board-detail-header {
+    padding: 34px 40px 24px;
+  }
+}
+
+.board-detail-title {
+  margin: 12px 0 0;
+  font-size: 22px;
+  line-height: 1.35;
+  font-weight: 900;
+  color: #121314;
+  letter-spacing: -0.025em;
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 768px) {
+  .board-detail-title {
+    font-size: 28px;
+  }
+}
+
+.board-detail-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.board-detail-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.board-detail-body {
+  padding: 24px 22px 30px;
+}
+
+@media (min-width: 768px) {
+  .board-detail-body {
+    padding: 32px 40px 38px;
+  }
+}
+
+.board-prose.sun-editor-editable {
+  font-family: Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif !important;
+  font-size: 15.5px !important;
+  line-height: 1.85 !important;
+  color: #1f2937 !important;
+  background: transparent !important;
+}
+
+.board-prose h2 {
+  font-size: 20px;
+  font-weight: 850;
+  color: #121314;
+  margin: 26px 0 10px;
+}
+
+.board-prose h3 {
+  font-size: 17px;
+  font-weight: 850;
+  color: #121314;
+  margin: 22px 0 8px;
+  padding-left: 10px;
+  border-left: 3px solid #2563eb;
+}
+
+.board-prose p {
+  margin: 0 0 14px;
+}
+
+.board-prose ul,
+.board-prose ol {
+  margin: 0 0 16px;
+  padding-left: 22px;
+}
+
+.board-prose li {
+  margin-bottom: 6px;
+}
+
+.board-prose img {
+  display: block;
+  max-width: 100%;
+  height: auto !important;
+  border-radius: 14px;
+  margin: 8px auto 18px;
+  border: 1px solid #e6eaee;
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.08);
+}
+
+.board-prose a {
+  color: #1d4ed8;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.board-prose blockquote {
+  margin: 16px 0;
+  padding: 12px 16px;
+  border-left: 4px solid #03c75a;
+  background: #f8fafc;
+  border-radius: 0 10px 10px 0;
+  color: #334155;
+}
+
+.board-prose table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0;
+  font-size: 14px;
+}
+
+.board-prose th,
+.board-prose td {
+  border: 1px solid #e2e8f0;
+  padding: 9px 12px;
+}
+
+.board-prose th {
+  background: #f8fafc;
+  font-weight: 800;
+}
+
+.board-source-banner {
+  margin-top: 26px;
+  padding: 16px 20px;
+  border-radius: 16px;
+  border: 1px solid #bfdbfe;
+  background: linear-gradient(135deg, #eff6ff 0%, #f8fafc 100%);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.board-attachments-box {
+  margin-top: 26px;
+  padding: 16px 18px;
+  border-radius: 16px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.board-attachment-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  text-decoration: none;
+  color: #121314;
+  transition: border-color 0.14s ease, background-color 0.14s ease;
+}
+
+.board-attachment-item:hover {
+  border-color: #03c75a;
+  background: #f0fdf4;
+}
+
+.board-detail-footer {
+  padding: 16px 22px;
+  background: #f8fafc;
+  border-top: 1px solid #e6eaee;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+@media (min-width: 768px) {
+  .board-detail-footer {
+    padding: 16px 40px;
+  }
+}
+
+/* Editor Page */
+.board-editor-card {
+  padding: 22px;
+  border-radius: 20px;
+  background: #ffffff;
+  border: 1px solid #e6eaee;
+  box-shadow: 0 4px 18px rgba(18, 19, 20, 0.03);
+}
+
+@media (min-width: 768px) {
+  .board-editor-card {
+    padding: 30px;
+  }
+}

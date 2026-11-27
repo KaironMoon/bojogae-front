@@ -125,6 +125,9 @@ function renderInlineMarkdown(text, onNavigate) {
   });
 }
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
+const SAFE_BOARD_IMAGE_PATH = /^\/api\/v1\/board-images\/[a-f0-9]{32}$/;
+
 function BlogArticleBody({ content, onNavigate }) {
   const lines = String(content || "").replace(/\r\n/g, "\n").split("\n");
   return (
@@ -132,6 +135,35 @@ function BlogArticleBody({ content, onNavigate }) {
       {lines.map((rawLine, index) => {
         const line = rawLine.trim();
         if (!line) return <Box key={index} sx={{ height: 4 }} />;
+        const imageMatch = line.match(/^!\[([^\]]*)\]\(([^()\s]+)\)$/);
+        if (imageMatch && SAFE_BOARD_IMAGE_PATH.test(imageMatch[2])) {
+          return (
+            <Box
+              key={index}
+              sx={{
+                my: 1,
+                display: "flex",
+                justifyContent: "center",
+              }}
+            >
+              <Box
+                component="img"
+                src={`${API_BASE_URL}${imageMatch[2]}`}
+                alt={imageMatch[1] || "안내 이미지"}
+                loading="lazy"
+                sx={{
+                  maxWidth: 420,
+                  width: "100%",
+                  height: "auto",
+                  borderRadius: "14px",
+                  border: "1px solid #E2E8F0",
+                  boxShadow: "0 4px 16px rgba(15, 23, 42, 0.06)",
+                  display: "block",
+                }}
+              />
+            </Box>
+          );
+        }
         const demoMatch = line.match(/^\[demo:([a-z0-9-]+)(?:\|([^\]]+))?\]$/i);
         if (demoMatch) {
           const demoKey = demoMatch[1];

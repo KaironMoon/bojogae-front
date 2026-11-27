@@ -9,6 +9,7 @@ import { useAuth } from "@/auth/AuthContext";
 import PageHeader from "@/pages/components/layout/PageHeader";
 import PageLeftMenu from "@/pages/components/layout/PageLeftMenu";
 import PageFooter from "@/pages/components/layout/PageFooter";
+import PagePopupNoticeHost from "@/pages/components/layout/PagePopupNoticeHost";
 
 function PageLayout({ publicAccess = false }) { // eslint-disable-line react/prop-types
   const theme = useTheme();
@@ -79,6 +80,7 @@ function PageLayout({ publicAccess = false }) { // eslint-disable-line react/pro
             인증하지 않은 이메일이 있습니다. 내정보에서 이메일 인증을 완료해 주세요.
           </Alert>}
           <Outlet />
+          <PagePopupNoticeHost />
         </Box>
       </Box>
       <Divider />

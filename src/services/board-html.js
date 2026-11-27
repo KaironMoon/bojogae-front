@@ -39,3 +39,19 @@ export function htmlHasText(html) {
   if (container.querySelector("img")) return true;
   return Boolean(container.textContent.replace(/\u00a0/g, " ").trim());
 }
+
+export function extractFirstExternalLink(html) {
+  if (!html) return null;
+  const container = document.createElement("div");
+  container.innerHTML = DOMPurify.sanitize(html, { FORBID_TAGS: BLOCKED_TAGS });
+  for (const anchor of container.querySelectorAll("a[href]")) {
+    const href = (anchor.getAttribute("href") || "").trim();
+    if (/^https?:\/\//i.test(href)) {
+      return {
+        href,
+        text: anchor.textContent.replace(/\u00a0/g, " ").trim() || href,
+      };
+    }
+  }
+  return null;
+}

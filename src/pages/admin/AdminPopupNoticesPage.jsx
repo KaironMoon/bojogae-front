@@ -23,9 +23,11 @@ import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import ProposalPopupNoticeDialog from "@/pages/proposals/ProposalPopupNoticeDialog";
 import {
+  POPUP_TARGET_PAGE_OPTIONS,
   createAdminPopupNotice,
   deleteAdminPopupNotice,
   listAdminPopupNotices,
+  popupTargetPageLabel,
   updateAdminPopupNotice,
 } from "@/services/proposal-popup-notice-service";
 
@@ -41,6 +43,7 @@ const EMPTY_FORM = {
   category: "UPDATE",
   summary: "",
   content: "",
+  target_pages: ["proposals"],
   is_published: false,
   starts_at: "",
   ends_at: "",
@@ -134,6 +137,7 @@ export default function AdminPopupNoticesPage() {
       category: item.category || "UPDATE",
       summary: item.summary || "",
       content: item.content || "",
+      target_pages: item.target_pages?.length ? item.target_pages : ["proposals"],
       is_published: Boolean(item.is_published),
       starts_at: toDatetimeLocalValue(item.starts_at),
       ends_at: toDatetimeLocalValue(item.ends_at),
@@ -141,6 +145,18 @@ export default function AdminPopupNoticesPage() {
     });
     setFormError("");
     setEditorOpen(true);
+  };
+
+  const toggleTargetPage = (pageKey) => {
+    setForm((current) => {
+      if (pageKey === "all") {
+        return { ...current, target_pages: ["all"] };
+      }
+      const withoutAll = (current.target_pages || []).filter((key) => key !== "all");
+      const exists = withoutAll.includes(pageKey);
+      const next = exists ? withoutAll.filter((key) => key !== pageKey) : [...withoutAll, pageKey];
+      return { ...current, target_pages: next };
+    });
   };
 
   const togglePublish = async (item) => {
@@ -161,6 +177,10 @@ export default function AdminPopupNoticesPage() {
       setFormError("공지 제목을 입력해 주세요.");
       return;
     }
+    if (!form.target_pages?.length) {
+      setFormError("팝업을 노출할 페이지를 1개 이상 선택해 주세요.");
+      return;
+    }
     const startsIso = toIsoOrNull(form.starts_at);
     const endsIso = toIsoOrNull(form.ends_at);
     if (startsIso && endsIso && new Date(endsIso) < new Date(startsIso)) {
@@ -175,6 +195,7 @@ export default function AdminPopupNoticesPage() {
         category: form.category,
         summary: form.summary.trim(),
         content: form.content.trim(),
+        target_pages: form.target_pages,
         is_published: Boolean(form.is_published),
         starts_at: startsIso,
         ends_at: endsIso,
@@ -213,9 +234,9 @@ export default function AdminPopupNoticesPage() {
       <Paper variant="outlined" sx={{ p: { xs: 2, sm: 2.5 }, mb: 2.5, borderRadius: "16px" }}>
         <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ xs: "stretch", sm: "center" }} gap={1.5}>
           <Box>
-            <Typography variant="h5" fontWeight={900}>보고서 만들기 · 팝업 공지 관리</Typography>
+            <Typography variant="h5" fontWeight={900}>팝업 공지 관리</Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-              업데이트 푸시 시 기본 비노출 상태로 등록됩니다. 필요한 공지만 노출을 켜고 노출 기간을 설정하세요.
+              공지를 노출할 페이지(보고서 만들기, 요금 안내, 홈 등)와 노출 기간을 설정할 수 있습니다.
             </Typography>
           </Box>
           <Button variant="contained" startIcon={<AddRoundedIcon />} onClick={openCreate} sx={{ fontWeight: 800, borderRadius: "10px" }}>
@@ -239,6 +260,7 @@ export default function AdminPopupNoticesPage() {
           {items.map((item) => {
             const chip = noticeStatusChip(item);
             const busy = savingId === item.id;
+            const targetPages = item.target_pages?.length ? item.target_pages : ["proposals"];
             return (
               <Paper key={item.id} variant="outlined" sx={{ p: { xs: 2, sm: 2.25 }, borderRadius: "16px" }}>
                 <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between" alignItems={{ xs: "stretch", md: "center" }} gap={2}>
@@ -246,6 +268,16 @@ export default function AdminPopupNoticesPage() {
                     <Stack direction="row" alignItems="center" flexWrap="wrap" gap={0.75} sx={{ mb: 0.75 }}>
                       <Chip size="small" label={chip.label} color={chip.color} variant={chip.variant} sx={{ fontWeight: 800 }} />
                       <Chip size="small" label={CATEGORY_OPTIONS.find((c) => c.value === item.category)?.label || item.category} variant="outlined" />
+                      {targetPages.map((pageKey) => (
+                        <Chip
+                          key={pageKey}
+                          size="small"
+                          color="info"
+                          variant="outlined"
+                          label={`노출: ${popupTargetPageLabel(pageKey)}`}
+                          sx={{ fontWeight: 750 }}
+                        />
+                      ))}
                       {item.source_commit && (
                         <Chip size="small" label={`commit ${item.source_commit}`} sx={{ fontFamily: "monospace", fontSize: 11 }} />
                       )}
@@ -321,6 +353,30 @@ export default function AdminPopupNoticesPage() {
                 inputProps={{ maxLength: 200 }}
               />
             </Stack>
+
+            <Box sx={{ p: 1.5, borderRadius: "12px", bgcolor: "#F8FAFC", border: "1px solid #E2E8F0" }}>
+              <Typography variant="subtitle2" fontWeight={800} sx={{ mb: 1 }}>
+                노출 페이지 선택 (복수 선택 가능)
+              </Typography>
+              <Stack direction="row" flexWrap="wrap" gap={0.75}>
+                {POPUP_TARGET_PAGE_OPTIONS.map((opt) => {
+                  const selected = (form.target_pages || []).includes(opt.value);
+                  return (
+                    <Chip
+                      key={opt.value}
+                      clickable
+                      size="small"
+                      label={opt.label}
+                      color={selected ? "primary" : "default"}
+                      variant={selected ? "filled" : "outlined"}
+                      onClick={() => toggleTargetPage(opt.value)}
+                      sx={{ fontWeight: 750 }}
+                    />
+                  );
+                })}
+              </Stack>
+            </Box>
+
             <TextField
               fullWidth
               size="small"
@@ -333,7 +389,7 @@ export default function AdminPopupNoticesPage() {
               fullWidth
               multiline
               minRows={8}
-              label="본문 (약식 블로그 형식: ## 소제목, - 목록, **강조** 지원)"
+              label="본문 (약식 블로그 형식: ## 소제목, - 목록, **강조**, ![설명](/api/v1/board-images/...) 지원)"
               value={form.content}
               onChange={(e) => setForm((f) => ({ ...f, content: e.target.value }))}
             />

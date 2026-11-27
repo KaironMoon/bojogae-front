@@ -13,15 +13,15 @@ export default function BoardContent({ post }) { // eslint-disable-line react/pr
 
   if (contentFormat !== "HTML") {
     return (
-      <Typography sx={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere", lineHeight: 1.85, minHeight: 180 }}>
+      <Typography sx={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere", lineHeight: 1.85, fontSize: 15.5, color: "#1f2937", minHeight: 140 }}>
         {content}
       </Typography>
     );
   }
   return (
     <Box
-      className="sun-editor-editable"
-      sx={{ p: "0 !important", minHeight: 180, overflowWrap: "anywhere", lineHeight: 1.85, "& table": { maxWidth: "100%" } }}
+      className="sun-editor-editable board-prose"
+      sx={{ p: "0 !important", minHeight: 140, overflowWrap: "anywhere" }}
       dangerouslySetInnerHTML={{ __html: html }}
     />
   );

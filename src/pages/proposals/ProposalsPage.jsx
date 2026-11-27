@@ -648,7 +648,7 @@ function ProposalsPage() {
     if (loading || error || !user?.id || popupShownRef.current) return;
     if (helpStep !== null || announcementOpen) return;
     let active = true;
-    getActivePopupNotices()
+    getActivePopupNotices("proposals")
       .then((res) => {
         if (!active || popupShownRef.current) return;
         const visible = filterVisibleTodayNotices(user.id, res?.items || []);
