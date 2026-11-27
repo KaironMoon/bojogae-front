@@ -1,8 +1,6 @@
 import ReportShellPanel from "./ReportShellPanel";
-import ReportTemplateEditor from "./ReportTemplateEditor";
 import PreviewImageEditor from "./PreviewImageEditor";
 import InputSchemaEditor from "./InputSchemaEditor";
-import CommonPromptSelector from "./CommonPromptSelector";
 import CommonPromptsPanel from "./CommonPromptsPanel";
 import {
   Alert,
@@ -20,9 +18,7 @@ import {
   Drawer,
   FormControlLabel,
   IconButton,
-  ListItemButton,
-  ListItemText,
-  MenuItem,
+  InputAdornment,
   Paper,
   Stack,
   Switch,
@@ -35,9 +31,11 @@ import {
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
+import FolderOpenRoundedIcon from "@mui/icons-material/FolderOpenRounded";
 import HistoryRoundedIcon from "@mui/icons-material/HistoryRounded";
 import RestoreRoundedIcon from "@mui/icons-material/RestoreRounded";
 import SaveRoundedIcon from "@mui/icons-material/SaveRounded";
+import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useBlocker } from "react-router-dom";
@@ -62,13 +60,15 @@ import {
   setSimpleFeatureState,
   updatePrompt,
 } from "@/services/prompt-service";
+import { filterAdminPrompts } from "@/services/prompt-list-utils";
+import { brand } from "@/styles/palette";
 import PromptCategoriesPanel from "./PromptCategoriesPanel";
 import PromptCategoryList from "./PromptCategoryList";
 import DefaultPromptFavoritesPanel from "./DefaultPromptFavoritesPanel";
 import SimplePromptsPanel from "./SimplePromptsPanel";
 
 
-const EMPTY_PROMPT = { report_template: null, is_new: false, is_recently_updated: false, is_simple_enabled: true, is_contract_application_enabled: false, title: "", description: "", body: "", category_ids: [], input_schema: [], max_input_files: 10, common_prompt_ids: [] };
+const EMPTY_PROMPT = { report_template: {}, is_new: false, is_recently_updated: false, is_simple_enabled: true, is_contract_application_enabled: false, title: "", description: "", body: "", category_ids: [], input_schema: [], max_input_files: 10, common_prompt_ids: [] };
 
 function categoryIds(prompt) {
   return (prompt?.categories || []).map((category) => category.id).sort((a, b) => a - b);
@@ -128,6 +128,8 @@ function PromptsPage() {
   const [categoryPickerOpen, setCategoryPickerOpen] = useState(false);
   const [categorySearch, setCategorySearch] = useState("");
   const [categoryGroup, setCategoryGroup] = useState("all");
+  const [selectedCategoryId, setSelectedCategoryId] = useState(null);
+  const [promptSearch, setPromptSearch] = useState("");
   const categoryOptions = useMemo(
     () => categories.flatMap((root) => root.children.map((child) => ({
       ...child,
@@ -149,6 +151,18 @@ function PromptsPage() {
       return matchesGroup && matchesSearch;
     });
   }, [categoryGroup, categoryOptions, categorySearch]);
+  const filteredPrompts = useMemo(
+    () => filterAdminPrompts(prompts, categories, selectedCategoryId, promptSearch),
+    [prompts, categories, selectedCategoryId, promptSearch],
+  );
+  const activeCategoryLabel = useMemo(() => {
+    if (selectedCategoryId === "unassigned") return "미분류 프롬프트";
+    if (selectedCategoryId != null) {
+      const matched = categoryOptions.find((option) => option.id === selectedCategoryId);
+      if (matched) return `${matched.parent_name} · ${matched.name}`;
+    }
+    return "전체 프롬프트";
+  }, [categoryOptions, selectedCategoryId]);
 
   useEffect(() => {
     getSimpleFeatureState()
@@ -174,7 +188,20 @@ function PromptsPage() {
   const isNew = selectedId === "new";
   const isDirty = useMemo(() => {
     if (previewFile?.length || previewRemoved.length || simplePreviewFile?.length || simplePreviewRemoved.length) return true;
-    if (isNew) return Boolean(draft.report_template || draft.is_new || draft.is_recently_updated || draft.is_simple_enabled === false || draft.is_contract_application_enabled || draft.title || draft.description || draft.body || draft.category_ids.length || draft.input_schema.length || draft.common_prompt_ids.length || draft.max_input_files !== 10);
+    if (isNew) {
+      return Boolean(
+        draft.is_new
+        || draft.is_recently_updated
+        || draft.is_simple_enabled === false
+        || draft.is_contract_application_enabled
+        || draft.title
+        || draft.description
+        || draft.category_ids.length
+        || draft.input_schema.length
+        || draft.common_prompt_ids.length
+        || draft.max_input_files !== 10,
+      );
+    }
     if (!selectedPrompt || selectedPrompt.is_deleted) return false;
     return JSON.stringify(draft.common_prompt_ids) !== JSON.stringify(selectedPrompt.common_prompt_ids || [])
       || draft.is_new !== Boolean(selectedPrompt.is_new)
@@ -301,6 +328,13 @@ function PromptsPage() {
   }, [categories, categoryGroup]);
 
   useEffect(() => {
+    if (selectedCategoryId != null && selectedCategoryId !== "unassigned"
+      && !categoryOptions.some((option) => option.id === selectedCategoryId)) {
+      setSelectedCategoryId(null);
+    }
+  }, [categoryOptions, selectedCategoryId]);
+
+  useEffect(() => {
     if (!selectedPrompt) return;
     loadVersions(selectedPrompt.id, includeDeletedVersions).catch(() => {
       setError("버전 기록을 불러오지 못했습니다.");
@@ -337,10 +371,11 @@ function PromptsPage() {
       setError("HTML 템플릿과 출력 데이터 스키마를 선택해 주세요.");
       return;
     }
-    if (!title || !draft.body.trim()) {
-      setError("제목과 본문을 모두 입력해 주세요.");
+    if (!title) {
+      setError("제목을 입력해 주세요.");
       return;
     }
+    const bodyToSave = draft.body.trim() ? draft.body : "(템플릿 동기화 대기)";
     if (!Number.isInteger(draft.max_input_files) || draft.max_input_files < 1 || draft.max_input_files > 100
       || draft.input_schema.some((field) => ["file", "generated_document"].includes(field.type)
         && (!Number.isInteger(field.max_files) || field.max_files < 1 || field.max_files > 100))) {
@@ -365,8 +400,8 @@ function PromptsPage() {
     setError("");
     try {
       let saved = isNew
-        ? await createPrompt(title, draft.body, draft.category_ids, draft.input_schema, draft.description, draft.common_prompt_ids, draft.max_input_files, { is_new: draft.is_new, is_recently_updated: draft.is_recently_updated, is_simple_enabled: draft.is_simple_enabled, is_contract_application_enabled: draft.is_contract_application_enabled }, draft.report_template)
-        : await updatePrompt(selectedPrompt.id, title, draft.body, draft.category_ids, draft.input_schema, draft.description, draft.common_prompt_ids, draft.max_input_files, { is_new: draft.is_new, is_recently_updated: draft.is_recently_updated, is_simple_enabled: draft.is_simple_enabled, is_contract_application_enabled: draft.is_contract_application_enabled }, draft.report_template);
+        ? await createPrompt(title, bodyToSave, draft.category_ids, draft.input_schema, draft.description, draft.common_prompt_ids, draft.max_input_files, { is_new: draft.is_new, is_recently_updated: draft.is_recently_updated, is_simple_enabled: draft.is_simple_enabled, is_contract_application_enabled: draft.is_contract_application_enabled }, draft.report_template)
+        : await updatePrompt(selectedPrompt.id, title, bodyToSave, draft.category_ids, draft.input_schema, draft.description, draft.common_prompt_ids, draft.max_input_files, { is_new: draft.is_new, is_recently_updated: draft.is_recently_updated, is_simple_enabled: draft.is_simple_enabled, is_contract_application_enabled: draft.is_contract_application_enabled }, draft.report_template);
       setSelectedPrompt(saved);
       setSelectedId(saved.id);
       if (previewFile?.length || previewRemoved.length) {
@@ -537,76 +572,79 @@ function PromptsPage() {
   };
 
   return (
-    <Box sx={{ p: { xs: 2, md: 4 }, maxWidth: 1600, mx: "auto" }}>
-      <Stack
-        direction={{ xs: "column", sm: "row" }}
-        justifyContent="space-between"
-        alignItems={{ xs: "stretch", sm: "center" }}
-        gap={2}
-        sx={{ mb: 3 }}
-      >
-        <div>
-          <Typography variant="h4" sx={{ fontWeight: 800 }}>
-            프롬프트 관리
-          </Typography>
-          <Typography color="text.secondary">
-            프롬프트를 작성하고 저장된 버전을 관리합니다.
-          </Typography>
-        </div>
-        <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap">
-          <Paper variant="outlined" sx={{ px: 1.5, py: 0.5, borderRadius: 2.5 }}>
-            <FormControlLabel
-              control={
-                <Switch
-                  size="small"
-                  color="success"
-                  checked={Boolean(simpleFeatureEnabled)}
-                  disabled={simpleFeatureSaving}
-                  onChange={(event) => handleToggleSimpleFeature(event.target.checked)}
-                  inputProps={{ "aria-label": "간소화 기능 전체 켜기/끄기" }}
-                />
-              }
-              label={
-                <Stack direction="row" spacing={0.75} alignItems="center">
-                  <Typography variant="body2" fontWeight={700}>간소화 기능</Typography>
-                  <Chip
+    <Box sx={{ p: { xs: 1.75, sm: 2.5, lg: 3.5 }, maxWidth: 1520, mx: "auto" }}>
+      <Paper variant="outlined" sx={{ p: { xs: 2, sm: 2.5 }, mb: 2, borderRadius: "16px" }}>
+        <Stack
+          direction={{ xs: "column", sm: "row" }}
+          justifyContent="space-between"
+          alignItems={{ xs: "stretch", sm: "center" }}
+          gap={2}
+        >
+          <Box>
+            <Typography variant="h4" component="h1" sx={{ fontSize: { xs: 20, sm: 24 }, fontWeight: 900, letterSpacing: "-0.025em" }}>
+              프롬프트 관리
+            </Typography>
+            <Typography color="text.secondary" sx={{ mt: 0.4, fontSize: 13 }}>
+              카테고리별로 프롬프트를 선택하고 기본 정보, 노출 설정, 입력 UI를 관리합니다.
+            </Typography>
+          </Box>
+          <Stack direction="row" spacing={1.25} alignItems="center" flexWrap="wrap">
+            <Paper variant="outlined" sx={{ px: 1.5, py: 0.5, borderRadius: 2.5, bgcolor: "#F8FAFC" }}>
+              <FormControlLabel
+                control={
+                  <Switch
                     size="small"
-                    color={simpleFeatureEnabled ? "success" : "default"}
-                    variant={simpleFeatureEnabled ? "filled" : "outlined"}
-                    label={simpleFeatureEnabled ? "전체 켜짐" : "전체 꺼짐"}
+                    color="success"
+                    checked={Boolean(simpleFeatureEnabled)}
+                    disabled={simpleFeatureSaving}
+                    onChange={(event) => handleToggleSimpleFeature(event.target.checked)}
+                    inputProps={{ "aria-label": "간소화 기능 전체 켜기/끄기" }}
                   />
-                </Stack>
-              }
-              sx={{ m: 0 }}
-            />
-          </Paper>
-          {activeTab === 0 && (
-            <Button
-              variant="contained"
-              startIcon={<AddRoundedIcon />}
-              onClick={startNewPrompt}
-            >
-              새 프롬프트
-            </Button>
-          )}
+                }
+                label={
+                  <Stack direction="row" spacing={0.75} alignItems="center">
+                    <Typography variant="body2" fontWeight={700}>간소화 기능</Typography>
+                    <Chip
+                      size="small"
+                      color={simpleFeatureEnabled ? "success" : "default"}
+                      variant={simpleFeatureEnabled ? "filled" : "outlined"}
+                      label={simpleFeatureEnabled ? "전체 켜짐" : "전체 꺼짐"}
+                    />
+                  </Stack>
+                }
+                sx={{ m: 0 }}
+              />
+            </Paper>
+            {activeTab === 0 && (
+              <Button
+                variant="contained"
+                startIcon={<AddRoundedIcon />}
+                onClick={startNewPrompt}
+              >
+                새 프롬프트
+              </Button>
+            )}
+          </Stack>
         </Stack>
-      </Stack>
+      </Paper>
 
-      <Paper variant="outlined" sx={{ borderRadius: 3, mb: 2, px: 1 }}>
+      <Paper variant="outlined" sx={{ borderRadius: "16px", mb: 2, px: 1.5, py: 0.5 }}>
         <Tabs
           value={activeTab}
           onChange={(_, value) => {
             if (value !== activeTab && canLeaveDraft()) setActiveTab(value);
           }}
-          variant="scrollable" scrollButtons="auto"
+          variant="scrollable"
+          scrollButtons="auto"
           aria-label="프롬프트 관리 메뉴"
+          sx={{ minHeight: 44 }}
         >
-          <Tab label="프롬프트" />
-          <Tab label="간소화 버전 관리" />
-          <Tab label="카테고리 관리" />
-          <Tab label="기본 즐겨찾기 관리" />
-          <Tab label="공통 프롬프트 관리" />
-          <Tab label="공통 HTML 관리" />
+          <Tab label="프롬프트" sx={{ fontWeight: 750 }} />
+          <Tab label="간소화 버전 관리" sx={{ fontWeight: 750 }} />
+          <Tab label="카테고리 관리" sx={{ fontWeight: 750 }} />
+          <Tab label="기본 즐겨찾기 관리" sx={{ fontWeight: 750 }} />
+          <Tab label="공통 프롬프트 관리" sx={{ fontWeight: 750 }} />
+          <Tab label="공통 HTML 관리" sx={{ fontWeight: 750 }} />
         </Tabs>
       </Paper>
 
@@ -617,341 +655,642 @@ function PromptsPage() {
       )}
 
       {activeTab === 0 ? (
-      <Box
-        sx={{
-          display: "grid",
-          gridTemplateColumns: { xs: "1fr", md: "360px minmax(0, 1fr)" },
-          gap: 2,
-          alignItems: "start",
-        }}
-      >
-        <Paper variant="outlined" sx={{ borderRadius: 3, overflow: "hidden" }}>
-          <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 2, py: 1.5 }}>
-            <Typography sx={{ fontWeight: 750 }}>프롬프트 목록</Typography>
-            <FormControlLabel
-              control={
-                <Switch
-                  size="small"
-                  checked={includeDeleted}
-                  onChange={(event) => setIncludeDeleted(event.target.checked)}
-                />
-              }
-              label="삭제 포함"
-              slotProps={{ typography: { variant: "caption" } }}
-              sx={{ mr: 0 }}
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: { xs: "minmax(0, 1fr)", md: "minmax(260px, 320px) minmax(0, 1fr)" },
+            gap: { xs: 2, md: 2.5 },
+            alignItems: "start",
+          }}
+        >
+          <Box sx={{ position: { md: "sticky" }, top: { md: 16 }, minWidth: 0 }}>
+            <PromptCategoryList
+              prompts={prompts}
+              categories={categories}
+              selectedCategoryId={selectedCategoryId}
+              onSelectCategory={setSelectedCategoryId}
             />
-          </Stack>
-          <Divider />
-          {loading ? (
-            <Box sx={{ py: 8, display: "grid", placeItems: "center" }}>
-              <CircularProgress size={28} />
-            </Box>
-          ) : (
-            <Box sx={{ maxHeight: "calc(100vh - 280px)", overflowY: "auto" }}>
-              {isNew && (
-                <ListItemButton selected sx={{ py: 0.5 }}>
-                  <ListItemText primary="새 프롬프트" secondary="저장 전" />
-                </ListItemButton>
-              )}
-              <PromptCategoryList
-                prompts={prompts}
-                categories={categories}
-                selectedId={selectedId}
-                onSelect={selectPrompt}
-              />
-              {!isNew && prompts.length === 0 && (
-                <Typography color="text.secondary" variant="body2" sx={{ p: 3, textAlign: "center" }}>
-                  등록된 프롬프트가 없습니다.
-                </Typography>
-              )}
-            </Box>
-          )}
+          </Box>
 
-        </Paper>
-
-        <Paper variant="outlined" sx={{ borderRadius: 3, p: { xs: 2, md: 3 } }}>
-          {detailLoading ? (
-            <Box sx={{ py: 12, display: "grid", placeItems: "center" }}>
-              <CircularProgress />
-            </Box>
-          ) : selectedId ? (
-            <Stack spacing={2.5}>
+          <Stack spacing={2.5} sx={{ minWidth: 0 }}>
+            <Paper
+              variant="outlined"
+              sx={{
+                borderRadius: "16px",
+                overflow: "hidden",
+                boxShadow: "0 1px 3px rgba(15, 23, 42, 0.05)",
+              }}
+            >
               <Stack
-                direction={{ xs: "column", md: "row" }}
+                direction={{ xs: "column", sm: "row" }}
+                alignItems={{ xs: "stretch", sm: "center" }}
                 justifyContent="space-between"
-                alignItems={{ xs: "stretch", md: "center" }}
-                gap={1.5}
+                gap={1.25}
+                sx={{
+                  px: 2,
+                  py: 1.25,
+                  bgcolor: "#F8FAFC",
+                  borderBottom: 1,
+                  borderColor: "divider",
+                }}
               >
-                <Stack direction="row" alignItems="center" gap={1} flexWrap="wrap">
-                  <Typography variant="h6" sx={{ fontWeight: 750 }}>
-                    {isNew ? "새 프롬프트" : selectedPrompt.current_version_no == null ? "템플릿 준비 중" : `버전 ${selectedPrompt.current_version_no}`}
+                <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0, flexWrap: "wrap" }}>
+                  <Typography variant="subtitle2" fontWeight={800} noWrap>
+                    {activeCategoryLabel}
                   </Typography>
-                  {isDirty && <Chip label="저장 안 됨" size="small" color="warning" />}
-                  {selectedPrompt?.is_deleted && <Chip label="삭제된 프롬프트" size="small" />}
+                  <Chip
+                    label={`${filteredPrompts.length}개`}
+                    size="small"
+                    color="primary"
+                    variant="outlined"
+                  />
                 </Stack>
-                <Stack direction="row" spacing={1} flexWrap="wrap">
-                  {!isNew && (
-                    <Button
-                      variant="outlined"
-                      startIcon={<HistoryRoundedIcon />}
-                      onClick={() => setHistoryOpen(true)}
-                    >
-                      버전 기록
-                    </Button>
-                  )}
-                  {selectedPrompt?.is_deleted ? (
-                    <Button
-                      variant="contained"
-                      startIcon={<RestoreRoundedIcon />}
-                      onClick={handleRecoverPrompt}
-                      disabled={working}
-                    >
-                      프롬프트 복구
-                    </Button>
-                  ) : (
-                    <>
-                      {!isNew && (
-                        <Button
-                          color="error"
-                          variant="outlined"
-                          startIcon={<DeleteOutlineRoundedIcon />}
-                          onClick={() => setConfirmAction({ type: "delete-prompt" })}
-                          disabled={working}
-                        >
-                          삭제
-                        </Button>
-                      )}
-                      <Button
-                        variant="contained"
-                        startIcon={<SaveRoundedIcon />}
-                        onClick={savePrompt}
-                        disabled={working || !isDirty}
-                      >
-                        저장
-                      </Button>
-                    </>
-                  )}
+                <Stack direction="row" spacing={1.25} alignItems="center" flexWrap="wrap">
+                  <TextField
+                    size="small"
+                    placeholder="프롬프트 검색"
+                    value={promptSearch}
+                    onChange={(event) => setPromptSearch(event.target.value)}
+                    inputProps={{ "aria-label": "프롬프트 검색" }}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <SearchRoundedIcon fontSize="small" color="action" />
+                        </InputAdornment>
+                      ),
+                      endAdornment: promptSearch ? (
+                        <InputAdornment position="end">
+                          <IconButton
+                            size="small"
+                            aria-label="검색어 지우기"
+                            onClick={() => setPromptSearch("")}
+                          >
+                            <CloseRoundedIcon fontSize="small" />
+                          </IconButton>
+                        </InputAdornment>
+                      ) : null,
+                    }}
+                    sx={{
+                      width: { xs: "100%", sm: 210 },
+                      bgcolor: "background.paper",
+                      "& .MuiInputBase-input": { py: 0.7, fontSize: 13 },
+                    }}
+                  />
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        size="small"
+                        checked={includeDeleted}
+                        onChange={(event) => setIncludeDeleted(event.target.checked)}
+                      />
+                    }
+                    label="삭제 포함"
+                    slotProps={{ typography: { variant: "caption", fontWeight: 600 } }}
+                    sx={{ mr: 0 }}
+                  />
                 </Stack>
               </Stack>
 
-              <TextField
-                label="제목"
-                value={draft.title}
-                onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))}
-                disabled={selectedPrompt?.is_deleted || working}
-                inputProps={{ maxLength: 200 }}
-                fullWidth
-              />
-              <TextField
-                label="간단한 설명"
-                value={draft.description}
-                onChange={(event) => setDraft((current) => ({ ...current, description: event.target.value }))}
-                disabled={selectedPrompt?.is_deleted || working}
-                helperText={`보고서 선택 화면에 표시됩니다. 버전 관리 대상이 아닙니다. (${draft.description.length}/300)`}
-                inputProps={{ maxLength: 300 }}
-                multiline
-                minRows={2}
-                fullWidth
-              />
-              <Box>
-                <Typography variant="subtitle2" fontWeight={750}>홈 보고서 노출</Typography>
-                <Stack direction="row" gap={2} flexWrap="wrap">
-                  <FormControlLabel
-                    label="신규"
-                    control={<Checkbox checked={draft.is_new} disabled={selectedPrompt?.is_deleted || working}
-                      onChange={(event) => setDraft((current) => ({ ...current, is_new: event.target.checked }))} />}
-                  />
-                  <FormControlLabel
-                    label="최근 업데이트"
-                    control={<Checkbox checked={draft.is_recently_updated} disabled={selectedPrompt?.is_deleted || working}
-                      onChange={(event) => setDraft((current) => ({ ...current, is_recently_updated: event.target.checked }))} />}
-                  />
-                </Stack>
-                <Typography variant="caption" color="text.secondary">
-                  각각 설정할 수 있습니다. 신규는 생성일, 최근 업데이트는 제공 전환일 기준으로 최대 6개 표시됩니다.
-                </Typography>
-              </Box>
-              <Box>
-                <Typography variant="subtitle2" fontWeight={750}>보고서 리스트 &lsquo;청약&rsquo; 버튼 노출</Typography>
-                <FormControlLabel
-                  label={draft.is_contract_application_enabled ? "고객 연결 후 보고서 리스트에서 '청약' 자동 입력 버튼을 노출합니다." : "고객을 연결해도 보고서 리스트에 '청약' 버튼을 노출하지 않습니다."}
-                  control={
-                    <Switch
-                      color="success"
-                      checked={Boolean(draft.is_contract_application_enabled)}
-                      disabled={selectedPrompt?.is_deleted || working}
-                      onChange={(event) => setDraft((current) => ({ ...current, is_contract_application_enabled: event.target.checked }))}
-                    />
-                  }
-                />
-                <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
-                  단일 제안서를 요약해 내 계약에 자동 입력할 수 있는 템플릿에만 켜두는 것을 권장합니다.
-                </Typography>
-              </Box>
-              {Boolean(draft.report_template?.simple_template || selectedPrompt?.has_simple_template) && (
-                <Box>
-                  <Typography variant="subtitle2" fontWeight={750}>간소화 버전 사용자 노출</Typography>
-                  <FormControlLabel
-                    label={draft.is_simple_enabled ? "이 프롬프트의 간소화 미리보기·생성을 사용자에게 노출합니다." : "이 프롬프트의 간소화 미리보기·생성을 사용자에게 숨깁니다."}
-                    control={
-                      <Switch
-                        color="success"
-                        checked={Boolean(draft.is_simple_enabled)}
-                        disabled={selectedPrompt?.is_deleted || working}
-                        onChange={(event) => setDraft((current) => ({ ...current, is_simple_enabled: event.target.checked }))}
-                      />
-                    }
-                  />
-                  {!simpleFeatureEnabled && (
-                    <Alert severity="info" sx={{ mt: 0.5 }}>
-                      현재 상단의 전체 <b>간소화 기능</b>이 꺼져 있어 모든 프롬프트의 간소화 버전이 사용자에게 숨겨져 있습니다.
-                    </Alert>
-                  )}
-                </Box>
-              )}
-              <Box>
-                <Typography variant="subtitle2" fontWeight={750} sx={{ mb: 1 }}>
-                  카테고리 (다중 선택)
-                </Typography>
-                {categoryOptions.length ? (
-                  <Paper variant="outlined" sx={{ p: 1.5, borderRadius: 2.5 }}>
-                    <Stack direction="row" gap={0.75} alignItems="center" flexWrap="wrap">
-                      {selectedCategoryOptions.map((option) => (
-                        <Chip
-                          key={option.id}
-                          size="small"
-                          label={option.name}
-                          onDelete={selectedPrompt?.is_deleted || working
-                            ? undefined
-                            : () => toggleDraftCategory(option.id, false)}
-                        />
-                      ))}
-                      {!selectedCategoryOptions.length && (
-                        <Typography variant="body2" color="text.secondary" sx={{ mr: 0.5 }}>
-                          선택된 카테고리가 없습니다.
-                        </Typography>
-                      )}
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        startIcon={<AddRoundedIcon />}
-                        onClick={() => setCategoryPickerOpen(true)}
-                        disabled={selectedPrompt?.is_deleted || working}
-                        sx={{ ml: { sm: "auto" } }}
-                      >
-                        카테고리 선택
-                      </Button>
-                    </Stack>
-                  </Paper>
+              <Box sx={{ p: 1.5, maxHeight: { xs: 260, md: 250 }, overflowY: "auto" }}>
+                {loading ? (
+                  <Box sx={{ py: 5, display: "grid", placeItems: "center" }}>
+                    <CircularProgress size={28} />
+                  </Box>
                 ) : (
-                  <Alert severity="info">카테고리 관리 탭에서 소분류를 먼저 만들어 주세요.</Alert>
+                  <>
+                    <Box
+                      sx={{
+                        display: "grid",
+                        gridTemplateColumns: {
+                          xs: "1fr",
+                          sm: "repeat(2, minmax(0, 1fr))",
+                          xl: "repeat(3, minmax(0, 1fr))",
+                        },
+                        gap: 1.25,
+                      }}
+                    >
+                      {isNew && (
+                        <Paper
+                          variant="outlined"
+                          sx={{
+                            p: 1.35,
+                            borderRadius: "12px",
+                            borderWidth: 2,
+                            borderColor: "primary.main",
+                            bgcolor: "primary.light",
+                          }}
+                        >
+                          <Stack spacing={0.5}>
+                            <Stack direction="row" alignItems="center" justifyContent="space-between" gap={0.75}>
+                              <Typography sx={{ fontWeight: 750, fontSize: 13.5 }} noWrap>
+                                {draft.title.trim() || "새 프롬프트"}
+                              </Typography>
+                              <Chip label="작성 중" size="small" color="primary" sx={{ height: 20, fontSize: 11 }} />
+                            </Stack>
+                            <Typography variant="caption" color="text.secondary">
+                              저장 전
+                            </Typography>
+                          </Stack>
+                        </Paper>
+                      )}
+                      {filteredPrompts.map((prompt) => {
+                        const selected = selectedId === prompt.id;
+                        return (
+                          <Paper
+                            key={prompt.id}
+                            variant="outlined"
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => selectPrompt(prompt.id)}
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter" || event.key === " ") {
+                                event.preventDefault();
+                                selectPrompt(prompt.id);
+                              }
+                            }}
+                            sx={{
+                              p: 1.35,
+                              borderRadius: "12px",
+                              borderWidth: selected ? 2 : 1,
+                              borderColor: selected ? "primary.main" : "divider",
+                              bgcolor: selected ? "primary.light" : "background.paper",
+                              opacity: prompt.is_deleted ? 0.62 : 1,
+                              cursor: "pointer",
+                              transition: "border-color 120ms ease, background-color 120ms ease",
+                              "&:hover": selected
+                                ? undefined
+                                : { borderColor: brand.accent, bgcolor: "#FAFCFB" },
+                              "&:focus-visible": {
+                                outline: `2px solid ${brand.accentInk}`,
+                                outlineOffset: 2,
+                              },
+                            }}
+                          >
+                            <Stack spacing={0.6} sx={{ minWidth: 0 }}>
+                              <Stack direction="row" alignItems="center" gap={0.6} sx={{ minWidth: 0 }}>
+                                <Typography
+                                  title={prompt.title}
+                                  noWrap
+                                  sx={{ fontWeight: 750, fontSize: 13.5, flex: 1, minWidth: 0 }}
+                                >
+                                  {prompt.title}
+                                </Typography>
+                                {prompt.is_new && (
+                                  <Tooltip title="신규">
+                                    <Chip
+                                      label="N"
+                                      aria-label="신규"
+                                      size="small"
+                                      sx={{
+                                        height: 20,
+                                        minWidth: 20,
+                                        flexShrink: 0,
+                                        bgcolor: "#dcfce7",
+                                        color: "#166534",
+                                        fontWeight: 800,
+                                        fontSize: 11,
+                                        "& .MuiChip-label": { px: 0.6 },
+                                      }}
+                                    />
+                                  </Tooltip>
+                                )}
+                                {prompt.is_recently_updated && (
+                                  <Tooltip title="최근 업데이트">
+                                    <Chip
+                                      label="U"
+                                      aria-label="최근 업데이트"
+                                      size="small"
+                                      sx={{
+                                        height: 20,
+                                        minWidth: 20,
+                                        flexShrink: 0,
+                                        bgcolor: "#dbeafe",
+                                        color: "#1e40af",
+                                        fontWeight: 800,
+                                        fontSize: 11,
+                                        "& .MuiChip-label": { px: 0.6 },
+                                      }}
+                                    />
+                                  </Tooltip>
+                                )}
+                                {prompt.is_default_favorite && (
+                                  <Chip label="기본" size="small" color="primary" variant="outlined" sx={{ height: 20, fontSize: 11 }} />
+                                )}
+                                {prompt.is_deleted && (
+                                  <Chip label="삭제됨" size="small" sx={{ height: 20, fontSize: 11 }} />
+                                )}
+                              </Stack>
+                              <Stack direction="row" alignItems="center" gap={0.75} flexWrap="wrap">
+                                <Typography variant="caption" color="text.secondary" noWrap>
+                                  {prompt.current_version_no == null ? "템플릿 준비 중" : `v${prompt.current_version_no}`}
+                                  {` · ${formatDate(prompt.updated_at)}`}
+                                </Typography>
+                                {prompt.report_folder && (
+                                  <Chip
+                                    label={prompt.report_folder}
+                                    size="small"
+                                    variant="outlined"
+                                    sx={{ height: 18, fontSize: 10.5, "& .MuiChip-label": { px: 0.75 } }}
+                                  />
+                                )}
+                              </Stack>
+                            </Stack>
+                          </Paper>
+                        );
+                      })}
+                    </Box>
+                    {!isNew && filteredPrompts.length === 0 && (
+                      <Typography color="text.secondary" variant="body2" sx={{ py: 4, textAlign: "center" }}>
+                        {prompts.length === 0
+                          ? "등록된 프롬프트가 없습니다."
+                          : "선택한 조건에 맞는 프롬프트가 없습니다."}
+                      </Typography>
+                    )}
+                  </>
                 )}
               </Box>
-              <PreviewImageEditor prompt={selectedPrompt} file={previewFile} removed={previewRemoved}
-                disabled={selectedPrompt?.is_deleted || working}
-                onFile={setPreviewFile}
-                onRemove={(id) => setPreviewRemoved((current) => [...current, id])} />
-              {Boolean(draft.report_template?.simple_template || selectedPrompt?.simple_preview_image_available) && (
-                <PreviewImageEditor
-                  prompt={selectedPrompt}
-                  file={simplePreviewFile}
-                  removed={simplePreviewRemoved}
-                  variant="simple"
-                  title="간소화 버전 미리보기 이미지 (선택)"
-                  description={`미리보기 이미지가 없어도 간소화 예시 데이터 기반 HTML 미리보기가 제공됩니다. PNG·JPG·WebP 최대 20장, 장당 10MB.`}
-                  disabled={selectedPrompt?.is_deleted || working}
-                  onFile={setSimplePreviewFile}
-                  onRemove={(id) => setSimplePreviewRemoved((current) => [...current, id])}
-                />
-              )}
-              <InputSchemaEditor value={draft.input_schema} maxInputFiles={draft.max_input_files}
-                onMaxInputFilesChange={(max_input_files) => setDraft((current) => ({ ...current, max_input_files }))}
-                disabled={selectedPrompt?.is_deleted || working}
-                onChange={(input_schema) => setDraft((current) => ({ ...current, input_schema }))} />
-              <TextField
-                select
-                label="보고서 생성 방식"
-                value={draft.report_template === null ? "html" : "template"}
-                disabled={selectedPrompt?.is_deleted || working}
-                onChange={(event) => {
-                  const reportTemplate = event.target.value === "template" ? {} : null;
-                  setDraft((current) => ({ ...current, report_template: reportTemplate }));
-                }}
-              >
-                <MenuItem value="html">HTML 전체 생성</MenuItem>
-                <MenuItem value="template">템플릿 기반 생성</MenuItem>
-              </TextField>
-              {selectedPrompt && (
-                <Stack direction={{ xs: "column", sm: "row" }} gap={1} alignItems={{ sm: "center" }}>
-                  <Typography variant="body2">
-                    보고서 동기화 폴더 · {selectedPrompt.report_folder || "연결 안 됨"}
+            </Paper>
+
+            <Paper
+              variant="outlined"
+              sx={{
+                borderRadius: "16px",
+                overflow: "hidden",
+                boxShadow: "0 1px 3px rgba(15, 23, 42, 0.05)",
+              }}
+            >
+              {detailLoading ? (
+                <Box sx={{ py: 12, display: "grid", placeItems: "center" }}>
+                  <CircularProgress />
+                </Box>
+              ) : selectedId ? (
+                <Box>
+                  <Stack
+                    direction={{ xs: "column", md: "row" }}
+                    justifyContent="space-between"
+                    alignItems={{ xs: "stretch", md: "center" }}
+                    gap={1.5}
+                    sx={{
+                      px: { xs: 2, md: 3 },
+                      py: 1.75,
+                      bgcolor: "#F8FAFC",
+                      borderBottom: 1,
+                      borderColor: "divider",
+                    }}
+                  >
+                    <Box sx={{ minWidth: 0 }}>
+                      <Stack direction="row" alignItems="center" gap={1} flexWrap="wrap">
+                        <Typography variant="h6" sx={{ fontWeight: 800, overflowWrap: "anywhere" }}>
+                          {isNew ? "새 프롬프트" : (selectedPrompt?.title || "프롬프트 상세")}
+                        </Typography>
+                        <Chip
+                          size="small"
+                          color={!isNew && selectedPrompt?.current_version_no != null ? "primary" : "default"}
+                          variant="outlined"
+                          label={
+                            isNew
+                              ? "작성 중"
+                              : selectedPrompt?.current_version_no == null
+                                ? "템플릿 준비 중"
+                                : `v${selectedPrompt.current_version_no}`
+                          }
+                        />
+                        {isDirty && <Chip label="저장 안 됨" size="small" color="warning" />}
+                        {selectedPrompt?.is_deleted && <Chip label="삭제된 프롬프트" size="small" />}
+                      </Stack>
+                      {!isNew && selectedPrompt?.updated_at && (
+                        <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.25 }}>
+                          마지막 수정 {formatDate(selectedPrompt.updated_at)}
+                        </Typography>
+                      )}
+                    </Box>
+                    <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ flexShrink: 0 }}>
+                      {!isNew && (
+                        <Button
+                          variant="outlined"
+                          startIcon={<HistoryRoundedIcon />}
+                          onClick={() => setHistoryOpen(true)}
+                        >
+                          버전 기록
+                        </Button>
+                      )}
+                      {selectedPrompt?.is_deleted ? (
+                        <Button
+                          variant="contained"
+                          startIcon={<RestoreRoundedIcon />}
+                          onClick={handleRecoverPrompt}
+                          disabled={working}
+                        >
+                          프롬프트 복구
+                        </Button>
+                      ) : (
+                        <>
+                          {!isNew && (
+                            <Button
+                              color="error"
+                              variant="outlined"
+                              startIcon={<DeleteOutlineRoundedIcon />}
+                              onClick={() => setConfirmAction({ type: "delete-prompt" })}
+                              disabled={working}
+                            >
+                              삭제
+                            </Button>
+                          )}
+                          <Button
+                            variant="contained"
+                            startIcon={<SaveRoundedIcon />}
+                            onClick={savePrompt}
+                            disabled={working || !isDirty}
+                          >
+                            저장
+                          </Button>
+                        </>
+                      )}
+                    </Stack>
+                  </Stack>
+
+                  <Stack spacing={3} sx={{ p: { xs: 2, md: 3 } }}>
+                    <Stack spacing={2}>
+                      <Typography variant="subtitle1" fontWeight={800}>
+                        기본 정보 & 동기화
+                      </Typography>
+
+                      {selectedPrompt && (
+                        <Paper
+                          variant="outlined"
+                          sx={{
+                            bgcolor: "#F8FAFC",
+                            borderRadius: 2,
+                            px: 2,
+                            py: 1.25,
+                          }}
+                        >
+                          <Stack
+                            direction={{ xs: "column", sm: "row" }}
+                            gap={1}
+                            alignItems={{ xs: "flex-start", sm: "center" }}
+                            justifyContent="space-between"
+                          >
+                            <Stack direction="row" gap={1} alignItems="center" flexWrap="wrap" sx={{ minWidth: 0 }}>
+                              <FolderOpenRoundedIcon fontSize="small" color="primary" />
+                              <Typography variant="body2" fontWeight={700}>
+                                보고서 동기화 폴더
+                              </Typography>
+                              <Typography variant="body2" color={selectedPrompt.report_folder ? "text.primary" : "text.secondary"}>
+                                {selectedPrompt.report_folder || "연결 안 됨"}
+                              </Typography>
+                              {selectedPrompt.report_folder && !selectedPrompt.report_folder_confirmed && (
+                                <Chip label="폴더 확인 대기" size="small" variant="outlined" />
+                              )}
+                              {(selectedPrompt.report_template?.simple_template || selectedPrompt.has_simple_template) && (
+                                <Chip
+                                  label={simpleFeatureEnabled && selectedPrompt.is_simple_enabled !== false ? "간소화 노출 중" : "간소화 숨김"}
+                                  size="small"
+                                  color={simpleFeatureEnabled && selectedPrompt.is_simple_enabled !== false ? "success" : "default"}
+                                  variant="outlined"
+                                />
+                              )}
+                            </Stack>
+                            {!selectedPrompt.is_deleted && (
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                disabled={working}
+                                onClick={() => {
+                                  setReportFolderError("");
+                                  setReportFolderInput(selectedPrompt.report_folder || "");
+                                }}
+                                sx={{ flexShrink: 0 }}
+                              >
+                                연결 편집
+                              </Button>
+                            )}
+                          </Stack>
+                        </Paper>
+                      )}
+
+                      {!selectedPrompt?.current_version_id && (
+                        <Alert severity="info">
+                          저장 후 동기화 폴더를 연결하고 싱크하면 첫 버전이 생성됩니다. 초안은 일반 사용자에게 표시되지 않습니다.
+                        </Alert>
+                      )}
+
+                      <TextField
+                        size="small"
+                        label="제목"
+                        value={draft.title}
+                        onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))}
+                        disabled={selectedPrompt?.is_deleted || working}
+                        inputProps={{ maxLength: 200 }}
+                        fullWidth
+                      />
+                      <TextField
+                        size="small"
+                        label="간단한 설명"
+                        value={draft.description}
+                        onChange={(event) => setDraft((current) => ({ ...current, description: event.target.value }))}
+                        disabled={selectedPrompt?.is_deleted || working}
+                        helperText={`보고서 선택 화면에 표시됩니다. 버전 관리 대상이 아닙니다. (${draft.description.length}/300)`}
+                        inputProps={{ maxLength: 300 }}
+                        multiline
+                        minRows={2}
+                        fullWidth
+                      />
+                      <Box>
+                        <Typography variant="subtitle2" fontWeight={750} sx={{ mb: 1 }}>
+                          카테고리 (다중 선택)
+                        </Typography>
+                        {categoryOptions.length ? (
+                          <Paper variant="outlined" sx={{ p: 1.5, borderRadius: 2.5 }}>
+                            <Stack direction="row" gap={0.75} alignItems="center" flexWrap="wrap">
+                              {selectedCategoryOptions.map((option) => (
+                                <Chip
+                                  key={option.id}
+                                  size="small"
+                                  label={option.name}
+                                  onDelete={selectedPrompt?.is_deleted || working
+                                    ? undefined
+                                    : () => toggleDraftCategory(option.id, false)}
+                                />
+                              ))}
+                              {!selectedCategoryOptions.length && (
+                                <Typography variant="body2" color="text.secondary" sx={{ mr: 0.5 }}>
+                                  선택된 카테고리가 없습니다.
+                                </Typography>
+                              )}
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                startIcon={<AddRoundedIcon />}
+                                onClick={() => setCategoryPickerOpen(true)}
+                                disabled={selectedPrompt?.is_deleted || working}
+                                sx={{ ml: { sm: "auto" } }}
+                              >
+                                카테고리 선택
+                              </Button>
+                            </Stack>
+                          </Paper>
+                        ) : (
+                          <Alert severity="info">카테고리 관리 탭에서 소분류를 먼저 만들어 주세요.</Alert>
+                        )}
+                      </Box>
+                    </Stack>
+
+                    <Divider />
+
+                    <Stack spacing={1.5}>
+                      <Typography variant="subtitle1" fontWeight={800}>
+                        노출 및 기능 설정
+                      </Typography>
+                      <Box
+                        sx={{
+                          display: "grid",
+                          gridTemplateColumns: { xs: "1fr", lg: "repeat(2, minmax(0, 1fr))" },
+                          gap: 1.5,
+                        }}
+                      >
+                        <Paper variant="outlined" sx={{ p: 1.75, borderRadius: 2.5, bgcolor: "#FAFBFC" }}>
+                          <Typography variant="subtitle2" fontWeight={750}>홈 보고서 노출</Typography>
+                          <Stack direction="row" gap={2} flexWrap="wrap" sx={{ mt: 0.5 }}>
+                            <FormControlLabel
+                              label="신규"
+                              control={(
+                                <Checkbox
+                                  checked={draft.is_new}
+                                  disabled={selectedPrompt?.is_deleted || working}
+                                  onChange={(event) => setDraft((current) => ({ ...current, is_new: event.target.checked }))}
+                                />
+                              )}
+                            />
+                            <FormControlLabel
+                              label="최근 업데이트"
+                              control={(
+                                <Checkbox
+                                  checked={draft.is_recently_updated}
+                                  disabled={selectedPrompt?.is_deleted || working}
+                                  onChange={(event) => setDraft((current) => ({ ...current, is_recently_updated: event.target.checked }))}
+                                />
+                              )}
+                            />
+                          </Stack>
+                          <Typography variant="caption" color="text.secondary">
+                            각각 설정할 수 있습니다. 신규는 생성일, 최근 업데이트는 제공 전환일 기준으로 최대 6개 표시됩니다.
+                          </Typography>
+                        </Paper>
+
+                        <Paper variant="outlined" sx={{ p: 1.75, borderRadius: 2.5, bgcolor: "#FAFBFC" }}>
+                          <Typography variant="subtitle2" fontWeight={750}>보고서 리스트 &lsquo;청약&rsquo; 버튼 노출</Typography>
+                          <FormControlLabel
+                            sx={{ mt: 0.5 }}
+                            label={draft.is_contract_application_enabled ? "고객 연결 후 보고서 리스트에서 '청약' 자동 입력 버튼을 노출합니다." : "고객을 연결해도 보고서 리스트에 '청약' 버튼을 노출하지 않습니다."}
+                            control={
+                              <Switch
+                                color="success"
+                                checked={Boolean(draft.is_contract_application_enabled)}
+                                disabled={selectedPrompt?.is_deleted || working}
+                                onChange={(event) => setDraft((current) => ({ ...current, is_contract_application_enabled: event.target.checked }))}
+                              />
+                            }
+                          />
+                          <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+                            단일 제안서를 요약해 내 계약에 자동 입력할 수 있는 템플릿에만 켜두는 것을 권장합니다.
+                          </Typography>
+                        </Paper>
+
+                        {Boolean(draft.report_template?.simple_template || selectedPrompt?.has_simple_template) && (
+                          <Paper
+                            variant="outlined"
+                            sx={{
+                              gridColumn: { lg: "1 / -1" },
+                              p: 1.75,
+                              borderRadius: 2.5,
+                              bgcolor: "#FAFBFC",
+                            }}
+                          >
+                            <Typography variant="subtitle2" fontWeight={750}>간소화 버전 사용자 노출</Typography>
+                            <FormControlLabel
+                              sx={{ mt: 0.5 }}
+                              label={draft.is_simple_enabled ? "이 프롬프트의 간소화 미리보기·생성을 사용자에게 노출합니다." : "이 프롬프트의 간소화 미리보기·생성을 사용자에게 숨깁니다."}
+                              control={
+                                <Switch
+                                  color="success"
+                                  checked={Boolean(draft.is_simple_enabled)}
+                                  disabled={selectedPrompt?.is_deleted || working}
+                                  onChange={(event) => setDraft((current) => ({ ...current, is_simple_enabled: event.target.checked }))}
+                                />
+                              }
+                            />
+                            {!simpleFeatureEnabled && (
+                              <Alert severity="info" sx={{ mt: 0.75 }}>
+                                현재 상단의 전체 <b>간소화 기능</b>이 꺼져 있어 모든 프롬프트의 간소화 버전이 사용자에게 숨겨져 있습니다.
+                              </Alert>
+                            )}
+                          </Paper>
+                        )}
+                      </Box>
+                    </Stack>
+
+                    <Divider />
+
+                    <Stack spacing={2}>
+                      <Typography variant="subtitle1" fontWeight={800}>
+                        미리보기 이미지
+                      </Typography>
+                      <PreviewImageEditor
+                        prompt={selectedPrompt}
+                        file={previewFile}
+                        removed={previewRemoved}
+                        disabled={selectedPrompt?.is_deleted || working}
+                        onFile={setPreviewFile}
+                        onRemove={(id) => setPreviewRemoved((current) => [...current, id])}
+                      />
+                      {Boolean(draft.report_template?.simple_template || selectedPrompt?.simple_preview_image_available) && (
+                        <PreviewImageEditor
+                          prompt={selectedPrompt}
+                          file={simplePreviewFile}
+                          removed={simplePreviewRemoved}
+                          variant="simple"
+                          title="간소화 버전 미리보기 이미지 (선택)"
+                          description="미리보기 이미지가 없어도 간소화 예시 데이터 기반 HTML 미리보기가 제공됩니다. PNG·JPG·WebP 최대 20장, 장당 10MB."
+                          disabled={selectedPrompt?.is_deleted || working}
+                          onFile={setSimplePreviewFile}
+                          onRemove={(id) => setSimplePreviewRemoved((current) => [...current, id])}
+                        />
+                      )}
+                    </Stack>
+
+                    <Divider />
+
+                    <Stack spacing={1.5}>
+                      <Typography variant="subtitle1" fontWeight={800}>
+                        입력 UI 설정
+                      </Typography>
+                      <InputSchemaEditor
+                        value={draft.input_schema}
+                        maxInputFiles={draft.max_input_files}
+                        onMaxInputFilesChange={(max_input_files) => setDraft((current) => ({ ...current, max_input_files }))}
+                        disabled={selectedPrompt?.is_deleted || working}
+                        onChange={(input_schema) => setDraft((current) => ({ ...current, input_schema }))}
+                      />
+                    </Stack>
+
+                    {!isNew && (
+                      <Typography variant="caption" color="text.secondary">
+                        마지막 수정 {formatDate(selectedPrompt.updated_at)} · 제목·입력 UI를 변경하면 새 버전이 생성되며, 카테고리·설명·노출 설정만 바꾸면 버전 번호를 유지하고 현재 프롬프트에 반영됩니다.
+                      </Typography>
+                    )}
+                  </Stack>
+                </Box>
+              ) : (
+                <Box sx={{ py: 12, textAlign: "center" }}>
+                  <Typography color="text.secondary">
+                    프롬프트를 선택하거나 새로 만들어 주세요.
                   </Typography>
-                  {selectedPrompt.report_folder && !selectedPrompt.report_folder_confirmed && (
-                    <Chip label="폴더 확인 대기" size="small" variant="outlined" />
-                  )}
-                  {(selectedPrompt.report_template?.simple_template || selectedPrompt.has_simple_template) && (
-                    <Chip
-                      label={simpleFeatureEnabled && selectedPrompt.is_simple_enabled !== false ? "간소화 노출 중" : "간소화 숨김"}
-                      size="small"
-                      color={simpleFeatureEnabled && selectedPrompt.is_simple_enabled !== false ? "success" : "default"}
-                      variant="outlined"
-                    />
-                  )}
-                  {!selectedPrompt.is_deleted && (
-                    <Button size="small" disabled={working} onClick={() => {
-                      setReportFolderError("");
-                      setReportFolderInput(selectedPrompt.report_folder || "");
-                    }}>
-                      연결 편집
-                    </Button>
-                  )}
-                </Stack>
+                </Box>
               )}
-              <TextField
-                label="본문"
-                value={draft.body}
-                onChange={(event) => setDraft((current) => ({ ...current, body: event.target.value }))}
-                disabled={selectedPrompt?.is_deleted || working}
-                multiline
-                minRows={20}
-                fullWidth
-                sx={{
-                  "& textarea": {
-                    fontFamily: '"SFMono-Regular", Consolas, "Liberation Mono", monospace',
-                    fontSize: 14,
-                    lineHeight: 1.65,
-                  },
-                }}
-              />
-              {draft.report_template !== null && !selectedPrompt?.current_version_id && (
-                <Alert severity="info">HTML·스키마 없이 저장할 수 있습니다. 저장 후 동기화 폴더를 연결하고 싱크하면 첫 버전이 생성됩니다. 초안은 일반 사용자에게 표시되지 않습니다.</Alert>
-              )}
-              {draft.report_template !== null && (
-                <ReportTemplateEditor key={selectedId} title={draft.title} value={draft.report_template} disabled={selectedPrompt?.is_deleted || working}
-                  onChange={(update) => setDraft((current) => current.report_template === null
-                    ? current
-                    : { ...current, report_template: update(current.report_template) })} />
-              )}
-              {commonError && <Alert severity="warning">{commonError}</Alert>}
-              {commonLoading && <Typography color="text.secondary">공통 프롬프트를 불러오는 중입니다.</Typography>}
-              <CommonPromptSelector items={commonPrompts} value={draft.common_prompt_ids}
-                disabled={selectedPrompt?.is_deleted || working || commonLoading || Boolean(commonError)}
-                onChange={common_prompt_ids => setDraft(current => ({ ...current, common_prompt_ids }))} />
-              {!isNew && (
-                <Typography variant="caption" color="text.secondary">
-                  마지막 수정 {formatDate(selectedPrompt.updated_at)} · 제목·본문·입력 UI·공통 프롬프트 선택 및 순서를 변경하면 새 버전이 생성되며, 카테고리·설명·홈 노출 속성만 바꾸면 버전 번호를 유지하고 현재 프롬프트에 반영됩니다.
-                </Typography>
-              )}
-            </Stack>
-          ) : (
-            <Box sx={{ py: 12, textAlign: "center" }}>
-              <Typography color="text.secondary">
-                프롬프트를 선택하거나 새로 만들어 주세요.
-              </Typography>
-            </Box>
-          )}
-        </Paper>
-      </Box>
+            </Paper>
+          </Stack>
+        </Box>
       ) : activeTab === 1 ? (
         <SimplePromptsPanel
           simpleFeatureEnabled={simpleFeatureEnabled}
