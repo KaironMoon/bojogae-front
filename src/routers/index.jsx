@@ -8,6 +8,7 @@ import MyCoinsPage from "../pages/groups/MyCoinsPage";
 import GroupPasswordPage from "../pages/auth/GroupPasswordPage";
 import { lazy, Suspense } from "react";
 import { createBrowserRouter, Navigate } from "react-router-dom";
+import { RootTelemetryLayout } from "../components/AnalyticsTracker";
 import Home from "../pages/home";
 import Info from "../pages/info";
 import NotFound from "../pages/error/NotFound";
@@ -84,6 +85,9 @@ const ProductRouter = [
 ];
 
 const router = createBrowserRouter([
+  {
+    element: <RootTelemetryLayout />,
+    children: [
   { path: "/talk/login", element: <TalkLoginPage /> },
   {
     element: <PageLayout publicAccess />,
@@ -218,6 +222,8 @@ const router = createBrowserRouter([
   {
     path: "*",
     element: <NotFound />,
+  },
+    ],
   },
 ]);
 
