@@ -1787,51 +1787,11 @@ function ProposalsPage() {
               <Typography variant="h4" component="h1" sx={{ fontSize: { xs: 20, sm: 24 }, fontWeight: 900, letterSpacing: "-0.025em" }}>보고서 만들기</Typography>
               <Button size="small" startIcon={<HelpOutlineRoundedIcon />} onClick={openHelpDialog}
                 sx={{ bgcolor: "background.default", px: 1, fontSize: 12, fontWeight: 800, borderRadius: "8px" }}>도움말 보기</Button>
-              <Button
-                size="small"
-                component={Link}
-                to="/help/faq#youtubeGalleryGrid"
-                data-report-help="guide-video"
-                startIcon={<PlayCircleFilledRoundedIcon />}
-                sx={{
-                  bgcolor: "#DC2626",
-                  color: "#fff",
-                  px: 1.4,
-                  py: 0.5,
-                  fontSize: 12,
-                  fontWeight: 900,
-                  borderRadius: "999px",
-                  boxShadow: "0 4px 12px rgba(220, 38, 38, 0.28)",
-                  "@keyframes videoGuidePulse": {
-                    "0%, 100%": { boxShadow: "0 4px 12px rgba(220, 38, 38, 0.28)" },
-                    "50%": { boxShadow: "0 0 0 5px rgba(220, 38, 38, 0.16), 0 6px 16px rgba(220, 38, 38, 0.36)" },
-                  },
-                  animation: "videoGuidePulse 2.8s ease-in-out infinite",
-                  "@media (prefers-reduced-motion: reduce)": { animation: "none" },
-                  "&:hover": { bgcolor: "#B91C1C" },
-                }}
-              >
-                기능 설명 영상
-                <Box
-                  component="span"
-                  sx={{
-                    ml: 0.75,
-                    px: 0.7,
-                    py: 0.1,
-                    borderRadius: 99,
-                    bgcolor: "rgba(255,255,255,0.22)",
-                    fontSize: 10,
-                    fontWeight: 800,
-                    lineHeight: 1.4,
-                  }}
-                >
-                  영상 가이드
-                </Box>
-              </Button>
               {!showInlineVideoColumn && (
                 <Button
                   size="small"
                   variant="outlined"
+                  data-report-help="guide-video"
                   startIcon={<PlayCircleFilledRoundedIcon />}
                   onClick={showVideoColumn}
                   sx={{
@@ -2941,7 +2901,7 @@ function ProposalsPage() {
         </Stack>
 
         {showInlineVideoColumn && (
-          <Stack component="aside" spacing={2} data-proposals-right-rail sx={{ minWidth: 0, alignSelf: "start" }}>
+          <Stack component="aside" spacing={2} data-proposals-right-rail data-report-help="guide-video" sx={{ minWidth: 0, alignSelf: "start" }}>
             <ProposalVideoGuideColumn onHide={hideVideoColumn} />
           </Stack>
         )}
