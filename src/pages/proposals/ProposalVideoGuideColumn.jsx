@@ -43,7 +43,6 @@ function VideoThumbCard({ video }) {
           position: "relative",
           width: "100%",
           aspectRatio: "16 / 9",
-          minHeight: 156,
           flexShrink: 0,
           bgcolor: "#0F172A",
           overflow: "hidden",
@@ -191,9 +190,11 @@ export default function ProposalVideoGuideColumn({ onHide, inDrawer = false }) {
           borderColor: "divider",
           bgcolor: "#FFF5F5",
           display: "flex",
+          flexWrap: "wrap",
           alignItems: "center",
           justifyContent: "space-between",
-          gap: 1,
+          columnGap: 1,
+          rowGap: 0.5,
         }}
       >
         <Stack direction="row" spacing={0.75} alignItems="center" sx={{ minWidth: 0 }}>

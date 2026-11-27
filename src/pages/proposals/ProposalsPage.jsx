@@ -1869,7 +1869,7 @@ function ProposalsPage() {
         sx={{
           display: "grid",
           gridTemplateColumns: showInlineVideoColumn
-            ? { xs: "minmax(0, 1fr)", md: "minmax(220px, 1fr) minmax(0, 3fr)", lg: "minmax(220px, 1fr) minmax(0, 2.65fr) 312px", xl: "minmax(240px, 1fr) minmax(0, 2.9fr) 332px" }
+            ? { xs: "minmax(0, 1fr)", md: "minmax(220px, 1fr) minmax(0, 3fr)", lg: "minmax(200px, 1fr) minmax(0, 2.9fr) minmax(190px, 1fr)" }
             : { xs: "minmax(0, 1fr)", md: "minmax(220px, 1fr) minmax(0, 3fr)" },
           gap: { xs: 2, md: 2.5 },
           alignItems: "start",
