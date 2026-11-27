@@ -20,7 +20,7 @@ function FileInputField({ field, uploads, onFiles, disabled, maxInputFiles, pdfP
   };
 
   return (
-    <Box>
+    <Box data-remodeling-help="kb-pdf">
       <Typography variant="body2" fontWeight={700}>{field.label}{field.required ? " *" : ""}</Typography>
       <Typography variant="caption" color="text.secondary" display="block">
         {field.help} · {fileTypeLabel(field)} 최대 {field.max_files}개 · 파일당 100MB (전체 최대 {maxInputFiles}개)
@@ -130,44 +130,47 @@ export default function PromptInputForm({
       {fields.map((field) => field.type === "file" ? (
         <FileInputField maxInputFiles={maxInputFiles} key={field.key} field={field} uploads={uploads} onFiles={onFiles} disabled={disabled} pdfPasswords={pdfPasswords} />
       ) : field.type === "generated_document" ? (
-        <Autocomplete
-          key={field.key}
-          multiple
-          size="small"
-          options={documentOptions}
-          value={documents[field.key] || []}
-          disabled={disabled}
-          getOptionLabel={(option) => option.title}
-          isOptionEqualToValue={(option, value) => option.id === value.id}
-          filterSelectedOptions
-          onChange={(_, next) => {
-            if (next.length <= field.max_files) onDocuments(field.key, next);
-          }}
-          renderTags={(selected, getTagProps) => selected.map((option, index) => (
-            <Chip {...getTagProps({ index })} key={option.id} size="small" label={option.title} />
-          ))}
-          renderInput={(params) => (
-            <TextField
-              {...params}
-              label={field.label || "기존 생성 문서"}
-              required={field.required}
-              helperText={field.help || `완료된 내 생성 문서 중 최대 ${field.max_files}개를 선택하세요.`}
-              placeholder="생성 문서 검색 및 선택"
-            />
-          )}
-        />
+        <Box key={field.key} data-remodeling-help="generated-doc">
+          <Autocomplete
+            multiple
+            size="small"
+            options={documentOptions}
+            value={documents[field.key] || []}
+            disabled={disabled}
+            getOptionLabel={(option) => option.title}
+            isOptionEqualToValue={(option, value) => option.id === value.id}
+            filterSelectedOptions
+            onChange={(_, next) => {
+              if (next.length <= field.max_files) onDocuments(field.key, next);
+            }}
+            renderTags={(selected, getTagProps) => selected.map((option, index) => (
+              <Chip {...getTagProps({ index })} key={option.id} size="small" label={option.title} />
+            ))}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label={field.label || "기존 생성 문서"}
+                required={field.required}
+                helperText={field.help || `완료된 내 생성 문서 중 최대 ${field.max_files}개를 선택하세요.`}
+                placeholder="생성 문서 검색 및 선택"
+              />
+            )}
+          />
+        </Box>
       ) : (
-        <TextField key={field.key} fullWidth size="small" label={field.label || "항목 이름"}
-          helperText={field.help} required={field.required} disabled={disabled}
-          type={field.type === "number" ? "number" : "text"} select={field.type === "select"}
-          multiline={field.type === "text"} minRows={field.type === "text" ? 2 : undefined}
-          inputProps={{ maxLength: 10000, ...(field.type === "number" ? { step: "any" } : {}) }}
-          value={values[field.key] ?? ""} onChange={(event) => onValue(field.key, event.target.value)}>
-          {field.type === "select" ? [
-            <MenuItem key="empty" value=""><em>선택해 주세요</em></MenuItem>,
-            ...(field.options || []).filter(Boolean).map((option, index) => <MenuItem key={index} value={option}>{option}</MenuItem>),
-          ] : null}
-        </TextField>
+        <Box key={field.key} data-remodeling-help={field.type === "text" ? "cancel-text" : undefined}>
+          <TextField fullWidth size="small" label={field.label || "항목 이름"}
+            helperText={field.help} required={field.required} disabled={disabled}
+            type={field.type === "number" ? "number" : "text"} select={field.type === "select"}
+            multiline={field.type === "text"} minRows={field.type === "text" ? 2 : undefined}
+            inputProps={{ maxLength: 10000, ...(field.type === "number" ? { step: "any" } : {}) }}
+            value={values[field.key] ?? ""} onChange={(event) => onValue(field.key, event.target.value)}>
+            {field.type === "select" ? [
+              <MenuItem key="empty" value=""><em>선택해 주세요</em></MenuItem>,
+              ...(field.options || []).filter(Boolean).map((option, index) => <MenuItem key={index} value={option}>{option}</MenuItem>),
+            ] : null}
+          </TextField>
+        </Box>
       ))}
       {!fields.length && <Alert severity="info">기본 PDF·이미지·HTML·엑셀 업로드 화면을 사용합니다.</Alert>}
     </Stack>

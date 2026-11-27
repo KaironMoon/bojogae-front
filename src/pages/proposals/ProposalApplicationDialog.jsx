@@ -13,6 +13,18 @@ export const applicationButtonStyle = {
   "&.Mui-disabled": { background: "#E2E8F0", color: "#94A3B8", boxShadow: "none" },
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
+export const applicationCompletedButtonStyle = {
+  bgcolor: "#ECFDF5",
+  color: "#00883E",
+  border: "1px solid #A7F3D0",
+  borderRadius: "12px",
+  fontWeight: 800,
+  px: 1.5,
+  boxShadow: "none",
+  "&:hover": { bgcolor: "#D1FAE5", borderColor: "#6EE7B7" },
+};
+
 export default function ProposalApplicationDialog({ open, loading, error, draft, drafts, emptyDraft, onSelect, onClose, onRetry, onSave, saved }) {
   if (!open) return null;
   if (draft && !saved) return <ContractForm initialDraft={draft} applicationDraft onClose={onClose} onSave={onSave} />;

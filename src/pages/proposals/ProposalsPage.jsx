@@ -1,4 +1,7 @@
-import ProposalApplicationDialog, { applicationButtonStyle } from "./ProposalApplicationDialog";
+import ProposalApplicationDialog, {
+  applicationButtonStyle,
+  applicationCompletedButtonStyle,
+} from "./ProposalApplicationDialog";
 import ProposalFeatureAnnouncementDialog from "./ProposalFeatureAnnouncementDialog";
 import ProposalPopupNoticeDialog from "./ProposalPopupNoticeDialog";
 import { crmGet, crmPost, crmError } from "@/services/crm-service";
@@ -9,7 +12,19 @@ import KkomakIcon from "@/pages/components/KkomakIcon";
 import { Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/auth/AuthContext";
 import ReportHelpTour from "@/pages/components/ReportHelpTour";
-import { hasSeenReportHelp, markReportHelpSeen } from "@/services/report-help-storage";
+import CanvasHelpTour from "@/pages/components/CanvasHelpTour";
+import {
+  hasSeenReportHelp,
+  markReportHelpSeen,
+  hasSeenCanvasGuide,
+  markCanvasGuideSeen,
+  hasSeenReportListGuide,
+  markReportListGuideSeen,
+  hasSeenRemodelingGuide,
+  markRemodelingGuideSeen,
+  hasSeenRemodelingNoProposalGuide,
+  markRemodelingNoProposalGuideSeen,
+} from "@/services/report-help-storage";
 import {
   getUnseenAnnouncements,
   markAnnouncementsDismissed,
@@ -74,7 +89,6 @@ import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import DescriptionRoundedIcon from "@mui/icons-material/DescriptionRounded";
-import FactCheckRoundedIcon from "@mui/icons-material/FactCheckRounded";
 import FolderOpenRoundedIcon from "@mui/icons-material/FolderOpenRounded";
 import OpenInNewRoundedIcon from "@mui/icons-material/OpenInNewRounded";
 import PersonOutlineRoundedIcon from "@mui/icons-material/PersonOutlineRounded";
@@ -115,8 +129,8 @@ import {
 
 const MAX_FILE_BYTES = 100 * 1024 * 1024;
 const ACTIVE = new Set(["QUEUED", "RUNNING", "CANCEL_REQUESTED"]);
-const PREVIEW_WIDTH = 794;
-const PREVIEW_HEIGHT = 1123;
+const CANVAS_DOC_WIDTH = 860;
+const REMODELING_VIDEO_URL = "https://youtu.be/wkNfG7Eq6QI";
 const SIMPLE_SECTION_OPTIONS = [
   { key: "card_comments", label: "담보별 핵심 코멘트" },
   { key: "waiver_support", label: "납입면제 · 납입지원" },
@@ -212,36 +226,6 @@ const STATUS_LABELS = {
   FAILED: "실패",
   CANCELLED: "취소됨",
 };
-
-const WORKFLOW_STEPS = [
-  {
-    eyebrow: "Step 1",
-    title: "1. 카테고리 & 프롬프트 선택",
-    description: "카테고리별 맞춤 추천 및 결과 미리보기",
-    icon: FactCheckRoundedIcon,
-    color: "#006E43",
-    background: "#03C75A",
-    border: "#03C75A",
-  },
-  {
-    eyebrow: "Step 2",
-    title: "2. 설계 제안서 업로드",
-    description: "보험사 원본 PDF 첨부 및 분석",
-    icon: CloudUploadRoundedIcon,
-    color: "#6B38FB",
-    background: "#F5F3FF",
-    border: "#F5F3FF",
-  },
-  {
-    eyebrow: "Step 3",
-    title: "3. 보고서 캔버스 & 공유",
-    description: "실시간 미리보기, 출력, 이미지 저장",
-    icon: TaskAltRoundedIcon,
-    color: "#059669",
-    background: "#ecfdf5",
-    border: "#a7f3d0",
-  },
-];
 
 function formatBytes(value) {
   if (!value) return "0 B";
@@ -382,6 +366,19 @@ function ProposalsPage() {
   const [sharePreparing, setSharePreparing] = useState(false);
   const [openedDocument, setOpenedDocument] = useState(null);
   const [previewZoom, setPreviewZoom] = useState(1);
+  const [canvasStageWidth, setCanvasStageWidth] = useState(0);
+  const [canvasGuideDismissed, setCanvasGuideDismissed] = useState(() => hasSeenCanvasGuide(user?.id));
+  const [canvasGuideStep, setCanvasGuideStep] = useState(0);
+  const [canvasGuideReady, setCanvasGuideReady] = useState(false);
+  const [reportListGuideDismissed, setReportListGuideDismissed] = useState(() => hasSeenReportListGuide(user?.id));
+  const [reportListGuideReady, setReportListGuideReady] = useState(false);
+  const [remodelingGuideDismissed, setRemodelingGuideDismissed] = useState(() => hasSeenRemodelingGuide(user?.id));
+  const [remodelingGuideStep, setRemodelingGuideStep] = useState(0);
+  const [remodelingGuideReady, setRemodelingGuideReady] = useState(false);
+  const [remodelingNoProposalGuideDismissed, setRemodelingNoProposalGuideDismissed] = useState(() => hasSeenRemodelingNoProposalGuide(user?.id));
+  const [remodelingNoProposalGuideOpen, setRemodelingNoProposalGuideOpen] = useState(false);
+  const canvasPanelRef = useRef(null);
+  const canvasStageRef = useRef(null);
   const submissionKey = useRef(null);
   const fileInputRef = useRef(null);
   const statusPanelRef = useRef(null);
@@ -1219,8 +1216,255 @@ function ProposalsPage() {
   }, [loading, notificationGenerationId, loadDocumentIntoWorkspace]);
 
   const changeZoom = (amount) => {
-    setPreviewZoom((current) => Math.min(1.25, Math.max(0.3, Number((current + amount).toFixed(2)))));
+    setPreviewZoom((current) => Math.min(1.3, Math.max(0.4, Number((current + amount).toFixed(2)))));
   };
+
+  const previewHasItem = Boolean(previewItem);
+  const previewHasShare = Boolean(previewItem?.share_uuid);
+  const isRemodelingPrompt = /리모델링/.test(selectedPrompt?.title || "");
+
+  const canvasGuideSteps = useMemo(() => {
+    if (!previewHasItem) return [];
+    const steps = [
+      {
+        target: "fullscreen",
+        title: "전체보기",
+        message: "새 창에서 큰 화면으로 보고서를 확인하고, PDF 인쇄 · 고화질 JPG 저장 · 편집 작업을 쾌적하게 진행할 수 있어요.",
+      },
+    ];
+    if (previewHasShare) {
+      steps.push({
+        target: "share",
+        title: "공유 링크",
+        message: "카카오톡이나 문자로 고객에게 바로 전달할 수 있는 전용 웹 보고서 링크와 미리보기 요약을 복사할 수 있어요.",
+      });
+    }
+    steps.push(
+      {
+        target: "canvas-toolbar-band",
+        iframeTextMatch: /EDIT\s*모드|편집\s*모드/i,
+        title: "기본 편집 (EDIT 모드)",
+        message: "문서 상단의 [EDIT 모드]를 열면 보고서 문구·수치 수정, 항목 정리, 현재 상태 저장 등 다양한 편집 작업을 바로 할 수 있어요.",
+        note: "A4 자동 맞춤 안내: 기본 편집 기능에서 페이지 용량을 초과하는 내용이 나오면 출력 시 A4 용지 크기에 맞게 자동으로 조정됩니다.",
+      },
+      {
+        target: "canvas-toolbar-band",
+        iframeTextMatch: /고급\s*편집/i,
+        title: "고급 편집 기능",
+        message: "[고급 편집]을 열면 섹션 구성 변경, 문단·표 세부 조정, 스타일 다듬기 등 더욱 세밀한 맞춤 편집 작업을 진행할 수 있어요.",
+      },
+    );
+    return steps;
+  }, [previewHasItem, previewHasShare]);
+
+  const reportListGuideSteps = useMemo(() => ([
+    {
+      target: "first-title",
+      title: "보고서 제목 클릭 · 상세 보기 & 환불 신청",
+      message: "최초로 생성된 보고서의 제목을 누르면 아래로 상세 영역이 확장되어 첨부파일과 진행 상태를 확인할 수 있고, 보고서에 문제가 있다면 [환불 요청]을 신청할 수 있어요.",
+      note: "환불 가능 기준: 보고서 내용상에 오류가 명백하거나, 레이아웃·내용이 심하게 깨진 경우에 환불을 신청하실 수 있습니다.",
+    },
+  ]), []);
+
+  const remodelingGuideSteps = useMemo(() => ([
+    {
+      target: "kb-pdf",
+      fallbackSelector: '[data-report-help="inputs"]',
+      title: "1. KB보장분석 PDF 첨부",
+      message: "고객의 기존 가입 내역이 담긴 KB보장분석 PDF 파일을 업로드해 주세요.",
+      actionLabel: "리모델링 리포트 영상 보기",
+      actionHref: REMODELING_VIDEO_URL,
+    },
+    {
+      target: "generated-doc",
+      fallbackSelector: '[data-report-help="inputs"]',
+      title: "2. 생성한 제안서 선택",
+      message: "보조개에서 미리 생성해 둔 신규 보험 가입제안서 보고서를 선택해 주세요. 아직 만든 제안서가 없다면 먼저 가입시킬 보험의 제안서 요약 보고서부터 생성해 주세요.",
+      actionLabel: "리모델링 리포트 영상 보기",
+      actionHref: REMODELING_VIDEO_URL,
+    },
+    {
+      target: "cancel-text",
+      fallbackSelector: '[data-report-help="inputs"]',
+      title: "3. 해지할 보험이 있는 경우",
+      message: "해지(정리)할 기존 보험이 있다면 KB보장분석 PDF를 열어 [가입상세페이지] 내용을 드래그해 복사한 뒤 이 입력칸에 붙여넣기 해 주세요.",
+      note: "해지할 보험이 없다면 입력칸을 비워두시면 됩니다. 기존 계약을 모두 유지한 채 보완하는 모드로 작성됩니다.",
+      actionLabel: "리모델링 리포트 영상 보기",
+      actionHref: REMODELING_VIDEO_URL,
+    },
+  ]), []);
+
+  const remodelingNoProposalGuideSteps = useMemo(() => ([
+    {
+      target: "generated-doc",
+      fallbackSelector: '[data-report-help="inputs"]',
+      title: "먼저 가입시킬 보험 제안서 요약부터 만들어 주세요",
+      message: "만들어진 제안서 보고서가 없는 상태에서는 리모델링 비교가 어렵습니다. 먼저 고객에게 가입시킬 신규 보험 제안서 PDF로 [제안서 요약 보고서]를 생성한 뒤, 리모델링 리포트에서 해당 제안서를 선택해 주세요.",
+      note: "진행 순서: ① 가입시킬 보험 제안서 요약 생성 → ② 리모델링 리포트에서 KB보장분석 PDF 첨부 + 생성한 제안서 선택",
+      actionLabel: "리모델링 리포트 영상 보기",
+      actionHref: REMODELING_VIDEO_URL,
+    },
+  ]), []);
+
+  useEffect(() => {
+    setCanvasGuideDismissed(hasSeenCanvasGuide(user?.id));
+    setReportListGuideDismissed(hasSeenReportListGuide(user?.id));
+    setRemodelingGuideDismissed(hasSeenRemodelingGuide(user?.id));
+    setRemodelingNoProposalGuideDismissed(hasSeenRemodelingNoProposalGuide(user?.id));
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!(canvasOpen && helpStep === null && previewHasItem && !canvasGuideDismissed && canvasGuideSteps.length > 0)) {
+      setCanvasGuideReady(false);
+      setCanvasGuideStep(0);
+      return undefined;
+    }
+    const timer = window.setTimeout(() => setCanvasGuideReady(true), 260);
+    return () => window.clearTimeout(timer);
+  }, [canvasOpen, helpStep, previewHasItem, canvasGuideDismissed, canvasGuideSteps.length]);
+
+  useEffect(() => {
+    if (!(
+      !loading
+      && !error
+      && Boolean(user?.id)
+      && items.length > 0
+      && !reportListGuideDismissed
+      && helpStep === null
+      && !announcementOpen
+      && !popupNoticeOpen
+      && !canvasOpen
+      && !remodelingNoProposalGuideOpen
+      && !(isRemodelingPrompt && !remodelingGuideDismissed)
+      && !shareDialogOpen
+      && !application
+      && !promptPreviewOption
+      && !detail
+      && !failureModal
+    )) {
+      setReportListGuideReady(false);
+      return undefined;
+    }
+    const timer = window.setTimeout(() => setReportListGuideReady(true), 300);
+    return () => window.clearTimeout(timer);
+  }, [
+    loading,
+    error,
+    user?.id,
+    items.length,
+    reportListGuideDismissed,
+    helpStep,
+    announcementOpen,
+    popupNoticeOpen,
+    canvasOpen,
+    remodelingNoProposalGuideOpen,
+    isRemodelingPrompt,
+    remodelingGuideDismissed,
+    shareDialogOpen,
+    application,
+    promptPreviewOption,
+    detail,
+    failureModal,
+  ]);
+
+  useEffect(() => {
+    if (!(
+      !loading
+      && !error
+      && Boolean(user?.id)
+      && isRemodelingPrompt
+      && !remodelingGuideDismissed
+      && helpStep === null
+      && !announcementOpen
+      && !popupNoticeOpen
+      && !canvasOpen
+      && !remodelingNoProposalGuideOpen
+      && !shareDialogOpen
+      && !application
+      && !promptPreviewOption
+      && !detail
+      && !failureModal
+    )) {
+      setRemodelingGuideReady(false);
+      if (!isRemodelingPrompt) setRemodelingGuideStep(0);
+      return undefined;
+    }
+    const timer = window.setTimeout(() => setRemodelingGuideReady(true), 260);
+    return () => window.clearTimeout(timer);
+  }, [
+    loading,
+    error,
+    user?.id,
+    isRemodelingPrompt,
+    remodelingGuideDismissed,
+    helpStep,
+    announcementOpen,
+    popupNoticeOpen,
+    canvasOpen,
+    remodelingNoProposalGuideOpen,
+    shareDialogOpen,
+    application,
+    promptPreviewOption,
+    detail,
+    failureModal,
+  ]);
+
+  const dismissCanvasGuide = () => {
+    markCanvasGuideSeen(user?.id);
+    setCanvasGuideDismissed(true);
+    setCanvasGuideReady(false);
+    setCanvasGuideStep(0);
+  };
+
+  const replayCanvasGuide = () => {
+    if (!previewItem || !canvasGuideSteps.length) return;
+    setCanvasGuideStep(0);
+    setCanvasGuideDismissed(false);
+    setCanvasGuideReady(true);
+  };
+
+  const dismissReportListGuide = () => {
+    markReportListGuideSeen(user?.id);
+    setReportListGuideDismissed(true);
+    setReportListGuideReady(false);
+  };
+
+  const dismissRemodelingGuide = () => {
+    markRemodelingGuideSeen(user?.id);
+    setRemodelingGuideDismissed(true);
+    setRemodelingGuideReady(false);
+    setRemodelingGuideStep(0);
+  };
+
+  const dismissRemodelingNoProposalGuide = () => {
+    markRemodelingNoProposalGuideSeen(user?.id);
+    setRemodelingNoProposalGuideDismissed(true);
+    setRemodelingNoProposalGuideOpen(false);
+  };
+
+  useEffect(() => {
+    if (!canvasOpen || helpStep !== null) return undefined;
+    const updateWidth = () => {
+      const el = canvasStageRef.current;
+      if (!el) return;
+      const style = window.getComputedStyle(el);
+      const padX = (parseFloat(style.paddingLeft) || 0) + (parseFloat(style.paddingRight) || 0);
+      setCanvasStageWidth(Math.max(240, el.clientWidth - padX));
+    };
+    const frame = window.requestAnimationFrame(updateWidth);
+    const el = canvasStageRef.current;
+    const observer = el && typeof ResizeObserver !== "undefined" ? new ResizeObserver(updateWidth) : null;
+    if (el) observer?.observe(el);
+    window.addEventListener("resize", updateWidth);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      observer?.disconnect();
+      window.removeEventListener("resize", updateWidth);
+    };
+  }, [canvasOpen, helpStep, previewItem]);
+
+  const canvasFitScale = canvasStageWidth > 0 ? Math.min(1, canvasStageWidth / CANVAS_DOC_WIDTH) : 1;
+  const effectiveCanvasScale = Number(Math.max(0.3, canvasFitScale * previewZoom).toFixed(4));
 
   const openShareDialog = async (item) => {
     if (!item?.share_uuid) return;
@@ -1371,48 +1615,6 @@ function ProposalsPage() {
           </Button>
         </Stack>
       </Paper>
-
-      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(3, minmax(0, 1fr))" }, gap: { xs: 1.25, sm: 2 }, mb: 2 }}>
-        {WORKFLOW_STEPS.map(({ eyebrow, title: stepTitle, description, icon: StepIcon, color, background, border }, index) => (
-          <Paper
-            key={eyebrow}
-            variant="outlined"
-            component={index === 0 ? "div" : "button"}
-            type={index === 0 ? undefined : "button"}
-            onClick={index === 0 ? undefined : () => {
-              if (index === 2) setCanvasOpen(true);
-              else helpRootRef.current?.querySelector('[data-report-help="inputs"]')?.scrollIntoView({ block: "start" });
-            }}
-            sx={{ p: { xs: 1.75, sm: 2 }, display: "flex", alignItems: "center", gap: 1.5, textAlign: "left",
-              border: index === 0 ? "2px solid #03C75A" : undefined, cursor: index === 0 ? "default" : "pointer",
-              boxShadow: "0 2px 10px rgba(18, 19, 20, 0.03)",
-              "&:focus-visible": { outline: "2px solid #006E43", outlineOffset: 2 },
-              "&:hover": index === 0 ? undefined : { borderColor: "#03C75A" },
-            }}
-          >
-            <Box
-              sx={{
-                width: { xs: 40, sm: 44 },
-                height: { xs: 40, sm: 44 },
-                borderRadius: "16px",
-                display: "grid",
-                placeItems: "center",
-                color: index === 0 ? "white" : color,
-                bgcolor: background,
-                border: `1px solid ${border}`,
-                flexShrink: 0,
-              }}
-            >
-              <StepIcon />
-            </Box>
-            <Box sx={{ minWidth: 0 }}>
-              <Typography variant="caption" sx={{ color, fontSize: 11, fontWeight: 900, textTransform: "uppercase" }}>{eyebrow}</Typography>
-              <Typography variant="subtitle2" sx={{ fontWeight: 900, color: "text.primary" }}>{stepTitle}</Typography>
-              <Typography variant="caption" color="text.secondary">{description}</Typography>
-            </Box>
-          </Paper>
-        ))}
-      </Box>
 
       <Alert
         severity="info"
@@ -2063,6 +2265,14 @@ function ProposalsPage() {
                 }
                 setError("");
                 setFieldUploads((current) => ({ ...current, [key]: selected }));
+                if (
+                  isRemodelingPrompt
+                  && generatedDocumentOptions.length === 0
+                  && !remodelingNoProposalGuideDismissed
+                  && selected.some((file) => /\.pdf$/i.test(file.name) || file.type === "application/pdf")
+                ) {
+                  setRemodelingNoProposalGuideOpen(true);
+                }
                 clearReportSelection();
                 const firstFile = selected[0];
                 if (firstFile && !titleTouched) {
@@ -2241,9 +2451,16 @@ function ProposalsPage() {
         onClose={() => setCanvasOpen(false)}
         sx={{ zIndex: (theme) => theme.zIndex.drawer + 2 }}
         PaperProps={{
+          ref: canvasPanelRef,
           id: "document-canvas-panel", role: "dialog", "aria-modal": true,
           "aria-labelledby": "document-canvas-title",
-          sx: { width: { xs: "100%", sm: "min(760px, 70vw)", lg: "min(900px, 60vw)" }, height: "100dvh", overflow: "hidden" },
+          sx: {
+            width: { xs: "100vw", sm: "min(960px, 94vw)", lg: "min(1040px, 86vw)", xl: "min(1100px, 74vw)" },
+            height: "100dvh",
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden",
+          },
         }}
       >
           <Stack
@@ -2251,7 +2468,7 @@ function ProposalsPage() {
             justifyContent="space-between"
             alignItems={{ xs: "stretch", sm: "center" }}
             gap={1}
-            sx={{ px: { xs: 1.5, sm: 2 }, py: 1.25, borderBottom: 1, borderColor: "divider", minHeight: { xs: 90, sm: 58 } }}
+            sx={{ px: { xs: 1.5, sm: 2 }, py: 1.25, borderBottom: 1, borderColor: "divider", minHeight: { xs: 90, sm: 58 }, flexShrink: 0 }}
           >
             <Box sx={{ minWidth: 0 }}>
               <Typography id="document-canvas-title" variant="subtitle2" fontWeight={800}>문서 캔버스</Typography>
@@ -2259,14 +2476,30 @@ function ProposalsPage() {
                 {previewItem?.title || "생성된 HTML 문서를 표시합니다"}
               </Typography>
             </Box>
-            <Stack direction="row" alignItems="center" justifyContent="flex-end" spacing={0.25}>
+            <Stack direction="row" alignItems="center" justifyContent="flex-end" flexWrap="wrap" spacing={0.25}>
               <Tooltip title="축소"><IconButton size="small" onClick={() => changeZoom(-0.1)}><ZoomOutRoundedIcon fontSize="small" /></IconButton></Tooltip>
-              <Typography variant="caption" sx={{ minWidth: 42, textAlign: "center", fontFamily: "monospace" }}>{Math.round(previewZoom * 100)}%</Typography>
+              <Tooltip title="클릭하면 100% 기본 배율로 초기화">
+                <Button
+                  size="small"
+                  onClick={() => setPreviewZoom(1)}
+                  sx={{ minWidth: 48, px: 0.5, fontFamily: "monospace", fontWeight: 700, fontSize: 12, color: "text.secondary" }}
+                >
+                  {Math.round(effectiveCanvasScale * 100)}%
+                </Button>
+              </Tooltip>
               <Tooltip title="확대"><IconButton size="small" onClick={() => changeZoom(0.1)}><ZoomInRoundedIcon fontSize="small" /></IconButton></Tooltip>
+              {previewItem && (
+                <Tooltip title="캔버스 기능 가이드 다시 보기">
+                  <IconButton size="small" aria-label="캔버스 기능 가이드 다시 보기" onClick={replayCanvasGuide}>
+                    <HelpOutlineRoundedIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              )}
               {previewItem && (
                 <Button
                   size="small"
                   variant="outlined"
+                  data-canvas-help="fullscreen"
                   startIcon={<OpenInNewRoundedIcon fontSize="small" />}
                   onClick={() => window.open(proposalFileUrl(previewItem.id, "output"), "_blank", "noopener,noreferrer")}
                   sx={{ minHeight: 36, ml: 0.5 }}
@@ -2280,6 +2513,7 @@ function ProposalsPage() {
                     <Button
                       size="small"
                       variant="outlined"
+                      data-canvas-help="share"
                       startIcon={copiedShareId === previewItem.id ? <CheckRoundedIcon fontSize="small" /> : <IosShareRoundedIcon fontSize="small" />}
                       onClick={() => openShareDialog(previewItem)}
                       disabled={sharePreparing}
@@ -2293,15 +2527,19 @@ function ProposalsPage() {
               <Tooltip title="캔버스 접기"><IconButton aria-label="캔버스 접기" onClick={() => setCanvasOpen(false)}><CloseRoundedIcon /></IconButton></Tooltip>
             </Stack>
           </Stack>
-          <Box sx={{ flex: 1, minHeight: 0, overflow: "hidden", bgcolor: "#e8edf5", p: { xs: 1.5, md: 2.5 } }}>
+          <Box ref={canvasStageRef} sx={{ flex: 1, minHeight: 0, overflow: "auto", bgcolor: "#e8edf5", p: { xs: 1, sm: 2 } }}>
             {previewItem ? (
               <Box
                 sx={{
-                  width: `min(100%, ${PREVIEW_WIDTH * previewZoom}px)`,
-                  height: `min(100%, ${PREVIEW_HEIGHT * previewZoom}px)`,
+                  width: `${Math.round(CANVAS_DOC_WIDTH * effectiveCanvasScale)}px`,
+                  height: "100%",
+                  minHeight: 420,
                   mx: "auto",
                   position: "relative",
                   overflow: "hidden",
+                  borderRadius: 1,
+                  bgcolor: "white",
+                  boxShadow: "0 12px 30px rgba(15, 23, 42, 0.16)",
                 }}
               >
                 <Box
@@ -2313,14 +2551,26 @@ function ProposalsPage() {
                   referrerPolicy="no-referrer"
                   sx={{
                     position: "absolute",
-                    inset: 0,
-                    width: `${100 / previewZoom}%`,
-                    height: `${100 / previewZoom}%`,
+                    top: 0,
+                    left: 0,
+                    width: `${CANVAS_DOC_WIDTH}px`,
+                    height: `${100 / effectiveCanvasScale}%`,
                     border: 0,
                     bgcolor: "white",
-                    boxShadow: "0 12px 30px rgba(15, 23, 42, 0.16)",
-                    transform: `scale(${previewZoom})`,
+                    transform: `scale(${effectiveCanvasScale})`,
                     transformOrigin: "top left",
+                  }}
+                />
+                <Box
+                  aria-hidden="true"
+                  data-canvas-help="canvas-toolbar-band"
+                  sx={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: `${Math.max(40, Math.round(58 * effectiveCanvasScale))}px`,
+                    pointerEvents: "none",
                   }}
                 />
               </Box>
@@ -2364,7 +2614,7 @@ function ProposalsPage() {
         </Stack>
         {!items.length && <Typography color="text.secondary">{listQuery ? "검색 결과가 없습니다." : "생성한 보고서가 없습니다."}</Typography>}
         <Stack>
-          {items.map((item) => (
+          {items.map((item, index) => (
             <Box
               key={item.id}
               sx={{
@@ -2388,6 +2638,7 @@ function ProposalsPage() {
                       component="button"
                       type="button"
                       variant="subtitle2"
+                      data-report-list-help={index === 0 ? "first-title" : undefined}
                       aria-expanded={selectedReport?.id === item.id}
                       onClick={() => toggleReportDetail(item)}
                       noWrap
@@ -2487,7 +2738,25 @@ function ProposalsPage() {
                   >
                     열기
                   </Button>
-                  {isCompletedStatus(item.status) && Boolean(item.is_contract_application_enabled) && (
+                  {isCompletedStatus(item.status) && (Boolean(item.contract_id) || Number(item.contract_count || 0) > 0) ? (
+                    <Tooltip
+                      title="청약(계약) 등록 완료 · 클릭하면 등록된 계약 상세로 이동합니다"
+                      arrow
+                    >
+                      <span>
+                        <Button
+                          size="small"
+                          component={item.contract_id ? Link : undefined}
+                          to={item.contract_id ? `/crm/contracts/${item.contract_id}` : undefined}
+                          disabled={!item.contract_id}
+                          startIcon={<TaskAltRoundedIcon />}
+                          sx={applicationCompletedButtonStyle}
+                        >
+                          청약 완료
+                        </Button>
+                      </span>
+                    </Tooltip>
+                  ) : isCompletedStatus(item.status) && Boolean(item.is_contract_application_enabled) && (
                     <Tooltip
                       title={
                         !item.customer_id
@@ -2617,6 +2886,93 @@ function ProposalsPage() {
           }}
         />
       )}
+
+      <CanvasHelpTour
+        open={Boolean(canvasGuideReady && canvasOpen && helpStep === null && previewItem && !canvasGuideDismissed && canvasGuideSteps.length > 0)}
+        step={Math.min(canvasGuideStep, Math.max(0, canvasGuideSteps.length - 1))}
+        steps={canvasGuideSteps}
+        panelRef={canvasPanelRef}
+        iframeRef={previewFrameRef}
+        onNext={() => setCanvasGuideStep((current) => current + 1)}
+        onClose={dismissCanvasGuide}
+      />
+
+      <CanvasHelpTour
+        open={Boolean(
+          remodelingNoProposalGuideOpen
+          && !loading
+          && !error
+          && helpStep === null
+          && !canvasOpen
+          && isRemodelingPrompt
+          && !remodelingNoProposalGuideDismissed
+        )}
+        step={0}
+        steps={remodelingNoProposalGuideSteps}
+        panelRef={helpRootRef}
+        guideLabel="리모델링 사전 안내"
+        targetAttr="data-remodeling-help"
+        scrollTarget
+        onNext={dismissRemodelingNoProposalGuide}
+        onClose={dismissRemodelingNoProposalGuide}
+      />
+
+      <CanvasHelpTour
+        open={Boolean(
+          remodelingGuideReady
+          && !loading
+          && !error
+          && isRemodelingPrompt
+          && !remodelingGuideDismissed
+          && helpStep === null
+          && !announcementOpen
+          && !popupNoticeOpen
+          && !canvasOpen
+          && !remodelingNoProposalGuideOpen
+          && !shareDialogOpen
+          && !application
+          && !promptPreviewOption
+          && !detail
+          && !failureModal
+        )}
+        step={Math.min(remodelingGuideStep, remodelingGuideSteps.length - 1)}
+        steps={remodelingGuideSteps}
+        panelRef={helpRootRef}
+        guideLabel="리모델링 리포트 가이드"
+        targetAttr="data-remodeling-help"
+        scrollTarget
+        onNext={() => setRemodelingGuideStep((current) => current + 1)}
+        onClose={dismissRemodelingGuide}
+      />
+
+      <CanvasHelpTour
+        open={Boolean(
+          reportListGuideReady
+          && !loading
+          && !error
+          && items.length > 0
+          && !reportListGuideDismissed
+          && helpStep === null
+          && !announcementOpen
+          && !popupNoticeOpen
+          && !canvasOpen
+          && !remodelingNoProposalGuideOpen
+          && !(isRemodelingPrompt && !remodelingGuideDismissed)
+          && !shareDialogOpen
+          && !application
+          && !promptPreviewOption
+          && !detail
+          && !failureModal
+        )}
+        step={0}
+        steps={reportListGuideSteps}
+        panelRef={helpRootRef}
+        guideLabel="보고서 리스트 가이드"
+        targetAttr="data-report-list-help"
+        scrollTarget
+        onNext={dismissReportListGuide}
+        onClose={dismissReportListGuide}
+      />
 
       <ProposalFeatureAnnouncementDialog
         open={announcementOpen}
@@ -2852,6 +3208,33 @@ function ProposalsPage() {
         onSelect={draft => setApplication(current => ({ ...current, draft }))}
         onSave={async data => {
           const saved = await crmPost("/contracts", data);
+          const targetId = application?.item?.id;
+          if (targetId) {
+            setItems((current) =>
+              current.map((entry) =>
+                entry.id === targetId
+                  ? {
+                      ...entry,
+                      contract_id: saved?.id || entry.contract_id,
+                      contract_count: Number(entry.contract_count || 0) + 1,
+                      contracts: [
+                        ...(entry.contracts || []),
+                        ...(saved?.id
+                          ? [{
+                              id: saved.id,
+                              insurer: saved.insurer || "",
+                              product: saved.product || "",
+                              progress: saved.progress,
+                              maintenance: saved.maintenance,
+                            }]
+                          : []),
+                      ],
+                    }
+                  : entry,
+              ),
+            );
+          }
+          loadList(page);
           setApplication(current => ({ ...current, draft: null, saved }));
         }}
       />
