@@ -162,7 +162,7 @@ export const DEFAULT_USER_MENU_ITEMS = [
     badge: null,
     children: [
       { key: "refund_requests", label: "환불 요청 내역", default_label: "환불 요청 내역", path: "/refund-requests", visible: true, badge: null },
-      { key: "document_suggestions", label: "문서 개선 건의", default_label: "문서 개선 건의", path: "/document-suggestions", visible: true, badge: null },
+      { key: "document_suggestions", label: "보고서 개선 건의", default_label: "보고서 개선 건의", path: "/document-suggestions", visible: true, badge: null },
     ],
   },
   {

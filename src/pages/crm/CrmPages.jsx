@@ -984,6 +984,7 @@ export function CustomerDetailPage() {
           {editor === "consultation" && (
             <ConsultationForm
               customerId={c.id}
+              customerName={c.name}
               onClose={() => setEditor("")}
               onSave={async (data) => {
                 await crmPost(`/customers/${c.id}/consultations`, data);
@@ -1005,6 +1006,7 @@ export function CustomerDetailPage() {
             <TaskForm
               value={task}
               customerId={c.id}
+              customerName={c.name}
               location={!task ? c.location : undefined}
               onClose={() => setEditor("")}
               onSave={async (data) => {

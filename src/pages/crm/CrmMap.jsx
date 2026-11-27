@@ -351,6 +351,7 @@ export default function CrmMap() {
       {visit && (
         <TaskForm
           customerId={visit.id}
+          customerName={visit.name}
           location={visit.search_location.accuracy === "EXACT" ? visit.search_location : { address: visit.search_location.address, lat: null, lng: null, accuracy: "NONE" }}
           onClose={() => setVisit(null)}
           onSave={async (data) => {

@@ -205,6 +205,113 @@ function PreviewIconButton({ variant = "detailed", title, ariaLabel, disabled, o
   );
 }
 
+// eslint-disable-next-line react/prop-types
+function PromptCardDescription({ description }) {
+  const [expanded, setExpanded] = useState(false);
+  const [overflows, setOverflows] = useState(false);
+  const textRef = useRef(null);
+
+  useEffect(() => {
+    const el = textRef.current;
+    if (!el || expanded) return undefined;
+    const measure = () => {
+      setOverflows(el.scrollHeight > el.clientHeight + 1);
+    };
+    const frameId = requestAnimationFrame(measure);
+    let observer;
+    if (typeof ResizeObserver !== "undefined") {
+      observer = new ResizeObserver(measure);
+      observer.observe(el);
+    }
+    return () => {
+      cancelAnimationFrame(frameId);
+      if (observer) observer.disconnect();
+    };
+  }, [description, expanded]);
+
+  return (
+    <Box sx={{ mt: 0.65 }}>
+      <Typography
+        ref={textRef}
+        variant="caption"
+        color="text.secondary"
+        sx={{
+          display: expanded ? "block" : "-webkit-box",
+          lineHeight: 1.45,
+          WebkitBoxOrient: "vertical",
+          ...(expanded ? {} : { WebkitLineClamp: 3 }),
+          overflow: "hidden",
+          whiteSpace: "pre-line",
+        }}
+      >
+        {description}
+      </Typography>
+      {(overflows || expanded) && (
+        <Box
+          component="button"
+          type="button"
+          aria-expanded={expanded}
+          onClick={(event) => {
+            event.stopPropagation();
+            setExpanded((current) => !current);
+          }}
+          sx={{
+            mt: 0.25,
+            p: 0,
+            border: 0,
+            bgcolor: "transparent",
+            color: "primary.main",
+            fontSize: 11.5,
+            fontWeight: 800,
+            cursor: "pointer",
+            lineHeight: 1.4,
+            "&:hover": { textDecoration: "underline" },
+          }}
+        >
+          {expanded ? "접기" : "더보기"}
+        </Box>
+      )}
+    </Box>
+  );
+}
+
+// eslint-disable-next-line react/prop-types
+function PromptCardCategories({ categories }) {
+  const [expanded, setExpanded] = useState(false);
+  const list = categories || [];
+  const collapsible = list.length >= 3;
+  const visible = collapsible && !expanded ? list.slice(0, 2) : list;
+
+  return (
+    <>
+      {visible.map((category) => (
+        <Chip key={category.id} label={`${category.parent_name} · ${category.name}`} size="small" />
+      ))}
+      {!list.length && <Chip label="미분류" size="small" />}
+      {collapsible && (
+        <Chip
+          size="small"
+          clickable
+          variant="outlined"
+          label={expanded ? "접기" : `+${list.length - 2} 더보기`}
+          onClick={(event) => {
+            event.stopPropagation();
+            setExpanded((current) => !current);
+          }}
+          sx={{
+            fontWeight: 800,
+            fontSize: 11,
+            borderColor: "divider",
+            bgcolor: "#F8FAFC",
+            color: "text.secondary",
+            "&:hover": { bgcolor: "#F1F5F9", color: "text.primary" },
+          }}
+        />
+      )}
+    </>
+  );
+}
+
 const CATEGORY_ACCENTS = {
   "알릴의무": "#e11d48",
   "고객관리": "#0284c7",
@@ -1616,25 +1723,6 @@ function ProposalsPage() {
         </Stack>
       </Paper>
 
-      <Alert
-        severity="info"
-        action={<Chip label="스마트 매칭" size="small" color="info" sx={{
-          color: "white", background: "linear-gradient(135deg, #6B38FB, #4F46E5)", fontSize: 11, fontWeight: 900,
-        }} />}
-        sx={{
-          mb: 2,
-          border: "1px solid #DDD1FF",
-          background: "linear-gradient(90deg, #F5F3FF, #ECFDF5, #FFFFFF)",
-          color: "text.primary",
-          alignItems: "center",
-          fontSize: 12,
-          fontWeight: 700,
-          "& .MuiAlert-action": { display: "flex", alignItems: "center", pl: 1, mr: 0 },
-        }}
-      >
-        카테고리를 선택하시면 입력폼 상단의 추천 프롬프트가 실시간으로 재구성되며, [결과 미리보기]로 슬라이드를 확인할 수 있습니다.
-      </Alert>
-
       <ExpiringPoints balance={pointBalance} />
 
       <Box
@@ -2007,19 +2095,14 @@ function ProposalsPage() {
                         </Stack>
                       </Stack>
                       {option.description && (
-                        <Typography variant="caption" color="text.secondary" sx={{ display: "-webkit-box", mt: 0.65, lineHeight: 1.4, WebkitBoxOrient: "vertical", WebkitLineClamp: { xs: 2, sm: "unset" }, overflow: "hidden", whiteSpace: "pre-line" }}>
-                          {option.description}
-                        </Typography>
+                        <PromptCardDescription key={`${option.id}:${option.description}`} description={option.description} />
                       )}
                       <Stack direction="row" alignItems="center" gap={0.6} flexWrap="wrap" sx={{ mt: 0.75, overflowX: { xs: "auto", sm: "visible" }, scrollbarWidth: "none", "&::-webkit-scrollbar": { display: "none" }, "& .MuiChip-root": { flexShrink: 0 } }}>
                           <Chip icon={<KkomakIcon size={18} />} label={`${option.point_cost.toLocaleString()}꼬막`} size="small" color="warning" variant="outlined" />
                           {option.simple_template_available && (
                             <Chip label="간소화 BETA" size="small" color="success" variant="outlined" />
                           )}
-                          {(option.categories || []).map((category) => (
-                            <Chip key={category.id} label={`${category.parent_name} · ${category.name}`} size="small" />
-                          ))}
-                          {!option.categories?.length && <Chip label="미분류" size="small" />}
+                          <PromptCardCategories key={option.id} categories={option.categories} />
                       </Stack>
                     </Box>
                   </Paper>

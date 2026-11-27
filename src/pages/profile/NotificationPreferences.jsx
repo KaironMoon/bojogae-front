@@ -12,7 +12,7 @@ const details = {
  REPORT:['file-check-2','AI 리포트 생성 완료 또는 오류 발생 시 즉시 알림'],
  BILLING:['credit-card','월간 구독 카드 한도초과·오류 시 서비스 중단 방지 알림'],
  APPROVAL:['user-check','조직/지점 가입 승인 및 권한 변경 처리 알림'],
- INQUIRY:['message-square-more','문서 개선 건의 및 1:1 문의 관리자 답변 등록 알림'],
+ INQUIRY:['message-square-more','보고서 개선 건의 및 1:1 문의 관리자 답변 등록 알림'],
  REFUND:['rotate-ccw','오류 건 꼬막 반환 및 결제 취소 처리 완료 알림'],
  NOTICE:['megaphone','신규 프롬프트 출시 및 중요 업데이트 공지 알림'],
 };

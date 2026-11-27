@@ -171,6 +171,12 @@ export function Editor({
   titleId,
   contractLayout = false,
   contractTaskLayout = false,
+  activityLayout = false,
+  headerIcon = null,
+  headerBadge = "",
+  headerSubtitle = "",
+  footerNote = "",
+  maxWidth = "md",
   submitLabel = "저장",
   applicationDraft = false,
   open,
@@ -180,14 +186,38 @@ export function Editor({
   busy,
   error,
 }) {
+  const styledModal = contractLayout || contractTaskLayout || activityLayout;
+  const paperClass = [
+    styledModal ? "crm-contract-dialog" : "",
+    contractTaskLayout ? "crm-contract-task-dialog" : "",
+    activityLayout ? "crm-activity-dialog" : "",
+  ].filter(Boolean).join(" ");
+  const resolvedIcon = headerIcon || (applicationDraft ? "wand" : "bell");
+  const resolvedSubtitle = headerSubtitle || (
+    applicationDraft
+      ? "제안서의 계약 정보를 확인하고 내 계약에 등록하세요."
+      : contractTaskLayout
+        ? "고객에게 연락할 날짜와 업무 내용을 확인해 주세요."
+        : "계약일과 생년월일을 바탕으로 고객에게 연락할 참고일을 확인하세요."
+  );
+  const resolvedBadge = headerBadge || (
+    contractLayout
+      ? (applicationDraft ? "AI 자동 입력 · 확인 후 등록" : "성립일·생년월일을 바탕으로 참고일 자동 산출")
+      : ""
+  );
+  const resolvedFooterNote = footerNote || (
+    contractLayout
+      ? "💡 저장 시 상령일, 면책기간 종료일(90일), 감액기간 종료일(1~2년), 생일 참고일이 자동 계산됩니다."
+      : ""
+  );
   return (
     <Dialog
       open={open}
       aria-labelledby={titleId}
       onClose={busy ? undefined : onClose}
       fullWidth
-      maxWidth="md"
-      slotProps={contractLayout || contractTaskLayout ? { paper: { className: `crm-contract-dialog${contractTaskLayout ? " crm-contract-task-dialog" : ""}` } } : undefined}
+      maxWidth={maxWidth}
+      slotProps={styledModal ? { paper: { className: paperClass } } : undefined}
     >
       <Box
         component="form"
@@ -196,14 +226,14 @@ export function Editor({
           onSubmit();
         }}
       >
-        {contractLayout || contractTaskLayout ? <div className="crm-contract-dialog-header">
-          <span className="crm-contract-dialog-icon"><ContractDesignIcon name={applicationDraft ? "wand" : "bell"} /></span>
+        {styledModal ? <div className="crm-contract-dialog-header">
+          <span className={`crm-contract-dialog-icon${activityLayout ? ` crm-activity-dialog-icon--${resolvedIcon}` : ""}`}><ContractDesignIcon name={resolvedIcon} /></span>
           <div>
             <div className="crm-contract-dialog-heading">
               <DialogTitle id={titleId} className="css-2o971p">{title}</DialogTitle>
-              {contractLayout && <span>{applicationDraft ? "AI 자동 입력 · 확인 후 등록" : "성립일·생년월일을 바탕으로 참고일 자동 산출"}</span>}
+              {resolvedBadge && <span>{resolvedBadge}</span>}
             </div>
-            <Typography variant="caption">{applicationDraft ? "제안서의 계약 정보를 확인하고 내 계약에 등록하세요." : contractTaskLayout ? "고객에게 연락할 날짜와 업무 내용을 확인해 주세요." : "계약일과 생년월일을 바탕으로 고객에게 연락할 참고일을 확인하세요."}</Typography>
+            <Typography variant="caption">{resolvedSubtitle}</Typography>
           </div>
           <IconButton aria-label="닫기" onClick={onClose} disabled={busy}><ContractDesignIcon name="close" /></IconButton>
         </div> : <DialogTitle id={titleId}>{title}</DialogTitle>}
@@ -214,11 +244,11 @@ export function Editor({
           </Stack>
         </DialogContent>
         <DialogActions>
-          {contractLayout && <span className="crm-contract-dialog-footer-note">💡 저장 시 상령일, 면책기간 종료일(90일), 감액기간 종료일(1~2년), 생일 참고일이 자동 계산됩니다.</span>}
-          <Button disabled={busy} onClick={onClose}>
+          {resolvedFooterNote && <span className="crm-contract-dialog-footer-note">{resolvedFooterNote}</span>}
+          <Button className={styledModal ? "crm-dialog-cancel-btn" : undefined} disabled={busy} onClick={onClose}>
             취소
           </Button>
-          <Button variant="contained" disabled={busy} type="submit">
+          <Button className={styledModal ? "crm-dialog-submit-btn" : undefined} variant="contained" disabled={busy} type="submit">
             {busy ? "저장 중…" : submitLabel}
           </Button>
         </DialogActions>

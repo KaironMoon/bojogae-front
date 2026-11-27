@@ -62,7 +62,7 @@ const ADMIN_MENU = [
   { label: "프롬프트 관리", path: "/admin/prompts", icon: AutoAwesomeOutlinedIcon },
   { label: "보고서 관리", path: "/admin/proposals", icon: LibraryBooksOutlinedIcon, tone: "indigo" },
   { label: "환불 요청 관리", path: "/admin/refund-requests", icon: ReplayRoundedIcon, tone: "rose" },
-  { label: "문서 건의 관리", path: "/admin/document-suggestions", icon: EditNoteRoundedIcon, tone: "purple" },
+  { label: "보고서 개선 건의 관리", path: "/admin/document-suggestions", icon: EditNoteRoundedIcon, tone: "purple" },
   { label: "사용량 / 통계", path: "/admin/usage", icon: AnalyticsOutlinedIcon },
   { label: "설정 및 서식", path: "/admin/proposal-settings", icon: TuneOutlinedIcon },
   { label: "메인 배너 관리", path: "/admin/dashboard-banners", icon: ViewCarouselOutlinedIcon },

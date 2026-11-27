@@ -9,7 +9,6 @@ import {
   Box,
   Button,
   Checkbox,
-  Divider,
   FormControlLabel,
   Stack,
   Typography,
@@ -694,7 +693,25 @@ export function ContractForm({ value, initialDraft, applicationDraft = false, cu
     </Editor>
   );
 }
-export function ConsultationForm({ onSave, onClose }) {
+const CONSULTATION_QUICK_NOTES = [
+  ["보장분석 안내", "보장분석 내용 및 보완 필요 담보 안내"],
+  ["제안서 발송", "맞춤 제안서 요약본 전달 및 설명 완료"],
+  ["부재 문자 발송", "부재중 안내 문자 발송 및 재통화 요청"],
+  ["재통화 약속", "추후 재통화 일정 협의"],
+];
+
+function shiftSeoulDate(days) {
+  const base = new Date(`${today()}T12:00:00+09:00`);
+  base.setUTCDate(base.getUTCDate() + days);
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(base);
+}
+
+export function ConsultationForm({ customerName, onSave, onClose }) {
   const [data, setData] = useState({
     occurred_at: localDateTime(),
     method: "PHONE",
@@ -703,50 +720,116 @@ export function ConsultationForm({ onSave, onClose }) {
     contract_id: null,
   });
   const state = useSave(onSave, onClose);
-  const set = (key, value) => setData({ ...data, [key]: value });
+  const set = (key, value) => setData((old) => ({ ...old, [key]: value }));
   return (
     <Editor
       open
+      activityLayout
+      maxWidth="sm"
+      titleId=":crm-consultation-title:"
       title="상담 기록"
+      headerIcon="message_plus"
+      headerBadge={customerName ? `${customerName}님 상담` : "상담 타임라인 기록"}
+      headerSubtitle="상담 시각과 진행 방식·결과를 남기면 고객 타임라인에 바로 기록됩니다."
+      footerNote="💡 저장 즉시 고객 상세의 상담 내역과 요약 카드에 반영됩니다."
       onClose={onClose}
       onSubmit={() =>
         state.save({ ...data, occurred_at: data.occurred_at + ":00+09:00" })
       }
       {...state}
     >
-      <Field
-        label="상담 시각"
-        type="datetime-local"
-        value={data.occurred_at}
-        onChange={(v) => set("occurred_at", v)}
-        required
-      />
-      <Field
-        label="상담 방식"
-        value={data.method}
-        options={METHODS}
-        onChange={(v) => set("method", v)}
-      />
-      <Field
-        label="연락 결과"
-        value={data.result}
-        options={RESULTS}
-        onChange={(v) => set("result", v)}
-      />
-      <Field
-        label="상담 내용"
-        multiline
-        minRows={5}
-        value={data.content}
-        onChange={(v) => set("content", v)}
-        required
-      />
+      <section className="crm-activity-section">
+        <div className="crm-activity-section-head">
+          <h3><ContractDesignIcon name="calendar_clock" />1. 상담 시각 · 방식 · 연락 결과</h3>
+          <small>원클릭 선택</small>
+        </div>
+        <div className="crm-activity-datetime-row">
+          <Field
+            label="상담 시각"
+            type="datetime-local"
+            value={data.occurred_at}
+            onChange={(v) => set("occurred_at", v)}
+            required
+          />
+          <button
+            type="button"
+            className="crm-activity-now-btn"
+            onClick={() => set("occurred_at", localDateTime())}
+          >
+            현재 시각
+          </button>
+        </div>
+        <div className="crm-activity-grid-2">
+          <div className="crm-activity-pill-group">
+            <span className="crm-activity-field-label">상담 방식</span>
+            <div className="crm-activity-pills" role="group" aria-label="상담 방식">
+              {Object.entries(METHODS).map(([key, label]) => (
+                <button
+                  key={key}
+                  type="button"
+                  className="crm-activity-pill crm-activity-pill--violet"
+                  aria-pressed={data.method === key}
+                  onClick={() => set("method", key)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="crm-activity-pill-group">
+            <span className="crm-activity-field-label">연락 결과</span>
+            <div className="crm-activity-pills" role="group" aria-label="연락 결과">
+              {Object.entries(RESULTS).map(([key, label]) => (
+                <button
+                  key={key}
+                  type="button"
+                  className="crm-activity-pill crm-activity-pill--emerald"
+                  aria-pressed={data.result === key}
+                  onClick={() => set("result", key)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+      <section className="crm-activity-section">
+        <div className="crm-activity-section-head">
+          <h3><ContractDesignIcon name="message" />2. 상담 내용</h3>
+          <small>{data.content.length.toLocaleString("ko-KR")}자</small>
+        </div>
+        <div className="crm-activity-quick-tags" aria-label="자주 쓰는 문구">
+          {CONSULTATION_QUICK_NOTES.map(([label, text]) => (
+            <button
+              key={label}
+              type="button"
+              className="crm-activity-quick-tag"
+              onClick={() =>
+                set("content", data.content.trim() ? `${data.content.trim()}\n${text}` : text)
+              }
+            >
+              + {label}
+            </button>
+          ))}
+        </div>
+        <Field
+          label="상담 내용"
+          placeholder="고객 반응, 추가 문의사항, 다음 안내 일정을 구체적으로 기록해 주세요."
+          multiline
+          minRows={5}
+          value={data.content}
+          onChange={(v) => set("content", v)}
+          required
+        />
+      </section>
     </Editor>
   );
 }
 export function TaskForm({
   value,
   customerId,
+  customerName,
   contractId,
   location,
   initialReminder,
@@ -770,13 +853,35 @@ export function TaskForm({
   const [time, setTime] = useState(
     value?.due_at ? localDateTime(value.due_at).slice(11, 16) : "",
   );
+  const [changingCustomer, setChangingCustomer] = useState(false);
   const state = useSave(onSave, onClose);
-  const set = (key, v) => setData({ ...data, [key]: v });
+  const set = (key, v) => setData((old) => ({ ...old, [key]: v }));
+  const isVisit = data.kind === "VISIT";
+  const quickTitles = isVisit
+    ? ["방문 상담", "청약 서명 방문", "증권 전달 방문", "보장분석 대면 안내"]
+    : ["재통화 안내", "제안서 설명 통화", "청약 서류 확인", "심사 결과 안내"];
   return (
     <Editor
       open
-      title={value ? "업무·일정 수정" : "업무·방문 일정 등록"}
+      activityLayout={!contractTaskLayout}
       contractTaskLayout={contractTaskLayout}
+      maxWidth="sm"
+      titleId=":crm-task-title:"
+      title={value ? "업무·일정 수정" : "업무·방문 일정 등록"}
+      headerIcon={isVisit ? "pin" : "calendar"}
+      headerBadge={
+        isVisit
+          ? "방문 일정 · 지도 연동"
+          : customerName
+            ? `${customerName}님 일정`
+            : "업무·일정 관리"
+      }
+      headerSubtitle="예정일과 업무 내용을 등록하면 내 업무 캘린더와 고객 상세에 자동 연동됩니다."
+      footerNote={
+        isVisit
+          ? "📍 방문 주소를 비워두면 고객의 기본 주소·위치 좌표가 자동 적용됩니다."
+          : "💡 예정일·시각을 지정하면 일정 리마인더에서 바로 확인할 수 있습니다."
+      }
       onClose={onClose}
       onSubmit={() =>
         state.save({
@@ -787,64 +892,129 @@ export function TaskForm({
       }
       {...state}
     >
-      <CustomerPicker
-        value={data.customer_id}
-        onChange={(v) =>
-          setData({ ...data, customer_id: v, contract_id: null })
-        }
-      />
-      <Field
-        label="업무 종류"
-        value={data.kind}
-        options={KINDS}
-        onChange={(v) => set("kind", v)}
-      />
-      <Field
-        label="업무 제목"
-        value={data.title}
-        onChange={(v) => set("title", v)}
-        required
-      />
-      <Stack direction="row" gap={2}>
+      <section className="crm-activity-section">
+        <div className="crm-activity-section-head">
+          <h3><ContractDesignIcon name="clipboard" />1. 연결 고객 · 업무 분류 · 제목</h3>
+          <small>{isVisit ? "대면 방문 일정" : "일반 후속 업무"}</small>
+        </div>
+        {customerName && data.customer_id === customerId && !changingCustomer ? (
+          <div className="crm-activity-customer-badge">
+            <span>연결 고객: {customerName}님</span>
+            <button type="button" onClick={() => setChangingCustomer(true)}>
+              다른 고객 선택
+            </button>
+          </div>
+        ) : (
+          <CustomerPicker
+            compact
+            value={data.customer_id}
+            onChange={(v) =>
+              setData((old) => ({ ...old, customer_id: v, contract_id: null }))
+            }
+          />
+        )}
+        <div className="crm-activity-pill-group">
+          <span className="crm-activity-field-label">업무 종류</span>
+          <div className="crm-activity-pills" role="group" aria-label="업무 종류">
+            {Object.entries(KINDS).map(([key, label]) => (
+              <button
+                key={key}
+                type="button"
+                className={`crm-activity-pill ${key === "VISIT" ? "crm-activity-pill--emerald" : "crm-activity-pill--violet"}`}
+                aria-pressed={data.kind === key}
+                onClick={() => set("kind", key)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="crm-activity-quick-tags" aria-label="자주 쓰는 업무 제목">
+          {quickTitles.map((preset) => (
+            <button
+              key={preset}
+              type="button"
+              className="crm-activity-quick-tag"
+              onClick={() => set("title", preset)}
+            >
+              + {preset}
+            </button>
+          ))}
+        </div>
+        <div className="crm-activity-grid-2">
+          <Field
+            label="업무 제목"
+            placeholder={isVisit ? "예: 보장분석 대면 상담 방문" : "예: 제안서 확인 후 재통화"}
+            value={data.title}
+            onChange={(v) => set("title", v)}
+            required
+          />
+          <Field
+            label="처리 상태"
+            value={data.status}
+            options={TASK_STATUS}
+            onChange={(v) => set("status", v)}
+          />
+        </div>
+      </section>
+      <section className="crm-activity-section">
+        <div className="crm-activity-section-head">
+          <h3><ContractDesignIcon name="calendar_clock" />2. 예정 일시 · 상세 메모</h3>
+          <div className="crm-activity-quick-tags">
+            {[
+              ["오늘", 0],
+              ["내일", 1],
+              ["+3일", 3],
+              ["+1주", 7],
+            ].map(([label, offset]) => (
+              <button
+                key={label}
+                type="button"
+                className="crm-activity-quick-tag"
+                onClick={() => set("due_date", shiftSeoulDate(offset))}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="crm-activity-grid-2">
+          <Field
+            label="예정일"
+            type="date"
+            value={data.due_date}
+            onChange={(v) => set("due_date", v)}
+            required
+          />
+          <Field
+            label="확정 시각 (선택)"
+            type="time"
+            InputLabelProps={{ shrink: true }}
+            value={time}
+            onChange={setTime}
+          />
+        </div>
         <Field
-          label="예정일"
-          type="date"
-          value={data.due_date}
-          onChange={(v) => set("due_date", v)}
-          required
+          label="업무 내용"
+          placeholder="준비 서류, 미팅 포인트, 통화 참고사항을 적어두세요."
+          multiline
+          minRows={3}
+          value={data.note}
+          onChange={(v) => set("note", v)}
         />
-        <Field
-          label="확정 시각 (선택)"
-          type="time"
-          InputLabelProps={{ shrink: true }}
-          value={time}
-          onChange={setTime}
-        />
-      </Stack>
-      <Field
-        label="처리 상태"
-        value={data.status}
-        options={TASK_STATUS}
-        onChange={(v) => set("status", v)}
-      />
-      <Field
-        label="업무 내용"
-        multiline
-        minRows={3}
-        value={data.note}
-        onChange={(v) => set("note", v)}
-      />
-      {data.kind === "VISIT" && (
-        <>
-          <Divider />
-          <Typography fontWeight={700}>
-            방문 장소 (비워두면 고객 기본 위치 사용)
-          </Typography>
+      </section>
+      {isVisit && (
+        <section className="crm-activity-section crm-activity-section--visit">
+          <div className="crm-activity-section-head">
+            <h3><ContractDesignIcon name="pin" />3. 방문 장소</h3>
+            <small>비워두면 고객 기본 위치 사용</small>
+          </div>
           <LocationFields
+            customerDesign
             value={data.location}
             onChange={(v) => set("location", v)}
           />
-        </>
+        </section>
       )}
     </Editor>
   );
