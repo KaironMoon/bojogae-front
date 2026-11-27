@@ -36,7 +36,7 @@ export default function HistoryCard({ item, vm }) {
             className={`px-3 py-1 rounded-full text-xs font-bold ${item.original_available ? "bg-primary-soft text-primary border border-emerald-300" : "bg-[#f4f6f8] text-[#8b95a1]"}`}
           >
             {item.original_available
-              ? "원본 · 흑백 팩스본 보관 중"
+              ? "청구서 보관 중"
               : "기존 보관 PDF 유지 중"}
           </span>
         </div>
@@ -77,20 +77,12 @@ export default function HistoryCard({ item, vm }) {
               상세 보기 · 같은 내용으로 작성
             </button>
             <button
-              disabled={vm.busy}
-              onClick={() => vm.download(item.id)}
-              className="px-3.5 py-2 rounded-xl bg-[#f4f6f8] text-[#121314] text-xs font-bold flex items-center gap-1.5"
-            >
-              <Icon name="file-lock-2" className="text-sub" />
-              원본 다운로드
-            </button>
-            <button
               disabled={vm.busy || !item.original_available}
-              onClick={() => vm.download(item.id, true)}
+              onClick={() => vm.download(item.id)}
               className="px-3.5 py-2 rounded-xl bg-[#f4f6f8] text-[#121314] text-xs font-bold flex items-center gap-1.5 disabled:opacity-50"
             >
               <Icon name="download" />
-              흑백 팩스용 다운로드
+              다운로드
             </button>
           </div>
           <button

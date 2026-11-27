@@ -193,11 +193,11 @@ export default function ClaimHistory({ onReuse, insurers = [] }) {
       setBusy(false);
     }
   }
-  async function downloadDocument(id, faxDownload = false) {
+  async function downloadDocument(id) {
     setBusy(true);
     setError("");
     try {
-      await downloadClaimDocument(id, faxDownload);
+      await downloadClaimDocument(id);
     } catch (e) {
       setError(await claimError(e));
     } finally {
@@ -208,7 +208,7 @@ export default function ClaimHistory({ onReuse, insurers = [] }) {
     const pending = pendingDownload;
     setPendingDownload(null);
     if (pending.file) await download(pending.file);
-    else await downloadDocument(pending.id, pending.faxDownload);
+    else await downloadDocument(pending.id);
   }
   function askDelete(id, name) {
     setDeleteError("");
@@ -266,7 +266,7 @@ export default function ClaimHistory({ onReuse, insurers = [] }) {
     refresh: () => setRefresh((v) => v + 1),
     create: () => navigate("/claims/new"),
     open,
-    download: (id, faxDownload = false) => setPendingDownload({ id, faxDownload }),
+    download: (id) => setPendingDownload({ id }),
     remove: askDelete,
     deliveryStatus: (d) => <ClaimDeliveryStatus status={d.status} />,
     faxNumber: (d) => <HistoryFaxNumber delivery={d} insurers={insurers} />,
@@ -331,7 +331,7 @@ export default function ClaimHistory({ onReuse, insurers = [] }) {
       busy,
       timestamp,
       open,
-      download: (id, faxDownload = false) => setPendingDownload({ id, faxDownload }),
+      download: (id) => setPendingDownload({ id }),
       remove: askDelete,
       deliveryStatus: (d) => <ClaimDeliveryStatus status={d.status} />,
       faxNumber: (d) => <HistoryFaxNumber delivery={d} insurers={insurers} />,
@@ -379,7 +379,7 @@ export default function ClaimHistory({ onReuse, insurers = [] }) {
               },
               reuse,
               remove: () => askDelete(detail.id, detail.claim.insured_name),
-              download: (faxDownload = false) => setPendingDownload({ id: detail.id, faxDownload }),
+              download: () => setPendingDownload({ id: detail.id }),
               error: error ? <Alert severity="error">{error}</Alert> : null,
               deliveries: (
                 <>
@@ -447,8 +447,8 @@ export default function ClaimHistory({ onReuse, insurers = [] }) {
                     </Typography>
                   )}
                   <Typography variant="body2" color="text.secondary">
-                    주민등록번호와 서명을 그대로 보관합니다. 원본 PDF와 흑백 팩스용 PDF는
-                    별도로 저장하며, 청구내역에서 다운로드·공유할 수 있습니다.
+                    다운로드·공유 파일은 흑백 PDF로 제공되며,
+                    주민등록번호·서명·첨부서류가 포함됩니다.
                   </Typography>
                   <Divider />
                   {preview && (
@@ -586,9 +586,7 @@ export default function ClaimHistory({ onReuse, insurers = [] }) {
           <Alert severity="warning">
             {pendingDownload?.file
               ? "첨부파일은 원본입니다. 주민등록번호·서명·진료정보 등 개인정보가 포함될 수 있습니다."
-              : pendingDownload?.faxDownload
-                ? "저장된 흑백 팩스용 PDF를 다운로드합니다."
-                : "주민등록번호·서명·첨부서류가 포함된 원본 청구서입니다."}
+              : "저장된 흑백 PDF를 다운로드합니다. 주민등록번호·서명·첨부서류가 포함됩니다."}
           </Alert>
           {!pendingDownload?.file && (
             <Typography sx={{ mt: 2 }}>

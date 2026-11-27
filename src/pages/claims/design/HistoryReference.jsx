@@ -14,7 +14,7 @@ export default function HistoryReference({ vm }) {
               CLAIM ARCHIVE & FAX DISPATCH
             </span>
             <span className="px-2.5 py-0.5 rounded-full bg-sub-soft text-sub text-[11px] font-extrabold">
-              원본 · 흑백 팩스본 보관함
+              청구서 보관함
             </span>
           </div>
           <div className="MuiStack-root css-95g4uk flex items-center gap-3 flex-wrap">
@@ -63,15 +63,15 @@ export default function HistoryReference({ vm }) {
             <div className="space-y-1.5">
               <div className="flex flex-wrap items-center gap-1.5">
                 <span className="text-xs sm:text-sm font-black text-[#121314]">
-                  원본 PDF와 흑백 팩스용 PDF 별도 보관
+                  흑백 PDF 다운로드·공유
                 </span>
                 <span className="px-2 py-0.5 rounded bg-primary-soft text-primary text-[10.5px] font-black">
                   기간 제한 없이 보관
                 </span>
               </div>
               <div className="MuiAlert-message css-127h8j3 text-xs text-[#4e5968] leading-relaxed font-medium">
-                주민등록번호와 서명을 포함한 원본 PDF를 보관합니다.
-                흑백 팩스용 PDF는 별도로 저장하며 PC 통합본 다운로드와
+                다운로드·공유 파일은 주민등록번호와 서명을 포함한 흑백 PDF입니다.
+                PC 통합본 다운로드와
                 모바일 8MB 미만 분할본 공유를 이용할 수 있습니다.
               </div>
             </div>
@@ -147,7 +147,7 @@ export default function HistoryReference({ vm }) {
             aria-pressed={vm.status === "active1h"}
           >
             <span className="w-2 h-2 rounded-full bg-primary animate-ping"></span>
-            <span>원본 · 흑백 파일 보관</span>
+            <span>청구서 보관</span>
             <span
               id="badgeCountActive"
               className="px-1.5 py-0.2 rounded-full bg-primary text-white text-[10px]"

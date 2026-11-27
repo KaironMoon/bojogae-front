@@ -139,21 +139,12 @@ export default function HistoryDetailReference({ vm }) {
           삭제
         </button>
         <button
-          className="px-4 py-2.5 rounded-xl border border-[#d1d6db] hover:bg-[#f4f6f8] text-xs font-extrabold text-[#121314] flex items-center gap-1.5"
-          onClick={() => vm.download()}
-          disabled={vm.busy}
-        >
-          <Icon name="file-lock-2" className="w-4 h-4 text-sub" />
-          <span>원본 다운로드</span>
-        </button>
-
-        <button
           className="px-4 py-2.5 rounded-xl border border-[#d1d6db] hover:bg-[#f4f6f8] text-xs font-extrabold text-[#121314] flex items-center gap-1.5 disabled:opacity-50"
-          onClick={() => vm.download(true)}
+          onClick={() => vm.download()}
           disabled={vm.busy || !vm.detail.original_available}
         >
           <Icon name="download" className="w-4 h-4" />
-          <span>흑백 팩스용 다운로드</span>
+          <span>다운로드</span>
         </button>
 
         <div className="flex items-center gap-2">

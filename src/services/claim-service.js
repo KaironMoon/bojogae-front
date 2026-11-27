@@ -71,25 +71,11 @@ export function downloadClaimBlob(blob, filename) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-export async function downloadClaimDocument(requestId, faxDownload = false) {
-  const response = await apiCaller.get(`/api/v1/claims/requests/${requestId}/download`, { fax_download: faxDownload }, { responseType: 'blob', timeout: 120000 });
+export async function downloadClaimDocument(requestId) {
+  const response = await apiCaller.get(`/api/v1/claims/requests/${requestId}/download`, { fax_download: true }, { responseType: 'blob', timeout: 120000 });
   const encoded = response.headers['content-disposition']?.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
   const filename = encoded ? decodeURIComponent(encoded) : `청구서_${requestId}.${response.data.type === 'application/pdf' ? 'pdf' : 'zip'}`;
   downloadClaimBlob(response.data, filename);
-}
-
-export async function downloadOriginalClaim(requestKey, insurerIds, claim, files) {
-  for (const insurerId of insurerIds) {
-    const form = new FormData();
-    const automaticDebit = claim.automatic_debit_insurer_ids?.includes(insurerId);
-    form.append('payload', JSON.stringify({ request_key: requestKey, insurer_ids: [insurerId],
-      claim: { ...claim, automatic_debit_insurer_ids: automaticDebit ? [insurerId] : [] }, save_mode: 'FILE' }));
-    files.forEach(file => form.append('files', file));
-    const response = await apiCaller.post('/api/v1/claims/original-download', form,
-      { responseType: 'blob', timeout: 300000 });
-    const encoded = response.headers['content-disposition']?.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
-    downloadClaimBlob(response.data, encoded ? decodeURIComponent(encoded) : `발송용_청구서_${insurerId}.pdf`);
-  }
 }
 
 export async function getClaimOriginal(requestId, deliveryId, signal) {

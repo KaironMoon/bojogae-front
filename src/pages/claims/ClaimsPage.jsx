@@ -629,13 +629,13 @@ export default function ClaimsPage() {
     setStep(0);
     navigate("/claims/new");
   }
-  async function downloadAll(faxDownload = false) {
+  async function downloadAll() {
     if (busy || downloadingAll) return;
     setDownloadingAll(true);
     setError("");
     try {
       const stored = saved || (await save("FILE"));
-      await downloadClaimDocument(stored.id, faxDownload);
+      await downloadClaimDocument(stored.id);
     } catch (e) {
       setError(await claimError(e));
     } finally {
@@ -1208,7 +1208,7 @@ export default function ClaimsPage() {
         </Typography>
         <Typography variant="body2" color="text.secondary">
           보험사별 내용을 확인한 뒤 공유하기, PDF 다운로드 또는 팩스 발송을
-          선택하세요. 다운로드는 아래에서 원본 또는 흑백 팩스용을 선택합니다.
+          선택하세요. 다운로드·공유 파일은 흑백 PDF로 제공됩니다.
           보험사가 여러 곳이면 ZIP 파일로 받습니다. 팩스 발송은 선택한 보험사
           전체를 대상으로 하며, 모바일에서는 보험사별 공유하기를 사용할 수 있습니다.
           입력을 수정하면 다시 생성해야 합니다.
@@ -1225,8 +1225,8 @@ export default function ClaimsPage() {
           </Alert>
         )}
         <Alert severity="warning">
-          주민등록번호·서명·첨부서류가 포함된 원본 PDF와 흑백 팩스용 PDF를
-          각각 보관합니다. 청구내역에서 원본을 내려받거나 흑백 파일을 다운로드·공유할 수 있습니다.
+          다운로드·공유 파일에는 주민등록번호·서명·첨부서류가 포함됩니다.
+          청구내역에서도 흑백 PDF를 다운로드·공유할 수 있습니다.
         </Alert>
         <Typography variant="body2">
           요금: 보험사별 1~16장 10꼬막 · 17~18장 11꼬막 · 19~20장 12꼬막 · 이후
@@ -1327,22 +1327,13 @@ export default function ClaimsPage() {
         <Stack direction="row" gap={1} flexWrap="wrap">
           <Button
             type="button"
-            variant="outlined"
-            disabled={busy || downloadingAll || !results.length || results.length !== selected.length}
-            startIcon={<Icon name="download" />}
-            onClick={() => downloadAll()}
-          >
-            원본 다운로드
-          </Button>
-          <Button
-            type="button"
             variant="contained"
             disabled={busy || downloadingAll || !results.length || results.length !== selected.length}
             className="claim-download-all"
             startIcon={<Icon name="download" />}
-            onClick={() => downloadAll(true)}
+            onClick={() => downloadAll()}
           >
-            흑백 팩스용 다운로드
+            다운로드
           </Button>
         </Stack>
         <Typography variant="caption" color="text.secondary">
@@ -1381,7 +1372,7 @@ export default function ClaimsPage() {
           >
             청구 요청 {saved.id}번이 저장되었습니다.{" "}
             {saved.save_mode === "FILE"
-              ? "원본과 흑백 팩스용 파일은 청구내역에서 다운로드·공유할 수 있습니다."
+              ? "청구내역에서 흑백 PDF를 다운로드·공유할 수 있습니다."
               : "팩스 발송 결과는 청구내역의 발송 이력에서 확인해 주세요."}
           </Alert>
         )}
