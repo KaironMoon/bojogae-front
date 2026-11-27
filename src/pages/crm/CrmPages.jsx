@@ -29,6 +29,7 @@ import {
 } from "@mui/material";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { crmGet, crmPost, crmPut, crmError, crmDeleteCustomers } from "@/services/crm-service";
+import { proposalFileUrl } from "@/services/proposal-service";
 import {
   useCrm,
   Page,
@@ -283,111 +284,127 @@ export function CustomersPage() {
   );
 }
 function ContractCard({ contract: c }) {
+  const isNew = c.origin === "NEW";
+  const maintTone = c.maintenance === "ACTIVE" ? "active" : ["LAPSED", "TERMINATED"].includes(c.maintenance) ? "danger" : "neutral";
   return (
-    <Panel>
-      <Stack
-        direction={{ xs: "column", sm: "row" }}
-        justifyContent="space-between"
-        gap={1}
-      >
-        <Box>
-          <Typography fontWeight={700}>
-            {c.insurer} · {c.product}
-          </Typography>
-          <Stack direction="row" flexWrap="wrap" gap={1} my={1}>
-            <Chip
-              size="small"
-              label={
-                c.origin === "EXISTING" ? "기존 가입 보험" : "신규 진행 계약"
-              }
-            />
-            {c.progress && <Chip size="small" label={PROGRESS[c.progress]} />}
-            <Chip size="small" label={MAINTENANCE[c.maintenance]} />
-          </Stack>
-          <Typography variant="body2">
-            {c.premium === null ? "보험료 미확인" : `${money(c.premium)}원`} ·{" "}
-            {CYCLES[c.payment_cycle]}
-          </Typography>
-        </Box>
-        <Button component={Link} to={`/crm/contracts/${c.id}`}>
-          계약 상세
+    <article className="crm-detail-contract-card">
+      <div className="crm-detail-contract-body">
+        <div className="crm-detail-contract-badges">
+          <span className={`crm-detail-pill crm-detail-pill--${isNew ? "violet" : "slate"}`}>
+            {isNew ? "신규 진행 계약" : "기존 가입 보험"}
+          </span>
+          {c.insurer && <span className="crm-detail-contract-insurer">{c.insurer}</span>}
+          {c.progress && (
+            <span className="crm-detail-pill crm-detail-pill--blue">{PROGRESS[c.progress]}</span>
+          )}
+          <span className={`crm-detail-pill crm-detail-pill--${maintTone}`}>
+            {MAINTENANCE[c.maintenance] || "유지 미확인"}
+          </span>
+          {c.archived && <span className="crm-detail-pill crm-detail-pill--muted">보관됨</span>}
+        </div>
+        <h4 className="crm-detail-contract-title">{c.product || "상품명 미등록"}</h4>
+        <div className="crm-detail-contract-meta">
+          <span>
+            {c.premium === null || c.premium === undefined ? "보험료 미확인" : `${money(c.premium)}원`}
+            {c.payment_cycle && CYCLES[c.payment_cycle] ? ` · ${CYCLES[c.payment_cycle]}` : ""}
+            {c.premium_monthly != null ? ` (월 환산 ${money(c.premium_monthly)}원)` : ""}
+          </span>
+          {c.policy_number && <span className="crm-mono">증권 #{c.policy_number}</span>}
+          {c.establishment_date && <span className="crm-mono">성립 {c.establishment_date}</span>}
+        </div>
+      </div>
+      <div className="crm-detail-contract-action">
+        <Button
+          size="small"
+          variant="outlined"
+          component={Link}
+          to={`/crm/contracts/${c.id}`}
+          className="crm-detail-link-btn"
+        >
+          계약 상세 →
         </Button>
-      </Stack>
-    </Panel>
+      </div>
+    </article>
   );
 }
 function TaskCard({ task: t, onEdit, customerLocation }) {
+  const statusTone = t.status === "DONE" ? "done" : t.status === "CANCELLED" ? "muted" : t.is_overdue ? "overdue" : "pending";
   return (
-    <Panel>
-      <Stack
-        direction={{ xs: "column", sm: "row" }}
-        justifyContent="space-between"
-        gap={1}
-      >
-        <Box>
-          <Typography fontWeight={700}>{t.title}</Typography>
-          <Stack
-            direction="row"
-            gap={1}
-            alignItems="center"
-            flexWrap="wrap"
-            my={1}
-          >
-            <Chip size="small" label={KINDS[t.kind]} />
-            <Chip size="small" label={TASK_STATUS[t.status]} />
-            {t.is_overdue && (
-              <Chip size="small" label="기한 초과" color="error" />
-            )}
-            <Typography variant="body2">
-              {t.due_at ? dateTime(t.due_at) : `${t.due_date} · 시각 미정`}
-            </Typography>
-          </Stack>
-          <CustomerLink id={t.customer_id} name={t.customer_name} />
-          <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>
-            {t.note}
-          </Typography>
-        </Box>
-        <Stack direction="row" alignItems="center">
-          <Button onClick={() => onEdit(t)}>수정·처리</Button>
-          {t.kind === "VISIT" && (
-            <Directions
-              location={
-                t.location?.lat == null
-                  ? customerLocation || t.customer_location
-                  : t.location
-              }
-            />
+    <article className={`crm-detail-task-card is-${statusTone}`}>
+      <div className="crm-detail-task-body">
+        <div className="crm-detail-task-badges">
+          <span className="crm-detail-pill crm-detail-pill--violet">{KINDS[t.kind]}</span>
+          <span className={`crm-detail-pill crm-detail-pill--${statusTone === "done" ? "active" : statusTone === "overdue" ? "danger" : "neutral"}`}>
+            {TASK_STATUS[t.status]}
+          </span>
+          {t.is_overdue && (
+            <span className="crm-detail-pill crm-detail-pill--danger">기한 초과</span>
           )}
-        </Stack>
-      </Stack>
-    </Panel>
+          <time className="crm-detail-task-time">
+            {t.due_at ? dateTime(t.due_at) : `${t.due_date} · 시각 미정`}
+          </time>
+        </div>
+        <h4 className="crm-detail-task-title">{t.title}</h4>
+        {t.note && <p className="crm-detail-task-note">{t.note}</p>}
+        {t.customer_id && (
+          <div className="crm-detail-task-customer">
+            <CustomerLink id={t.customer_id} name={t.customer_name} />
+          </div>
+        )}
+      </div>
+      <div className="crm-detail-task-actions">
+        <Button size="small" variant="outlined" className="crm-detail-link-btn" onClick={() => onEdit(t)}>
+          수정·처리
+        </Button>
+        {t.kind === "VISIT" && (
+          <Directions
+            location={
+              t.location?.lat == null
+                ? customerLocation || t.customer_location
+                : t.location
+            }
+          />
+        )}
+      </div>
+    </article>
   );
 }
 function Consultations({ customerId }) {
   const [page, setPage] = useState(1);
   const resource = useCrm(`/customers/${customerId}/consultations`, { page });
   return (
-    <>
+    <div className="crm-detail-consultations-list">
       <State resource={resource} />
       {resource.data?.items.map((r) => (
-        <Panel key={r.id}>
-          <Typography fontWeight={700}>
-            {dateTime(r.occurred_at)} · {METHODS[r.method]} ·{" "}
-            {RESULTS[r.result]}
-          </Typography>
-          <Typography sx={{ whiteSpace: "pre-wrap", mt: 1 }}>
-            {r.content}
-          </Typography>
+        <article key={r.id} className="crm-detail-consultation-card">
+          <div className="crm-detail-consultation-head">
+            <div className="crm-detail-consultation-badges">
+              <span className="crm-detail-pill crm-detail-pill--blue">{METHODS[r.method]}</span>
+              <span className={`crm-detail-pill crm-detail-pill--${r.result === "CONNECTED" ? "active" : r.result === "REFUSED" || r.result === "WRONG_NUMBER" ? "danger" : "neutral"}`}>
+                {RESULTS[r.result]}
+              </span>
+            </div>
+            <time className="crm-detail-consultation-time">{dateTime(r.occurred_at)}</time>
+          </div>
+          <p className="crm-detail-consultation-content">{r.content}</p>
           {r.contract_id && (
-            <Button component={Link} to={`/crm/contracts/${r.contract_id}`}>
-              관련 계약
-            </Button>
+            <div className="crm-detail-consultation-footer">
+              <Button
+                size="small"
+                variant="outlined"
+                className="crm-detail-link-btn"
+                component={Link}
+                to={`/crm/contracts/${r.contract_id}`}
+              >
+                관련 계약 보기 →
+              </Button>
+            </div>
           )}
-        </Panel>
+        </article>
       ))}
-      {resource.data && !resource.data.total && <Empty />}
+      {resource.data && !resource.data.total && <Empty>등록된 상담 이력이 없습니다.</Empty>}
       <Pages data={resource.data} onChange={setPage} />
-    </>
+    </div>
   );
 }
 function CustomerInfoTile({ label, value, fullWidth = false }) {
@@ -501,51 +518,98 @@ export function CustomerDetailPage() {
       }
     >
       <State resource={resource} />
-      {c && (
+      {c && (() => {
+        const pendingTasks = (c.tasks?.items || []).filter((t) => t.status === "PENDING");
+        const overdueCount = pendingTasks.filter((t) => t.is_overdue).length;
+        const addressText = [c.location?.address, c.address_detail].filter(Boolean).join(" ");
+        return (
         <>
           {c.archived && (
-            <Alert severity="info" sx={{ mb: 2 }}>
+            <Alert severity="info" sx={{ mb: 2, borderRadius: "14px" }}>
               이전에 보관된 고객입니다. 기록을 확인하거나 고객을 삭제할 수 있습니다.
             </Alert>
           )}
-          <Panel>
-            <Stack direction="row" gap={1} alignItems="center" flexWrap="wrap">
-              <Chip label={STAGES[c.stage]} />
-              {c.do_not_contact && (
-                <Chip color="warning" label="연락 중단 요청" />
+          <section className="crm-customer-hero">
+            <div className="crm-customer-hero-top">
+              <div className="crm-customer-hero-identity">
+                <span className="crm-customer-hero-avatar" aria-hidden="true">
+                  {c.name?.slice(0, 1) || "고"}
+                </span>
+                <div className="crm-customer-hero-info">
+                  <div className="crm-customer-hero-badges">
+                    <span className={`crm-customer-stage crm-customer-stage--${c.stage}`}>
+                      {STAGES[c.stage]}
+                    </span>
+                    {c.do_not_contact && (
+                      <span className="crm-customer-stop">연락 중단 요청</span>
+                    )}
+                    {c.groups?.map((group) => (
+                      <span key={group.id} className="crm-customer-membership">
+                        {group.name}
+                      </span>
+                    ))}
+                  </div>
+                  <div className="crm-customer-hero-contact">
+                    <span className={`crm-customer-hero-phone${c.phone ? "" : " is-empty"}`}>
+                      <ContractDesignIcon name="phone" />
+                      {c.phone ? formatPhone(c.phone) : "연락처 미등록"}
+                    </span>
+                    <span className="crm-customer-hero-address">
+                      <ContractDesignIcon name="pin" />
+                      <span>{addressText || "주소 미등록"}</span>
+                      <span className="crm-customer-accuracy-pill">
+                        {ACCURACY[c.location?.accuracy] || "위치 미등록"}
+                      </span>
+                      {c.address_resolution?.status === "UNRESOLVED" && (
+                        <span className="crm-customer-address-status">미확정 주소</span>
+                      )}
+                      {["PENDING", "PROCESSING"].includes(c.address_resolution?.status) && (
+                        <span className="crm-customer-accuracy-pill">주소 확인 대기·진행</span>
+                      )}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div className="crm-customer-kpi-grid">
+                <div className="crm-customer-kpi crm-customer-kpi--green">
+                  <span>월 환산 보험료</span>
+                  <strong>{money(c.premium_summary.monthly_known)}원</strong>
+                  <small>정상 유지·계약자 · 미확인 {c.premium_summary.unknown_count}건</small>
+                </div>
+                <div className="crm-customer-kpi">
+                  <span>보유 보험 계약</span>
+                  <strong>{c.contracts.total}건</strong>
+                  <small>누적 등록 계약 기준</small>
+                </div>
+                <div className="crm-customer-kpi">
+                  <span>상담 이력</span>
+                  <strong>{c.consultations.length}건</strong>
+                  <small>{c.consultations[0] ? `최근 ${dateTime(c.consultations[0].occurred_at)}` : "상담 기록 없음"}</small>
+                </div>
+                <div className={`crm-customer-kpi${overdueCount > 0 ? " crm-customer-kpi--warn" : ""}`}>
+                  <span>예정 업무</span>
+                  <strong>{pendingTasks.length}건</strong>
+                  <small>{overdueCount > 0 ? `기한 초과 ${overdueCount}건` : "기한 내 관리 중"}</small>
+                </div>
+              </div>
+            </div>
+            <div className="crm-customer-detail-actions">
+              {c.phone && (
+                <Button href={`tel:${c.phone}`} startIcon={<ContractDesignIcon name="phone" />}>
+                  전화
+                </Button>
               )}
-              {c.groups?.map(group => <Chip key={group.id} label={group.name} size="small" sx={{ color: "#5b21b6", bgcolor: "#f5f3ff" }} />)}
-            </Stack>
-            <Typography
-              mt={2}
-              sx={{
-                fontSize: 16,
-                fontWeight: c.phone ? 800 : 500,
-                color: c.phone ? "#121314" : "#94A3B8",
-                fontVariantNumeric: "tabular-nums",
-              }}
-            >
-              {c.phone ? formatPhone(c.phone) : "연락처 미등록"}
-            </Typography>
-            <Typography mt={0.75} sx={{ color: "#334155", fontWeight: 500 }}>
-              {c.location.address} {c.address_detail}
-              {c.address_resolution?.status === "UNRESOLVED" && <Chip size="small" color="warning" label="미확정 주소" sx={{ ml: 1 }} />}
-              {["PENDING", "PROCESSING"].includes(c.address_resolution?.status) && <Chip size="small" label="주소 확인 대기·진행" sx={{ ml: 1 }} />}
-            </Typography>
-            <Typography variant="caption">
-              {ACCURACY[c.location.accuracy]}
-            </Typography>
-            <Stack className="crm-customer-detail-actions" direction="row" gap={1} mt={1} flexWrap="wrap">
-              {c.phone && <Button href={`tel:${c.phone}`}>전화</Button>}
               <Directions location={c.location} />
               <Button
                 disabled={c.archived}
+                startIcon={<ContractDesignIcon name="message_plus" />}
                 onClick={() => setEditor("consultation")}
               >
                 상담 기록 등록
               </Button>
               <Button
                 disabled={c.archived}
+                startIcon={<ContractDesignIcon name="calendar" />}
                 onClick={() => {
                   setTask(null);
                   setEditor("task");
@@ -555,12 +619,22 @@ export function CustomerDetailPage() {
               </Button>
               <Button
                 disabled={c.archived}
+                startIcon={<ContractDesignIcon name="folder_plus" />}
                 onClick={() => setEditor("contract")}
               >
                 보험 등록
               </Button>
-            </Stack>
-          </Panel>
+              <Button
+                component={Link}
+                to={`/proposals?customerId=${c.id}`}
+                disabled={c.archived}
+                className="crm-customer-ai-action"
+                startIcon={<ContractDesignIcon name="sparkles" />}
+              >
+                AI 보고서 생성
+              </Button>
+            </div>
+          </section>
           <Box ref={tabsAnchorRef} sx={{ scrollMarginTop: "24px" }}>
             <Tabs
               className="crm-customer-detail-tabs"
@@ -575,177 +649,327 @@ export function CustomerDetailPage() {
                 value="consultations"
               />
               <Tab label={`보험 계약 (${c.contracts.total})`} value="contracts" />
-              <Tab label="업무·일정" value="tasks" />
+              <Tab label={`업무·일정 (${c.tasks.total})`} value="tasks" />
               <Tab label="문서" value="files" />
             </Tabs>
           </Box>
           {tab === "summary" && (
-            <>
-              <Panel>
-                <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1}>
-                  <Typography fontWeight={700}>최근 상담 내역</Typography>
-                  <Button onClick={() => changeTab("consultations")}>전체 보기</Button>
-                </Stack>
-                <CustomerConsultationTimeline items={(c.consultations || []).slice(0, 5)} />
-              </Panel>
-              <Panel>
-                <Stack direction="row" alignItems="center" justifyContent="space-between" gap={1} mb={1.25}>
-                  <Typography fontWeight={800}>보유 보험 계약 ({c.contracts.total}건)</Typography>
-                  <Button size="small" variant="outlined" disabled={c.archived} onClick={() => setEditor("contract")}>
-                    보험 계약 추가
+            <div className="crm-customer-overview-grid">
+              <div className="crm-customer-overview-main">
+                <Panel className="crm-customer-section-panel">
+                  <div className="crm-customer-section-head">
+                    <div>
+                      <h3>
+                        <ContractDesignIcon name="clipboard" />
+                        보유 보험 계약 ({c.contracts.total}건)
+                      </h3>
+                      <p>월 환산 보험료 {money(c.premium_summary.monthly_known)}원 (정상 유지·계약자 기준)</p>
+                    </div>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      disabled={c.archived}
+                      startIcon={<ContractDesignIcon name="folder_plus" />}
+                      onClick={() => setEditor("contract")}
+                    >
+                      보험 계약 추가
+                    </Button>
+                  </div>
+                  <CustomerContractPreview contracts={c.contracts} customerId={c.id} disabled={c.archived} />
+                </Panel>
+                <Panel className="crm-customer-section-panel">
+                  <div className="crm-customer-section-head">
+                    <div>
+                      <h3>
+                        <ContractDesignIcon name="id_card" />
+                        고객 상세 정보 · 연락 참고
+                      </h3>
+                      <p>인적 사항, 유입 경로 및 방문·통화 참고 정보</p>
+                    </div>
+                    {!c.archived && (
+                      <Button size="small" variant="outlined" onClick={() => setEditor("customer")}>
+                        정보 수정
+                      </Button>
+                    )}
+                  </div>
+                  <Typography sx={{ fontSize: 12, fontWeight: 800, color: "#4E5968", mb: 1 }}>
+                    기본 인적 · 유입 정보
+                  </Typography>
+                  <Box
+                    sx={{
+                      display: "grid",
+                      gridTemplateColumns: { xs: "1fr", sm: "repeat(2, minmax(0, 1fr))", md: "repeat(3, minmax(0, 1fr))" },
+                      gap: 1.25,
+                    }}
+                  >
+                    {[
+                      ["카톡대화명", c.alias],
+                      ["생년월일", c.birth_display || c.birth_date || c.birth_raw],
+                      ["주민번호 앞 6자리·뒤 첫 1자리", c.resident_number],
+                      ["직업", c.occupation],
+                      ["유입", c.source],
+                      ["접수일", c.received_display || c.received_date || c.received_raw],
+                    ].map(([label, value]) => (
+                      <CustomerInfoTile key={label} label={label} value={value} />
+                    ))}
+                  </Box>
+                  <Divider sx={{ my: 2, borderColor: "#F1F5F9" }} />
+                  <Typography sx={{ fontSize: 12, fontWeight: 800, color: "#4E5968", mb: 1 }}>
+                    연락 · 방문 · 상담 참고
+                  </Typography>
+                  <Box
+                    sx={{
+                      display: "grid",
+                      gridTemplateColumns: { xs: "1fr", sm: "repeat(2, minmax(0, 1fr))", md: "repeat(3, minmax(0, 1fr))" },
+                      gap: 1.25,
+                    }}
+                  >
+                    {[
+                      ["통화 가능 시간", c.call_preference, false],
+                      ["방문 가능 시간", c.visit_preference, false],
+                      ["상담 참고 보험료", c.premium_note, false],
+                      ["방문 참고", c.visit_note, true],
+                    ].map(([label, value, fullWidth]) => (
+                      <CustomerInfoTile key={label} label={label} value={value} fullWidth={fullWidth} />
+                    ))}
+                  </Box>
+                  <Box
+                    sx={{
+                      mt: 1.5,
+                      p: 1.75,
+                      borderRadius: "12px",
+                      bgcolor: c.memo ? "#FFFBEB" : "#F8FAFC",
+                      border: "1px solid",
+                      borderColor: c.memo ? "#FDE68A" : "#F1F5F9",
+                    }}
+                  >
+                    <Typography sx={{ fontSize: 12, fontWeight: 800, color: c.memo ? "#92400E" : "#64748B", mb: 0.5 }}>
+                      메모
+                    </Typography>
+                    <Typography
+                      sx={{
+                        fontSize: 13.5,
+                        fontWeight: c.memo ? 600 : 500,
+                        color: c.memo ? "#1E293B" : "#94A3B8",
+                        lineHeight: 1.65,
+                        whiteSpace: "pre-wrap",
+                        overflowWrap: "anywhere",
+                      }}
+                    >
+                      {c.memo || "미확인"}
+                    </Typography>
+                  </Box>
+                </Panel>
+              </div>
+              <div className="crm-customer-overview-side">
+                <Panel className="crm-customer-section-panel">
+                  <div className="crm-customer-section-head">
+                    <div>
+                      <h3>
+                        <ContractDesignIcon name="message" />
+                        최근 상담 내역
+                      </h3>
+                      <p>최근 기록 5건 표시</p>
+                    </div>
+                    <Stack direction="row" gap={0.75}>
+                      {!c.archived && (
+                        <Button size="small" variant="outlined" onClick={() => setEditor("consultation")}>
+                          + 상담
+                        </Button>
+                      )}
+                      <Button size="small" onClick={() => changeTab("consultations")}>
+                        전체 보기
+                      </Button>
+                    </Stack>
+                  </div>
+                  <CustomerConsultationTimeline items={(c.consultations || []).slice(0, 5)} />
+                </Panel>
+                <Panel className="crm-customer-section-panel">
+                  <div className="crm-customer-section-head">
+                    <div>
+                      <h3>
+                        <ContractDesignIcon name="calendar" />
+                        예정된 업무·방문 ({pendingTasks.length}건)
+                      </h3>
+                      <p>대기 중인 할 일 및 방문 일정</p>
+                    </div>
+                    <Stack direction="row" gap={0.75}>
+                      {!c.archived && (
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          onClick={() => {
+                            setTask(null);
+                            setEditor("task");
+                          }}
+                        >
+                          + 업무
+                        </Button>
+                      )}
+                      <Button size="small" onClick={() => changeTab("tasks")}>
+                        전체 보기
+                      </Button>
+                    </Stack>
+                  </div>
+                  {pendingTasks.length > 0 ? (
+                    <div className="crm-detail-stack">
+                      {pendingTasks.slice(0, 5).map((t) => (
+                        <TaskCard
+                          key={t.id}
+                          task={t}
+                          customerLocation={c.location}
+                          onEdit={(v) => {
+                            setTask(v);
+                            setEditor("task");
+                          }}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="crm-detail-empty-box">
+                      예정된 업무나 방문 일정이 없습니다.
+                    </div>
+                  )}
+                </Panel>
+              </div>
+            </div>
+          )}
+          {tab === "consultations" && (
+            <Panel className="crm-customer-section-panel">
+              <div className="crm-customer-section-head">
+                <div>
+                  <h3>
+                    <ContractDesignIcon name="message" />
+                    상담 이력 ({c.consultations.length}건)
+                  </h3>
+                  <p>전화·방문·메시지 상담 기록 전체</p>
+                </div>
+                {!c.archived && (
+                  <Button
+                    size="small"
+                    variant="contained"
+                    className="crm-customer-primary"
+                    startIcon={<ContractDesignIcon name="message_plus" />}
+                    onClick={() => setEditor("consultation")}
+                  >
+                    상담 기록 등록
                   </Button>
-                </Stack>
-                <CustomerContractPreview contracts={c.contracts} customerId={c.id} disabled={c.archived} />
-              </Panel>
-              <Panel>
-                <Typography fontWeight={700}>보험료 요약</Typography>
-                <Typography variant="h6" mt={1}>
-                  확인된 월 환산 보험료 {money(c.premium_summary.monthly_known)}
-                  원
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  정상 유지·계약자 역할 기준 / 금액·주기 등 미확인{" "}
-                  {c.premium_summary.unknown_count}건
-                </Typography>
-              </Panel>
-              <Panel>
-                <Stack direction="row" alignItems="center" justifyContent="space-between" gap={1} mb={2}>
-                  <Typography fontWeight={800} fontSize={16}>고객 상세 정보 · 연락 참고</Typography>
+                )}
+              </div>
+              <Consultations
+                key={JSON.stringify(c.consultations.map((r) => r.id))}
+                customerId={c.id}
+              />
+            </Panel>
+          )}
+          {tab === "contracts" && (
+            <Panel className="crm-customer-section-panel">
+              <div className="crm-customer-section-head">
+                <div>
+                  <h3>
+                    <ContractDesignIcon name="clipboard" />
+                    보유 보험 계약 ({c.contracts.total}건)
+                  </h3>
+                  <p>월 환산 보험료 {money(c.premium_summary.monthly_known)}원 (정상 유지·계약자 기준)</p>
+                </div>
+                <Stack direction="row" gap={1} flexWrap="wrap">
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    component={Link}
+                    to={`/crm/contracts?customer_id=${c.id}`}
+                  >
+                    내계약에서 전체 보기
+                  </Button>
                   {!c.archived && (
-                    <Button size="small" variant="outlined" onClick={() => setEditor("customer")}>
-                      정보 수정
+                    <Button
+                      size="small"
+                      variant="contained"
+                      className="crm-customer-primary"
+                      startIcon={<ContractDesignIcon name="folder_plus" />}
+                      onClick={() => setEditor("contract")}
+                    >
+                      보험 계약 등록
                     </Button>
                   )}
                 </Stack>
-                <Typography sx={{ fontSize: 12, fontWeight: 800, color: "#4E5968", mb: 1 }}>
-                  기본 인적 · 유입 정보
-                </Typography>
-                <Box
-                  sx={{
-                    display: "grid",
-                    gridTemplateColumns: { xs: "1fr", sm: "repeat(2, minmax(0, 1fr))", md: "repeat(3, minmax(0, 1fr))" },
-                    gap: 1.25,
-                  }}
-                >
-                  {[
-                    ["카톡대화명", c.alias],
-                    ["생년월일", c.birth_display || c.birth_date || c.birth_raw],
-                    ["주민번호 앞 6자리·뒤 첫 1자리", c.resident_number],
-                    ["직업", c.occupation],
-                    ["유입", c.source],
-                    ["접수일", c.received_display || c.received_date || c.received_raw],
-                  ].map(([label, value]) => (
-                    <CustomerInfoTile key={label} label={label} value={value} />
+              </div>
+              {c.contracts.items.length > 0 ? (
+                <div className="crm-detail-stack">
+                  {c.contracts.items.map((r) => (
+                    <ContractCard key={r.id} contract={r} />
                   ))}
-                </Box>
-                <Divider sx={{ my: 2, borderColor: "#F1F5F9" }} />
-                <Typography sx={{ fontSize: 12, fontWeight: 800, color: "#4E5968", mb: 1 }}>
-                  연락 · 방문 · 상담 참고
-                </Typography>
-                <Box
-                  sx={{
-                    display: "grid",
-                    gridTemplateColumns: { xs: "1fr", sm: "repeat(2, minmax(0, 1fr))", md: "repeat(3, minmax(0, 1fr))" },
-                    gap: 1.25,
-                  }}
-                >
-                  {[
-                    ["통화 가능 시간", c.call_preference, false],
-                    ["방문 가능 시간", c.visit_preference, false],
-                    ["상담 참고 보험료", c.premium_note, false],
-                    ["방문 참고", c.visit_note, true],
-                  ].map(([label, value, fullWidth]) => (
-                    <CustomerInfoTile key={label} label={label} value={value} fullWidth={fullWidth} />
-                  ))}
-                </Box>
-                <Box
-                  sx={{
-                    mt: 1.5,
-                    p: 1.75,
-                    borderRadius: "12px",
-                    bgcolor: c.memo ? "#FFFBEB" : "#F8FAFC",
-                    border: "1px solid",
-                    borderColor: c.memo ? "#FDE68A" : "#F1F5F9",
-                  }}
-                >
-                  <Typography sx={{ fontSize: 12, fontWeight: 800, color: c.memo ? "#92400E" : "#64748B", mb: 0.5 }}>
-                    메모
-                  </Typography>
-                  <Typography
-                    sx={{
-                      fontSize: 13.5,
-                      fontWeight: c.memo ? 600 : 500,
-                      color: c.memo ? "#1E293B" : "#94A3B8",
-                      lineHeight: 1.65,
-                      whiteSpace: "pre-wrap",
-                      overflowWrap: "anywhere",
-                    }}
-                  >
-                    {c.memo || "미확인"}
-                  </Typography>
-                </Box>
-              </Panel>
-              {c.tasks.items
-                .filter((t) => t.status === "PENDING")
-                .slice(0, 5)
-                .map((t) => (
-                  <TaskCard
-                    key={t.id}
-                    task={t}
-                    customerLocation={c.location}
-                    onEdit={(v) => {
-                      setTask(v);
-                      setEditor("task");
-                    }}
-                  />
-                ))}
-            </>
-          )}
-          {tab === "consultations" && (
-            <Consultations
-              key={JSON.stringify(c.consultations.map((r) => r.id))}
-              customerId={c.id}
-            />
-          )}
-          {tab === "contracts" && (
-            <>
-              {c.contracts.items.map((r) => (
-                <ContractCard key={r.id} contract={r} />
-              ))}
-              {!c.contracts.total && <Empty />}
-              <Button
-                component={Link}
-                to={`/crm/contracts?customer_id=${c.id}`}
-              >
-                전체 연결 계약 보기
-              </Button>
-            </>
+                </div>
+              ) : (
+                <div className="crm-detail-empty-box">
+                  등록된 보험 계약이 없습니다.
+                </div>
+              )}
+            </Panel>
           )}
           {tab === "tasks" && (
-            <>
-              {c.tasks.items.map((t) => (
-                <TaskCard
-                  key={t.id}
-                  task={t}
-                  customerLocation={c.location}
-                  onEdit={(v) => {
-                    setTask(v);
-                    setEditor("task");
-                  }}
-                />
-              ))}
-              {!c.tasks.total && <Empty />}
-              <Button component={Link} to={`/crm/tasks?customer_id=${c.id}`}>
-                전체 업무 보기
-              </Button>
-            </>
+            <Panel className="crm-customer-section-panel">
+              <div className="crm-customer-section-head">
+                <div>
+                  <h3>
+                    <ContractDesignIcon name="calendar" />
+                    업무·방문 일정 ({c.tasks.total}건)
+                  </h3>
+                  <p>고객에게 연결된 할 일, 재통화 및 방문 일정</p>
+                </div>
+                <Stack direction="row" gap={1} flexWrap="wrap">
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    component={Link}
+                    to={`/crm/tasks?customer_id=${c.id}`}
+                  >
+                    전체 업무 보기
+                  </Button>
+                  {!c.archived && (
+                    <Button
+                      size="small"
+                      variant="contained"
+                      className="crm-customer-primary"
+                      startIcon={<ContractDesignIcon name="calendar" />}
+                      onClick={() => {
+                        setTask(null);
+                        setEditor("task");
+                      }}
+                    >
+                      업무·방문 등록
+                    </Button>
+                  )}
+                </Stack>
+              </div>
+              {c.tasks.items.length > 0 ? (
+                <div className="crm-detail-stack">
+                  {c.tasks.items.map((t) => (
+                    <TaskCard
+                      key={t.id}
+                      task={t}
+                      customerLocation={c.location}
+                      onEdit={(v) => {
+                        setTask(v);
+                        setEditor("task");
+                      }}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="crm-detail-empty-box">
+                  등록된 업무·일정이 없습니다.
+                </div>
+              )}
+            </Panel>
           )}
           {tab === "files" && (
-            <Stack gap={3}>
-              <CustomerDocuments customerId={c.id} disabled={c.archived} onSaved={resource.reload} />
-              <Typography fontWeight={700}>첨부 문서</Typography>
+            <div className="crm-customer-files-stack">
+              <Panel className="crm-customer-section-panel crm-customer-documents-panel">
+                <CustomerDocuments customerId={c.id} disabled={c.archived} onSaved={resource.reload} />
+              </Panel>
               <Attachments customerId={c.id} disabled={c.archived} />
-            </Stack>
+            </div>
           )}
           {editor === "customer" && (
             <CustomerForm
@@ -799,7 +1023,8 @@ export function CustomerDetailPage() {
             />
           )}
         </>
-      )}
+        );
+      })()}
     </CustomerWorkspace></div>
   );
 }
@@ -1042,159 +1267,390 @@ export function ContractDetailPage() {
   const c = resource.data;
   const [editor, setEditor] = useState("");
   const navigate = useNavigate();
+  const doc = c?.proposal_document;
+  const maintTone = c?.maintenance === "ACTIVE" ? "active" : ["LAPSED", "TERMINATED"].includes(c?.maintenance) ? "danger" : "neutral";
+  const infoFields = c
+    ? [
+        ["보험회사", c.insurer],
+        ["보험 종류", c.category],
+        ["상품명", c.product],
+        ["증권/설계번호", c.policy_number],
+        ["청약일", c.application_date],
+        ["성립일", c.establishment_date],
+        ["보장 기간", `${c.coverage_start || "미확인"} ~ ${c.coverage_end || "미확인"}`],
+        ["납입 주기", CYCLES[c.payment_cycle] || "미확인"],
+        ["납입 기간", c.payment_period],
+        ["납입 종료일", c.payment_end],
+        ["정보 출처", c.information_source],
+        ["확인 상태", c.verified ? `확인됨 · ${c.verified_date || "확인일 미입력"}` : "미확인"],
+      ]
+    : [];
+
   return (
-    <Page
-      title={c?.product || "계약 상세"}
-      actions={
-        <>
-          <Button component={Link} to="/crm/contracts">
-            계약 목록
-          </Button>
-          {c && (
-            <Button onClick={() => setEditor("archive")}>
-              {c.archived ? "보관 해제" : "보관"}
+    <div className="crm-contracts-workspace crm-contract-detail-workspace">
+      <Page
+        title={c?.product || "계약 상세"}
+        headerClassName="crm-contracts-header crm-contract-detail-header"
+        badges={
+          <Stack direction="row" gap={0.75} flexWrap="wrap" mb={0.5}>
+            <Chip size="small" label="CONTRACT WORKSPACE" className="crm-contracts-badge" />
+            {c && (
+              <Chip
+                size="small"
+                label={c.origin === "NEW" ? "신규 진행 계약" : "기존 가입 보험"}
+                className="crm-contracts-badge crm-contracts-badge--violet"
+              />
+            )}
+          </Stack>
+        }
+        description={
+          c
+            ? [c.insurer, c.policy_number ? `증권 #${c.policy_number}` : "증권번호 미등록", c.establishment_date ? `성립일 ${c.establishment_date}` : null]
+                .filter(Boolean)
+                .join(" · ")
+            : "계약 상세 정보와 연락 참고일, 상태 이력을 관리합니다."
+        }
+        actions={
+          <div className="crm-contract-detail-header-actions">
+            <Button
+              variant="outlined"
+              component={Link}
+              to="/crm/contracts"
+              className="crm-contract-detail-back-btn"
+            >
+              계약 목록
             </Button>
-          )}
-          {c && !c.archived && (
-            <>
-              <Button onClick={() => setEditor("status")}>상태 변경</Button>
-              <Button variant="contained" onClick={() => setEditor("contract")}>
-                정보 수정
+            {c && (
+              <Button
+                variant="outlined"
+                className="crm-contract-detail-archive-btn"
+                startIcon={<ContractDesignIcon name="archive" />}
+                onClick={() => setEditor("archive")}
+              >
+                {c.archived ? "보관 해제" : "보관"}
               </Button>
-            </>
-          )}
-        </>
-      }
-    >
-      <State resource={resource} />
-      {c && (
-        <>
-          <ContractCard contract={c} />
-          {c.proposal_generation_id && <Panel>
-            <Typography fontWeight={700}>계약에 연결된 생성 문서</Typography>
-            <Button component={Link} to={`/proposals?generationId=${c.proposal_generation_id}`}>선택 문서 #{c.proposal_generation_id} 보기</Button>
-          </Panel>}
-          <ContractReminderDetails events={c.reminders} />
-          {c.archived && <Alert severity="info">보관된 계약입니다.</Alert>}
-          <Panel>
-            <Typography fontWeight={700}>계약 관계자</Typography>
-            {c.parties.map((p, i) => (
-              <Stack key={i} direction="row" alignItems="center" gap={1}>
-                <Typography>
-                  {p.role === "HOLDER" ? "계약자" : "피보험자"} · {p.name}
-                  {p.resident_number && ` · ${p.resident_number}`}
-                  {p.phone && ` · ${formatPhone(p.phone)}`}
-                </Typography>
-                {p.customer_id && (
-                  <>
-                    <CustomerLink id={p.customer_id} name="고객 보기" />
-                    <Button
-                      disabled={c.archived}
-                      onClick={() => {
-                        setEditor(`task:${p.customer_id}`);
-                      }}
-                    >
-                      후속 업무 등록
-                    </Button>
-                  </>
+            )}
+            {c && !c.archived && (
+              <>
+                <Button
+                  variant="outlined"
+                  className="crm-contract-detail-status-btn"
+                  onClick={() => setEditor("status")}
+                >
+                  상태 변경
+                </Button>
+                <Button
+                  variant="contained"
+                  className="crm-contract-primary"
+                  startIcon={<ContractDesignIcon name="file" />}
+                  onClick={() => setEditor("contract")}
+                >
+                  정보 수정
+                </Button>
+              </>
+            )}
+          </div>
+        }
+      >
+        <State resource={resource} />
+        {c && (
+          <div className="crm-contract-detail-body">
+            {c.archived && (
+              <Alert severity="info" sx={{ borderRadius: "14px" }}>
+                보관된 계약입니다. 보관 해제 후 정보 수정이나 상태 변경을 진행할 수 있습니다.
+              </Alert>
+            )}
+
+            <section className="crm-contract-detail-hero">
+              <div className="crm-contract-detail-hero-badges">
+                {c.insurer && <span className="crm-contract-detail-insurer">{c.insurer}</span>}
+                <span className={`crm-contract-detail-pill crm-contract-detail-pill--${c.origin === "NEW" ? "violet" : "slate"}`}>
+                  {c.origin === "NEW" ? "신규 진행 계약" : "기존 가입 보험"}
+                </span>
+                {c.progress && (
+                  <span className="crm-contract-detail-pill crm-contract-detail-pill--blue">
+                    진행: {PROGRESS[c.progress]}
+                  </span>
                 )}
-              </Stack>
-            ))}
-          </Panel>
-          <Panel>
-            <Typography fontWeight={700}>계약정보</Typography>
-            {[
-              ["보험회사", c.insurer],
-              ["청약일", c.application_date],
-              ["상품명", c.product],
-              ["월 보험료", c.premium_monthly == null ? "미확인" : `${money(c.premium_monthly)}원`],
-              ["납입기간", c.payment_period],
-              ["증권/설계번호", c.policy_number],
-              ["보험 종류", c.category],
-              ["성립일", c.establishment_date],
-              [
-                "보장 기간",
-                `${c.coverage_start || "미확인"} ~ ${c.coverage_end || "미확인"}`,
-              ],
-              ["납입 종료일", c.payment_end],
-              ["기간 설명", c.period_note],
-              ["주요 보장·특약", c.coverage_note],
-              ["정보 출처", c.information_source],
-              [
-                "확인 상태",
-                c.verified
-                  ? `확인됨 · ${c.verified_date || "확인일 미입력"}`
-                  : "미확인",
-              ],
-            ].map(([label, text]) => (
-              <Typography key={label} sx={{ my: 1, whiteSpace: "pre-wrap" }}>
-                <strong>{label}</strong> {text || "미확인"}
-              </Typography>
-            ))}
-          </Panel>
-          <Attachments contractId={c.id} disabled={c.archived} />
-          <Panel>
-            <Typography fontWeight={700}>계약 상태 이력</Typography>
-            {c.events.map((e) => (
-              <Box key={e.id} my={2}>
-                <Typography>
-                  {e.occurred_date || dateTime(e.created_at)} ·{" "}
-                  {e.correction
-                    ? "정정"
-                    : e.type === "CREATED"
-                      ? "등록"
-                      : "상태 변경"}
-                </Typography>
-                <Typography variant="body2">
-                  {PROGRESS[e.progress] || ""} {MAINTENANCE[e.maintenance]} ·{" "}
-                  {e.reason || "최초 등록"}
-                </Typography>
-                <Divider sx={{ mt: 1 }} />
-              </Box>
-            ))}
-          </Panel>
-          {editor === "contract" && (
-            <ContractForm
-              value={c}
-              onClose={() => setEditor("")}
-              onSave={async (data) => {
-                await crmPut(`/contracts/${c.id}`, data);
-                resource.reload();
-              }}
-            />
-          )}
-          {editor === "status" && (
-            <StatusForm
-              value={c}
-              onClose={() => setEditor("")}
-              onSave={async (data) => {
-                await crmPost(`/contracts/${c.id}/status-events`, data);
-                resource.reload();
-              }}
-            />
-          )}
-          {editor === "archive" && (
-            <Archive
-              kind="contracts"
-              value={c}
-              onClose={() => setEditor("")}
-              onDone={resource.reload}
-            />
-          )}
-          {editor.startsWith("task:") && (
-            <TaskForm
-              customerId={Number(editor.split(":")[1])}
-              contractId={c.id}
-              onClose={() => setEditor("")}
-              onSave={async (data) => {
-                await crmPost("/tasks", data);
-                navigate("/crm/tasks");
-              }}
-            />
-          )}
-        </>
-      )}
-    </Page>
+                <span className={`crm-contract-detail-pill crm-contract-detail-pill--${maintTone}`}>
+                  유지: {MAINTENANCE[c.maintenance] || "미확인"}
+                </span>
+                <span className={`crm-contract-detail-pill crm-contract-detail-pill--${c.verified ? "active" : "warn"}`}>
+                  {c.verified ? `확인됨 (${c.verified_date || "날짜 미입력"})` : "미확인 계약"}
+                </span>
+              </div>
+
+              <div className="crm-contract-detail-kpis">
+                <div className="crm-contract-detail-kpi crm-contract-detail-kpi--green">
+                  <span>월 환산 보험료</span>
+                  <strong>{c.premium_monthly == null ? "미확인" : `${money(c.premium_monthly)}원`}</strong>
+                  <small>
+                    납입 {c.premium == null ? "미확인" : `${money(c.premium)}원`} · {CYCLES[c.payment_cycle] || "주기 미확인"}
+                  </small>
+                </div>
+                <div className="crm-contract-detail-kpi">
+                  <span>계약 성립일</span>
+                  <strong>{c.establishment_date || "미확인"}</strong>
+                  <small>청약일 {c.application_date || "미확인"}</small>
+                </div>
+                <div className="crm-contract-detail-kpi">
+                  <span>보장 기간</span>
+                  <strong>
+                    {c.coverage_start || "미확인"} ~ {c.coverage_end || "미확인"}
+                  </strong>
+                  <small>보험 종류: {c.category || "미확인"}</small>
+                </div>
+                <div className="crm-contract-detail-kpi">
+                  <span>납입 기간</span>
+                  <strong>{c.payment_period || "미확인"}</strong>
+                  <small>납입 종료일 {c.payment_end || "미확인"}</small>
+                </div>
+              </div>
+            </section>
+
+            <ContractReminderDetails events={c.reminders} />
+
+            <div className="crm-contract-detail-grid">
+              <div className="crm-contract-detail-main">
+                {c.proposal_generation_id && (
+                  <section className="crm-contract-source-doc">
+                    <div className="crm-contract-source-doc-head">
+                      <span className="crm-contract-source-doc-badge">
+                        <ContractDesignIcon name="sparkles" />
+                        AI 생성 문서에서 등록된 계약
+                      </span>
+                      {doc?.prompt_title && (
+                        <span className="crm-doc-prompt-pill">{doc.prompt_title}</span>
+                      )}
+                    </div>
+                    <h3>{doc?.title || `생성 문서 #${c.proposal_generation_id}`}</h3>
+                    {doc?.summary && <p className="crm-contract-source-doc-summary">{doc.summary}</p>}
+                    <div className="crm-contract-source-doc-footer">
+                      <span className="crm-mono">
+                        문서 #{c.proposal_generation_id}
+                        {doc?.created_at ? ` · ${dateTime(doc.created_at)}` : ""}
+                      </span>
+                      <div className="crm-contract-source-doc-actions">
+                        {(!doc || doc.status === "COMPLETED") && (
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            component="a"
+                            href={proposalFileUrl(c.proposal_generation_id, "output")}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            startIcon={<ContractDesignIcon name="sheet" />}
+                          >
+                            보고서 열기
+                          </Button>
+                        )}
+                        <Button
+                          size="small"
+                          variant="contained"
+                          className="crm-contract-source-doc-btn"
+                          component={Link}
+                          to={`/proposals?generationId=${c.proposal_generation_id}`}
+                          startIcon={<ContractDesignIcon name="document" />}
+                        >
+                          문서 상세 보기
+                        </Button>
+                      </div>
+                    </div>
+                  </section>
+                )}
+
+                <section className="crm-contract-section-card">
+                  <div className="crm-contract-section-card-head">
+                    <div>
+                      <h3>
+                        <ContractDesignIcon name="clipboard" />
+                        계약 상세 정보
+                      </h3>
+                      <p>보험사, 증권번호, 납입 및 보장 일정</p>
+                    </div>
+                    {!c.archived && (
+                      <Button size="small" variant="outlined" onClick={() => setEditor("contract")}>
+                        수정
+                      </Button>
+                    )}
+                  </div>
+                  <div className="crm-contract-info-grid">
+                    {infoFields.map(([label, text]) => {
+                      const hasValue = Boolean(text && String(text).trim() && text !== "미확인" && text !== "미확인 ~ 미확인");
+                      return (
+                        <div key={label} className={`crm-contract-info-tile${hasValue ? "" : " is-empty"}`}>
+                          <span>{label}</span>
+                          <strong>{text || "미확인"}</strong>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </section>
+
+                <section className="crm-contract-section-card">
+                  <div className="crm-contract-section-card-head">
+                    <div>
+                      <h3>
+                        <ContractDesignIcon name="shield" />
+                        주요 보장 · 특약 및 기간 메모
+                      </h3>
+                      <p>설계사 확인 메모 및 특약 요약</p>
+                    </div>
+                  </div>
+                  <div className="crm-contract-notes-stack">
+                    <div className={`crm-contract-note-box${c.coverage_note ? "" : " is-empty"}`}>
+                      <span>주요 보장·특약</span>
+                      <p>{c.coverage_note || "등록된 주요 보장·특약 메모가 없습니다."}</p>
+                    </div>
+                    <div className={`crm-contract-note-box${c.period_note ? "" : " is-empty"}`}>
+                      <span>기간 설명</span>
+                      <p>{c.period_note || "등록된 기간 설명이 없습니다."}</p>
+                    </div>
+                  </div>
+                </section>
+
+                <Attachments contractId={c.id} disabled={c.archived} />
+              </div>
+
+              <div className="crm-contract-detail-side">
+                <section className="crm-contract-section-card">
+                  <div className="crm-contract-section-card-head">
+                    <div>
+                      <h3>
+                        <ContractDesignIcon name="person" />
+                        계약 관계자 ({c.parties.length}명)
+                      </h3>
+                      <p>계약자 · 피보험자 연결 고객</p>
+                    </div>
+                  </div>
+                  <div className="crm-contract-party-list">
+                    {c.parties.map((p, i) => {
+                      const isHolder = p.role === "HOLDER";
+                      return (
+                        <article key={i} className="crm-contract-party-card">
+                          <div className="crm-contract-party-card-top">
+                            <span className={`crm-contract-detail-pill crm-contract-detail-pill--${isHolder ? "active" : "violet"}`}>
+                              {isHolder ? "계약자" : "피보험자"}
+                            </span>
+                            <strong>{p.name || "성함 미입력"}</strong>
+                          </div>
+                          <div className="crm-contract-party-card-meta">
+                            <span>주민번호: {p.resident_number || "미확인"}</span>
+                            <span>연락처: {p.phone ? formatPhone(p.phone) : "미등록"}</span>
+                          </div>
+                          {p.customer_id && (
+                            <div className="crm-contract-party-card-actions">
+                              <CustomerLink id={p.customer_id} name="고객 상세 보기" />
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                disabled={c.archived}
+                                startIcon={<ContractDesignIcon name="calendar" />}
+                                onClick={() => setEditor(`task:${p.customer_id}`)}
+                              >
+                                후속 업무 등록
+                              </Button>
+                            </div>
+                          )}
+                        </article>
+                      );
+                    })}
+                  </div>
+                </section>
+
+                <section className="crm-contract-section-card">
+                  <div className="crm-contract-section-card-head">
+                    <div>
+                      <h3>
+                        <ContractDesignIcon name="calendar_clock" />
+                        계약 상태 이력 ({c.events.length}건)
+                      </h3>
+                      <p>등록 및 진행·유지 상태 변경 로그</p>
+                    </div>
+                    {!c.archived && (
+                      <Button size="small" variant="outlined" onClick={() => setEditor("status")}>
+                        상태 변경
+                      </Button>
+                    )}
+                  </div>
+                  <div className="crm-contract-timeline">
+                    {c.events.map((e) => {
+                      const dotKind = e.correction ? "correction" : e.type === "CREATED" ? "created" : "change";
+                      return (
+                        <article key={e.id} className="crm-contract-timeline-item">
+                          <span className={`crm-contract-timeline-dot is-${dotKind}`} aria-hidden="true" />
+                          <div className="crm-contract-timeline-content">
+                            <div className="crm-contract-timeline-head">
+                              <span className={`crm-contract-timeline-type is-${dotKind}`}>
+                                {e.correction ? "정정" : e.type === "CREATED" ? "최초 등록" : "상태 변경"}
+                              </span>
+                              <time>{e.occurred_date || dateTime(e.created_at)}</time>
+                            </div>
+                            <div className="crm-contract-timeline-badges">
+                              {PROGRESS[e.progress] && (
+                                <span className="crm-contract-detail-pill crm-contract-detail-pill--blue">
+                                  {PROGRESS[e.progress]}
+                                </span>
+                              )}
+                              {MAINTENANCE[e.maintenance] && (
+                                <span className="crm-contract-detail-pill crm-contract-detail-pill--neutral">
+                                  {MAINTENANCE[e.maintenance]}
+                                </span>
+                              )}
+                            </div>
+                            <p>{e.reason || "최초 등록"}</p>
+                          </div>
+                        </article>
+                      );
+                    })}
+                  </div>
+                </section>
+              </div>
+            </div>
+
+            {editor === "contract" && (
+              <ContractForm
+                value={c}
+                onClose={() => setEditor("")}
+                onSave={async (data) => {
+                  await crmPut(`/contracts/${c.id}`, data);
+                  resource.reload();
+                }}
+              />
+            )}
+            {editor === "status" && (
+              <StatusForm
+                value={c}
+                onClose={() => setEditor("")}
+                onSave={async (data) => {
+                  await crmPost(`/contracts/${c.id}/status-events`, data);
+                  resource.reload();
+                }}
+              />
+            )}
+            {editor === "archive" && (
+              <Archive
+                kind="contracts"
+                value={c}
+                onClose={() => setEditor("")}
+                onDone={resource.reload}
+              />
+            )}
+            {editor.startsWith("task:") && (
+              <TaskForm
+                customerId={Number(editor.split(":")[1])}
+                contractId={c.id}
+                onClose={() => setEditor("")}
+                onSave={async (data) => {
+                  await crmPost("/tasks", data);
+                  navigate("/crm/tasks");
+                }}
+              />
+            )}
+          </div>
+        )}
+      </Page>
+    </div>
   );
 }
 export function TasksPage() {

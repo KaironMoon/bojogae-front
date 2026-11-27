@@ -408,11 +408,34 @@ export function Attachments({ customerId, contractId, disabled = false }) {
       setBusy(false);
     }
   }
+  const items = resource.data?.items || [];
   return (
-    <Panel>
-      <Stack direction="row" alignItems="center" justifyContent="space-between">
-        <Typography fontWeight={700}>관련 문서</Typography>
-        <Button component="label" disabled={disabled || busy}>
+    <Panel className="crm-attachments-panel">
+      <div className="crm-attachments-header">
+        <div className="crm-attachments-title">
+          <span className="crm-attachments-icon" aria-hidden="true">
+            <ContractDesignIcon name="folder" />
+          </span>
+          <div>
+            <div className="crm-attachments-heading">
+              <Typography component="h3" fontWeight={900}>
+                첨부 문서
+              </Typography>
+              <span className="crm-attachments-count">{items.length}건</span>
+            </div>
+            <Typography variant="caption" color="text.secondary">
+              PDF·PNG·JPG, 파일당 10MB 이하
+            </Typography>
+          </div>
+        </div>
+        <Button
+          component="label"
+          variant="outlined"
+          size="small"
+          className="crm-attachments-upload-btn"
+          disabled={disabled || busy}
+          startIcon={<ContractDesignIcon name="upload" />}
+        >
           파일 첨부
           <input
             type="file"
@@ -421,27 +444,44 @@ export function Attachments({ customerId, contractId, disabled = false }) {
             onChange={upload}
           />
         </Button>
-      </Stack>
-      <Typography variant="caption">PDF·PNG·JPG, 파일당 10MB 이하</Typography>
+      </div>
       <State resource={resource} />
-      {error && <Alert severity="error">{error}</Alert>}
-      {resource.data?.items.map((r) => (
-        <Stack
-          key={r.id}
-          direction="row"
-          justifyContent="space-between"
-          alignItems="center"
-        >
-          <Button href={attachmentUrl(r.id)}>{r.filename}</Button>
-          <Button
-            disabled={disabled || busy}
-            color="inherit"
-            onClick={() => setRemove(r)}
-          >
-            보관
-          </Button>
-        </Stack>
-      ))}
+      {error && (
+        <Alert severity="error" sx={{ mt: 1.5 }}>
+          {error}
+        </Alert>
+      )}
+      {items.length > 0 ? (
+        <div className="crm-attachments-list">
+          {items.map((r) => (
+            <div key={r.id} className="crm-attachment-item">
+              <Button
+                className="crm-attachment-link"
+                href={attachmentUrl(r.id)}
+                startIcon={<ContractDesignIcon name="sheet" />}
+              >
+                {r.filename}
+              </Button>
+              <Button
+                size="small"
+                className="crm-attachment-archive-btn"
+                disabled={disabled || busy}
+                color="inherit"
+                onClick={() => setRemove(r)}
+              >
+                보관
+              </Button>
+            </div>
+          ))}
+        </div>
+      ) : (
+        !resource.loading &&
+        !resource.error && (
+          <div className="crm-attachments-empty">
+            첨부된 파일이 없습니다. 필요한 증권·신분증·서류를 업로드해 두세요.
+          </div>
+        )
+      )}
       <Dialog open={!!remove} onClose={() => !busy && setRemove(null)}>
         <DialogTitle>문서를 보관할까요?</DialogTitle>
         <DialogContent>{remove?.filename}</DialogContent>

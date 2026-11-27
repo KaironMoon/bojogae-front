@@ -421,3 +421,282 @@ button.crm-customer-address-status { cursor:pointer; }
   .crm-customer-detail-workspace .MuiPaper-outlined { padding:14px; border-radius:16px; }
   .crm-customer-detail-actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); }
 }
+
+/* Redesigned Customer Detail Workspace */
+.crm-customer-hero {
+  background:#fff; border:1px solid #e6eaee; border-radius:20px; padding:20px; margin-bottom:16px;
+  box-shadow:0 2px 10px rgba(18,19,20,0.03);
+}
+.crm-customer-hero-top {
+  display:grid; grid-template-columns:minmax(0,1.15fr) minmax(0,1.35fr); gap:18px; align-items:center;
+}
+.crm-customer-hero-identity { display:flex; align-items:flex-start; gap:14px; min-width:0; }
+.crm-customer-hero-avatar {
+  width:52px; height:52px; border-radius:16px; flex:none; display:grid; place-items:center;
+  background:linear-gradient(135deg,#121314,#334155); color:#fff; font-size:20px; font-weight:900;
+  box-shadow:0 6px 14px rgba(18,19,20,0.12);
+}
+.crm-customer-hero-info { min-width:0; flex:1; display:grid; gap:10px; }
+.crm-customer-hero-badges { display:flex; flex-wrap:wrap; align-items:center; gap:6px; }
+.crm-customer-hero-badges > span {
+  display:inline-flex; align-items:center; padding:3px 10px; border-radius:999px; font-size:11px; font-weight:800; line-height:16px;
+}
+.crm-customer-hero-contact { display:grid; gap:6px; min-width:0; }
+.crm-customer-hero-phone {
+  display:inline-flex; align-items:center; gap:6px; font:800 15px/22px ui-monospace, SFMono-Regular, monospace;
+  color:#121314; font-variant-numeric:tabular-nums;
+}
+.crm-customer-hero-phone.is-empty { color:#94a3b8; font-family:inherit; font-weight:600; font-size:13px; }
+.crm-customer-hero-phone svg { width:15px; height:15px; color:#00b04e; }
+.crm-customer-hero-address {
+  display:flex; align-items:center; flex-wrap:wrap; gap:6px; font-size:13px; font-weight:600; color:#4e5968; min-width:0;
+}
+.crm-customer-hero-address svg { width:15px; height:15px; color:#6b38fb; flex:none; }
+.crm-customer-accuracy-pill {
+  padding:2px 8px; border-radius:6px; background:#f1f5f9; color:#4e5968; font-size:11px; font-weight:800;
+}
+.crm-customer-kpi-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+.crm-customer-kpi {
+  padding:12px 14px; border-radius:14px; border:1px solid #e6eaee; background:#f8fafc;
+  display:grid; gap:3px; min-width:0;
+}
+.crm-customer-kpi > span { font-size:11px; font-weight:800; color:#64748b; }
+.crm-customer-kpi > strong { font-size:17px; font-weight:900; color:#121314; font-variant-numeric:tabular-nums; line-height:1.25; }
+.crm-customer-kpi > small { font-size:10.5px; font-weight:600; color:#8b95a1; overflow-wrap:anywhere; }
+.crm-customer-kpi--green { background:#ecfdf5; border-color:#a7f3d0; }
+.crm-customer-kpi--green > span, .crm-customer-kpi--green > strong { color:#00883e; }
+.crm-customer-kpi--warn { background:#fff1f2; border-color:#fecdd3; }
+.crm-customer-kpi--warn > small { color:#e11d48; font-weight:800; }
+.crm-customer-detail-actions {
+  display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; padding-top:14px; border-top:1px solid #f1f5f9;
+}
+.crm-customer-detail-actions .MuiButton-root {
+  border:1px solid #e2e8f0; color:#121314; background:#f8fafc; font-weight:800; padding:7px 14px;
+}
+.crm-customer-detail-actions .MuiButton-root:hover { background:#f1f5f9; border-color:#cbd5e1; }
+.crm-customer-detail-actions .MuiButton-root:first-child { background:#ecfdf5; border-color:#a7f3d0; color:#00883e; }
+.crm-customer-detail-actions .crm-customer-ai-action.MuiButton-root {
+  margin-left:auto; background:#f5f3ff; border-color:#e9d5ff; color:#5b21b6;
+}
+.crm-customer-detail-actions .crm-customer-ai-action.MuiButton-root:hover { background:#ede9fe; }
+.crm-customer-overview-grid {
+  display:grid; grid-template-columns:minmax(0,1.35fr) minmax(0,1fr); gap:16px; align-items:start;
+}
+.crm-customer-overview-main, .crm-customer-overview-side { display:grid; gap:16px; min-width:0; }
+.crm-customer-detail-workspace .crm-customer-section-panel.MuiPaper-outlined { margin-bottom:0; }
+.crm-customer-section-head {
+  display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:10px;
+  padding-bottom:12px; margin-bottom:14px; border-bottom:1px solid #f1f5f9;
+}
+.crm-customer-section-head h3 {
+  margin:0; display:flex; align-items:center; gap:7px; font-size:15px; font-weight:900; color:#121314;
+}
+.crm-customer-section-head h3 svg { width:17px; height:17px; color:#00b04e; }
+.crm-customer-section-head p { margin:3px 0 0; font-size:12px; font-weight:600; color:#64748b; }
+.crm-detail-stack, .crm-detail-consultations-list { display:grid; gap:10px; }
+.crm-detail-empty-box {
+  padding:24px 16px; border:1px dashed #d1d6db; border-radius:14px; background:#f8fafc;
+  text-align:center; font-size:13px; font-weight:600; color:#64748b;
+}
+.crm-detail-pill {
+  display:inline-flex; align-items:center; padding:2px 8px; border-radius:6px; font-size:11px; font-weight:800; line-height:16px;
+}
+.crm-detail-pill--violet { background:#f5f3ff; color:#5b21b6; }
+.crm-detail-pill--blue { background:#eff6ff; color:#1d4ed8; }
+.crm-detail-pill--active { background:#ecfdf5; color:#00883e; }
+.crm-detail-pill--danger { background:#fff1f2; color:#e11d48; }
+.crm-detail-pill--slate { background:#f1f5f9; color:#334155; }
+.crm-detail-pill--neutral { background:#f8fafc; color:#4e5968; border:1px solid #e2e8f0; }
+.crm-detail-pill--muted { background:#e2e8f0; color:#475569; }
+.crm-mono { font-family:ui-monospace, SFMono-Regular, monospace; font-variant-numeric:tabular-nums; }
+
+.crm-detail-contract-card, .crm-detail-task-card, .crm-detail-consultation-card {
+  border:1px solid #e6eaee; border-radius:14px; padding:14px; background:#fff;
+  transition:border-color .15s, box-shadow .15s;
+}
+.crm-detail-contract-card {
+  display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;
+}
+.crm-detail-contract-card:hover { border-color:#cbd5e1; box-shadow:0 4px 12px rgba(18,19,20,0.04); }
+.crm-detail-contract-body { min-width:0; flex:1; display:grid; gap:6px; }
+.crm-detail-contract-badges { display:flex; flex-wrap:wrap; align-items:center; gap:6px; }
+.crm-detail-contract-insurer {
+  padding:2px 8px; border-radius:6px; background:#121314; color:#fff; font-size:11px; font-weight:800;
+}
+.crm-detail-contract-title { margin:0; font-size:14.5px; font-weight:900; color:#121314; overflow-wrap:anywhere; }
+.crm-detail-contract-meta { display:flex; flex-wrap:wrap; gap:6px 12px; font-size:12px; font-weight:700; color:#4e5968; }
+.crm-detail-link-btn.MuiButton-root {
+  border-color:#d1d6db; color:#121314; background:#f8fafc; font-weight:800; border-radius:10px;
+}
+.crm-detail-link-btn.MuiButton-root:hover { border-color:#03c75a; background:#ecfdf5; color:#00883e; }
+
+.crm-detail-task-card {
+  display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap;
+  border-left:4px solid #03c75a;
+}
+.crm-detail-task-card.is-overdue { border-left-color:#f04452; background:#fffafa; }
+.crm-detail-task-card.is-done { border-left-color:#94a3b8; opacity:.85; }
+.crm-detail-task-body { min-width:0; flex:1; display:grid; gap:5px; }
+.crm-detail-task-badges { display:flex; flex-wrap:wrap; align-items:center; gap:6px; }
+.crm-detail-task-time { font:700 11.5px/16px ui-monospace, monospace; color:#64748b; }
+.crm-detail-task-title { margin:0; font-size:14px; font-weight:850; color:#121314; }
+.crm-detail-task-note { margin:0; font-size:12.5px; color:#4e5968; line-height:1.55; white-space:pre-wrap; overflow-wrap:anywhere; }
+.crm-detail-task-actions { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+
+.crm-detail-consultation-card { background:#f8fafc; display:grid; gap:8px; }
+.crm-detail-consultation-head { display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; }
+.crm-detail-consultation-badges { display:flex; gap:6px; flex-wrap:wrap; }
+.crm-detail-consultation-time { font:700 11.5px/16px ui-monospace, monospace; color:#64748b; }
+.crm-detail-consultation-content { margin:0; font-size:13.5px; font-weight:500; color:#1e293b; line-height:1.65; white-space:pre-wrap; overflow-wrap:anywhere; }
+.crm-detail-consultation-footer { display:flex; justify-content:flex-end; }
+
+/* Generated Documents Tab & Drawer Section */
+.crm-customer-files-stack { display:grid; gap:16px; }
+.crm-doc-wrap { display:grid; gap:14px; }
+.crm-doc-toolbar {
+  display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;
+  padding-bottom:12px; border-bottom:1px solid #f1f5f9;
+}
+.crm-doc-toolbar-title { display:flex; align-items:center; gap:10px; min-width:0; }
+.crm-doc-toolbar-icon {
+  width:38px; height:38px; border-radius:12px; flex:none; display:grid; place-items:center;
+  background:#f5f3ff; color:#6b38fb;
+}
+.crm-doc-toolbar-heading { display:flex; align-items:center; flex-wrap:wrap; gap:6px; }
+.crm-doc-toolbar-heading h3 { margin:0; font-size:16px; font-weight:900; color:#121314; }
+.crm-doc-toolbar-title p { margin:2px 0 0; font-size:12px; font-weight:600; color:#64748b; }
+.crm-doc-count-pill {
+  padding:2px 8px; border-radius:999px; background:#f1f5f9; color:#334155; font-size:11px; font-weight:800;
+}
+.crm-doc-contracted-count {
+  padding:2px 8px; border-radius:999px; background:#ecfdf5; color:#00883e; font-size:11px; font-weight:800;
+}
+.crm-doc-toolbar-actions { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.crm-doc-refresh-btn.MuiButton-root { border-color:#d1d6db; color:#4e5968; background:#fff; font-weight:800; }
+.crm-doc-create-btn.MuiButton-root {
+  background:linear-gradient(135deg,#03c75a,#008a60); color:#fff; font-weight:900;
+  box-shadow:0 6px 14px -4px rgba(3,199,90,0.35);
+}
+.crm-doc-list { display:grid; gap:12px; }
+.crm-doc-card {
+  border:1px solid #e6eaee; border-radius:16px; padding:16px; background:#fff;
+  display:grid; gap:12px; transition:border-color .15s, box-shadow .15s;
+}
+.crm-doc-card:hover { border-color:#cbd5e1; box-shadow:0 4px 14px rgba(18,19,20,0.04); }
+.crm-doc-card--contracted { border-color:#a7f3d0; background:linear-gradient(180deg,#ffffff 0%,#f7fefb 100%); }
+.crm-doc-card-head { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+.crm-doc-card-title-block { min-width:0; flex:1; display:grid; gap:6px; }
+.crm-doc-card-badges { display:flex; flex-wrap:wrap; align-items:center; gap:6px; }
+.crm-doc-status, .crm-doc-prompt-pill, .crm-doc-contract-badge {
+  display:inline-flex; align-items:center; padding:2px 8px; border-radius:6px; font-size:11px; font-weight:800; line-height:16px;
+}
+.crm-doc-status--completed { background:#ecfdf5; color:#00883e; }
+.crm-doc-status--running { background:#eff6ff; color:#1d4ed8; }
+.crm-doc-status--failed { background:#fff1f2; color:#e11d48; }
+.crm-doc-status--neutral { background:#f1f5f9; color:#475569; }
+.crm-doc-prompt-pill { background:#f5f3ff; color:#5b21b6; border:1px solid #e9d5ff; }
+.crm-doc-contract-badge--done { background:#00883e; color:#fff; }
+.crm-doc-contract-badge--archived { background:#e2e8f0; color:#475569; }
+.crm-doc-contract-badge--pending { background:#f8fafc; color:#64748b; border:1px solid #e2e8f0; }
+.crm-doc-card-title { margin:0; font-size:15.5px; font-weight:900; color:#121314; line-height:1.4; overflow-wrap:anywhere; }
+.crm-doc-card-time { font:700 11.5px/18px ui-monospace, monospace; color:#8b95a1; flex:none; }
+.crm-doc-summary {
+  margin:0; padding:10px 12px; border-radius:10px; border-left:3px solid #6b38fb;
+  background:#f8fafc; color:#1e293b; font-size:13px; font-weight:600; line-height:1.55;
+}
+.crm-doc-contracts {
+  display:grid; gap:8px; padding:12px; border-radius:12px; background:#ecfdf5; border:1px solid #a7f3d0;
+}
+.crm-doc-contracts-label { font-size:11px; font-weight:900; color:#00883e; text-transform:uppercase; letter-spacing:0.02em; }
+.crm-doc-contracts-list { display:grid; gap:8px; }
+.crm-doc-contract-link {
+  display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;
+  padding:10px 12px; border-radius:10px; background:#fff; border:1px solid #bbf7d0;
+  text-decoration:none; color:#121314; transition:border-color .15s, transform .12s;
+}
+.crm-doc-contract-link:hover { border-color:#03c75a; box-shadow:0 2px 8px rgba(3,199,90,0.12); }
+.crm-doc-contract-link.is-archived { border-color:#e2e8f0; background:#f8fafc; opacity:.85; }
+.crm-doc-contract-main { min-width:0; flex:1; display:grid; gap:4px; }
+.crm-doc-contract-head { display:flex; align-items:center; flex-wrap:wrap; gap:6px; }
+.crm-doc-contract-insurer {
+  padding:2px 7px; border-radius:5px; background:#121314; color:#fff; font-size:10.5px; font-weight:800;
+}
+.crm-doc-contract-product { font-size:13.5px; font-weight:900; color:#121314; overflow-wrap:anywhere; }
+.crm-doc-contract-meta { display:flex; flex-wrap:wrap; align-items:center; gap:6px; font-size:11.5px; color:#4e5968; font-weight:700; }
+.crm-doc-contract-chip { padding:1px 6px; border-radius:5px; background:#f1f5f9; color:#334155; font-size:10.5px; font-weight:800; }
+.crm-doc-contract-premium { color:#00883e; font-weight:850; font-variant-numeric:tabular-nums; }
+.crm-doc-contract-date { font-family:ui-monospace, monospace; color:#64748b; }
+.crm-doc-contract-arrow { font-size:12px; font-weight:900; color:#00883e; white-space:nowrap; }
+.crm-doc-card-actions {
+  display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;
+  padding-top:10px; border-top:1px solid #f1f5f9;
+}
+.crm-doc-card-actions-left, .crm-doc-card-actions-right { display:flex; align-items:center; flex-wrap:wrap; gap:8px; }
+.crm-doc-btn-secondary.MuiButton-root { border-color:#d1d6db; color:#334155; background:#f8fafc; font-weight:800; }
+.crm-doc-btn-secondary.MuiButton-root:hover { border-color:#94a3b8; background:#f1f5f9; }
+.crm-doc-btn-register.MuiButton-root {
+  background:linear-gradient(135deg,#03c75a,#008a60); color:#fff; font-weight:900;
+  box-shadow:0 6px 14px -4px rgba(3,199,90,0.35);
+}
+.crm-doc-btn-contracted.MuiButton-root {
+  background:#121314; color:#fff; font-weight:900;
+}
+.crm-doc-btn-contracted.MuiButton-root:hover { background:#00883e; }
+.crm-doc-empty {
+  padding:32px 16px; border:1px dashed #cbd5e1; border-radius:16px; background:#f8fafc;
+  display:grid; justify-items:center; text-align:center; gap:6px;
+}
+.crm-doc-empty-icon {
+  width:44px; height:44px; border-radius:12px; display:grid; place-items:center;
+  background:#f5f3ff; color:#6b38fb; margin-bottom:4px;
+}
+.crm-doc-empty p { margin:0; font-size:14px; font-weight:850; color:#121314; }
+.crm-doc-empty small { font-size:12px; color:#64748b; max-width:400px; margin-bottom:6px; }
+.crm-doc-wrap--compact .crm-doc-card { padding:12px; }
+.crm-doc-wrap--compact .crm-doc-card-actions { flex-direction:column; align-items:stretch; }
+.crm-doc-wrap--compact .crm-doc-card-actions-right .MuiButton-root { width:100%; }
+
+/* Attachments Panel */
+.crm-attachments-panel.MuiPaper-outlined {
+  padding:18px 20px; border:1px solid #e6eaee; border-radius:20px; background:#fff;
+  box-shadow:0 2px 10px rgba(18,19,20,0.03);
+}
+.crm-attachments-header {
+  display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;
+  padding-bottom:12px; border-bottom:1px solid #f1f5f9;
+}
+.crm-attachments-title { display:flex; align-items:center; gap:10px; }
+.crm-attachments-icon {
+  width:36px; height:36px; border-radius:12px; flex:none; display:grid; place-items:center;
+  background:#eff6ff; color:#2563eb;
+}
+.crm-attachments-heading { display:flex; align-items:center; gap:6px; }
+.crm-attachments-heading h3 { font-size:15px; color:#121314; margin:0; }
+.crm-attachments-count {
+  padding:2px 8px; border-radius:999px; background:#f1f5f9; color:#334155; font-size:11px; font-weight:800;
+}
+.crm-attachments-upload-btn.MuiButton-root {
+  border-color:#d1d6db; color:#121314; background:#f8fafc; font-weight:800; border-radius:10px;
+}
+.crm-attachments-list { display:grid; gap:8px; margin-top:12px; }
+.crm-attachment-item {
+  display:flex; align-items:center; justify-content:space-between; gap:8px;
+  padding:8px 12px; border:1px solid #e6eaee; border-radius:12px; background:#f8fafc;
+}
+.crm-attachment-link.MuiButton-root {
+  color:#121314; font-weight:750; text-align:left; justify-content:flex-start; overflow-wrap:anywhere; min-width:0;
+}
+.crm-attachment-archive-btn.MuiButton-root { color:#64748b; font-weight:800; flex:none; }
+.crm-attachments-empty {
+  margin-top:12px; padding:18px 14px; border:1px dashed #d1d6db; border-radius:12px; background:#f8fafc;
+  text-align:center; font-size:12.5px; font-weight:600; color:#64748b;
+}
+
+@media (max-width:1024px) {
+  .crm-customer-hero-top { grid-template-columns:1fr; }
+  .crm-customer-overview-grid { grid-template-columns:1fr; }
+}
+@media (max-width:640px) {
+  .crm-customer-kpi-grid { grid-template-columns:1fr; }
+  .crm-customer-detail-actions .crm-customer-ai-action.MuiButton-root { margin-left:0; }
+}

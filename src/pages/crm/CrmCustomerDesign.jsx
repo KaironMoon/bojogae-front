@@ -107,7 +107,7 @@ function CustomerDrawerContent({ customer, onClose, onSaved, onDelete, onPreviou
         <section><div className="customer-popup-section-heading"><h3><Icon name="message_plus" />상담 메모 및 최근 상담 이력</h3><small>최근 상담: {dateTime(history[0]?.occurred_at)}</small></div><details className="customer-ref-consultation-options"><summary>상담 방식·결과: {METHODS[method]} · {RESULTS[result]}</summary><div className="crm-customer-form-grid"><CustomerField label="상담 방식" options={METHODS} value={method} onChange={setMethod} /><CustomerField label="상담 결과" options={RESULTS} value={result} onChange={setResult} /></div></details><div className="crm-customer-note"><CustomerField multiline minRows={2} inputProps={{ "aria-label": "새 상담 내용" }} placeholder="새로운 상담 내용이나 보장 리모델링 포인트를 입력해 주세요." value={note} onChange={setNote} /><button type="button" disabled={busy || customer.archived || !note.trim()} onClick={addNote}>상담 일지<br />추가</button></div><CustomerConsultationTimeline items={history} /></section>
         <section><h3><Icon name="clipboard" />보유 보험 계약<small>{contracts?.total ?? 0}건</small></h3><CustomerContractPreview contracts={contracts} customerId={customer.id} disabled={busy || customer.archived} onAdd={() => setContractFormOpen(true)} /></section>
       </>}
-      <section><CustomerDocuments customerId={customer.id} disabled={customer.archived} onSaved={onSaved} /></section>
+      <section><CustomerDocuments compact customerId={customer.id} disabled={customer.archived} onSaved={onSaved} /></section>
       <Button component={Link} to={`/crm/customers/${customer.id}`}>전체 고객 상세</Button>
     </div>
     {contractFormOpen && <ContractForm customerId={customer.id} onClose={() => setContractFormOpen(false)} onSave={async payload => {

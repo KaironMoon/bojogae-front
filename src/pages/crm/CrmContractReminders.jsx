@@ -93,12 +93,57 @@ export function ContractReminderPreview({ establishmentDate, coverageStart, part
   </section>;
 }
 
+const milestoneTitles = {
+  waiver: "🛡️ 면책기간(90일) 종료일",
+  reduction: "🎉 감액기간(1~2년) 종료일",
+  insurance_age: "📈 피보험자 상령일 (생일+6개월)",
+  birthday: "🎂 생일 · 계약 기념일",
+};
+
 export function ContractReminderDetails({ events }) {
-  return <Paper component="section" aria-labelledby="crm-contract-reminder-details" variant="outlined" sx={{ p: 2 }}>
-    <Typography component="h2" id="crm-contract-reminder-details" fontWeight={850}>고객 연락 참고일</Typography>
-    {events?.length ? <EventList events={events} /> : <Typography variant="body2" color="text.secondary" my={1}>계산할 수 있는 참고일이 없습니다.</Typography>}
-    <Alert severity="info">면책·감액 참고일은 약관과 증권에서 확인해 주세요.</Alert>
-  </Paper>;
+  const list = events || [];
+  return (
+    <section
+      className="crm-contract-detail-reminders"
+      aria-labelledby="crm-contract-reminder-details"
+    >
+      <div className="crm-contract-drawer-reminder-heading">
+        <Typography component="h2" id="crm-contract-reminder-details">
+          <ContractDesignIcon name="bell" />
+          고객 연락 참고일 (자동 산출 4대 터치 마일스톤)
+        </Typography>
+        <span>계약 성립일 · 보장 개시일 · 피보험자 생년월일 기준</span>
+      </div>
+      <div className="crm-contract-detail-reminder-grid">
+        {kinds.map(([key]) => {
+          const matched = list.filter((event) => event.kind === key);
+          return (
+            <article key={key} className={`crm-contract-drawer-date crm-reminder-filter--${key}`}>
+              <h4>{milestoneTitles[key]}</h4>
+              <div className="crm-contract-drawer-date-value">
+                {matched.length
+                  ? matched.map((event, index) => (
+                      <time
+                        key={`${event.date}-${index}`}
+                        dateTime={event.date}
+                        title={[event.label, event.person].filter(Boolean).join(" · ")}
+                      >
+                        {event.date}
+                        {event.person ? <small> · {event.person}</small> : null}
+                      </time>
+                    ))
+                  : "참고일 미확인"}
+              </div>
+              <p>{reminderHelp[key]}</p>
+            </article>
+          );
+        })}
+      </div>
+      <p className="crm-contract-drawer-disclaimer">
+        면책·감액 참고일 및 실제 보장 적용 여부는 약관과 증권에서 확인해 주세요.
+      </p>
+    </section>
+  );
 }
 
 const reminderHelp = {
