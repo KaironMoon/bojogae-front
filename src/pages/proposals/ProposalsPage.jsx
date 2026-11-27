@@ -118,15 +118,20 @@ const ACTIVE = new Set(["QUEUED", "RUNNING", "CANCEL_REQUESTED"]);
 const PREVIEW_WIDTH = 794;
 const PREVIEW_HEIGHT = 1123;
 const SIMPLE_SECTION_OPTIONS = [
-  { key: "coverage_notes", label: "주계약/특약 부가 설명" },
-  { key: "waiver_support", label: "납입면제/납입지원" },
-  { key: "extra_services", label: "부가서비스 안내" },
+  { key: "card_comments", label: "담보별 핵심 코멘트" },
+  { key: "waiver_support", label: "납입면제 · 납입지원" },
+  { key: "claim_simulations", label: "보험금 수령 시뮬레이션 · 사례" },
+  { key: "deep_dive_guides", label: "질병·치료 배경 및 심층 가이드" },
+  { key: "extra_services", label: "할인 · 부가서비스 안내" },
   { key: "contract_conversion", label: "계약전환 제도 안내" },
-  { key: "claim_simulations", label: "각종 보험금 수령 시뮬레이션" },
 ];
-const DEFAULT_SIMPLE_OPTIONS = Object.fromEntries(
-  SIMPLE_SECTION_OPTIONS.map((item) => [item.key, true]),
+const buildDefaultSimpleOptions = (specs = SIMPLE_SECTION_OPTIONS) => Object.fromEntries(
+  specs.map((item) => [item.key, typeof item.default === "boolean" ? item.default : true]),
 );
+const buildAllCheckedSimpleOptions = (specs = SIMPLE_SECTION_OPTIONS) => Object.fromEntries(
+  specs.map((item) => [item.key, true]),
+);
+const DEFAULT_SIMPLE_OPTIONS = buildDefaultSimpleOptions();
 
 function sanitizeSimplePreviewHtml(html) {
   const doc = new DOMParser().parseFromString(html, "text/html");
@@ -531,7 +536,13 @@ function ProposalsPage() {
     max_input_files: chosenVersion.max_input_files,
     simple_template_available: Boolean(chosenVersion.simple_template_available),
     simple_options_configurable: Boolean(chosenVersion.simple_options_configurable),
+    simple_option_specs: chosenVersion.simple_option_specs || [],
   } : promptOption;
+  const activeSimpleOptionSpecs = useMemo(() => (
+    selectedPrompt?.simple_option_specs?.length
+      ? selectedPrompt.simple_option_specs
+      : SIMPLE_SECTION_OPTIONS
+  ), [selectedPrompt]);
   const selectedReport = statusItem || openedDocument;
   const displayedPromptOptions = filteredPromptOptions;
   const maxInputFiles = selectedPrompt?.max_input_files ?? 10;
@@ -570,9 +581,9 @@ function ProposalsPage() {
     setFieldUploads({});
     setFieldDocuments({});
     setReportVariant("detailed");
-    setSimpleOptions({ ...DEFAULT_SIMPLE_OPTIONS });
+    setSimpleOptions(buildDefaultSimpleOptions(activeSimpleOptionSpecs));
     submissionKey.current = null;
-  }, [promptId, selectedPrompt?.current_version_id]);
+  }, [promptId, selectedPrompt?.current_version_id, activeSimpleOptionSpecs]);
 
   const closePromptPreview = () => {
     simplePreviewRequest.current += 1;
@@ -1034,7 +1045,7 @@ function ProposalsPage() {
           selectedPrompt?.simple_template_available
           && selectedPrompt?.simple_options_configurable
           && reportVariant === "simple"
-            ? simpleOptions
+            ? Object.fromEntries(activeSimpleOptionSpecs.map((item) => [item.key, Boolean(simpleOptions[item.key] ?? true)]))
             : null,
         idempotencyKey: submissionKey.current,
       });
@@ -1961,14 +1972,16 @@ function ProposalsPage() {
                     >
                       <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1} sx={{ mb: 0.5 }}>
                         <Typography variant="caption" fontWeight={800} sx={{ color: "#15803d" }}>
-                          포함할 항목 선택 (기본 전체 선택 · 체크 해제 시 보고서에서 제외)
+                          {activeSimpleOptionSpecs.some((item) => item.default === false)
+                            ? "포함할 항목 선택 (기본 핵심 항목만 선택 · 체크 시 추가 포함)"
+                            : "포함할 항목 선택 (기본 전체 선택 · 체크 해제 시 보고서에서 제외)"}
                         </Typography>
-                        {SIMPLE_SECTION_OPTIONS.some((item) => !simpleOptions[item.key]) && (
+                        {activeSimpleOptionSpecs.some((item) => (simpleOptions[item.key] ?? (typeof item.default === "boolean" ? item.default : true)) === false) && (
                           <Button
                             size="small"
                             disabled={working}
                             onClick={() => {
-                              setSimpleOptions({ ...DEFAULT_SIMPLE_OPTIONS });
+                              setSimpleOptions(buildAllCheckedSimpleOptions(activeSimpleOptionSpecs));
                               submissionKey.current = null;
                             }}
                             sx={{ minWidth: "auto", px: 0.75, py: 0, fontSize: "0.72rem", fontWeight: 700 }}
@@ -1978,7 +1991,7 @@ function ProposalsPage() {
                         )}
                       </Stack>
                       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 0.25 }}>
-                        {SIMPLE_SECTION_OPTIONS.map((item) => (
+                        {activeSimpleOptionSpecs.map((item) => (
                           <FormControlLabel
                             key={item.key}
                             sx={{ m: 0 }}
@@ -1987,7 +2000,7 @@ function ProposalsPage() {
                                 size="small"
                                 color="success"
                                 disabled={working}
-                                checked={Boolean(simpleOptions[item.key])}
+                                checked={simpleOptions[item.key] ?? (typeof item.default === "boolean" ? item.default : true)}
                                 onChange={(event) => {
                                   const checked = event.target.checked;
                                   setSimpleOptions((current) => ({ ...current, [item.key]: checked }));
