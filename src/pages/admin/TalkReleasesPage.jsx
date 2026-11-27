@@ -15,6 +15,7 @@ export default function TalkReleasesPage() {
   const [draft, setDraft] = useState(EMPTY);
   const [editing, setEditing] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [togglingId, setTogglingId] = useState(null);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
 
@@ -66,6 +67,26 @@ export default function TalkReleasesPage() {
     }
   }
 
+  async function toggleVisibility(item) {
+    if (busy) return;
+    setBusy(true);
+    setTogglingId(item.id);
+    setError("");
+    setMessage("");
+    try {
+      const saved = await saveTalkRelease({ notes: item.notes, is_public: !item.is_public }, item.id);
+      setItems(current => current.map(release => release.id === saved.id ? saved : release));
+      setEditing(current => current?.id === saved.id ? saved : current);
+      if (editing?.id === saved.id) setDraft(current => ({ ...current, is_public: saved.is_public }));
+      setMessage(`${saved.version} 버전을 ${saved.is_public ? "공개했습니다." : "비공개로 전환했습니다."}`);
+    } catch (err) {
+      setError(talkReleaseError(err));
+    } finally {
+      setTogglingId(null);
+      setBusy(false);
+    }
+  }
+
   return (
     <Stack spacing={2.5} sx={{ p: { xs: 2, md: 4 }, maxWidth: 1000, mx: "auto" }}>
       <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ sm: "center" }} gap={1}>
@@ -105,7 +126,7 @@ export default function TalkReleasesPage() {
           <Stack direction="row" spacing={1} justifyContent="flex-end">
             {editing && <Button disabled={busy} onClick={() => reset()}>취소</Button>}
             <Button type="submit" variant="contained" disabled={busy || (!editing && (!draft.installer || !draft.portable || !draft.version))}>
-              {busy ? "저장 중…" : "저장"}
+              {busy && togglingId === null ? "저장 중…" : "저장"}
             </Button>
           </Stack>
         </Stack>
@@ -116,7 +137,7 @@ export default function TalkReleasesPage() {
         {items?.length === 0 && <Typography color="text.secondary">등록된 버전이 없습니다.</Typography>}
         <Stack divider={<Divider />} spacing={1.5}>
           {items?.map(item => (
-            <Stack key={item.id} direction="row" justifyContent="space-between" alignItems="center" gap={1}>
+            <Stack key={item.id} direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ sm: "center" }} gap={1}>
               <Stack spacing={0.5} sx={{ minWidth: 0, overflowWrap: "anywhere" }}>
                 <Stack direction="row" alignItems="center" flexWrap="wrap" gap={1}>
                   <Typography fontWeight={750}>{item.version}</Typography>
@@ -127,12 +148,19 @@ export default function TalkReleasesPage() {
                   {label} · {item.files[kind].filename} · {formatTalkFileSize(item.files[kind].size)}
                 </Typography>)}
               </Stack>
-              <Button disabled={busy} aria-label={`${item.version} 수정`} onClick={() => {
-                reset(item);
-                setError("");
-                setMessage("");
-                window.scrollTo({ top: 0, behavior: "smooth" });
-              }}>수정</Button>
+              <Stack direction="row" spacing={1} sx={{ flexShrink: 0, alignSelf: { xs: "flex-end", sm: "center" } }}>
+                <Button variant="outlined" disabled={busy}
+                  aria-label={`${item.version} ${item.is_public ? "비공개로 전환" : "공개하기"}`}
+                  onClick={() => toggleVisibility(item)}>
+                  {togglingId === item.id ? "변경 중…" : item.is_public ? "비공개로 전환" : "공개하기"}
+                </Button>
+                <Button disabled={busy} aria-label={`${item.version} 수정`} onClick={() => {
+                  reset(item);
+                  setError("");
+                  setMessage("");
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}>수정</Button>
+              </Stack>
             </Stack>
           ))}
         </Stack>
