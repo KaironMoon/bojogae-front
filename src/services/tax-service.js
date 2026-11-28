@@ -76,6 +76,8 @@ export const agentTaxApi = {
   getDoubleEntry: (params) => api.get("/api/v1/tax/double-entry", params).then((r) => r.data),
   downloadDoubleEntryXlsx: (taxYear) =>
     downloadBlob("/api/v1/tax/exports/double-entry.xlsx", { tax_year: taxYear }, `보조개_복식부기_표준재무제표_${taxYear}.xlsx`),
+  downloadAccountingVoucherXlsx: (taxYear) =>
+    downloadBlob("/api/v1/tax/exports/accounting-voucher.xlsx", { tax_year: taxYear }, `보조개_더존_세무사랑_전표업로드_${taxYear}.xlsx`),
   downloadSummaryPdf: (taxYear) => downloadBlob("/api/v1/tax/exports/summary.pdf", { tax_year: taxYear }, `보조개_세무요약_${taxYear}.pdf`),
   listPartnerExports: () => api.get("/api/v1/tax/partner-exports").then((r) => r.data.items),
   createPartnerExport: (body) => api.post("/api/v1/tax/partner-exports", body).then((r) => r.data),
@@ -112,6 +114,8 @@ export const adminTaxApi = {
 
   downloadVatXlsx: (taxYear, periodCode) =>
     downloadBlob("/api/v1/admin/tax/exports/vat-ledger.xlsx", { tax_year: taxYear, period_code: periodCode }, `마음AI_부가세_매입매출장_${taxYear}_${periodCode}.xlsx`),
+  downloadAccountingVoucherXlsx: (taxYear, periodCode) =>
+    downloadBlob("/api/v1/admin/tax/exports/accounting-voucher.xlsx", { tax_year: taxYear, period_code: periodCode }, `마음AI_더존_세무사랑_전표업로드_${taxYear}_${periodCode}.xlsx`),
   downloadSummaryPdf: (taxYear, periodCode) =>
     downloadBlob("/api/v1/admin/tax/exports/summary.pdf", { tax_year: taxYear, period_code: periodCode }, `마음AI_세무요약_${taxYear}_${periodCode}.pdf`),
   listPartnerExports: () => api.get("/api/v1/admin/tax/partner-exports").then((r) => r.data.items),

@@ -39,6 +39,7 @@ import {
 } from "./components/AdminPageShell";
 import { adminTaxApi, extractTaxError, formatKrw } from "@/services/tax-service";
 import TaxDisclaimerBanner from "@/pages/tax/TaxDisclaimerBanner";
+import TaxAccountingFormatGuide from "@/pages/tax/TaxAccountingFormatGuide";
 import TaxHometaxPanel from "@/pages/tax/TaxHometaxPanel";
 import TaxLedgerReviewPanel from "@/pages/tax/TaxLedgerReviewPanel";
 
@@ -389,80 +390,91 @@ export default function AdminTaxAutomationPage() {
       )}
 
       {tab === 3 && (
-        <Grid container spacing={2.5}>
-          <Grid item xs={12} md={6}>
-            <Paper variant="outlined" sx={{ p: 3, borderRadius: 3, bgcolor: "#fff", height: "100%" }}>
-              <Stack spacing={2}>
-                <Typography variant="subtitle1" fontWeight={800}>
-                  마음 AI 부가세·기장 문서 생성
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  1기(1~6월)·2기(7~12월) 부가세 요약, PG 매출장, 공제/불공제/외화 매입장을 엑셀과 PDF로 내보냅니다.
-                </Typography>
-                <Stack direction="row" spacing={1.5} flexWrap="wrap" useFlexGap>
+        <Stack spacing={2.5}>
+          <Grid container spacing={2.5}>
+            <Grid item xs={12} md={6}>
+              <Paper variant="outlined" sx={{ p: 3, borderRadius: 3, bgcolor: "#fff", height: "100%" }}>
+                <Stack spacing={2}>
+                  <Typography variant="subtitle1" fontWeight={800}>
+                    마음 AI 부가세·기장 문서 생성
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    더존 Smart A·세무사랑Pro 일괄등록용 전표 엑셀과 부가세 매입·매출장, 요약 PDF를 내보냅니다.
+                  </Typography>
+                  <Stack direction="row" spacing={1.5} flexWrap="wrap" useFlexGap>
+                    <Button
+                      variant="contained"
+                      startIcon={<DescriptionOutlinedIcon />}
+                      onClick={() => adminTaxApi.downloadAccountingVoucherXlsx(taxYear, periodCode)}
+                      sx={{ bgcolor: "#03C75A", "&:hover": { bgcolor: "#008A60" } }}
+                    >
+                      더존·세무사랑 전표 업로드용 (.xlsx)
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      startIcon={<DescriptionOutlinedIcon />}
+                      onClick={() => adminTaxApi.downloadVatXlsx(taxYear, periodCode)}
+                    >
+                      부가세 매입·매출장 (.xlsx)
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      startIcon={<PictureAsPdfOutlinedIcon />}
+                      onClick={() => adminTaxApi.downloadSummaryPdf(taxYear, periodCode)}
+                    >
+                      운영사 세무 요약 (.pdf)
+                    </Button>
+                  </Stack>
+                </Stack>
+              </Paper>
+            </Grid>
+
+            <Grid item xs={12} md={6}>
+              <Paper variant="outlined" sx={{ p: 3, borderRadius: 3, bgcolor: "#fff" }}>
+                <Stack spacing={1.5}>
+                  <Typography variant="subtitle1" fontWeight={800}>
+                    담당 세무사 전달 패키지 기록
+                  </Typography>
+                  <TextField
+                    size="small"
+                    label="세무법인명"
+                    value={partnerForm.partner_name}
+                    onChange={(e) => setPartnerForm((p) => ({ ...p, partner_name: e.target.value }))}
+                  />
+                  <TextField
+                    size="small"
+                    label="세무사 이메일"
+                    placeholder="tax@example.com"
+                    value={partnerForm.partner_email}
+                    onChange={(e) => setPartnerForm((p) => ({ ...p, partner_email: e.target.value }))}
+                  />
+                  <TextField
+                    size="small"
+                    label="메모"
+                    value={partnerForm.memo}
+                    onChange={(e) => setPartnerForm((p) => ({ ...p, memo: e.target.value }))}
+                  />
                   <Button
                     variant="contained"
-                    startIcon={<DescriptionOutlinedIcon />}
-                    onClick={() => adminTaxApi.downloadVatXlsx(taxYear, periodCode)}
-                    sx={{ bgcolor: "#03C75A", "&:hover": { bgcolor: "#008A60" } }}
+                    startIcon={<SendOutlinedIcon />}
+                    onClick={handleSendPartner}
+                    disabled={busy || !partnerForm.partner_email.trim()}
                   >
-                    부가세 매입·매출장 (.xlsx)
+                    세무사 전달 패키지 생성 ({partnerExports.length}건)
                   </Button>
-                  <Button
-                    variant="outlined"
-                    startIcon={<PictureAsPdfOutlinedIcon />}
-                    onClick={() => adminTaxApi.downloadSummaryPdf(taxYear, periodCode)}
-                  >
-                    운영사 세무 요약 (.pdf)
-                  </Button>
+                  {partnerExports.slice(0, 3).map((exp) => (
+                    <Box key={exp.id} sx={{ p: 1, borderRadius: 1.5, bgcolor: "#F8FAFC", fontSize: 12 }}>
+                      <ReceiptLongOutlinedIcon sx={{ fontSize: 14, mr: 0.5, verticalAlign: "middle" }} />
+                      {exp.tax_year}년 · {exp.partner_name} ({exp.partner_email}) · {exp.status}
+                    </Box>
+                  ))}
                 </Stack>
-              </Stack>
-            </Paper>
+              </Paper>
+            </Grid>
           </Grid>
 
-          <Grid item xs={12} md={6}>
-            <Paper variant="outlined" sx={{ p: 3, borderRadius: 3, bgcolor: "#fff" }}>
-              <Stack spacing={1.5}>
-                <Typography variant="subtitle1" fontWeight={800}>
-                  담당 세무사 전달 패키지 기록
-                </Typography>
-                <TextField
-                  size="small"
-                  label="세무법인명"
-                  value={partnerForm.partner_name}
-                  onChange={(e) => setPartnerForm((p) => ({ ...p, partner_name: e.target.value }))}
-                />
-                <TextField
-                  size="small"
-                  label="세무사 이메일"
-                  placeholder="tax@example.com"
-                  value={partnerForm.partner_email}
-                  onChange={(e) => setPartnerForm((p) => ({ ...p, partner_email: e.target.value }))}
-                />
-                <TextField
-                  size="small"
-                  label="메모"
-                  value={partnerForm.memo}
-                  onChange={(e) => setPartnerForm((p) => ({ ...p, memo: e.target.value }))}
-                />
-                <Button
-                  variant="contained"
-                  startIcon={<SendOutlinedIcon />}
-                  onClick={handleSendPartner}
-                  disabled={busy || !partnerForm.partner_email.trim()}
-                >
-                  세무사 전달 패키지 생성 ({partnerExports.length}건)
-                </Button>
-                {partnerExports.slice(0, 3).map((exp) => (
-                  <Box key={exp.id} sx={{ p: 1, borderRadius: 1.5, bgcolor: "#F8FAFC", fontSize: 12 }}>
-                    <ReceiptLongOutlinedIcon sx={{ fontSize: 14, mr: 0.5, verticalAlign: "middle" }} />
-                    {exp.tax_year}년 · {exp.partner_name} ({exp.partner_email}) · {exp.status}
-                  </Box>
-                ))}
-              </Stack>
-            </Paper>
-          </Grid>
-        </Grid>
+          <TaxAccountingFormatGuide isCompany />
+        </Stack>
       )}
 
       <TaxDisclaimerBanner />

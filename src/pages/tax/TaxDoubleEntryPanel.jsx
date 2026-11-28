@@ -29,6 +29,8 @@ import {
 } from "@mui/material";
 
 import { AdminTableCard } from "@/pages/admin/components/AdminPageShell";
+import TaxAccountingFormatGuide from "@/pages/tax/TaxAccountingFormatGuide";
+import TaxHighIncomeStrategyPanel from "@/pages/tax/TaxHighIncomeStrategyPanel";
 import { formatKrw } from "@/services/tax-service";
 
 const TIER_CARDS = [
@@ -320,7 +322,7 @@ export default function TaxDoubleEntryPanel({
                       onClick={() => apiClient.downloadLedgerXlsx(taxYear)}
                       sx={{ bgcolor: "#03C75A", "&:hover": { bgcolor: "#008A60" } }}
                     >
-                      간편장부·경비명세서 (.xlsx)
+                      홈택스 제출용 간편장부 표준 (.xlsx)
                     </Button>
                     <Button
                       variant="outlined"
@@ -344,15 +346,25 @@ export default function TaxDoubleEntryPanel({
                         : "세무사에게 1회 신고대리 맡기기 (선택)"}
                     </Button>
                     <Collapse in={showPartnerForm}>
-                      <Box sx={{ mt: 1.5 }}>
+                      <Stack spacing={1.25} sx={{ mt: 1.5 }}>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          startIcon={<TableChartOutlinedIcon />}
+                          onClick={() => apiClient.downloadAccountingVoucherXlsx(taxYear)}
+                          sx={{ alignSelf: "flex-start" }}
+                        >
+                          더존·세무사랑 전표 업로드용 (.xlsx)
+                        </Button>
                         {renderPartnerPackageFields()}
-                      </Box>
+                      </Stack>
                     </Collapse>
                   </Box>
                 </Stack>
               </Paper>
             </Grid>
           </Grid>
+
         </>
       ) : (
         <>
@@ -493,10 +505,18 @@ export default function TaxDoubleEntryPanel({
                   </Typography>
                   <Stack direction="row" spacing={1.25} flexWrap="wrap" useFlexGap>
                     <Button
-                      variant="contained"
+                      variant={isExternal ? "contained" : "outlined"}
+                      startIcon={<TableChartOutlinedIcon />}
+                      onClick={() => apiClient.downloadAccountingVoucherXlsx(taxYear)}
+                      sx={isExternal ? { bgcolor: "#03C75A", "&:hover": { bgcolor: "#008A60" } } : {}}
+                    >
+                      더존·세무사랑 전표 업로드용 (.xlsx)
+                    </Button>
+                    <Button
+                      variant={isExternal ? "outlined" : "contained"}
                       startIcon={<TableChartOutlinedIcon />}
                       onClick={() => apiClient.downloadDoubleEntryXlsx(taxYear)}
-                      sx={{ bgcolor: "#03C75A", "&:hover": { bgcolor: "#008A60" } }}
+                      sx={isExternal ? {} : { bgcolor: "#03C75A", "&:hover": { bgcolor: "#008A60" } }}
                     >
                       복식부기 재무제표·분개장 (.xlsx)
                     </Button>
@@ -518,13 +538,26 @@ export default function TaxDoubleEntryPanel({
                   <Typography variant="subtitle1" fontWeight={800}>
                     5월 1회 외부조정 · 신고대리 패키지 전달 (월 기장료 절감)
                   </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    더존(Smart A·WEHAGO T)·세무사랑Pro에 바로 업로드할 수 있는 표준 엑셀 포맷(날짜·구분·거래처·적요·공급가액·부가세·계정코드·증빙)으로 세무사 작업 시간을 크게 줄여줍니다.
+                  </Typography>
                   {renderPartnerPackageFields()}
                 </Stack>
               </Paper>
             </Grid>
           </Grid>
+
         </>
       )}
+
+      <TaxHighIncomeStrategyPanel
+        key={filingTier.tier || "default"}
+        overview={overview}
+        doubleEntry={doubleEntry}
+        defaultExpanded={!isSimple}
+      />
+
+      <TaxAccountingFormatGuide compact={isSimple} />
     </Stack>
   );
 }
