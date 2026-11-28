@@ -299,14 +299,14 @@ export default function TaxAutomationPage() {
           icon={PendingActionsOutlinedIcon}
           color="#B42347"
           bg="#FFF0F2"
-          onClick={() => setTab(0)}
+          onClick={() => setTab(1)}
         />
       </AdminStatGrid>
 
       <Paper variant="outlined" sx={{ borderRadius: 3, mb: 2.5, bgcolor: "#fff" }}>
         <Tabs value={tab} onChange={(_e, v) => setTab(v)} variant="scrollable" scrollButtons="auto">
-          <Tab label="1. 자동 기장 & 가사·업무 분리" />
-          <Tab label="2. 내역 파일 업로드 (홈택스·카드·은행)" />
+          <Tab label="1. 내역 파일 업로드 (홈택스·카드·은행)" />
+          <Tab label="2. AI 자동 기장 & 가사·업무 분리" />
           <Tab label="3. 원천징수영수증 (3.3% 대조)" />
           <Tab label="4. 다중 사업체 & 종소세 합산" />
           <Tab label="5. 홈택스 문서 & 세무사 전달" />
@@ -314,18 +314,6 @@ export default function TaxAutomationPage() {
       </Paper>
 
       {tab === 0 && (
-        <TaxLedgerReviewPanel
-          mode="AGENT"
-          apiClient={agentTaxApi}
-          profiles={overview?.profiles || []}
-          transactions={transactions}
-          categories={overview?.categories}
-          onReload={loadAll}
-          onNotify={notify}
-        />
-      )}
-
-      {tab === 1 && (
         <TaxHometaxPanel
           mode="AGENT"
           apiClient={agentTaxApi}
@@ -335,6 +323,18 @@ export default function TaxAutomationPage() {
           onReload={loadAll}
           onNotify={notify}
           onGoWithholding={() => setTab(2)}
+        />
+      )}
+
+      {tab === 1 && (
+        <TaxLedgerReviewPanel
+          mode="AGENT"
+          apiClient={agentTaxApi}
+          profiles={overview?.profiles || []}
+          transactions={transactions}
+          categories={overview?.categories}
+          onReload={loadAll}
+          onNotify={notify}
         />
       )}
 

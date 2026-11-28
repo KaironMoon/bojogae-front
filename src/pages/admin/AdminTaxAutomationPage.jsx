@@ -250,9 +250,9 @@ export default function AdminTaxAutomationPage() {
 
       <Paper variant="outlined" sx={{ borderRadius: 3, mb: 2.5, bgcolor: "#fff" }}>
         <Tabs value={tab} onChange={(_e, v) => setTab(v)} variant="scrollable" scrollButtons="auto">
-          <Tab label="1. 부가세 요약 & PG 매출 동기화" />
-          <Tab label="2. 매출·매입 장부 & 공제 판별" />
-          <Tab label="3. 데이터 수집 (엑셀·홈택스·고급)" />
+          <Tab label="1. 매출·매입 수집 (PG 동기화 · 엑셀)" />
+          <Tab label="2. 장부 정리 & 부가세 공제 판별" />
+          <Tab label="3. 부가세 예상액 & 비용 요약" />
           <Tab label="4. 부가세 문서 & 세무사 전달" />
         </Tabs>
       </Paper>
@@ -271,7 +271,8 @@ export default function AdminTaxAutomationPage() {
                   {profile.business_name} ({profile.business_reg_no}) · 대표 {profile.representative_name}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  조회 기간: {overview?.period_start} ~ {overview?.period_end} ({overview?.period_label})
+                  조회 기간: {overview?.period_start} ~ {overview?.period_end} ({overview?.period_label}) ·
+                  1단계로 PG 매출을 가져온 뒤 아래에서 매입 엑셀을 올려 주세요.
                 </Typography>
               </Box>
               <Button variant="contained" startIcon={<SyncRoundedIcon />} onClick={handleSyncPg} disabled={busy}>
@@ -280,6 +281,33 @@ export default function AdminTaxAutomationPage() {
             </Stack>
           </Paper>
 
+          <TaxHometaxPanel
+            mode="COMPANY"
+            apiClient={adminTaxApi}
+            profiles={profilesList}
+            jobs={jobs}
+            connectors={connectors}
+            taxYear={taxYear}
+            onReload={loadAll}
+            onNotify={notify}
+          />
+        </Stack>
+      )}
+
+      {tab === 1 && (
+        <TaxLedgerReviewPanel
+          mode="COMPANY"
+          apiClient={adminTaxApi}
+          profiles={profilesList}
+          transactions={transactions}
+          categories={overview?.categories}
+          onReload={loadAll}
+          onNotify={notify}
+        />
+      )}
+
+      {tab === 2 && (
+        <Stack spacing={2.5}>
           <AdminTableCard>
             <Table size="small">
               <TableHead>
@@ -358,31 +386,6 @@ export default function AdminTaxAutomationPage() {
             </Table>
           </AdminTableCard>
         </Stack>
-      )}
-
-      {tab === 1 && (
-        <TaxLedgerReviewPanel
-          mode="COMPANY"
-          apiClient={adminTaxApi}
-          profiles={profilesList}
-          transactions={transactions}
-          categories={overview?.categories}
-          onReload={loadAll}
-          onNotify={notify}
-        />
-      )}
-
-      {tab === 2 && (
-        <TaxHometaxPanel
-          mode="COMPANY"
-          apiClient={adminTaxApi}
-          profiles={profilesList}
-          jobs={jobs}
-          connectors={connectors}
-          taxYear={taxYear}
-          onReload={loadAll}
-          onNotify={notify}
-        />
       )}
 
       {tab === 3 && (
