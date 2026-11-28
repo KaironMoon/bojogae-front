@@ -2,13 +2,10 @@ import { useCallback, useEffect, useState } from "react";
 import AccountBalanceWalletOutlinedIcon from "@mui/icons-material/AccountBalanceWalletOutlined";
 import AddBusinessOutlinedIcon from "@mui/icons-material/AddBusinessOutlined";
 import CalculateOutlinedIcon from "@mui/icons-material/CalculateOutlined";
-import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import DownloadOutlinedIcon from "@mui/icons-material/DownloadOutlined";
 import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
 import PendingActionsOutlinedIcon from "@mui/icons-material/PendingActionsOutlined";
 import PictureAsPdfOutlinedIcon from "@mui/icons-material/PictureAsPdfOutlined";
-import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
-import SendOutlinedIcon from "@mui/icons-material/SendOutlined";
 import TrendingUpRoundedIcon from "@mui/icons-material/TrendingUpRounded";
 import {
   Alert,
@@ -41,6 +38,7 @@ import {
 } from "@/pages/admin/components/AdminPageShell";
 import { agentTaxApi, extractTaxError, formatKrw } from "@/services/tax-service";
 import TaxDisclaimerBanner from "./TaxDisclaimerBanner";
+import TaxDoubleEntryPanel from "./TaxDoubleEntryPanel";
 import TaxHometaxPanel from "./TaxHometaxPanel";
 import TaxLedgerReviewPanel from "./TaxLedgerReviewPanel";
 
@@ -52,6 +50,7 @@ export default function TaxAutomationPage() {
   const [busy, setBusy] = useState(false);
 
   const [overview, setOverview] = useState(null);
+  const [doubleEntry, setDoubleEntry] = useState(null);
   const [transactions, setTransactions] = useState([]);
   const [withholdings, setWithholdings] = useState([]);
   const [jobs, setJobs] = useState([]);
@@ -91,14 +90,16 @@ export default function TaxAutomationPage() {
   const loadAll = useCallback(async () => {
     setLoading(true);
     try {
-      const [ov, txs, whs, jbs, exps] = await Promise.all([
+      const [ov, de, txs, whs, jbs, exps] = await Promise.all([
         agentTaxApi.getOverview({ tax_year: taxYear }),
+        agentTaxApi.getDoubleEntry({ tax_year: taxYear }),
         agentTaxApi.listTransactions({ tax_year: taxYear, limit: 500 }),
         agentTaxApi.listWithholding({ tax_year: taxYear }),
         agentTaxApi.listHometaxJobs(),
         agentTaxApi.listPartnerExports(),
       ]);
       setOverview(ov);
+      setDoubleEntry(de);
       setTransactions(txs);
       setWithholdings(whs);
       setJobs(jbs);
@@ -224,7 +225,8 @@ export default function TaxAutomationPage() {
   }
 
   const totals = overview?.totals || {};
-  const isDoubleEntry = overview?.bookkeeping_type === "DOUBLE_ENTRY";
+  const filingTier = overview?.filing_tier || {};
+  const bannerSeverity = filingTier.tier === "DOUBLE_EXTERNAL" ? "warning" : filingTier.tier === "DOUBLE_SELF" ? "info" : "success";
 
   return (
     <AdminPageContainer>
@@ -252,19 +254,22 @@ export default function TaxAutomationPage() {
             <Button
               variant="outlined"
               startIcon={<DownloadOutlinedIcon />}
-              onClick={() => agentTaxApi.downloadLedgerXlsx(taxYear)}
+              onClick={() =>
+                overview?.bookkeeping_type === "DOUBLE_ENTRY"
+                  ? agentTaxApi.downloadDoubleEntryXlsx(taxYear)
+                  : agentTaxApi.downloadLedgerXlsx(taxYear)
+              }
             >
-              간편장부 엑셀
+              {overview?.bookkeeping_type === "DOUBLE_ENTRY" ? "복식부기 재무제표 엑셀" : "간편장부 엑셀"}
             </Button>
           </Stack>
         }
       />
 
-      <Alert severity={isDoubleEntry ? "warning" : "success"} sx={{ mb: 2.5, borderRadius: 2.5 }}>
-        <strong>장부 의무 자동 판별:</strong>{" "}
-        {isDoubleEntry
-          ? "직전 연도 수입금액 7,500만 원 이상으로 '복식부기 의무자'에 해당합니다. 제휴 세무사 원클릭 전달을 권장합니다."
-          : "직전 연도 수입금액 7,500만 원 미만으로 '간편장부 대상자'입니다. 아래 장부를 정리해 홈택스 신고 시 참고할 수 있습니다."}
+      <Alert severity={bannerSeverity} sx={{ mb: 2.5, borderRadius: 2.5 }}>
+        <strong>신고 유형 자동 판별 ({filingTier.label || overview?.bookkeeping_label || "간편장부 대상자"}):</strong>{" "}
+        {filingTier.cost_saving_tip ||
+          "직전 연도 수입금액을 기준으로 간편장부 / 자기조정 / 외부조정 구간과 세무비용 절감 방법을 자동으로 안내합니다."}
       </Alert>
 
       <AdminStatGrid>
@@ -309,7 +314,7 @@ export default function TaxAutomationPage() {
           <Tab label="2. AI 자동 기장 & 가사·업무 분리" />
           <Tab label="3. 원천징수영수증 (3.3% 대조)" />
           <Tab label="4. 다중 사업체 & 종소세 합산" />
-          <Tab label="5. 홈택스 문서 & 세무사 전달" />
+          <Tab label="5. 홈택스 셀프신고 & 세무사 전달" />
         </Tabs>
       </Paper>
 
@@ -597,80 +602,18 @@ export default function TaxAutomationPage() {
       )}
 
       {tab === 4 && (
-        <Grid container spacing={2.5}>
-          <Grid item xs={12} md={6}>
-            <Paper variant="outlined" sx={{ p: 3, borderRadius: 3, bgcolor: "#fff", height: "100%" }}>
-              <Stack spacing={2}>
-                <Typography variant="subtitle1" fontWeight={800}>
-                  홈택스 업로드·참고용 장부 문서 생성
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  다중 사업장 종소세 합산표, 국세청 간편장부 표준 컬럼 원장, 경비명세서, 원천징수 명세를 생성합니다.
-                </Typography>
-                <Stack direction="row" spacing={1.5} flexWrap="wrap" useFlexGap>
-                  <Button
-                    variant="contained"
-                    startIcon={<DescriptionOutlinedIcon />}
-                    onClick={() => agentTaxApi.downloadLedgerXlsx(taxYear)}
-                    sx={{ bgcolor: "#03C75A", "&:hover": { bgcolor: "#008A60" } }}
-                  >
-                    간편장부·경비명세서 (.xlsx)
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    startIcon={<PictureAsPdfOutlinedIcon />}
-                    onClick={() => agentTaxApi.downloadSummaryPdf(taxYear)}
-                  >
-                    종합소득세 참고용 요약 (.pdf)
-                  </Button>
-                </Stack>
-              </Stack>
-            </Paper>
-          </Grid>
-
-          <Grid item xs={12} md={6}>
-            <Paper variant="outlined" sx={{ p: 3, borderRadius: 3, bgcolor: "#fff" }}>
-              <Stack spacing={1.5}>
-                <Typography variant="subtitle1" fontWeight={800}>
-                  제휴 세무사 기장 데이터 원클릭 패키지 전달
-                </Typography>
-                <TextField
-                  size="small"
-                  label="세무사/세무법인명"
-                  value={partnerForm.partner_name}
-                  onChange={(e) => setPartnerForm((p) => ({ ...p, partner_name: e.target.value }))}
-                />
-                <TextField
-                  size="small"
-                  label="전달 받을 이메일"
-                  placeholder="tax@example.com"
-                  value={partnerForm.partner_email}
-                  onChange={(e) => setPartnerForm((p) => ({ ...p, partner_email: e.target.value }))}
-                />
-                <TextField
-                  size="small"
-                  label="전달 메모"
-                  value={partnerForm.memo}
-                  onChange={(e) => setPartnerForm((p) => ({ ...p, memo: e.target.value }))}
-                />
-                <Button
-                  variant="contained"
-                  startIcon={<SendOutlinedIcon />}
-                  onClick={handleSendPartner}
-                  disabled={busy || !partnerForm.partner_email.trim()}
-                >
-                  세무사 전달 패키지 생성 ({partnerExports.length}건)
-                </Button>
-                {partnerExports.slice(0, 3).map((exp) => (
-                  <Box key={exp.id} sx={{ p: 1, borderRadius: 1.5, bgcolor: "#F8FAFC", fontSize: 12 }}>
-                    <ReceiptLongOutlinedIcon sx={{ fontSize: 14, mr: 0.5, verticalAlign: "middle" }} />
-                    {exp.tax_year}년 · {exp.partner_name} ({exp.partner_email}) · {exp.status}
-                  </Box>
-                ))}
-              </Stack>
-            </Paper>
-          </Grid>
-        </Grid>
+        <TaxDoubleEntryPanel
+          taxYear={taxYear}
+          overview={overview}
+          doubleEntry={doubleEntry}
+          apiClient={agentTaxApi}
+          partnerForm={partnerForm}
+          setPartnerForm={setPartnerForm}
+          partnerExports={partnerExports}
+          onSendPartner={handleSendPartner}
+          onNotify={notify}
+          busy={busy}
+        />
       )}
 
       <TaxDisclaimerBanner />

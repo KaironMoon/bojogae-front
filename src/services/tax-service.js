@@ -73,6 +73,9 @@ export const agentTaxApi = {
   downloadAgentScript: () => downloadBlob("/api/v1/tax/hometax/agent-script", {}, "bojogae_hometax_agent.py"),
 
   downloadLedgerXlsx: (taxYear) => downloadBlob("/api/v1/tax/exports/ledger.xlsx", { tax_year: taxYear }, `보조개_간편장부_${taxYear}.xlsx`),
+  getDoubleEntry: (params) => api.get("/api/v1/tax/double-entry", params).then((r) => r.data),
+  downloadDoubleEntryXlsx: (taxYear) =>
+    downloadBlob("/api/v1/tax/exports/double-entry.xlsx", { tax_year: taxYear }, `보조개_복식부기_표준재무제표_${taxYear}.xlsx`),
   downloadSummaryPdf: (taxYear) => downloadBlob("/api/v1/tax/exports/summary.pdf", { tax_year: taxYear }, `보조개_세무요약_${taxYear}.pdf`),
   listPartnerExports: () => api.get("/api/v1/tax/partner-exports").then((r) => r.data.items),
   createPartnerExport: (body) => api.post("/api/v1/tax/partner-exports", body).then((r) => r.data),
