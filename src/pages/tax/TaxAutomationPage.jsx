@@ -37,6 +37,7 @@ import {
   AdminTableCard,
 } from "@/pages/admin/components/AdminPageShell";
 import { agentTaxApi, extractTaxError, formatKrw } from "@/services/tax-service";
+import TaxCeremonyVaultPanel from "./TaxCeremonyVaultPanel";
 import TaxDisclaimerBanner from "./TaxDisclaimerBanner";
 import TaxDoubleEntryPanel from "./TaxDoubleEntryPanel";
 import TaxHometaxPanel from "./TaxHometaxPanel";
@@ -55,6 +56,7 @@ export default function TaxAutomationPage() {
   const [withholdings, setWithholdings] = useState([]);
   const [jobs, setJobs] = useState([]);
   const [partnerExports, setPartnerExports] = useState([]);
+  const [ceremonyVault, setCeremonyVault] = useState({ items: [], total_count: 0, total_recognized_amount: 0, event_limit: 200000 });
   const [toast, setToast] = useState({ open: false, severity: "info", message: "" });
 
   const [newProfile, setNewProfile] = useState({
@@ -90,13 +92,14 @@ export default function TaxAutomationPage() {
   const loadAll = useCallback(async () => {
     setLoading(true);
     try {
-      const [ov, de, txs, whs, jbs, exps] = await Promise.all([
+      const [ov, de, txs, whs, jbs, exps, cer] = await Promise.all([
         agentTaxApi.getOverview({ tax_year: taxYear }),
         agentTaxApi.getDoubleEntry({ tax_year: taxYear }),
         agentTaxApi.listTransactions({ tax_year: taxYear, limit: 500 }),
         agentTaxApi.listWithholding({ tax_year: taxYear }),
         agentTaxApi.listHometaxJobs(),
         agentTaxApi.listPartnerExports(),
+        agentTaxApi.listCeremonyEvidence({ tax_year: taxYear }),
       ]);
       setOverview(ov);
       setDoubleEntry(de);
@@ -104,6 +107,7 @@ export default function TaxAutomationPage() {
       setWithholdings(whs);
       setJobs(jbs);
       setPartnerExports(exps);
+      setCeremonyVault(cer);
     } catch (err) {
       notify("error", extractTaxError(err));
     } finally {
@@ -226,6 +230,7 @@ export default function TaxAutomationPage() {
 
   const totals = overview?.totals || {};
   const filingTier = overview?.filing_tier || {};
+  const sim = overview?.tax_simulation || null;
   const bannerSeverity = filingTier.tier === "DOUBLE_EXTERNAL" ? "warning" : filingTier.tier === "DOUBLE_SELF" ? "info" : "success";
 
   return (
@@ -308,6 +313,68 @@ export default function TaxAutomationPage() {
         />
       </AdminStatGrid>
 
+      {sim && (
+        <Paper
+          variant="outlined"
+          sx={{
+            p: 2,
+            mb: 2.5,
+            borderRadius: 3,
+            bgcolor: sim.is_refund ? "#F0FDF4" : "#FFFBEB",
+            borderColor: sim.is_refund ? "#86EFAC" : "#FCD34D",
+          }}
+        >
+          <Stack
+            direction={{ xs: "column", md: "row" }}
+            spacing={1.5}
+            justifyContent="space-between"
+            alignItems={{ xs: "flex-start", md: "center" }}
+          >
+            <Stack spacing={0.5}>
+              <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+                <Typography variant="subtitle2" fontWeight={900} color={sim.is_refund ? "#065F46" : "#92400E"}>
+                  {sim.is_refund
+                    ? `5월 예상 환급액: +${formatKrw(sim.expected_refund_or_payable)}`
+                    : `5월 추가 납부 예상: ${formatKrw(Math.abs(sim.expected_refund_or_payable))}`}
+                </Typography>
+                <Chip
+                  size="small"
+                  color={sim.is_refund ? "success" : "warning"}
+                  variant="outlined"
+                  label={`인정 경비율 ${sim.expense_ratio_pct}% · 한계세율 ${sim.marginal_rate_pct}%`}
+                />
+                {sim.simple_rate_recommended && (
+                  <Chip
+                    size="small"
+                    color="info"
+                    label={`직전연도 2,400만 미만: 단순경비율(${sim.simple_rate_pct}%) 추계 비교 권장`}
+                  />
+                )}
+                {sim.voluntary_double_entry_credit > 0 && (
+                  <Chip
+                    size="small"
+                    color="success"
+                    label={`자발적 복식부기 기장세액공제 최대 ${formatKrw(sim.voluntary_double_entry_credit)} 가능`}
+                  />
+                )}
+              </Stack>
+              <Typography variant="caption" color="#334155">
+                {`누적 소득금액 ${formatKrw(sim.net_income)} · 예상 결정세액(지방세 포함) ${formatKrw(sim.estimated_total_tax)} vs 기납부 3.3% 원천세 ${formatKrw(sim.withheld_total)}`}
+              </Typography>
+            </Stack>
+            <Button
+              size="small"
+              variant="outlined"
+              color={sim.is_refund ? "success" : "warning"}
+              onClick={() => setTab(4)}
+              sx={{ bgcolor: "#fff", fontWeight: 700, flexShrink: 0 }}
+            >
+              절세 시뮬레이터 자세히 보기
+            </Button>
+          </Stack>
+        </Paper>
+      )}
+
       <Paper variant="outlined" sx={{ borderRadius: 3, mb: 2.5, bgcolor: "#fff" }}>
         <Tabs value={tab} onChange={(_e, v) => setTab(v)} variant="scrollable" scrollButtons="auto">
           <Tab label="1. 내역 파일 업로드 (홈택스·카드·은행)" />
@@ -319,16 +386,26 @@ export default function TaxAutomationPage() {
       </Paper>
 
       {tab === 0 && (
-        <TaxHometaxPanel
-          mode="AGENT"
-          apiClient={agentTaxApi}
-          profiles={overview?.profiles || []}
-          jobs={jobs}
-          taxYear={taxYear}
-          onReload={loadAll}
-          onNotify={notify}
-          onGoWithholding={() => setTab(2)}
-        />
+        <Stack spacing={2.5}>
+          <TaxHometaxPanel
+            mode="AGENT"
+            apiClient={agentTaxApi}
+            profiles={overview?.profiles || []}
+            jobs={jobs}
+            taxYear={taxYear}
+            onReload={loadAll}
+            onNotify={notify}
+            onGoWithholding={() => setTab(2)}
+          />
+          <TaxCeremonyVaultPanel
+            apiClient={agentTaxApi}
+            profiles={overview?.profiles || []}
+            vault={ceremonyVault}
+            taxYear={taxYear}
+            onReload={loadAll}
+            onNotify={notify}
+          />
+        </Stack>
       )}
 
       {tab === 1 && (

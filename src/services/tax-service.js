@@ -81,6 +81,20 @@ export const agentTaxApi = {
   downloadSummaryPdf: (taxYear) => downloadBlob("/api/v1/tax/exports/summary.pdf", { tax_year: taxYear }, `보조개_세무요약_${taxYear}.pdf`),
   listPartnerExports: () => api.get("/api/v1/tax/partner-exports").then((r) => r.data.items),
   createPartnerExport: (body) => api.post("/api/v1/tax/partner-exports", body).then((r) => r.data),
+  listCeremonyEvidence: (params) => api.get("/api/v1/tax/ceremony-evidence", params).then((r) => r.data),
+  createCeremonyEvidence: ({ profile_id, tx_date, event_type, recipient_name, amount, memo = "", file = null }) => {
+    const form = new FormData();
+    if (profile_id) form.append("profile_id", String(profile_id));
+    form.append("tx_date", tx_date);
+    form.append("event_type", event_type);
+    form.append("recipient_name", recipient_name);
+    form.append("amount", String(amount));
+    if (memo) form.append("memo", memo);
+    if (file) form.append("file", file);
+    return api.upload("/api/v1/tax/ceremony-evidence", form).then((r) => r.data);
+  },
+  downloadCeremonyFile: (txId, filename) =>
+    downloadBlob(`/api/v1/tax/ceremony-evidence/${txId}/file`, {}, filename || "ceremony_evidence"),
 };
 
 export const adminTaxApi = {

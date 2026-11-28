@@ -2,18 +2,23 @@
 import { useState } from "react";
 import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
 import AutoGraphOutlinedIcon from "@mui/icons-material/AutoGraphOutlined";
+import CalculateOutlinedIcon from "@mui/icons-material/CalculateOutlined";
 import ExpandLessRoundedIcon from "@mui/icons-material/ExpandLessRounded";
 import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
 import ShieldOutlinedIcon from "@mui/icons-material/ShieldOutlined";
 import TrendingDownOutlinedIcon from "@mui/icons-material/TrendingDownOutlined";
 import {
+  Alert,
   Box,
   Button,
+  Checkbox,
   Chip,
   Collapse,
+  FormControlLabel,
   Grid,
   Paper,
   Stack,
+  TextField,
   Typography,
 } from "@mui/material";
 
@@ -88,66 +93,112 @@ const TAX_BRACKETS = [
   },
 ];
 
+const KOREAN_BRACKET_FORMULA = [
+  { upper: 14_000_000, rate: 0.06, deduction: 0 },
+  { upper: 50_000_000, rate: 0.15, deduction: 1_260_000 },
+  { upper: 88_000_000, rate: 0.24, deduction: 5_760_000 },
+  { upper: 150_000_000, rate: 0.35, deduction: 15_440_000 },
+  { upper: 300_000_000, rate: 0.38, deduction: 19_940_000 },
+  { upper: 500_000_000, rate: 0.40, deduction: 25_940_000 },
+  { upper: 1_000_000_000, rate: 0.42, deduction: 35_940_000 },
+  { upper: Number.POSITIVE_INFINITY, rate: 0.45, deduction: 65_940_000 },
+];
+
+function computeInteractiveTax({
+  netIncome,
+  withheldTotal,
+  yellowUmbrella,
+  pensionIrp,
+  nationalPension,
+  healthInsuranceExpense,
+  voluntaryBookkeepingCredit,
+}) {
+  const adjustedNet = Math.max(0, netIncome - healthInsuranceExpense);
+  const basicDeduction = netIncome > 0 ? 1_500_000 : 0;
+  const taxableBase = Math.max(0, adjustedNet - basicDeduction - yellowUmbrella - nationalPension);
+
+  const row =
+    KOREAN_BRACKET_FORMULA.find((b) => taxableBase <= b.upper) ||
+    KOREAN_BRACKET_FORMULA[KOREAN_BRACKET_FORMULA.length - 1];
+  const grossNational = Math.max(0, Math.floor(taxableBase * row.rate - row.deduction));
+  const pensionRate = netIncome <= 45_000_000 ? 0.15 : 0.12;
+  const pensionCredit = Math.floor(Math.min(9_000_000, pensionIrp) * pensionRate);
+  const stdCredit = taxableBase > 0 ? 70_000 : 0;
+
+  let nationalTax = Math.max(0, grossNational - stdCredit - pensionCredit);
+  if (voluntaryBookkeepingCredit) {
+    const bookkeepingCredit = Math.min(1_000_000, Math.floor(nationalTax * 0.2));
+    nationalTax = Math.max(0, nationalTax - bookkeepingCredit);
+  }
+  const localTax = Math.floor(nationalTax * 0.1);
+  const totalTax = nationalTax + localTax;
+  return {
+    taxableBase,
+    totalTax,
+    refundOrPayable: withheldTotal - totalTax,
+  };
+}
+
 const HIGH_INCOME_STRATEGIES = [
   {
     no: "01",
-    title: "노란우산공제 (소득공제 최대 200~600만)",
+    title: "노란우산공제 · 국민연금 (소득공제)",
     badge: "소득공제 · 압류금지",
     badgeColor: "success",
-    effect: "38.5% 구간에서 연 400만 원 공제 시 약 154만 원 절세",
+    effect: "노란우산 연 200~600만 원 + 지역 국민연금 전액 소득공제",
     detail:
-      "사업소득금액 4천만 이하 600만 / 4천~6천만 500만 / 6천만~1억 400만 / 1억 초과 200만 원까지 과세표준에서 직접 차감됩니다.",
-    caution: "중도 해지 시 기타소득세(16.5%)가 추징되므로 장기 유지 가능한 금액으로 납입하세요.",
+      "노란우산공제(4천만 이하 600만 / ~6천만 500만 / ~1억 400만 / 1억 초과 200만)와 본인 납부 국민연금은 과세표준을 직접 낮추며, 지역가입자 건강보험료는 필요경비로 처리됩니다.",
+    caution: "노란우산공제는 중도 해지 시 기타소득세(16.5%)가 추징되므로 유지 가능한 금액으로 납입하세요.",
   },
   {
     no: "02",
     title: "연금저축 + IRP 세액공제 (연 최대 900만)",
     badge: "세액공제 · 12/31 마감",
     badgeColor: "success",
-    effect: "종소세 4,500만 초과 기준 13.2% (연 최대 118.8만 원) 확정 세액공제",
+    effect: "13.2%~16.5% 세액공제 (연 최대 118.8만~148.5만 원 직접 차감)",
     detail:
-      "연금저축(연 최대 600만)과 개인형 퇴직연금(IRP)을 합산해 연 900만 원까지 납입하면 산출세액에서 바로 차감됩니다.",
+      "연금저축펀드(최대 600만)와 개인형 퇴직연금(IRP)을 합산해 연 900만 원까지 납입하면 산출세액에서 세금을 직접 차감합니다.",
     caution: "반드시 12월 31일 전 입금 완료분만 당해 연도 세액공제 대상에 포함됩니다.",
   },
   {
     no: "03",
-    title: "접대비 · 경조사비 100% 증빙 전략",
+    title: "접대비·경조사비·업무 피복비 100% 챙기기",
     badge: "기본한도 연 3,600만",
     badgeColor: "primary",
-    effect: "3만 원 초과 카드·현금영수증 + 경조사 건당 20만 원 청첩장 증빙",
+    effect: "청첩장·부고장 건당 20만 원 + 정장·구두·보조개 AI 구독료 경비 인정",
     detail:
-      "고객·소개자 식사와 선물은 사업용 카드로 결제하고, 결혼·장례 경조사비는 청첩장·부고 문자 캡처와 계좌이체 내역만으로 경비 인정됩니다.",
-    caution: "보조개 적요란에 고객명·상담 목적을 남겨두면 세무 소명 요청 시 완벽히 방어됩니다.",
+      "1번 탭 '경조사 증빙 보관함'에 청첩장·부고장 캡처를 올리면 건당 20만 원까지 자동 합산됩니다. 정장·구두 등 업무용 피복비(사회통념 범위)와 보조개 AI 구독료도 영업 경비로 처리 가능합니다.",
+    caution: "3만 원 초과 접대비는 사업용 카드·현금영수증이 필수이며, 보조개 적요란에 고객명을 남겨두세요.",
   },
   {
     no: "04",
-    title: "업무용 승용차 비용 & 운행기록부 전략",
+    title: "업무용 승용차 · 자동차보험·자동차세 전략",
     badge: "미작성 연 1,500만",
     badgeColor: "primary",
-    effect: "운행기록부 없이도 유류·보험·정비·감가상각 연 1,500만 원까지 인정",
+    effect: "주유·하이패스·자동차보험·자동차세 합산 연 1,500만 원까지 전액 인정",
     detail:
-      "방문 상담이 많은 설계사는 유류비·통행료·정비·리스료·감가상각(연 800만 한도)을 빠짐없이 카드·현금영수증으로 모으고 초과 시 운행기록부를 작성하세요.",
+      "방문 상담이 많은 설계사는 유류·하이패스·정비·자동차보험·자동차세·감가상각(연 800만 한도)을 빠짐없이 반영하고, 1,500만 원 초과 시 운행기록부를 작성하세요.",
     caution: "복식부기 의무자는 업무전용 보험 및 차량 감가상각 연 800만 원 한도 규정을 사전 점검하세요.",
   },
   {
     no: "05",
-    title: "가족·보조원 인건비 합법적 소득 분산",
+    title: "인건비 원천징수 & 다중 소득 합산 누락 방지",
     badge: "한계세율 분산",
     badgeColor: "warning",
-    effect: "고세율(38.5%) 소득을 저세율(6.6~16.5%) 구간으로 합법 분산",
+    effect: "비서·DB 보조 인력 3.3% 원천세 신고 + N잡 5월 합산으로 가산세 예방",
     detail:
-      "배우자·가족이 실제로 고객 DB 관리, 제안서 출력, 일정 보조 업무를 수행한다면 계좌이체와 매월 10일 원천세 신고를 통해 인건비로 비용 처리할 수 있습니다.",
-    caution: "실제 근무 없이 형식상 급여를 지급하면 부당행위로 추징되므로 출근·업무 기록을 반드시 남기세요.",
+      "보조 인력에게 수당을 나눌 때 단순 계좌이체만 하면 경비 인정을 못 받으므로 매월 10일 원천세 신고가 필수입니다. 2곳 이상 보험사 수당·부업 소득도 5월 합산 신고하세요.",
+    caution: "실제 근로 없이 가족에게 형식상 급여를 지급하면 부당행위로 추징되므로 업무 기록을 남기세요.",
   },
   {
     no: "06",
-    title: "사업용 계좌 신고 & 무기장가산세 20% 방어",
-    badge: "필수 의무 · 가산세 방어",
+    title: "영업 카드 100% 분리 & 무기장가산세 20% 방어",
+    badge: "필수 의무 · 공제/방어",
     badgeColor: "error",
-    effect: "자기조정(0원) / 1회 외부조정으로 산출세액 20% 가산세 원천 차단",
+    effect: "간편장부 대상자 자발적 복식부기 시 기장세액공제 20% (최대 100만)",
     detail:
-      "직전연도 7,500만 원 이상 복식부기 의무자는 홈택스 사업용 계좌 등록이 필수입니다. 1.5억 미만은 자기조정 셀프신고, 1.5억 이상은 더존·세무사랑 엑셀로 5월 1회 외부조정하세요.",
-    caution: "복식부기 의무자가 간편장부로 신고하면 무신고로 간주돼 산출세액의 20% 가산세가 부과됩니다.",
+      "생활비와 영업 카드를 100% 분리하고, 7,500만 이상은 사업용 계좌 등록 및 복식부기 기장으로 20% 가산세를 차단하세요. 7,500만 미만도 자발적 복식부기 기장 시 산출세액 20% 공제가 가능합니다.",
+    caution: "직전연도 2,400만 미만 신입 설계사는 단순경비율(73.7%) 추계와 실제 장부 중 유리한 쪽을 선택하세요.",
   },
 ];
 
@@ -157,8 +208,8 @@ const YEARLY_TIMELINE = [
     title: "기초 세팅",
     highlight: false,
     items: [
-      "홈택스 사업용 계좌·사업용 신용카드 등록 확인",
-      "직전연도 수입금액 기준 장부의무(자기·외부조정) 판별",
+      "영업 전용 카드·계좌 100% 분리 및 홈택스 사업용 계좌 등록",
+      "직전연도 수입금액 기준 장부의무(단순경비율/자기·외부조정) 판별",
       "노란우산공제·연금저축 월 자동이체 금액 설정",
     ],
   },
@@ -167,8 +218,8 @@ const YEARLY_TIMELINE = [
     title: "월말 경비 관리",
     highlight: false,
     items: [
-      "월 1회 카드·통장 엑셀 업로드 및 가사·업무 경비 분리",
-      "고객 접대 적요 메모 및 청첩장·부고장 증빙 보관",
+      "월 1회 카드·통장 엑셀 업로드 및 청첩장·부고장 경조사 보관함 등록",
+      "자동차보험·건강보험료·정장 피복비 등 숨은 경비 누락 점검",
       "업무용 차량 경비 1,500만 원 초과 예상 시 운행기록부 작성",
     ],
   },
@@ -178,7 +229,7 @@ const YEARLY_TIMELINE = [
     highlight: true,
     items: [
       "12월 31일 전 연금저축·IRP 900만 원 & 노란우산 추가 납입 완료",
-      "누적 소득금액 기반 예상 한계세율·추가 필요 경비 사전 점검",
+      "상단 5월 예상 환급액 시뮬레이터로 추가 절세 여력 최종 점검",
       "노트북·태블릿·사무 집기 등 연내 필수 비품 집행 검토",
     ],
   },
@@ -187,7 +238,7 @@ const YEARLY_TIMELINE = [
     title: "종소세 확정신고",
     highlight: false,
     items: [
-      "전 보험사 3.3% 원천징수영수증 PDF 일괄 대조·합산",
+      "전 보험사 3.3% 원천징수영수증 PDF 일괄 대조·다중 소득 합산",
       "7.5천~1.5억: 보조개 표준재무제표로 자기조정 셀프신고(0원)",
       "1.5억 이상: 더존·세무사랑 전표 엑셀로 1회 외부조정 의뢰",
     ],
@@ -196,8 +247,17 @@ const YEARLY_TIMELINE = [
 
 export default function TaxHighIncomeStrategyPanel({ overview, doubleEntry, defaultExpanded = true }) {
   const [expanded, setExpanded] = useState(defaultExpanded);
+  const [yellowUmbrella, setYellowUmbrella] = useState(0);
+  const [pensionIrp, setPensionIrp] = useState(0);
+  const [nationalPension, setNationalPension] = useState(0);
+  const [healthInsuranceExpense, setHealthInsuranceExpense] = useState(0);
+  const [useVoluntaryBookkeeping, setUseVoluntaryBookkeeping] = useState(false);
 
+  const sim = overview?.tax_simulation || {};
+  const filingTier = overview?.filing_tier || doubleEntry?.filing_tier || {};
+  const isSimpleTier = filingTier.tier === "SIMPLE";
   const ytdNet = Number(doubleEntry?.income_statement?.net_income || overview?.totals?.net_income || 0);
+  const withheldTotal = Number(sim.withheld_total ?? overview?.totals?.withheld_total ?? 0);
   const prevRev = Number(overview?.max_prev_year_revenue || 0);
   const usingEstimatedAnnual = prevRev >= 75_000_000 && ytdNet < 20_000_000;
   const basisIncome = usingEstimatedAnnual ? Math.round(prevRev * 0.65) : ytdNet;
@@ -205,6 +265,29 @@ export default function TaxHighIncomeStrategyPanel({ overview, doubleEntry, defa
   const activeBracket =
     TAX_BRACKETS.find((b) => basisIncome >= b.min && basisIncome < b.max) || TAX_BRACKETS[TAX_BRACKETS.length - 1];
   const savedPerMillion = (Math.round(activeBracket.effectiveRate * 10) / 10).toLocaleString("ko-KR");
+
+  const simIncomeBase = usingEstimatedAnnual ? basisIncome : ytdNet;
+  const simWithheldBase = usingEstimatedAnnual ? Math.round(prevRev * 0.033) : withheldTotal;
+
+  const baselineTax = computeInteractiveTax({
+    netIncome: simIncomeBase,
+    withheldTotal: simWithheldBase,
+    yellowUmbrella: 0,
+    pensionIrp: 0,
+    nationalPension: 0,
+    healthInsuranceExpense: 0,
+    voluntaryBookkeepingCredit: false,
+  });
+  const afterTax = computeInteractiveTax({
+    netIncome: simIncomeBase,
+    withheldTotal: simWithheldBase,
+    yellowUmbrella: Number(yellowUmbrella || 0),
+    pensionIrp: Number(pensionIrp || 0),
+    nationalPension: Number(nationalPension || 0),
+    healthInsuranceExpense: Number(healthInsuranceExpense || 0),
+    voluntaryBookkeepingCredit: isSimpleTier && useVoluntaryBookkeeping,
+  });
+  const taxSaved = Math.max(0, baselineTax.totalTax - afterTax.totalTax);
 
   return (
     <Paper variant="outlined" sx={{ p: { xs: 2, sm: 3 }, borderRadius: 3, bgcolor: "#fff" }}>
@@ -223,7 +306,7 @@ export default function TaxHighIncomeStrategyPanel({ overview, doubleEntry, defa
                 고소득 보험설계사 (연 7,500만 원 이상) 실전 절세 전략 도식 가이드
               </Typography>
               <Typography variant="caption" color="text.secondary">
-                누진세율 구간을 미리 파악하고 12월 31일 전까지 공제·경비를 챙겨 세금을 합법적으로 줄이세요.
+                5월 예상 환급액 시뮬레이터로 공제 효과를 미리 계산하고, 12월 31일 전까지 세금을 합법적으로 줄이세요.
               </Typography>
             </Box>
           </Stack>
@@ -234,12 +317,213 @@ export default function TaxHighIncomeStrategyPanel({ overview, doubleEntry, defa
             onClick={() => setExpanded((prev) => !prev)}
             sx={{ flexShrink: 0 }}
           >
-            {expanded ? "절세 전략 도식 접기" : "고소득 절세 전략 도식 보기"}
+            {expanded ? "절세 전략 도식 접기" : "절세 시뮬레이터 · 전략 도식 보기"}
           </Button>
         </Stack>
 
         <Collapse in={expanded}>
           <Stack spacing={2.5} sx={{ pt: 0.5 }}>
+            {/* 도식 0: 인터랙티브 5월 예상 환급액 · 절세 시뮬레이터 */}
+            <Paper variant="outlined" sx={{ p: 2, borderRadius: 2.5, bgcolor: "#F0FDF4", borderColor: "#86EFAC" }}>
+              <Stack spacing={1.5}>
+                <Stack
+                  direction={{ xs: "column", sm: "row" }}
+                  justifyContent="space-between"
+                  alignItems={{ xs: "flex-start", sm: "center" }}
+                  spacing={0.5}
+                >
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <CalculateOutlinedIcon color="success" />
+                    <Typography variant="subtitle2" fontWeight={900} color="#065F46">
+                      실전 5월 예상 환급액 · 공제 절세 시뮬레이터
+                    </Typography>
+                  </Stack>
+                  <Typography variant="caption" fontWeight={700} color="#065F46">
+                    {usingEstimatedAnnual
+                      ? `시뮬레이션 기준: 직전연도 추정 소득 ${formatKrw(simIncomeBase)} / 원천세 ${formatKrw(simWithheldBase)}`
+                      : `시뮬레이션 기준: 현재 누적 소득 ${formatKrw(simIncomeBase)} / 기납부 원천세 ${formatKrw(simWithheldBase)}`}
+                  </Typography>
+                </Stack>
+
+                {sim.simple_rate_eligible && (
+                  <Alert severity="info" sx={{ py: 0.5, borderRadius: 2 }}>
+                    <strong>신입 · 2,400만 원 미만 단순경비율({sim.simple_rate_pct}%) 비교:</strong>{" "}
+                    단순경비율 적용 경비(<strong>{formatKrw(sim.simple_rate_expense)}</strong>) vs 실제 장부 경비(
+                    <strong>{formatKrw(sim.confirmed_expense)}</strong>) →{" "}
+                    {sim.simple_rate_recommended
+                      ? "영수증이 적다면 2월 연말정산/단순경비율 추계신고가 더 유리할 수 있습니다."
+                      : "실제 장부 경비가 더 크므로 5월 장부 기장 신고가 유리합니다."}
+                  </Alert>
+                )}
+
+                <Grid container spacing={1.5}>
+                  <Grid item xs={12} sm={6} md={3}>
+                    <Typography variant="caption" fontWeight={700} color="#334155" sx={{ display: "block", mb: 0.5 }}>
+                      노란우산공제 납입 (원)
+                    </Typography>
+                    <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap mb={0.75}>
+                      {[0, 2_000_000, 4_000_000, 6_000_000].map((v) => (
+                        <Chip
+                          key={v}
+                          size="small"
+                          label={v === 0 ? "0원" : `${v / 10_000}만`}
+                          color={Number(yellowUmbrella) === v ? "success" : "default"}
+                          onClick={() => setYellowUmbrella(v)}
+                        />
+                      ))}
+                    </Stack>
+                    <TextField
+                      fullWidth
+                      size="small"
+                      type="number"
+                      value={yellowUmbrella}
+                      onChange={(e) => setYellowUmbrella(Math.max(0, Number(e.target.value || 0)))}
+                      sx={{ bgcolor: "#fff" }}
+                    />
+                  </Grid>
+
+                  <Grid item xs={12} sm={6} md={3}>
+                    <Typography variant="caption" fontWeight={700} color="#334155" sx={{ display: "block", mb: 0.5 }}>
+                      연금저축 + IRP 납입 (원)
+                    </Typography>
+                    <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap mb={0.75}>
+                      {[0, 6_000_000, 9_000_000].map((v) => (
+                        <Chip
+                          key={v}
+                          size="small"
+                          label={v === 0 ? "0원" : `${v / 10_000}만`}
+                          color={Number(pensionIrp) === v ? "success" : "default"}
+                          onClick={() => setPensionIrp(v)}
+                        />
+                      ))}
+                    </Stack>
+                    <TextField
+                      fullWidth
+                      size="small"
+                      type="number"
+                      value={pensionIrp}
+                      onChange={(e) => setPensionIrp(Math.max(0, Number(e.target.value || 0)))}
+                      sx={{ bgcolor: "#fff" }}
+                    />
+                  </Grid>
+
+                  <Grid item xs={12} sm={6} md={3}>
+                    <Typography variant="caption" fontWeight={700} color="#334155" sx={{ display: "block", mb: 0.5 }}>
+                      국민연금 본인 납입 (소득공제)
+                    </Typography>
+                    <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap mb={0.75}>
+                      {[0, 2_400_000, 4_800_000].map((v) => (
+                        <Chip
+                          key={v}
+                          size="small"
+                          label={v === 0 ? "0원" : `${v / 10_000}만`}
+                          color={Number(nationalPension) === v ? "success" : "default"}
+                          onClick={() => setNationalPension(v)}
+                        />
+                      ))}
+                    </Stack>
+                    <TextField
+                      fullWidth
+                      size="small"
+                      type="number"
+                      value={nationalPension}
+                      onChange={(e) => setNationalPension(Math.max(0, Number(e.target.value || 0)))}
+                      sx={{ bgcolor: "#fff" }}
+                    />
+                  </Grid>
+
+                  <Grid item xs={12} sm={6} md={3}>
+                    <Typography variant="caption" fontWeight={700} color="#334155" sx={{ display: "block", mb: 0.5 }}>
+                      지역 건강보험료 (추가 경비)
+                    </Typography>
+                    <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap mb={0.75}>
+                      {[0, 2_000_000, 3_600_000].map((v) => (
+                        <Chip
+                          key={v}
+                          size="small"
+                          label={v === 0 ? "0원" : `${v / 10_000}만`}
+                          color={Number(healthInsuranceExpense) === v ? "success" : "default"}
+                          onClick={() => setHealthInsuranceExpense(v)}
+                        />
+                      ))}
+                    </Stack>
+                    <TextField
+                      fullWidth
+                      size="small"
+                      type="number"
+                      value={healthInsuranceExpense}
+                      onChange={(e) => setHealthInsuranceExpense(Math.max(0, Number(e.target.value || 0)))}
+                      sx={{ bgcolor: "#fff" }}
+                    />
+                  </Grid>
+                </Grid>
+
+                {isSimpleTier && (
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        size="small"
+                        color="success"
+                        checked={useVoluntaryBookkeeping}
+                        onChange={(e) => setUseVoluntaryBookkeeping(e.target.checked)}
+                      />
+                    }
+                    label={
+                      <Typography variant="caption" fontWeight={700} color="#065F46">
+                        간편장부 대상자 자발적 복식부기 기장세액공제 적용 (산출세액 20%, 최대 100만 원 추가 절감)
+                      </Typography>
+                    }
+                  />
+                )}
+
+                <Grid container spacing={1.5}>
+                  <Grid item xs={12} md={4}>
+                    <Paper variant="outlined" sx={{ p: 1.5, borderRadius: 2, bgcolor: "#fff" }}>
+                      <Typography variant="caption" color="text.secondary" fontWeight={700}>
+                        공제 적용 전 예상 세금 · 정산
+                      </Typography>
+                      <Typography variant="subtitle1" fontWeight={800}>
+                        {baselineTax.refundOrPayable >= 0
+                          ? `환급 +${formatKrw(baselineTax.refundOrPayable)}`
+                          : `추가납부 ${formatKrw(Math.abs(baselineTax.refundOrPayable))}`}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {`총 결정세액 ${formatKrw(baselineTax.totalTax)}`}
+                      </Typography>
+                    </Paper>
+                  </Grid>
+                  <Grid item xs={12} md={4}>
+                    <Paper variant="outlined" sx={{ p: 1.5, borderRadius: 2, bgcolor: "#fff", borderColor: "#03C75A", borderWidth: 1.5 }}>
+                      <Typography variant="caption" color="#006E43" fontWeight={700}>
+                        절세 적용 후 예상 5월 정산
+                      </Typography>
+                      <Typography variant="subtitle1" fontWeight={900} color={afterTax.refundOrPayable >= 0 ? "#006E43" : "#B45309"}>
+                        {afterTax.refundOrPayable >= 0
+                          ? `환급 +${formatKrw(afterTax.refundOrPayable)}`
+                          : `추가납부 ${formatKrw(Math.abs(afterTax.refundOrPayable))}`}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {`총 결정세액 ${formatKrw(afterTax.totalTax)}`}
+                      </Typography>
+                    </Paper>
+                  </Grid>
+                  <Grid item xs={12} md={4}>
+                    <Paper variant="outlined" sx={{ p: 1.5, borderRadius: 2, bgcolor: "#ECFDF5", borderColor: "#10B981" }}>
+                      <Typography variant="caption" color="#065F46" fontWeight={700}>
+                        시뮬레이션 추가 절세 효과
+                      </Typography>
+                      <Typography variant="subtitle1" fontWeight={900} color="#065F46">
+                        {`+${formatKrw(taxSaved)} 절감`}
+                      </Typography>
+                      <Typography variant="caption" color="#047857">
+                        지방소득세 10% 절감분까지 자동 합산
+                      </Typography>
+                    </Paper>
+                  </Grid>
+                </Grid>
+              </Stack>
+            </Paper>
+
             {/* 도식 1: 종합소득세 누진세율 구간 & 한계세율 절세 체감 바 */}
             <Paper variant="outlined" sx={{ p: 2, borderRadius: 2.5, bgcolor: "#F8FAFC" }}>
               <Stack spacing={1.5}>
@@ -328,7 +612,7 @@ export default function TaxHighIncomeStrategyPanel({ overview, doubleEntry, defa
             {/* 도식 2: 고소득 설계사 6대 핵심 절세 전략 카드 (2x3 Grid) */}
             <Box>
               <Typography variant="subtitle2" fontWeight={800} color="#0F172A" mb={1.25}>
-                도식 ② 고소득 설계사 6대 핵심 절세 카드 (공제·경비·가산세 방어)
+                도식 ② 보험설계사(940906) 6대 핵심 절세 카드 (숨은 경비·공제·가산세 방어)
               </Typography>
               <Grid container spacing={1.5}>
                 {HIGH_INCOME_STRATEGIES.map((item) => (
@@ -450,7 +734,7 @@ export default function TaxHighIncomeStrategyPanel({ overview, doubleEntry, defa
             </Box>
 
             <Typography variant="caption" color="text.secondary">
-              ※ 본 절세 전략은 일반적인 세법 기준 참고 가이드이며, 개인별 공제 요건과 최종 신고 책임은 본인에게 있습니다.
+              ※ 본 시뮬레이터 및 절세 전략은 일반적인 세법 기준 모의 계산 참고용이며, 개인별 인적·세액공제 요건과 최종 신고 책임은 본인에게 있습니다.
             </Typography>
           </Stack>
         </Collapse>

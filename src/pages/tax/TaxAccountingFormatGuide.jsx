@@ -44,6 +44,7 @@ const STANDARD_CODES = [
   { group: "비용", code: "812", name: "여비교통비", example: "KTX·SRT·택시·버스 등 고객 미팅 이동 교통비", companyOnly: false },
   { group: "비용", code: "813", name: "접대비", example: "고객·거래처 식사, 카페 상담, 선물, 경조사 화환", companyOnly: false },
   { group: "비용", code: "814", name: "통신비", example: "업무용 휴대폰 요금, 인터넷, 팩스 통신비", companyOnly: false },
+  { group: "비용", code: "817", name: "세금과공과(건강보험·자동차세)", example: "지역가입자 건강보험료, 업무용 차량 자동차세", companyOnly: false },
   { group: "비용", code: "819", name: "임차료", example: "사무실 월세·관리비·공유오피스 임차료", companyOnly: false },
   { group: "비용", code: "822", name: "차량유지비", example: "주유비, 하이패스, 차량 정비·주차·세차비", companyOnly: false },
   { group: "비용", code: "825", name: "교육훈련비", example: "보험연수원 보수교육, 세미나, 직무 강의", companyOnly: false },
