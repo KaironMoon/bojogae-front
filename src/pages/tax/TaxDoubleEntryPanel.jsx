@@ -71,6 +71,7 @@ export default function TaxDoubleEntryPanel({
 
   const filingTier = overview?.filing_tier || doubleEntry?.filing_tier || {};
   const isSimple = filingTier.tier === "SIMPLE";
+  const isExternal = filingTier.tier === "DOUBLE_EXTERNAL";
   const inc = doubleEntry?.income_statement || { total_revenue: 0, expense_items: [], total_expenses: 0, net_income: 0 };
   const bs = doubleEntry?.balance_sheet || { assets: [], liabilities: [], equities: [], total_assets: 0, total_liabilities: 0, total_equity: 0 };
   const limits = doubleEntry?.limit_checks || [];
@@ -120,7 +121,7 @@ export default function TaxDoubleEntryPanel({
       <Stack direction="row" spacing={1} alignItems="center" mb={1.5}>
         <AccountBalanceOutlinedIcon color="success" />
         <Typography variant="subtitle1" fontWeight={800}>
-          홈택스 셀프신고 4단계 입력 가이드
+          {isExternal ? "5월 1회 외부조정 의뢰 3단계 가이드" : "홈택스 셀프신고 4단계 입력 가이드"}
         </Typography>
       </Stack>
       {filingTier.tier === "DOUBLE_EXTERNAL" && (
@@ -466,10 +467,10 @@ export default function TaxDoubleEntryPanel({
             </Grid>
           </Grid>
 
-          {/* 3-B. 세무조정 한도 점검 + 홈택스 셀프신고 4단계 가이드 */}
+          {/* 3-B. 세무조정 한도 점검 + 홈택스/외부조정 가이드 */}
           <Grid container spacing={2.5}>
             <Grid item xs={12} md={5}>
-              {renderLimitChecksCard("세무조정 한도 자동 점검 (자기조정용)")}
+              {renderLimitChecksCard(isExternal ? "세무조정 한도 사전 점검 (외부조정 참고용)" : "세무조정 한도 자동 점검 (자기조정용)")}
             </Grid>
 
             <Grid item xs={12} md={7}>
@@ -477,16 +478,18 @@ export default function TaxDoubleEntryPanel({
             </Grid>
           </Grid>
 
-          {/* 4-B. 파일 다운로드 (간편장부 + 복식부기 재무제표) & 5월 1회 세무사 전달 */}
+          {/* 4-B. 파일 다운로드 (복식부기 재무제표) & 5월 1회 세무사 전달 */}
           <Grid container spacing={2.5}>
             <Grid item xs={12} md={6}>
               <Paper variant="outlined" sx={{ p: 3, borderRadius: 3, bgcolor: "#fff", height: "100%" }}>
                 <Stack spacing={2}>
                   <Typography variant="subtitle1" fontWeight={800}>
-                    홈택스 셀프신고 · 세무사 제출용 파일 생성
+                    {isExternal ? "세무사 전달용 복식부기 파일 생성" : "복식부기 재무제표 백업 · 제출용 파일 생성"}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    간편장부(7,500만 미만)와 복식부기 표준재무제표·합계잔액시산표·분개장(7,500만 이상)을 모두 생성합니다.
+                    {isExternal
+                      ? "복식부기 의무자(외부조정)는 간편장부를 사용할 수 없습니다. 아래 복식부기 재무제표·분개장 엑셀을 세무사에게 전달하세요."
+                      : "화면 보고 바로 홈택스 자기조정 신고가 가능하며, 5년 장부 보관 또는 세무사 확인이 필요할 때 복식부기 파일을 내려받으세요."}
                   </Typography>
                   <Stack direction="row" spacing={1.25} flexWrap="wrap" useFlexGap>
                     <Button
@@ -496,13 +499,6 @@ export default function TaxDoubleEntryPanel({
                       sx={{ bgcolor: "#03C75A", "&:hover": { bgcolor: "#008A60" } }}
                     >
                       복식부기 재무제표·분개장 (.xlsx)
-                    </Button>
-                    <Button
-                      variant="outlined"
-                      startIcon={<DescriptionOutlinedIcon />}
-                      onClick={() => apiClient.downloadLedgerXlsx(taxYear)}
-                    >
-                      간편장부·경비명세서 (.xlsx)
                     </Button>
                     <Button
                       variant="outlined"
