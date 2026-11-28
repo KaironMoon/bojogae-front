@@ -1,5 +1,7 @@
 /* eslint-disable react/prop-types */
 // Structure copied from the claim creation reference.
+import MobileCollapsibleInfo from "@/components/MobileCollapsibleInfo";
+
 import Icon from "./ClaimIcon";
 export default function ClaimReference({ vm }) {
   return (
@@ -9,97 +11,102 @@ export default function ClaimReference({ vm }) {
       ref={vm.form}
       onSubmit={(e) => e.preventDefault()}
     >
-      <div className="ns-card p-5 sm:p-6 bg-white flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div className="MuiBox-root css-0 space-y-1.5">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="px-2.5 py-0.5 rounded-full bg-primary-soft text-primary border border-emerald-200 text-[11px] font-black">
-              ONE-STOP CLAIM GENERATOR
-            </span>
-            <span className="px-2.5 py-0.5 rounded-full bg-sub-soft text-sub text-[11px] font-extrabold">
-              {vm.insurers.length}개 보험사 양식 동시 자동완성
-            </span>
-          </div>
-          <h4 className="MuiTypography-root MuiTypography-h4 css-u89f7c text-2xl sm:text-3xl font-black text-[#121314] tracking-tight">
-            보험금 청구서 만들기
-          </h4>
-          <p className="MuiTypography-root MuiTypography-body1 css-14cwalk text-xs sm:text-sm font-semibold text-[#4e5968]">
-            공통 정보를 한 번만 입력하면 선택한 여러 보험사별 청구서 PDF를
-            동시에 자동 생성합니다.
-          </p>
-        </div>
+      <MobileCollapsibleInfo title="보험금 청구서 만들기" badge="안내·과금" sx={{ mb: 0 }}>
+        <div className="space-y-5">
+          <div className="ns-card p-5 sm:p-6 bg-white flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div className="MuiBox-root css-0 space-y-1.5">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="px-2.5 py-0.5 rounded-full bg-primary-soft text-primary border border-emerald-200 text-[11px] font-black">
+                  ONE-STOP CLAIM GENERATOR
+                </span>
+                <span className="px-2.5 py-0.5 rounded-full bg-sub-soft text-sub text-[11px] font-extrabold">
+                  {vm.insurers.length}개 보험사 양식 동시 자동완성
+                </span>
+              </div>
+              <h4 className="MuiTypography-root MuiTypography-h4 css-u89f7c text-2xl sm:text-3xl font-black text-[#121314] tracking-tight">
+                보험금 청구서 만들기
+              </h4>
+              <p className="MuiTypography-root MuiTypography-body1 css-14cwalk text-xs sm:text-sm font-semibold text-[#4e5968]">
+                공통 정보를 한 번만 입력하면 선택한 여러 보험사별 청구서 PDF를
+                동시에 자동 생성합니다.
+              </p>
+            </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="px-3.5 py-2 rounded-2xl bg-primary-soft/70 border border-emerald-200 flex items-center gap-2">
-            <span className="w-7 h-7 rounded-xl bg-primary text-white flex items-center justify-center">
-              <Icon name="smartphone" className="w-4 h-4" />
-            </span>
-            <div className="text-xs">
-              <div className="font-black text-[#121314]">
-                다운로드 · 모바일 공유(모바일팩스)
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="px-3.5 py-2 rounded-2xl bg-primary-soft/70 border border-emerald-200 flex items-center gap-2">
+                <span className="w-7 h-7 rounded-xl bg-primary text-white flex items-center justify-center">
+                  <Icon name="smartphone" className="w-4 h-4" />
+                </span>
+                <div className="text-xs">
+                  <div className="font-black text-[#121314]">
+                    다운로드 · 모바일 공유(모바일팩스)
+                  </div>
+                  <div className="text-[11px] font-extrabold text-primary">
+                    무료 (0꼬막)
+                  </div>
+                </div>
               </div>
-              <div className="text-[11px] font-extrabold text-primary">
-                무료 (0꼬막)
+              <div className="px-3.5 py-2 rounded-2xl bg-[#fffbeb] border border-[#fde68a] flex items-center gap-2">
+                <span className="w-7 h-7 rounded-xl bg-amber-500 text-white flex items-center justify-center">
+                  <Icon name="printer" className="w-4 h-4" />
+                </span>
+                <div className="text-xs">
+                  <div className="font-black text-[#121314]">
+                    PC 다이렉트 웹팩스 발송
+                  </div>
+                  <div className="text-[11px] font-extrabold text-[#92400e]">
+                    보험사별 장수 따라 꼬막 차감 (실패 시 자동반환)
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-          <div className="px-3.5 py-2 rounded-2xl bg-[#fffbeb] border border-[#fde68a] flex items-center gap-2">
-            <span className="w-7 h-7 rounded-xl bg-amber-500 text-white flex items-center justify-center">
-              <Icon name="printer" className="w-4 h-4" />
-            </span>
-            <div className="text-xs">
-              <div className="font-black text-[#121314]">
-                PC 다이렉트 웹팩스 발송
-              </div>
-              <div className="text-[11px] font-extrabold text-[#92400e]">
-                보험사별 장수 따라 꼬막 차감 (실패 시 자동반환)
+
+          <div
+            className="MuiPaper-root MuiPaper-elevation MuiPaper-rounded MuiPaper-elevation0 MuiAlert-root MuiAlert-colorInfo MuiAlert-standardInfo MuiAlert-standard css-1e6coiq ns-card p-4 sm:p-5 bg-white border-l-4 border-l-primary"
+            role="alert"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-3">
+                <div className="MuiAlert-icon css-131is6g w-8 h-8 rounded-xl bg-primary-soft text-primary flex items-center justify-center shrink-0 mt-0.5">
+                  <Icon name="info" className="w-4 h-4" />
+                </div>
+                <div className="space-y-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-xs sm:text-sm font-black text-[#121314]">
+                      청구서 보관 · 다운로드 · 팩스 과금 안내
+                    </span>
+                    <span className="px-2 py-0.5 rounded-md bg-primary-soft text-primary text-[11px] font-black">
+                      청구서 보관
+                    </span>
+                    <span className="px-2 py-0.5 rounded-md bg-sub-soft text-sub text-[11px] font-extrabold">
+                      다운로드·공유 무료
+                    </span>
+                    <span className="px-2 py-0.5 rounded-md bg-amber-50 text-[#92400e] text-[11px] font-extrabold">
+                      발송 실패 시 100% 자동 반환
+                    </span>
+                  </div>
+
+                  <div className="MuiAlert-message css-127h8j3 text-xs text-[#4e5968] leading-relaxed font-medium">
+                    다운로드나 공유하기를 누르면 청구내역에 저장합니다.{" "}
+                    <strong>다운로드·공유 파일은 흑백 PDF로 제공</strong>하며,
+                    청구내역에서도 다시 다운로드하거나 모바일에서 공유할 수 있습니다.{" "}
+                    팩스 발송 결과는 청구내역의 발송 이력에서 확인할 수 있습니다.
+                    결과 확인이 필요한 건은 확인 전까지 다시 발송하지 마세요.{" "}
+                    <strong>다운로드·공유하기는 무료</strong>이며,{" "}
+                    <strong>
+                      실제 팩스 발송은 보험사별 장수에 따라 꼬막이 차감
+                    </strong>
+                    됩니다. 최종 발송 실패 시 해당 요금을 반환합니다.
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      </MobileCollapsibleInfo>
 
       {vm.feedback}
-      <div
-        className="MuiPaper-root MuiPaper-elevation MuiPaper-rounded MuiPaper-elevation0 MuiAlert-root MuiAlert-colorInfo MuiAlert-standardInfo MuiAlert-standard css-1e6coiq ns-card p-4 sm:p-5 bg-white border-l-4 border-l-primary"
-        role="alert"
-      >
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-start gap-3">
-            <div className="MuiAlert-icon css-131is6g w-8 h-8 rounded-xl bg-primary-soft text-primary flex items-center justify-center shrink-0 mt-0.5">
-              <Icon name="info" className="w-4 h-4" />
-            </div>
-            <div className="space-y-2">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-xs sm:text-sm font-black text-[#121314]">
-                  청구서 보관 · 다운로드 · 팩스 과금 안내
-                </span>
-                <span className="px-2 py-0.5 rounded-md bg-primary-soft text-primary text-[11px] font-black">
-                  청구서 보관
-                </span>
-                <span className="px-2 py-0.5 rounded-md bg-sub-soft text-sub text-[11px] font-extrabold">
-                  다운로드·공유 무료
-                </span>
-                <span className="px-2 py-0.5 rounded-md bg-amber-50 text-[#92400e] text-[11px] font-extrabold">
-                  발송 실패 시 100% 자동 반환
-                </span>
-              </div>
-
-              <div className="MuiAlert-message css-127h8j3 text-xs text-[#4e5968] leading-relaxed font-medium">
-                다운로드나 공유하기를 누르면 청구내역에 저장합니다.{" "}
-                <strong>다운로드·공유 파일은 흑백 PDF로 제공</strong>하며,
-                청구내역에서도 다시 다운로드하거나 모바일에서 공유할 수 있습니다.{" "}
-                팩스 발송 결과는 청구내역의 발송 이력에서 확인할 수 있습니다.
-                결과 확인이 필요한 건은 확인 전까지 다시 발송하지 마세요.{" "}
-                <strong>다운로드·공유하기는 무료</strong>이며,{" "}
-                <strong>
-                  실제 팩스 발송은 보험사별 장수에 따라 꼬막이 차감
-                </strong>
-                됩니다. 최종 발송 실패 시 해당 요금을 반환합니다.
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
 
       <div className="MuiStepper-root MuiStepper-horizontal MuiStepper-alternativeLabel css-14fmjab ns-card p-4 sm:p-5 bg-white">
         <div
@@ -112,28 +119,6 @@ export default function ClaimReference({ vm }) {
 
       {vm.step === 0 && (
         <div id="stepPanel1" className="space-y-4">
-          <div
-            id="noInsurerErrorAlert"
-            className="MuiPaper-root MuiAlert-root MuiAlert-standardError css-1ml9mpj flex p-4 rounded-2xl bg-rose-50 border border-rose-200 text-[#f04452] items-center justify-between gap-3"
-            role="alert"
-            hidden={vm.selected.length > 0}
-          >
-            <div className="flex items-center gap-2.5">
-              <Icon name="alert-circle" className="w-5 h-5 shrink-0" />
-              <div className="MuiAlert-message css-127h8j3 text-xs sm:text-sm font-black">
-                보험사를 한 곳 이상 선택해 주세요.
-              </div>
-            </div>
-            <button
-              type="button"
-              className="px-3 py-1.5 rounded-xl bg-[#f04452] text-white text-xs font-black shrink-0"
-              onClick={vm.selectPopular}
-              disabled={vm.busy}
-            >
-              KB·삼성·현대 선택
-            </button>
-          </div>
-
           <div
             id="selectedInsurersTray"
             className="ns-card p-4 bg-primary-soft/60 border-2 border-primary"
@@ -474,7 +459,7 @@ export default function ClaimReference({ vm }) {
         </div>
       )}
 
-      <div className="MuiStack-root css-1w57jtv ns-card p-4 bg-white/95 backdrop-blur-md border border-[#e6eaee] sticky bottom-4 z-10 flex items-center justify-between gap-3 shadow-xl">
+      <div className="MuiStack-root css-1w57jtv ns-card p-4 bg-white/95 backdrop-blur-md border border-[#e6eaee] sticky bottom-4 z-10 flex items-center justify-between gap-3 shadow-xl claim-sticky-footer">
         {vm.footer}
       </div>
     </form>

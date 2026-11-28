@@ -28,6 +28,7 @@ import PaymentHistoryPage from "../pages/profile/PaymentHistoryPage";
 import EmailChangeVerificationPage from "../pages/profile/EmailChangeVerificationPage";
 import PromptsPage from "../pages/prompts/PromptsPage";
 import ProposalsPage from "../pages/proposals/ProposalsPage";
+import AdminDashboardPage from "../pages/admin/AdminDashboardPage";
 import AdminProposalsPage from "../pages/admin/ProposalsPage";
 import AdminPopupNoticesPage from "../pages/admin/AdminPopupNoticesPage";
 import UsagePage from "../pages/admin/UsagePage";
@@ -190,6 +191,8 @@ const router = createBrowserRouter([
       {
         element: <PageLayout />,
         children: [
+          { path: "/admin", element: <Navigate to="/admin/dashboard" replace /> },
+          { path: "/admin/dashboard", element: <AdminDashboardPage /> },
           { path: "/admin/info", element: <Info /> },
           { path: "/admin/groups", element: <GroupsPage /> },
           { path: "/admin/groups/:groupId", element: <GroupsPage /> },

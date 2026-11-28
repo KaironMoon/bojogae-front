@@ -1,5 +1,7 @@
 /* eslint-disable react/prop-types */
 // Copied from the task HTML reference; controller supplies real data and actions.
+import MobileCollapsibleInfo from "@/components/MobileCollapsibleInfo";
+
 import TemplateIcon from "./TaskIcon";
 export default function TaskReference({ vm }) {
   return (
@@ -7,7 +9,23 @@ export default function TaskReference({ vm }) {
       <div id="viewScheduleWorkspace" className="space-y-3.5">
         {vm.feedback}
 
-        <div className="MuiStack-root css-1r40e5 ns-card p-4 bg-white flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+        <MobileCollapsibleInfo
+          title="할 일·방문 일정"
+          badge="자동 이벤트"
+          sx={{ mb: 0 }}
+          action={(
+            <button
+              type="button"
+              className="ns-hero-cta px-2.5 py-1.5 rounded-full text-white text-[11px] font-black flex items-center gap-1"
+              disabled={vm.busy || !vm.data}
+              onClick={vm.openCreate}
+            >
+              <TemplateIcon name="calendar-plus" className="w-3 h-3" />
+              <span>일정 등록</span>
+            </button>
+          )}
+        >
+          <div className="MuiStack-root css-1r40e5 ns-card p-4 bg-white flex flex-col lg:flex-row lg:items-center justify-between gap-3">
           <div className="MuiBox-root css-0 space-y-0.5">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="px-2 py-0.5 rounded-full bg-primary-soft text-primary border border-emerald-200 text-[11px] font-black">
@@ -54,7 +72,8 @@ export default function TaskReference({ vm }) {
               <span className="MuiTouchRipple-root css-4mb1j7"></span>
             </button>
           </div>
-        </div>
+          </div>
+        </MobileCollapsibleInfo>
 
         <div className="ns-card p-3.5 sm:p-4 bg-gradient-to-br from-[#ecfdf5] via-[#f8fafc] to-[#f5f3ff] border border-[#03c75a]/35 space-y-2.5 shadow-xs">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5 border-b border-[#cbd5e1]/50 pb-2.5">

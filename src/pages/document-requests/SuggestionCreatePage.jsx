@@ -22,6 +22,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import ErrorNoticeDialog from "@/components/ErrorNoticeDialog";
 import { getProposal, getProposals, proposalFileUrl } from "@/services/proposal-service";
 import { createSuggestion, getRequest, requestError, suggestionFileUrl } from "@/services/document-request-service";
 import "./document-requests.css";
@@ -198,11 +199,7 @@ export default function SuggestionCreatePage() {
         </div>
       </header>
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 2, borderRadius: 2.5 }}>
-          {error}
-        </Alert>
-      )}
+      <ErrorNoticeDialog message={error} onClose={() => setError("")} />
       {loading && (
         <Stack spacing={1.5} sx={{ mb: 2 }}>
           <Skeleton variant="rounded" height={120} sx={{ borderRadius: 3 }} />

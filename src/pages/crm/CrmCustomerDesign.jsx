@@ -1,8 +1,9 @@
+import ErrorNoticeDialog from "@/components/ErrorNoticeDialog";
 import { customerAddressDisplay } from "./customer-address-display";
 import { CustomerField } from "./CustomerReference";
 /* eslint-disable react/prop-types */
 import { useEffect, useState } from "react";
-import { Alert, Button, Drawer } from "@mui/material";
+import { Button, Drawer } from "@mui/material";
 import { Link } from "react-router-dom";
 import Icon from "./ContractDesignIcon";
 import CustomerDocuments from "./CustomerDocuments";
@@ -89,7 +90,7 @@ function CustomerDrawerContent({ customer, onClose, onSaved, onDelete, onPreviou
       <nav><button type="button" disabled={busy || !onPrevious} onClick={onPrevious} aria-label="이전 고객"><Icon name="up" /></button><button type="button" disabled={busy || !onNext} onClick={onNext} aria-label="다음 고객"><Icon name="down" /></button><button type="button" disabled={busy} onClick={onClose} aria-label="고객 상세 닫기"><Icon name="close" /></button></nav>
     </header>
     <div className="crm-customer-drawer-body">
-      {error && <Alert severity="error">{error}</Alert>}
+      <ErrorNoticeDialog message={error} onClose={() => setError("")} />
       <div className="customer-popup-launchers">
         <Link to="/proposals"><Icon name="sparkles" /><span>AI 보고서 생성</span></Link>
         <Link to="/claims/new"><Icon name="receipt" /><span>보험금 청구서</span></Link>

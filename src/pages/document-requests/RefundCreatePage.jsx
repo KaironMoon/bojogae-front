@@ -4,6 +4,7 @@ import ReplayRoundedIcon from "@mui/icons-material/ReplayRounded";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Alert, Box, Button, Skeleton, Stack, TextField, Typography } from "@mui/material";
+import ErrorNoticeDialog from "@/components/ErrorNoticeDialog";
 import { getProposal, proposalFileUrl } from "@/services/proposal-service";
 import { createRefund, requestError } from "@/services/document-request-service";
 import "./document-requests.css";
@@ -87,11 +88,7 @@ export default function RefundCreatePage() {
         </div>
       </header>
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 2, borderRadius: 2.5 }}>
-          {error}
-        </Alert>
-      )}
+      <ErrorNoticeDialog message={error} onClose={() => setError("")} />
 
       {loading ? (
         <Stack spacing={1.5}>

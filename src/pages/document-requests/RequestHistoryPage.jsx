@@ -35,6 +35,7 @@ import {
   suggestionFileUrl,
   updateRefund,
 } from "@/services/document-request-service";
+import MobileCollapsibleInfo from "@/components/MobileCollapsibleInfo";
 import { getProposal, proposalFileUrl, proposalRawResponseUrl } from "@/services/proposal-service";
 import "./document-requests.css";
 
@@ -229,8 +230,8 @@ export default function RequestHistoryPage({ kind, admin = false }) { // eslint-
         ? "현장에서 요청한 신규 서식 및 기존 보고서 개선 제안을 검토하고 답변합니다."
         : "새로운 보험 서식 추가나 기존 보고서 개선이 필요할 때 자유롭게 의견을 보내주세요.");
 
-  return (
-    <Box component="main" className="docreq-workspace">
+  const headerAndCallout = (
+    <>
       <header className={`docreq-hero${refund ? " docreq-hero--refund" : ""}`}>
         <div className="docreq-hero-main">
           <span className="docreq-hero-icon">
@@ -292,6 +293,30 @@ export default function RequestHistoryPage({ kind, admin = false }) { // eslint-
             환불 요청은 <Link to="/proposals">생성 보고서 목록</Link>에서 해당 보고서를 선택해 바로 접수할 수 있습니다.
           </span>
         </div>
+      )}
+    </>
+  );
+
+  return (
+    <Box component="main" className="docreq-workspace">
+      {admin ? headerAndCallout : (
+        <MobileCollapsibleInfo
+          title={pageTitle}
+          badge={result ? `총 ${(result.total ?? items.length).toLocaleString("ko-KR")}건` : null}
+          action={!refund ? (
+            <Button
+              component={Link}
+              to="/document-suggestions/new"
+              size="small"
+              variant="contained"
+              sx={{ minHeight: 30, px: 1.25, borderRadius: 99, fontSize: 11.5, fontWeight: 800, bgcolor: "#03C75A", "&:hover": { bgcolor: "#00A84B" } }}
+            >
+              + 건의 작성
+            </Button>
+          ) : null}
+        >
+          {headerAndCallout}
+        </MobileCollapsibleInfo>
       )}
 
       {location.state?.notice && (

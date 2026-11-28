@@ -92,7 +92,7 @@ export default function MobileHomeLauncher({
     supportItems.push({ title: "조직 관리", desc: "구성원 · 꼬막 배분", to: "/group", icon: GroupOutlinedIcon });
   }
   if (user?.role === "ADMIN") {
-    supportItems.push({ title: "관리자 메뉴", desc: "통계 · 운영 관리", to: "/admin/usage", icon: AdminPanelSettingsOutlinedIcon });
+    supportItems.push({ title: "관리자 대시보드", desc: "통계 · 운영 현황", to: "/admin/dashboard", icon: AdminPanelSettingsOutlinedIcon });
   }
 
   return (

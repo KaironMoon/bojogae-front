@@ -1,5 +1,7 @@
 /* eslint-disable react/prop-types */
 // Structure copied from the signature HTML reference.
+import MobileCollapsibleInfo from "@/components/MobileCollapsibleInfo";
+
 import TemplateIcon from "./TemplateIcon";
 export default function SignatureReference({ vm }) {
   return (
@@ -7,7 +9,23 @@ export default function SignatureReference({ vm }) {
       <div id="viewSignatureWorkspace" className="space-y-4">
         {vm.feedback}
 
-        <div className="ns-card p-4 sm:p-5 bg-white flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <MobileCollapsibleInfo
+          title="카톡 서명 관리"
+          badge="자동 결합"
+          sx={{ mb: 0 }}
+          action={(
+            <button
+              type="button"
+              className="ns-hero-cta px-2.5 py-1.5 rounded-full text-white text-[11px] font-black flex items-center gap-1"
+              onClick={() => vm.openCreate()}
+              disabled={vm.busy || !vm.page}
+            >
+              <TemplateIcon name="plus-circle" className="w-3.5 h-3.5" />
+              <span>등록</span>
+            </button>
+          )}
+        >
+          <div className="ns-card p-4 sm:p-5 bg-white flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="px-2.5 py-0.5 rounded-full bg-primary-soft text-primary border border-emerald-200 text-[11px] font-black">
@@ -43,7 +61,8 @@ export default function SignatureReference({ vm }) {
               <span>서명 등록</span>
             </button>
           </div>
-        </div>
+          </div>
+        </MobileCollapsibleInfo>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
           <div className="lg:col-span-7 space-y-4">

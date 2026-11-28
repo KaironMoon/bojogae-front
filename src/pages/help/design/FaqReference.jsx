@@ -1,12 +1,16 @@
 /* eslint-disable react/prop-types */
 // Markup copied from the FAQ design reference; live answers come from the API.
+import { Box } from "@mui/material";
+import MobileCollapsibleInfo from "@/components/MobileCollapsibleInfo";
+
 import Icon from "./FaqIcon";
 export default function FaqReference({ vm }) {
   return (
     <main className="MuiBox-root css-carmk4 max-w-[1280px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 pb-24">
       {vm.feedback}
       <div id="viewFaqWorkspace" className="space-y-7">
-        <div className="ns-card p-6 sm:p-8 bg-gradient-to-br from-[#121314] via-[#182229] to-[#0f291e] text-white relative overflow-hidden">
+        <MobileCollapsibleInfo title="FAQ · 자주 묻는 질문" badge="영상·1:1문의" sx={{ mb: 0 }}>
+          <div className="ns-card p-6 sm:p-8 bg-gradient-to-br from-[#121314] via-[#182229] to-[#0f291e] text-white relative overflow-hidden">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center relative z-10">
             <div className="lg:col-span-7 space-y-4">
               <div className="flex items-center gap-2 flex-wrap">
@@ -210,7 +214,34 @@ export default function FaqReference({ vm }) {
               </a>
             </div>
           </div>
-        </div>
+          </div>
+        </MobileCollapsibleInfo>
+
+        <Box sx={{ display: { xs: "block", md: "none" }, mt: 1.5 }}>
+          <div className="relative flex items-center bg-white rounded-2xl border-2 border-[#03c75a] shadow-sm overflow-hidden">
+            <div className="pl-3.5 pr-2 text-[#03c75a] flex items-center">
+              <Icon name="search" className="w-4 h-4" />
+            </div>
+            <input
+              placeholder="보고서, 꼬막, 모바일팩스 등 FAQ 검색"
+              type="search"
+              maxLength="200"
+              aria-label="FAQ 검색"
+              className="w-full py-2.5 pr-20 text-xs font-extrabold text-[#121314] outline-none bg-transparent"
+              value={vm.query}
+              onChange={(e) => vm.search(e.target.value)}
+            />
+            {vm.query && (
+              <button
+                type="button"
+                className="absolute right-2 px-2.5 py-1 rounded-lg bg-[#121314] text-white text-[11px] font-black"
+                onClick={() => vm.search("")}
+              >
+                초기화
+              </button>
+            )}
+          </div>
+        </Box>
 
         <div className="ns-card p-5 sm:p-6 bg-white space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#f1f5f9] pb-4">

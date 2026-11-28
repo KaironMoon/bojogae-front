@@ -1,6 +1,7 @@
 /* eslint-disable react/prop-types */
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Alert, Dialog } from "@mui/material";
+import { Alert, Button, Dialog } from "@mui/material";
+import ErrorNoticeDialog from "@/components/ErrorNoticeDialog";
 import {
   allTemplateOptions,
   listStudioTemplates,
@@ -290,18 +291,6 @@ export default function SnippetStudio({ collection = "snippets" }) {
     list,
     feedback: (
       <>
-        {!editor && !removing && error && (
-          <Alert
-            severity="error"
-            action={
-              <button type="button" onClick={() => setRevision((r) => r + 1)}>
-                다시 불러오기
-              </button>
-            }
-          >
-            {error}
-          </Alert>
-        )}
         {notice && (
           <Alert severity="success" onClose={() => setNotice("")}>
             {notice}
@@ -326,6 +315,7 @@ export default function SnippetStudio({ collection = "snippets" }) {
           item={editor}
           busy={busy}
           error={error}
+          onClearError={() => setError("")}
           onClose={close}
           onSave={save}
           signatureId={signatureId}
@@ -364,7 +354,6 @@ export default function SnippetStudio({ collection = "snippets" }) {
           </button>
         </div>
         <div className="template-dialog-body">
-          {error && <Alert severity="error">{error}</Alert>}
           <strong>{removing?.title}</strong>
           <p>
             {signature
@@ -393,6 +382,24 @@ export default function SnippetStudio({ collection = "snippets" }) {
           </div>
         </div>
       </Dialog>
+      <ErrorNoticeDialog
+        message={!editor ? error : ""}
+        onClose={() => setError("")}
+        action={
+          !removing ? (
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={() => {
+                setError("");
+                setRevision((r) => r + 1);
+              }}
+            >
+              다시 불러오기
+            </Button>
+          ) : null
+        }
+      />
     </>
   );
 }

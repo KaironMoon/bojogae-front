@@ -12,6 +12,7 @@ import {
   Typography,
 } from "@mui/material";
 import { crmPost, crmError } from "@/services/crm-service";
+import ErrorNoticeDialog from "@/components/ErrorNoticeDialog";
 import { Field } from "./CrmShared";
 import { CustomerForm } from "./CrmForms";
 import { CustomerPopupHeader } from "./CustomerReference";
@@ -158,7 +159,7 @@ export default function CrmImport({ onClose, onDone, renderRegistration }) {
         onClose={onClose}
         importReview={{
           busy,
-          error,
+          error: "",
           renderDetails: (draft) => (
             <Stack gap={1} mb={2}>
               <Stack direction="row" flexWrap="wrap" gap={1} alignItems="center" justifyContent="space-between">
@@ -226,15 +227,24 @@ export default function CrmImport({ onClose, onDone, renderRegistration }) {
           },
         }}
       />
+      <ErrorNoticeDialog message={error} onClose={() => setError("")} />
     </>;
   }
 
-  if (renderRegistration && !mappingOpen) return <>{registration}</>;
+  if (renderRegistration && !mappingOpen) {
+    return (
+      <>
+        {registration}
+        <ErrorNoticeDialog message={error} onClose={() => setError("")} />
+      </>
+    );
+  }
 
   const headers = table?.headers || text.split(/\r?\n/)[0]?.split(format === "CSV" ? "," : "\t")
     .map((header) => header.replace(/^"|"$/g, "").trim()).filter(Boolean) || [];
 
   return <>{registration}
+    <ErrorNoticeDialog message={error} onClose={() => setError("")} />
     <Dialog
       open
       onClose={busy ? undefined : onClose}
@@ -246,7 +256,6 @@ export default function CrmImport({ onClose, onDone, renderRegistration }) {
       <CustomerPopupHeader id="customer-import-title" title={mappingOpen ? "항목 연결 확인·수정" : "고객 등록 · 엑셀 가져오기"} icon="sheet" busy={busy} onClose={onClose} />
       <DialogContent>
         <Stack gap={2}>
-          {error && <Alert severity="error">{error}</Alert>}
           <Typography variant="body2" color="text.secondary">
             고객명만 필수이며 연락처·주소·생년월일은 나중에 입력할 수 있습니다.
           </Typography>

@@ -2,6 +2,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { Alert, Button, Checkbox, Dialog, ToggleButton, ToggleButtonGroup, useMediaQuery } from "@mui/material";
 import { crmDelete, crmError, crmGet, crmPost, crmPut } from "@/services/crm-service";
+import ErrorNoticeDialog from "@/components/ErrorNoticeDialog";
 import { CustomerField } from "./CustomerReference";
 import { Pages, State, useCrm } from "./CrmShared";
 import { GROUP_COLORS, GROUP_MEMBER_LIMIT, residentPrefix } from "./customer-group-options";
@@ -259,7 +260,7 @@ export default function CrmCustomerGroups({ selectedCustomers, onClose, onFilter
       <button type="button" aria-label="스마트 고객 그룹 관리 닫기" onClick={close} disabled={busy}><Icon name="close" /></button>
     </header>
     {pending.length > 0 && !draft?.stagedSelection && <Alert className="group-studio-message" severity="info">선택한 고객 {pending.length}명입니다. 등록할 그룹을 선택하거나 새로 만드세요.</Alert>}
-    {error && <Alert className="group-studio-message" severity="error">{error}</Alert>}
+    <ErrorNoticeDialog message={error} onClose={() => setError("")} />
     {notice && <Alert className="group-studio-message" severity="success">{notice}</Alert>}
     {mobile && <div className="group-studio-tabs" role="group" aria-label="그룹 관리 화면">
       <Button aria-pressed={pane === "groups"} onClick={() => setPane("groups")}><Icon name="folder" />1. 그룹 선택·생성</Button>

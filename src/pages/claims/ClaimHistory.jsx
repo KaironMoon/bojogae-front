@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import ErrorNoticeDialog from "@/components/ErrorNoticeDialog";
 import HistoryReference from "./design/HistoryReference";
 import HistoryCard from "./design/HistoryCard";
 import HistoryDetailReference from "./design/HistoryDetailReference";
@@ -287,7 +288,6 @@ export default function ClaimHistory({ onReuse, insurers = [] }) {
             {success}
           </Alert>
         )}
-        {error && !detail && <Alert severity="error">{error}</Alert>}
         {(loading || (busy && !detail)) && (
           <CircularProgress size={24} aria-label="청구 내역 불러오는 중" />
         )}
@@ -380,7 +380,7 @@ export default function ClaimHistory({ onReuse, insurers = [] }) {
               reuse,
               remove: () => askDelete(detail.id, detail.claim.insured_name),
               download: () => setPendingDownload({ id: detail.id }),
-              error: error ? <Alert severity="error">{error}</Alert> : null,
+              error: null,
               deliveries: (
                 <>
                   {" "}
@@ -622,11 +622,6 @@ export default function ClaimHistory({ onReuse, insurers = [] }) {
             수 없습니다. 이미 다운로드한 파일이나 보험사에 전송된 자료는
             삭제되지 않습니다.
           </Alert>
-          {deleteError && (
-            <Alert severity="error" sx={{ mt: 2 }}>
-              {deleteError}
-            </Alert>
-          )}
         </DialogContent>
         <DialogActions>
           <Button disabled={busy} onClick={() => setPendingDelete(null)}>
@@ -642,6 +637,13 @@ export default function ClaimHistory({ onReuse, insurers = [] }) {
           </Button>
         </DialogActions>
       </Dialog>
+      <ErrorNoticeDialog
+        message={error || deleteError}
+        onClose={() => {
+          setError("");
+          setDeleteError("");
+        }}
+      />
     </>
   );
 }

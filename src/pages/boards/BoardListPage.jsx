@@ -26,6 +26,7 @@ import {
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
+import MobileCollapsibleInfo from "@/components/MobileCollapsibleInfo";
 import {
   BOARD_ORDER,
   boardConfig,
@@ -344,38 +345,46 @@ export default function BoardListPage({ admin = false }) {
     setPage(1);
   }
 
+  const heroBlock = (
+    <header className={`board-hero board-hero--${boardType}`}>
+      <div className="board-hero-main">
+        <div className="board-hero-icon" aria-hidden="true">
+          <HeroIcon sx={{ fontSize: 26 }} />
+        </div>
+        <div style={{ minWidth: 0 }}>
+          <div className="board-hero-pill-row">
+            <span className="board-hero-pill">{config.badgeText}</span>
+            {admin && <span className="board-badge board-badge--slate">관리자 모드</span>}
+          </div>
+          <h1 className="board-hero-title">{admin ? config.adminLabel : config.label}</h1>
+          <p className="board-hero-desc">
+            {admin ? config.adminDescription : config.description}
+          </p>
+        </div>
+      </div>
+      {admin && (
+        <div className="board-hero-actions">
+          <Button
+            component={Link}
+            to={`/admin/boards/${boardType}/new`}
+            variant="contained"
+            startIcon={<AddRoundedIcon />}
+            className="board-write-btn"
+          >
+            글 작성
+          </Button>
+        </div>
+      )}
+    </header>
+  );
+
   return (
     <Box className={`board-workspace board-workspace--${boardType}`}>
-      <header className={`board-hero board-hero--${boardType}`}>
-        <div className="board-hero-main">
-          <div className="board-hero-icon" aria-hidden="true">
-            <HeroIcon sx={{ fontSize: 26 }} />
-          </div>
-          <div style={{ minWidth: 0 }}>
-            <div className="board-hero-pill-row">
-              <span className="board-hero-pill">{config.badgeText}</span>
-              {admin && <span className="board-badge board-badge--slate">관리자 모드</span>}
-            </div>
-            <h1 className="board-hero-title">{admin ? config.adminLabel : config.label}</h1>
-            <p className="board-hero-desc">
-              {admin ? config.adminDescription : config.description}
-            </p>
-          </div>
-        </div>
-        {admin && (
-          <div className="board-hero-actions">
-            <Button
-              component={Link}
-              to={`/admin/boards/${boardType}/new`}
-              variant="contained"
-              startIcon={<AddRoundedIcon />}
-              className="board-write-btn"
-            >
-              글 작성
-            </Button>
-          </div>
-        )}
-      </header>
+      {admin ? heroBlock : (
+        <MobileCollapsibleInfo title={config.label} badge={config.badgeText}>
+          {heroBlock}
+        </MobileCollapsibleInfo>
+      )}
 
       <nav className="board-switcher" aria-label="게시판 이동">
         {BOARD_ORDER.map((typeKey) => {

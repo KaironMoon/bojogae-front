@@ -1,30 +1,21 @@
-export const BADGE_TONES = [
-  { key: "green", label: "초록" },
-  { key: "rose", label: "빨강" },
-  { key: "purple", label: "보라" },
-  { key: "blue", label: "파랑" },
-  { key: "amber", label: "주황" },
-  { key: "slate", label: "회색" },
-];
+import {
+  BADGE_PRESETS,
+  BADGE_TONES,
+  createMenuEngine,
+  isCustomGroupKey,
+  moveItemByDrop,
+  moveItemByOffset,
+  normalizeMenuBadge,
+} from "./menu-tree-utils";
 
-const VALID_BADGE_TONES = new Set(BADGE_TONES.map((t) => t.key));
-
-export const BADGE_PRESETS = [
-  { text: "NEW", tone: "green" },
-  { text: "HOT", tone: "rose" },
-  { text: "BETA", tone: "purple" },
-  { text: "UP", tone: "blue" },
-  { text: "PRO", tone: "amber" },
-  { text: "추천", tone: "blue" },
-];
-
-export function normalizeMenuBadge(rawBadge) {
-  if (!rawBadge || typeof rawBadge !== "object") return null;
-  const text = typeof rawBadge.text === "string" ? rawBadge.text.trim().slice(0, 10) : "";
-  if (!text) return null;
-  const tone = VALID_BADGE_TONES.has(rawBadge.tone) ? rawBadge.tone : "green";
-  return { text, tone };
-}
+export {
+  BADGE_PRESETS,
+  BADGE_TONES,
+  isCustomGroupKey,
+  moveItemByDrop,
+  moveItemByOffset,
+  normalizeMenuBadge,
+};
 
 export const DEFAULT_USER_MENU_ITEMS = [
   {
@@ -261,277 +252,17 @@ export const DEFAULT_USER_MENU_ITEMS = [
   },
 ];
 
-const DEFAULT_BY_KEY = Object.fromEntries(DEFAULT_USER_MENU_ITEMS.map((item) => [item.key, item]));
+const engine = createMenuEngine(DEFAULT_USER_MENU_ITEMS);
 
-function buildLeafCatalog() {
-  const map = {};
-  for (const spec of DEFAULT_USER_MENU_ITEMS) {
-    if (spec.kind !== "group") {
-      map[spec.key] = { ...spec, default_parent_key: null };
-      continue;
-    }
-    for (const child of spec.children || []) {
-      map[child.key] = {
-        key: child.key,
-        label: child.default_label,
-        default_label: child.default_label,
-        kind: "item",
-        path: child.path,
-        prefix: null,
-        icon_key: spec.icon_key,
-        tone: spec.tone,
-        audience: child.audience || "ALL",
-        visible: true,
-        badge: child.badge ?? null,
-        default_parent_key: spec.key,
-      };
-    }
-  }
-  return map;
-}
-
-export const LEAF_BY_KEY = buildLeafCatalog();
-
-function cloneChild(spec, savedChild) {
-  const rawLabel = typeof savedChild?.label === "string" ? savedChild.label.trim() : "";
-  return {
-    key: spec.key,
-    label: (rawLabel || spec.default_label).slice(0, 40),
-    default_label: spec.default_label,
-    path: spec.path,
-    audience: spec.audience || "ALL",
-    visible: typeof savedChild?.visible === "boolean" ? savedChild.visible : true,
-    badge: normalizeMenuBadge(savedChild?.badge ?? spec.badge),
-  };
-}
-
-function cloneItem(spec, savedItem, seen = null) {
-  const rawLabel = typeof savedItem?.label === "string" ? savedItem.label.trim() : "";
-  const children = [];
-  if (Array.isArray(savedItem?.children)) {
-    for (const rawChild of savedItem.children) {
-      const childKey = rawChild?.key;
-      const childSpec = childKey ? LEAF_BY_KEY[childKey] : null;
-      if (!childSpec || (seen && seen.has(childKey))) continue;
-      if (seen) seen.add(childKey);
-      children.push(cloneChild(childSpec, rawChild));
-    }
-  }
-  return {
-    key: spec.key,
-    label: (rawLabel || spec.default_label).slice(0, 40),
-    default_label: spec.default_label,
-    kind: spec.kind,
-    path: spec.path,
-    prefix: spec.prefix || null,
-    icon_key: spec.icon_key,
-    tone: spec.tone,
-    audience: spec.audience || "ALL",
-    visible: typeof savedItem?.visible === "boolean" ? savedItem.visible : true,
-    badge: normalizeMenuBadge(savedItem?.badge ?? spec.badge),
-    children,
-  };
-}
-
-export function mergeUserMenuConfig(savedItems) {
-  const merged = [];
-  const seen = new Set();
-  const groupByKey = {};
-
-  if (Array.isArray(savedItems)) {
-    for (const savedItem of savedItems) {
-      const key = savedItem?.key;
-      const spec = key ? (DEFAULT_BY_KEY[key] || LEAF_BY_KEY[key]) : null;
-      if (!spec || seen.has(key)) continue;
-      seen.add(key);
-      const cloned = cloneItem(spec, savedItem, seen);
-      merged.push(cloned);
-      if (cloned.kind === "group") {
-        groupByKey[cloned.key] = cloned;
-      }
-    }
-  }
-  for (const spec of DEFAULT_USER_MENU_ITEMS) {
-    if (!seen.has(spec.key)) {
-      seen.add(spec.key);
-      const cloned = cloneItem(spec, null, seen);
-      merged.push(cloned);
-      if (cloned.kind === "group") {
-        groupByKey[cloned.key] = cloned;
-      }
-    }
-  }
-  for (const spec of DEFAULT_USER_MENU_ITEMS) {
-    if (spec.kind !== "group") continue;
-    const groupEntry = groupByKey[spec.key];
-    for (const childSpec of spec.children || []) {
-      if (!seen.has(childSpec.key)) {
-        seen.add(childSpec.key);
-        groupEntry.children.push(cloneChild(LEAF_BY_KEY[childSpec.key], null));
-      }
-    }
-  }
-  return merged;
-}
-
-function toTopLevelNode(node) {
-  if (node.kind === "group") return node;
-  const spec = DEFAULT_BY_KEY[node.key] || LEAF_BY_KEY[node.key];
-  if (!spec || spec.kind === "group") return node;
-  return {
-    ...spec,
-    label: node.label,
-    visible: Boolean(node.visible),
-    badge: normalizeMenuBadge(node.badge),
-    children: Array.isArray(node.children) ? node.children : [],
-  };
-}
-
-function toChildNode(node) {
-  const spec = LEAF_BY_KEY[node.key];
-  if (!spec) return null;
-  return cloneChild(spec, {
-    label: node.label,
-    visible: node.visible,
-    badge: node.badge,
-  });
-}
-
-export function toUserMenuPayload(items) {
-  return (items || []).map((item) => {
-    const label = typeof item.label === "string" && item.label.trim() ? item.label.trim() : item.default_label;
-    const entry = {
-      key: item.key,
-      label: label.slice(0, 40),
-      visible: Boolean(item.visible),
-      badge: normalizeMenuBadge(item.badge),
-    };
-    if (item.kind === "group" || (item.children && item.children.length > 0)) {
-      entry.children = (item.children || []).map((child) => {
-        const childLabel = typeof child.label === "string" && child.label.trim()
-          ? child.label.trim()
-          : child.default_label;
-        return {
-          key: child.key,
-          label: childLabel.slice(0, 40),
-          visible: Boolean(child.visible),
-          badge: normalizeMenuBadge(child.badge),
-        };
-      });
-    }
-    return entry;
-  });
-}
-
-export function moveItemByDrop(list, draggedKey, targetKey, position = "before") {
-  if (!Array.isArray(list) || !draggedKey || !targetKey || draggedKey === targetKey) {
-    return list;
-  }
-  const fromIndex = list.findIndex((item) => item.key === draggedKey);
-  if (fromIndex < 0) return list;
-
-  const next = [...list];
-  const [moved] = next.splice(fromIndex, 1);
-  const targetIndex = next.findIndex((item) => item.key === targetKey);
-  if (targetIndex < 0) return list;
-
-  const insertIndex = position === "after" ? targetIndex + 1 : targetIndex;
-  next.splice(insertIndex, 0, moved);
-  return next;
-}
-
-export function moveMenuNode(items, dragSource, dropTarget) {
-  if (!Array.isArray(items) || !dragSource?.key || !dropTarget) return items;
-
-  const next = items.map((item) => ({
-    ...item,
-    children: [...(item.children || [])],
-  }));
-
-  let movedNode = null;
-  let sourceIndex = -1;
-  if (dragSource.scope === "top") {
-    sourceIndex = next.findIndex((item) => item.key === dragSource.key);
-    if (sourceIndex < 0) return items;
-    movedNode = next[sourceIndex];
-    const hasOwnChildren = (movedNode.children || []).length > 0;
-    if ((movedNode.kind === "group" || hasOwnChildren) && dropTarget.kind !== "top") {
-      return items;
-    }
-    if (dropTarget.kind === "top" && dropTarget.key === dragSource.key) {
-      return items;
-    }
-    if (dropTarget.kind !== "top" && !LEAF_BY_KEY[movedNode.key]) {
-      return items;
-    }
-    next.splice(sourceIndex, 1);
-  } else if (dragSource.scope === "child") {
-    const parentGroup = next.find((item) => item.key === dragSource.groupKey);
-    if (!parentGroup) return items;
-    const childIndex = parentGroup.children.findIndex((c) => c.key === dragSource.key);
-    if (childIndex < 0) return items;
-    if (dropTarget.kind === "child" && dropTarget.groupKey === dragSource.groupKey && dropTarget.key === dragSource.key) {
-      return items;
-    }
-    if (dropTarget.kind === "group-inside" && dropTarget.groupKey === dragSource.groupKey) {
-      return items;
-    }
-    [movedNode] = parentGroup.children.splice(childIndex, 1);
-  } else {
-    return items;
-  }
-
-  if (dropTarget.kind === "top") {
-    const targetIndex = next.findIndex((item) => item.key === dropTarget.key);
-    if (targetIndex < 0) return items;
-    const insertIndex = dropTarget.position === "after" ? targetIndex + 1 : targetIndex;
-    next.splice(insertIndex, 0, toTopLevelNode(movedNode));
-    return next;
-  }
-
-  if (dropTarget.kind === "group-inside") {
-    const targetGroup = next.find((item) => item.key === dropTarget.groupKey);
-    const childNode = toChildNode(movedNode);
-    if (!targetGroup || !childNode) return items;
-    targetGroup.children = targetGroup.children || [];
-    targetGroup.children.push(childNode);
-    return next;
-  }
-
-  if (dropTarget.kind === "child") {
-    const targetGroup = next.find((item) => item.key === dropTarget.groupKey);
-    const childNode = toChildNode(movedNode);
-    if (!targetGroup || !childNode) return items;
-    targetGroup.children = targetGroup.children || [];
-    const targetChildIndex = targetGroup.children.findIndex((c) => c.key === dropTarget.key);
-    if (targetChildIndex < 0) return items;
-    const insertIndex = dropTarget.position === "after" ? targetChildIndex + 1 : targetChildIndex;
-    targetGroup.children.splice(insertIndex, 0, childNode);
-    return next;
-  }
-
-  return items;
-}
-
-export function promoteChildToTop(items, groupKey, childKey) {
-  return moveMenuNode(
-    items,
-    { scope: "child", groupKey, key: childKey },
-    { kind: "top", key: groupKey, position: "after" },
-  );
-}
-
-export function moveItemByOffset(list, index, delta) {
-  if (!Array.isArray(list)) return list;
-  const targetIndex = index + delta;
-  if (index < 0 || index >= list.length || targetIndex < 0 || targetIndex >= list.length) {
-    return list;
-  }
-  const next = [...list];
-  const [moved] = next.splice(index, 1);
-  next.splice(targetIndex, 0, moved);
-  return next;
-}
+export const LEAF_BY_KEY = engine.LEAF_BY_KEY;
+export const mergeUserMenuConfig = engine.mergeMenuConfig;
+export const toUserMenuPayload = engine.toMenuPayload;
+export const moveMenuNode = engine.moveMenuNode;
+export const moveUserMenuNodeWithMeta = engine.moveMenuNodeWithMeta;
+export const mergeUserMenusIntoGroup = engine.mergeMenusIntoGroup;
+export const dissolveUserCustomGroup = engine.dissolveCustomGroup;
+export const promoteChildToTop = engine.promoteChildToTop;
+export const hasMenuChanges = engine.hasMenuChanges;
 
 export function isChildEligibleForUser(child, user) {
   if (!child?.visible) return false;
@@ -556,8 +287,4 @@ export function isMenuEligibleForUser(item, user) {
     return Boolean(user?.group_id);
   }
   return true;
-}
-
-export function hasMenuChanges(currentItems, baselineItems) {
-  return JSON.stringify(toUserMenuPayload(currentItems)) !== JSON.stringify(toUserMenuPayload(baselineItems));
 }

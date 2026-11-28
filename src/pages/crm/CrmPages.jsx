@@ -1,3 +1,4 @@
+import ErrorNoticeDialog from "@/components/ErrorNoticeDialog";
 import { CustomerWorkspace, CustomerField } from "./CustomerReference";
 import CrmCustomerList from "./CrmCustomerList";
 import CustomerDocuments from "./CustomerDocuments";
@@ -92,9 +93,10 @@ function Archive({ kind, value, onClose, onDone }) {
         {value.archived ? "보관을 해제할까요?" : "보관할까요?"}
       </DialogTitle>
       <DialogContent>
-        {error && <Alert severity="error">{error}</Alert>}보관 시 기본 목록에서
+        보관 시 기본 목록에서
         제외되며 기존 기록은 유지됩니다.
       </DialogContent>
+      <ErrorNoticeDialog message={error} onClose={() => setError("")} />
       <DialogActions>
         <Button onClick={onClose} disabled={busy}>
           취소
@@ -112,7 +114,7 @@ function CustomerPageSize({ value, onChange, bottom = false }) {
 function BulkCustomerDelete({customers, onClose, onDone}) {
   const [busy,setBusy]=useState(false),[error,setError]=useState("");
   async function remove(){if(busy)return;setBusy(true);setError("");try{const result=await crmDeleteCustomers(customers.map(({id,version})=>({id,version})));onDone(result.count);}catch(e){setError(crmError(e));}finally{setBusy(false);}}
-  return <Dialog open onClose={busy?undefined:onClose} fullWidth maxWidth="xs" aria-labelledby="customer-delete-title" slotProps={{paper:{className:"crm-customer-dialog customer-delete-dialog"}}}><DialogTitle id="customer-delete-title"><ContractDesignIcon name="trash" />선택 고객 삭제</DialogTitle><DialogContent>{error&&<Alert severity="error">{error}</Alert>}<Typography>선택하신 {customers.length}명의 고객을 삭제하시겠습니까? 삭제된 고객은 목록에서 제외됩니다.</Typography><Typography variant="body2" sx={{mt:2}}>고객 정보와 상담·할 일 기록은 서버에 보존됩니다. 계약 또는 첨부파일이 연결된 고객은 먼저 연결 정보를 정리해야 합니다.</Typography></DialogContent><DialogActions><Button onClick={onClose} disabled={busy}>닫기</Button><Button variant="contained" color="error" onClick={remove} disabled={busy}>{busy?"삭제 중…":`${customers.length}명 삭제`}</Button></DialogActions></Dialog>;
+  return <><Dialog open onClose={busy?undefined:onClose} fullWidth maxWidth="xs" aria-labelledby="customer-delete-title" slotProps={{paper:{className:"crm-customer-dialog customer-delete-dialog"}}}><DialogTitle id="customer-delete-title"><ContractDesignIcon name="trash" />선택 고객 삭제</DialogTitle><DialogContent><Typography>선택하신 {customers.length}명의 고객을 삭제하시겠습니까? 삭제된 고객은 목록에서 제외됩니다.</Typography><Typography variant="body2" sx={{mt:2}}>고객 정보와 상담·할 일 기록은 서버에 보존됩니다. 계약 또는 첨부파일이 연결된 고객은 먼저 연결 정보를 정리해야 합니다.</Typography></DialogContent><DialogActions><Button onClick={onClose} disabled={busy}>닫기</Button><Button variant="contained" color="error" onClick={remove} disabled={busy}>{busy?"삭제 중…":`${customers.length}명 삭제`}</Button></DialogActions></Dialog><ErrorNoticeDialog message={error} onClose={() => setError("")} /></>;
 }
 export function CustomersPage() {
   const [pageSize, setPageSize] = useState(30);
@@ -1049,10 +1051,9 @@ function ContractBatchDialog({ action, contracts, reminder, onClose, onDone }) {
       setBusy(false);
     }
   }
-  return <Dialog open onClose={busy ? undefined : onClose} aria-labelledby="crm-contract-batch-title" fullWidth maxWidth="xs" slotProps={{ paper: { className: `crm-contract-batch-dialog crm-contract-batch-dialog--${action}` } }}>
+  return <><Dialog open onClose={busy ? undefined : onClose} aria-labelledby="crm-contract-batch-title" fullWidth maxWidth="xs" slotProps={{ paper: { className: `crm-contract-batch-dialog crm-contract-batch-dialog--${action}` } }}>
     <DialogTitle id="crm-contract-batch-title"><ContractDesignIcon name={archive ? "archive" : "calendar"} />선택한 계약 {contracts.length}건 {archive ? "보관" : "알림 등록"}</DialogTitle>
     <DialogContent>
-      {error && <Alert severity="error" sx={{ mb: 1 }}>{error}</Alert>}
       <Typography variant="body2">{archive
         ? "선택한 계약을 기본 목록에서 제외합니다. 보관 계약 목록에서 다시 확인할 수 있습니다."
         : "오늘 이후의 참고일을 연결된 고객의 할 일·방문 일정에 등록합니다. 알림 종류를 선택한 상태라면 해당 종류만 등록합니다."}</Typography>
@@ -1066,7 +1067,8 @@ function ContractBatchDialog({ action, contracts, reminder, onClose, onDone }) {
         {archive ? "보관하기" : "일정 등록하기"}
       </Button>
     </DialogActions>
-  </Dialog>;
+  </Dialog>
+  <ErrorNoticeDialog message={error} onClose={() => setError("")} /></>;
 }
 
 export function ContractsPage() {

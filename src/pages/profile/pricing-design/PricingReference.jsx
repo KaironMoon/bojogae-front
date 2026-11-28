@@ -1,5 +1,7 @@
 /* eslint-disable react/prop-types */
 // Copied from the pricing HTML design; application data and actions are bound separately.
+import MobileCollapsibleInfo from "@/components/MobileCollapsibleInfo";
+
 import Icon from "./PricingIcon";
 export default function PricingReference({ vm }) {
   return (
@@ -8,7 +10,8 @@ export default function PricingReference({ vm }) {
         id="viewPricingContent"
         className="MuiStack-root css-6222vs space-y-7 sm:space-y-9"
       >
-        <header className="MuiPaper-root MuiPaper-outlined MuiPaper-rounded css-17o6koo ns-card p-6 sm:p-8 bg-white relative overflow-hidden">
+        <MobileCollapsibleInfo title="요금 안내" badge="혜택·특전" sx={{ mb: 0 }}>
+          <header className="MuiPaper-root MuiPaper-outlined MuiPaper-rounded css-17o6koo ns-card p-6 sm:p-8 bg-white relative overflow-hidden">
           <div className="absolute -right-12 -top-12 w-64 h-64 rounded-full bg-gradient-to-br from-[#03c75a]/10 to-[#6b38fb]/10 blur-2xl pointer-events-none"></div>
 
           <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
@@ -75,7 +78,8 @@ export default function PricingReference({ vm }) {
               </div>
             </div>
           </div>
-        </header>
+          </header>
+        </MobileCollapsibleInfo>
 
         <div className="space-y-3">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-1">

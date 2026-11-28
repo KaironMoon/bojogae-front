@@ -1,6 +1,7 @@
 /* eslint-disable react/prop-types */
 import { useLayoutEffect, useRef, useState } from "react";
-import { Alert, Dialog } from "@mui/material";
+import { Dialog } from "@mui/material";
+import ErrorNoticeDialog from "@/components/ErrorNoticeDialog";
 import SignatureEditorReference from "./design/SignatureEditorReference";
 import SnippetEditorReference from "./design/SnippetEditorReference";
 import useTemplatePreview from "./design/useTemplatePreview";
@@ -9,6 +10,7 @@ export default function SnippetStudioEditor({
   item,
   busy,
   error,
+  onClearError,
   onClose,
   onSave,
   signatureId,
@@ -91,11 +93,7 @@ export default function SnippetStudioEditor({
     busy: busy || personalizing,
     onClose,
     ...preview,
-    feedback: error || insertionError ? (
-      <Alert severity="error" className="template-feedback">
-        {error || insertionError}
-      </Alert>
-    ) : null,
+    feedback: null,
     emojis: [
       "😀",
       "😊",
@@ -132,22 +130,31 @@ export default function SnippetStudioEditor({
     ],
   };
   return (
-    <Dialog
-      open
-      onClose={onClose}
-      maxWidth={false}
-      aria-labelledby=":r10k:"
-      slotProps={{
-        paper: {
-          className: "template-design template-modal template-editor-modal",
-        },
-      }}
-    >
-      {signature ? (
-        <SignatureEditorReference vm={vm} />
-      ) : (
-        <SnippetEditorReference vm={vm} />
-      )}
-    </Dialog>
+    <>
+      <Dialog
+        open
+        onClose={onClose}
+        maxWidth={false}
+        aria-labelledby=":r10k:"
+        slotProps={{
+          paper: {
+            className: "template-design template-modal template-editor-modal",
+          },
+        }}
+      >
+        {signature ? (
+          <SignatureEditorReference vm={vm} />
+        ) : (
+          <SnippetEditorReference vm={vm} />
+        )}
+      </Dialog>
+      <ErrorNoticeDialog
+        message={error || insertionError}
+        onClose={() => {
+          setInsertionError("");
+          onClearError?.();
+        }}
+      />
+    </>
   );
 }

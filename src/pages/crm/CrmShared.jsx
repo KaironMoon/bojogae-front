@@ -1,3 +1,5 @@
+import ErrorNoticeDialog from "@/components/ErrorNoticeDialog";
+import MobileCollapsibleInfo from "@/components/MobileCollapsibleInfo";
 import { CustomerField } from "./CustomerReference";
 /* eslint-disable react/prop-types, react-refresh/only-export-components */
 import ContractDesignIcon from "./ContractDesignIcon";
@@ -68,28 +70,35 @@ export function useCrm(path, params = {}) {
 export function Page({ title, description, actions, headerClassName, badges, children }) {
   return (
     <Box sx={{ p: { xs: 1.5, md: 3 }, maxWidth: 1400, mx: "auto" }}>
-      <Stack
-        className={headerClassName}
-        direction={{ xs: "column", sm: "row" }}
-        justifyContent="space-between"
-        gap={2}
-        mb={3}
-      >
-        <Box>
-          {badges}
-          <div className="crm-page-title-line"><Typography variant="h5" fontWeight={800}>
-            {title}
-          </Typography>
-          {description && (
-            <Typography color="text.secondary" mt={0.5}>
-              {description}
+      <MobileCollapsibleInfo title={title} badge="CRM">
+        <Stack
+          className={headerClassName}
+          direction={{ xs: "column", sm: "row" }}
+          justifyContent="space-between"
+          gap={2}
+          mb={3}
+        >
+          <Box>
+            {badges}
+            <div className="crm-page-title-line"><Typography variant="h5" fontWeight={800}>
+              {title}
             </Typography>
-          )}</div>
-        </Box>
-        <Stack direction="row" gap={1} flexWrap="wrap">
-          {actions}
+            {description && (
+              <Typography color="text.secondary" mt={0.5}>
+                {description}
+              </Typography>
+            )}</div>
+          </Box>
+          <Stack direction="row" gap={1} flexWrap="wrap">
+            {actions}
+          </Stack>
         </Stack>
-      </Stack>
+      </MobileCollapsibleInfo>
+      {actions && (
+        <Box sx={{ display: { xs: "flex", md: "none" }, gap: 1, flexWrap: "wrap", mb: 1.5 }}>
+          {actions}
+        </Box>
+      )}
       {children}
     </Box>
   );
@@ -185,6 +194,8 @@ export function Editor({
   children,
   busy,
   error,
+  clearError,
+  onClearError,
 }) {
   const styledModal = contractLayout || contractTaskLayout || activityLayout;
   const paperClass = [
@@ -211,49 +222,51 @@ export function Editor({
       : ""
   );
   return (
-    <Dialog
-      open={open}
-      aria-labelledby={titleId}
-      onClose={busy ? undefined : onClose}
-      fullWidth
-      maxWidth={maxWidth}
-      slotProps={styledModal ? { paper: { className: paperClass } } : undefined}
-    >
-      <Box
-        component="form"
-        onSubmit={(e) => {
-          e.preventDefault();
-          onSubmit();
-        }}
+    <>
+      <Dialog
+        open={open}
+        aria-labelledby={titleId}
+        onClose={busy ? undefined : onClose}
+        fullWidth
+        maxWidth={maxWidth}
+        slotProps={styledModal ? { paper: { className: paperClass } } : undefined}
       >
-        {styledModal ? <div className="crm-contract-dialog-header">
-          <span className={`crm-contract-dialog-icon${activityLayout ? ` crm-activity-dialog-icon--${resolvedIcon}` : ""}`}><ContractDesignIcon name={resolvedIcon} /></span>
-          <div>
-            <div className="crm-contract-dialog-heading">
-              <DialogTitle id={titleId} className="css-2o971p">{title}</DialogTitle>
-              {resolvedBadge && <span>{resolvedBadge}</span>}
+        <Box
+          component="form"
+          onSubmit={(e) => {
+            e.preventDefault();
+            onSubmit();
+          }}
+        >
+          {styledModal ? <div className="crm-contract-dialog-header">
+            <span className={`crm-contract-dialog-icon${activityLayout ? ` crm-activity-dialog-icon--${resolvedIcon}` : ""}`}><ContractDesignIcon name={resolvedIcon} /></span>
+            <div>
+              <div className="crm-contract-dialog-heading">
+                <DialogTitle id={titleId} className="css-2o971p">{title}</DialogTitle>
+                {resolvedBadge && <span>{resolvedBadge}</span>}
+              </div>
+              <Typography variant="caption">{resolvedSubtitle}</Typography>
             </div>
-            <Typography variant="caption">{resolvedSubtitle}</Typography>
-          </div>
-          <IconButton aria-label="닫기" onClick={onClose} disabled={busy}><ContractDesignIcon name="close" /></IconButton>
-        </div> : <DialogTitle id={titleId}>{title}</DialogTitle>}
-        <DialogContent>
-          <Stack gap={2} pt={1}>
-            {error && <Alert severity="error">{error}</Alert>}
-            {children}
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          {resolvedFooterNote && <span className="crm-contract-dialog-footer-note">{resolvedFooterNote}</span>}
-          <Button className={styledModal ? "crm-dialog-cancel-btn" : undefined} disabled={busy} onClick={onClose}>
-            취소
-          </Button>
-          <Button className={styledModal ? "crm-dialog-submit-btn" : undefined} variant="contained" disabled={busy} type="submit">
-            {busy ? "저장 중…" : submitLabel}
-          </Button>
-        </DialogActions>
-      </Box>
-    </Dialog>
+            <IconButton aria-label="닫기" onClick={onClose} disabled={busy}><ContractDesignIcon name="close" /></IconButton>
+          </div> : <DialogTitle id={titleId}>{title}</DialogTitle>}
+          <DialogContent>
+            <Stack gap={2} pt={1}>
+              {children}
+            </Stack>
+          </DialogContent>
+          <DialogActions>
+            {resolvedFooterNote && <span className="crm-contract-dialog-footer-note">{resolvedFooterNote}</span>}
+            <Button className={styledModal ? "crm-dialog-cancel-btn" : undefined} disabled={busy} onClick={onClose}>
+              취소
+            </Button>
+            <Button className={styledModal ? "crm-dialog-submit-btn" : undefined} variant="contained" disabled={busy} type="submit">
+              {busy ? "저장 중…" : submitLabel}
+            </Button>
+          </DialogActions>
+        </Box>
+      </Dialog>
+      <ErrorNoticeDialog message={error} onClose={onClearError || clearError} />
+    </>
   );
 }
 export function useSave(onSave, onClose) {
@@ -272,7 +285,7 @@ export function useSave(onSave, onClose) {
       setBusy(false);
     }
   };
-  return { busy, error, save };
+  return { busy, error, save, clearError: () => setError("") };
 }
 export const emptyLocation = () => ({
   address: "",

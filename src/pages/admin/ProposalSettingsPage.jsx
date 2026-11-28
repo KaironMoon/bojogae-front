@@ -19,6 +19,7 @@ import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
 import { useEffect, useState } from "react";
 import AdminEmailSettings from "./AdminEmailSettings";
+import AdminMenuSettings from "./AdminMenuSettings";
 import AdminSettingsAudit from "./AdminSettingsAudit";
 import MaintenanceSettings from "./MaintenanceSettings";
 import UserMenuSettings from "./UserMenuSettings";
@@ -39,7 +40,8 @@ const FIELDS = [
 ];
 
 const SETTING_TABS = [
-  { key: "user-menu", label: "좌측 메뉴 관리" },
+  { key: "user-menu", label: "좌측 유저 메뉴" },
+  { key: "admin-menu", label: "관리자 메뉴 관리" },
   { key: "proposal", label: "AI · 생성 제한" },
   { key: "point-costs", label: "문서별 꼬막 · 혜택" },
   { key: "operations", label: "서비스 점검 · 알림" },
@@ -162,10 +164,11 @@ function ProposalSettingsPage() {
         </Tabs>
       </Paper>
 
-      {activeTab !== "user-menu" && error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-      {activeTab !== "user-menu" && message && <Alert severity="success" sx={{ mb: 2 }}>{message}</Alert>}
+      {activeTab !== "user-menu" && activeTab !== "admin-menu" && error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      {activeTab !== "user-menu" && activeTab !== "admin-menu" && message && <Alert severity="success" sx={{ mb: 2 }}>{message}</Alert>}
 
       {activeTab === "user-menu" && <UserMenuSettings />}
+      {activeTab === "admin-menu" && <AdminMenuSettings />}
 
       {activeTab === "proposal" && (
         proposalLoading ? (

@@ -1,5 +1,7 @@
 /* eslint-disable react/prop-types */
 // HTML structure copied from the insurer design reference.
+import MobileCollapsibleInfo from "@/components/MobileCollapsibleInfo";
+
 import Icon from "./InsurerIcon";
 export default function DirectoryReference({ vm }) {
   return (
@@ -7,7 +9,9 @@ export default function DirectoryReference({ vm }) {
       <div id="viewAppWorkspace" className="space-y-5">
         {vm.feedback}
 
-        <div className="ns-card p-5 sm:p-6 bg-white flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <MobileCollapsibleInfo title="보험사 정보·링크" badge="가이드·링크" sx={{ mb: 0 }}>
+          <div className="space-y-5">
+            <div className="ns-card p-5 sm:p-6 bg-white flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="space-y-1.5">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-primary-soft text-primary border border-emerald-200">
@@ -178,6 +182,8 @@ export default function DirectoryReference({ vm }) {
             />
           </a>
         </div>
+          </div>
+        </MobileCollapsibleInfo>
 
         <div className="ns-card p-4 sm:p-5 bg-white space-y-3.5">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">

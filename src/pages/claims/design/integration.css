@@ -30,3 +30,4 @@
 .claim-design .claim-footer-previous:hover:not(:disabled){background:#f4f6f8}
 .claim-design .claim-footer-next{padding:12px 24px;color:#fff;font-size:14px;font-weight:900}
 @media(max-width:639px){.claim-design .claim-footer-status{display:none}.claim-design .claim-footer-next{font-size:12px;padding:12px;flex:1;min-width:0}.claim-design .claim-footer-previous{padding:10px}.claim-design .claim-footer-leading{flex-shrink:0}.claim-design .claim-footer-actions{gap:8px}}
+@media(max-width:899.95px){.claim-design .claim-sticky-footer{bottom:calc(68px + env(safe-area-inset-bottom, 0px))!important;z-index:1050;padding:10px 12px}.claim-design .claim-create{padding-bottom:16px}}

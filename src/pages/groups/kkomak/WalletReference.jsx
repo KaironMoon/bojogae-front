@@ -1,6 +1,7 @@
 /* eslint-disable react/prop-types */
 // Markup copied from docs/design_improve/내꼬막 개편안.html; sample data/actions bound below.
 import { Link } from 'react-router-dom';
+import MobileCollapsibleInfo from '@/components/MobileCollapsibleInfo';
 import WalletIcon from './WalletIcon';
 import { amount, number, date, reportCount, reportCost } from './wallet-format';
 const filterClass = active => `px-3.5 py-2 rounded-xl text-xs font-black transition-all ${active ? 'bg-[#121314] text-white' : 'bg-[#f4f6f8] text-[#4e5968] hover:bg-slate-200'}`;
@@ -11,7 +12,7 @@ return <main className="MuiBox-root css-1rylx60 max-w-[1280px] w-full mx-auto px
             <div id="viewKkomakWorkspace" className="MuiPaper-root MuiPaper-elevation MuiPaper-rounded MuiPaper-elevation1 css-1tr048b space-y-6">
                 <div className="MuiStack-root css-1ov46kg space-y-6">
 
-                    
+                    <MobileCollapsibleInfo title="내꼬막" badge="안내·내역" sx={{ mb: 0 }}>
                     <div className="ns-card p-6 bg-white flex flex-col lg:flex-row lg:items-center justify-between gap-5">
                         <div className="space-y-1.5">
                             <div className="flex items-center gap-2 flex-wrap">
@@ -51,6 +52,7 @@ return <main className="MuiBox-root css-1rylx60 max-w-[1280px] w-full mx-auto px
                             
                         </div>
                     </div>
+                    </MobileCollapsibleInfo>
 
                     
                     <div className="MuiPaper-root MuiPaper-outlined MuiPaper-rounded css-fwbcl7 ns-card p-6 bg-white border-2 border-[#03c75a]/30 relative overflow-hidden">

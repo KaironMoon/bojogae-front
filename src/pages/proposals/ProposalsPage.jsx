@@ -115,6 +115,7 @@ import HelpOutlineRoundedIcon from "@mui/icons-material/HelpOutlineRounded";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useTheme } from "@mui/material/styles";
+import MobileCollapsibleInfo from "@/components/MobileCollapsibleInfo";
 import ExpiringPoints from "@/pages/components/ExpiringPoints";
 
 import {
@@ -1808,50 +1809,80 @@ function ProposalsPage() {
 
   return (
     <Box ref={helpRootRef} sx={{ p: { xs: 1.75, sm: 2.5, lg: 3.5 }, width: "100%", maxWidth: showInlineVideoColumn ? 1720 : 1440, mx: "auto", boxSizing: "border-box", overflowX: "clip" }}>
-      <Paper variant="outlined" sx={{ p: { xs: 2, sm: 2.5 }, mb: 2.5 }}>
-        <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ xs: "stretch", sm: "center" }} gap={1.5}>
-          <Box>
-            <Stack direction="row" alignItems="center" flexWrap="wrap" gap={1}>
-              <Typography variant="h4" component="h1" sx={{ fontSize: { xs: 20, sm: 24 }, fontWeight: 900, letterSpacing: "-0.025em" }}>보고서 만들기</Typography>
-              <Button size="small" startIcon={<HelpOutlineRoundedIcon />} onClick={openHelpDialog}
-                sx={{ bgcolor: "background.default", px: 1, fontSize: 12, fontWeight: 800, borderRadius: "8px" }}>도움말 보기</Button>
-              {!showInlineVideoColumn && (
-                <Button
-                  size="small"
-                  variant="outlined"
-                  data-report-help="guide-video"
-                  startIcon={<PlayCircleFilledRoundedIcon />}
-                  onClick={showVideoColumn}
-                  sx={{
-                    borderColor: "rgba(220, 38, 38, 0.45)",
-                    color: "#B91C1C",
-                    bgcolor: "#FFF5F5",
-                    px: 1.25,
-                    fontSize: 12,
-                    fontWeight: 800,
-                    borderRadius: "999px",
-                    "&:hover": { borderColor: "#DC2626", bgcolor: "#FEE2E2" },
-                  }}
-                >
-                  {isWideForVideoColumn ? "영상 컬럼 다시 보기" : "영상 가이드 열기"}
-                </Button>
-              )}
-            </Stack>
-            <Typography color="text.secondary" sx={{ mt: 0.5, fontSize: 12, fontWeight: 500, lineHeight: 1.55 }}>
-              문서 유형을 선택하고 필요한 자료를 입력하면, 선택한 프롬프트로 문서를 생성합니다.
-            </Typography>
-          </Box>
-          <Button component={Link} to="/my-coins" startIcon={<KkomakIcon />} sx={{
-            flexShrink: 0, justifyContent: "flex-start", gap: 0.75, px: 1.5, py: 0.75, bgcolor: "#FFFBEB", color: "#854D0E",
-            border: "2px solid #FDE68A", borderRadius: "16px", fontWeight: 900, "&:hover": { bgcolor: "#FEF3C7" },
-          }}>
-            보유 {pointBalance.total_points.toLocaleString()}꼬막
-            <Box component="span" sx={{ ml: "auto", px: 0.75, borderRadius: 99, border: "1px solid #FCD34D", bgcolor: "white", fontSize: 10 }}>내역</Box>
-          </Button>
-        </Stack>
-      </Paper>
+      <MobileCollapsibleInfo
+        title="보고서 만들기"
+        sx={{ mb: 1.5 }}
+        badge={(
+          <Link
+            to="/my-coins"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 4,
+              padding: "2px 8px",
+              borderRadius: 99,
+              backgroundColor: "#FFFBEB",
+              border: "1px solid #FDE68A",
+              color: "#854D0E",
+              fontSize: 11,
+              fontWeight: 800,
+              textDecoration: "none",
+              whiteSpace: "nowrap",
+              flexShrink: 0,
+            }}
+          >
+            {pointBalance.total_points.toLocaleString()}꼬막
+            {Boolean(pointBalance?.expiring_points && pointBalance?.next_expiration) && (
+              <Box component="span" sx={{ color: "#D97706", fontWeight: 900 }}>·만료예정</Box>
+            )}
+          </Link>
+        )}
+      >
+        <Paper variant="outlined" sx={{ p: { xs: 2, sm: 2.5 }, mb: 2.5 }}>
+          <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ xs: "stretch", sm: "center" }} gap={1.5}>
+            <Box>
+              <Stack direction="row" alignItems="center" flexWrap="wrap" gap={1}>
+                <Typography variant="h4" component="h1" sx={{ fontSize: { xs: 20, sm: 24 }, fontWeight: 900, letterSpacing: "-0.025em" }}>보고서 만들기</Typography>
+                <Button size="small" startIcon={<HelpOutlineRoundedIcon />} onClick={openHelpDialog}
+                  sx={{ bgcolor: "background.default", px: 1, fontSize: 12, fontWeight: 800, borderRadius: "8px" }}>도움말 보기</Button>
+                {!showInlineVideoColumn && (
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    data-report-help="guide-video"
+                    startIcon={<PlayCircleFilledRoundedIcon />}
+                    onClick={showVideoColumn}
+                    sx={{
+                      borderColor: "rgba(220, 38, 38, 0.45)",
+                      color: "#B91C1C",
+                      bgcolor: "#FFF5F5",
+                      px: 1.25,
+                      fontSize: 12,
+                      fontWeight: 800,
+                      borderRadius: "999px",
+                      "&:hover": { borderColor: "#DC2626", bgcolor: "#FEE2E2" },
+                    }}
+                  >
+                    {isWideForVideoColumn ? "영상 컬럼 다시 보기" : "영상 가이드 열기"}
+                  </Button>
+                )}
+              </Stack>
+              <Typography color="text.secondary" sx={{ mt: 0.5, fontSize: 12, fontWeight: 500, lineHeight: 1.55 }}>
+                문서 유형을 선택하고 필요한 자료를 입력하면, 선택한 프롬프트로 문서를 생성합니다.
+              </Typography>
+            </Box>
+            <Button component={Link} to="/my-coins" startIcon={<KkomakIcon />} sx={{
+              flexShrink: 0, justifyContent: "flex-start", gap: 0.75, px: 1.5, py: 0.75, bgcolor: "#FFFBEB", color: "#854D0E",
+              border: "2px solid #FDE68A", borderRadius: "16px", fontWeight: 900, "&:hover": { bgcolor: "#FEF3C7" },
+            }}>
+              보유 {pointBalance.total_points.toLocaleString()}꼬막
+              <Box component="span" sx={{ ml: "auto", px: 0.75, borderRadius: 99, border: "1px solid #FCD34D", bgcolor: "white", fontSize: 10 }}>내역</Box>
+            </Button>
+          </Stack>
+        </Paper>
 
-      <ExpiringPoints balance={pointBalance} />
+        <ExpiringPoints balance={pointBalance} />
+      </MobileCollapsibleInfo>
 
       {isMobileProposal && (
         <Stack spacing={1.75} sx={{ pb: 3, minWidth: 0 }}>
@@ -2380,8 +2411,6 @@ function ProposalsPage() {
                       </Stack>
                     </Paper>
                   )}
-
-                  {error && <Alert severity="error" onClose={() => setError("")}>{error}</Alert>}
 
                   <Paper variant="outlined" sx={{ p: 1.75, borderRadius: 3 }}>
                     {user?.role === "ADMIN" && Boolean(promptOption?.versions?.length) && selectedPrompt && (

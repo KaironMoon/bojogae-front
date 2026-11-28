@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Alert, Dialog, Drawer } from "@mui/material";
+import ErrorNoticeDialog from "@/components/ErrorNoticeDialog";
 import { crmGet, crmPost, crmPut, crmError } from "@/services/crm-service";
 import { LocationFields, emptyLocation } from "./CrmShared";
 import { localDateTime } from "./crm-utils";
@@ -201,7 +202,7 @@ export default function TaskStudio() {
   };
   const feedback = (
     <>
-      {error && <Alert severity="error">{error}</Alert>}
+      <ErrorNoticeDialog message={error} onClose={() => setError("")} />
       {notice && (
         <Alert severity="success" onClose={() => setNotice("")}>
           {notice}
@@ -350,7 +351,6 @@ export default function TaskStudio() {
         <h2>일정 삭제</h2>
         <div className="p-5 space-y-4">
           <p>‘{item?.title}’ 일정을 삭제할까요?</p>
-          {error && <Alert severity="error">{error}</Alert>}
           <div className="flex justify-end gap-2">
             <button
               className="px-4 py-2 border rounded-xl"

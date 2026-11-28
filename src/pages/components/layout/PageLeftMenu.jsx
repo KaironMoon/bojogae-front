@@ -12,31 +12,20 @@ import {
   ListItemText,
   Typography,
 } from "@mui/material";
-import AnalyticsOutlinedIcon from "@mui/icons-material/AnalyticsOutlined";
-import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
-import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import AutoAwesomeRoundedIcon from "@mui/icons-material/AutoAwesomeRounded";
-import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
-import ChatBubbleOutlineRoundedIcon from "@mui/icons-material/ChatBubbleOutlineRounded";
-import ContactPhoneOutlinedIcon from "@mui/icons-material/ContactPhoneOutlined";
-import EditNoteRoundedIcon from "@mui/icons-material/EditNoteRounded";
 import ExpandLessRoundedIcon from "@mui/icons-material/ExpandLessRounded";
 import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
-import GroupOutlinedIcon from "@mui/icons-material/GroupOutlined";
-import HelpOutlineOutlinedIcon from "@mui/icons-material/HelpOutlineOutlined";
-import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
-import LibraryBooksOutlinedIcon from "@mui/icons-material/LibraryBooksOutlined";
-import NewspaperOutlinedIcon from "@mui/icons-material/NewspaperOutlined";
-import ReplayRoundedIcon from "@mui/icons-material/ReplayRounded";
-import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
-import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
-import ViewCarouselOutlinedIcon from "@mui/icons-material/ViewCarouselOutlined";
-import AccountBalanceWalletOutlinedIcon from "@mui/icons-material/AccountBalanceWalletOutlined";
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import { useAuth } from "@/auth/AuthContext";
 import { planName } from "@/constants/plans";
+import { isAdminMenuEligible } from "@/services/admin-menu-config";
+import {
+  getAdminMenu,
+  getCachedAdminMenu,
+  subscribeAdminMenuChanges,
+} from "@/services/admin-menu-service";
 import {
   isChildEligibleForUser,
   isMenuEligibleForUser,
@@ -50,34 +39,8 @@ import { reportHero, reportHeroBadge, reportHeroIcon } from "@/styles/reportThem
 
 import { MenuBadge, MenuIcon } from "./userMenuIcons";
 
-const ADMIN_POINT_MENU = [
-  { label: "꼬막 지급·회수·내역", path: "/admin/points" },
-  { label: "결제·환불 처리", path: "/admin/payment-support" },
-];
-
-const ADMIN_MENU = [
-  { label: "조직 관리", path: "/admin/groups", icon: GroupOutlinedIcon },
-  { label: "설계사 관리", path: "/admin/users", icon: GroupOutlinedIcon },
-  { label: "꼬막 관리", items: ADMIN_POINT_MENU, icon: AccountBalanceWalletOutlinedIcon, tone: "amber" },
-  { label: "예약결제 목록", path: "/admin/payment-reservations", icon: AccountBalanceWalletOutlinedIcon },
-  { label: "프롬프트 관리", path: "/admin/prompts", icon: AutoAwesomeOutlinedIcon },
-  { label: "보고서 관리", path: "/admin/proposals", icon: LibraryBooksOutlinedIcon, tone: "indigo" },
-  { label: "환불 요청 관리", path: "/admin/refund-requests", icon: ReplayRoundedIcon, tone: "rose" },
-  { label: "보고서 개선 건의 관리", path: "/admin/document-suggestions", icon: EditNoteRoundedIcon, tone: "purple" },
-  { label: "통계 · 분석 대시보드", path: "/admin/usage", icon: AnalyticsOutlinedIcon },
-  { label: "설정 및 서식", path: "/admin/proposal-settings", icon: TuneOutlinedIcon },
-  { label: "메인 배너 관리", path: "/admin/dashboard-banners", icon: ViewCarouselOutlinedIcon },
-  { label: "보험사 정보 관리", path: "/admin/insurers", icon: ContactPhoneOutlinedIcon },
-  { label: "단체 문의 관리", path: "/admin/group-inquiries", icon: ContactPhoneOutlinedIcon },
-];
-
-const ADMIN_BOARD_MENU = [
-  { label: "공지사항 관리", path: "/admin/boards/notices", icon: CampaignOutlinedIcon },
-  { label: "업계소식 관리", path: "/admin/boards/industry-news", icon: NewspaperOutlinedIcon },
-  { label: "보험 지식 관리", path: "/admin/boards/insurance-knowledge", icon: SchoolOutlinedIcon },
-];
-
 function pathMatches(pathname, targetPath) {
+  if (!targetPath) return false;
   return pathname === targetPath || (targetPath !== "/home" && pathname.startsWith(`${targetPath}/`));
 }
 
@@ -85,7 +48,19 @@ function isGroupRouteActive(pathname, item) {
   if (item.prefix && pathname.startsWith(item.prefix)) return true;
   if (item.key === "requests" && pathname.startsWith("/proposals/")) return true;
   if (item.key === "profile" && pathname.startsWith("/my-coins")) return true;
+  if (item.path && pathMatches(pathname, item.path)) return true;
   return (item.children || []).some((child) => pathMatches(pathname, child.path));
+}
+
+function collectOpenGroups(items, pathname) {
+  const initial = {};
+  for (const item of items) {
+    const hasChildren = item.kind === "group" || (item.children || []).length > 0;
+    if (hasChildren && isGroupRouteActive(pathname, item)) {
+      initial[item.key] = true;
+    }
+  }
+  return initial;
 }
 
 function PageLeftMenu({ onNavigate, inDrawer = false }) { // eslint-disable-line react/prop-types
@@ -93,6 +68,7 @@ function PageLeftMenu({ onNavigate, inDrawer = false }) { // eslint-disable-line
   const location = useLocation();
   const { user } = useAuth();
   const [userMenuItems, setUserMenuItems] = useState(() => getCachedUserMenu());
+  const [adminMenuItems, setAdminMenuItems] = useState(() => getCachedAdminMenu());
   const [adminMenuMode, setAdminMenuMode] = useState(() => (
     location.pathname.startsWith("/admin/") ? "admin" : "user"
   ));
@@ -101,18 +77,8 @@ function PageLeftMenu({ onNavigate, inDrawer = false }) { // eslint-disable-line
       setAdminMenuMode("admin");
     }
   }, [location.pathname]);
-  const [openGroups, setOpenGroups] = useState(() => {
-    const initial = {};
-    for (const item of getCachedUserMenu()) {
-      const hasChildren = item.kind === "group" || (item.children || []).length > 0;
-      if (hasChildren && isGroupRouteActive(location.pathname, item)) {
-        initial[item.key] = true;
-      }
-    }
-    return initial;
-  });
-  const [adminBoardsOpen, setAdminBoardsOpen] = useState(location.pathname.startsWith("/admin/boards/"));
-  const [adminPointsOpen, setAdminPointsOpen] = useState(ADMIN_POINT_MENU.some((item) => location.pathname === item.path));
+  const [openGroups, setOpenGroups] = useState(() => collectOpenGroups(getCachedUserMenu(), location.pathname));
+  const [openAdminGroups, setOpenAdminGroups] = useState(() => collectOpenGroups(getCachedAdminMenu(), location.pathname));
 
   useEffect(() => {
     let active = true;
@@ -131,10 +97,27 @@ function PageLeftMenu({ onNavigate, inDrawer = false }) { // eslint-disable-line
   }, []);
 
   useEffect(() => {
-    setOpenGroups((prev) => {
+    if (user?.role !== "ADMIN") return undefined;
+    let active = true;
+    getAdminMenu()
+      .then((res) => {
+        if (active && Array.isArray(res?.items)) setAdminMenuItems(res.items);
+      })
+      .catch(() => {});
+    const unsubscribe = subscribeAdminMenuChanges((items) => {
+      if (active) setAdminMenuItems(items);
+    });
+    return () => {
+      active = false;
+      unsubscribe();
+    };
+  }, [user?.role]);
+
+  useEffect(() => {
+    const syncOpenState = (prev, items) => {
       let changed = false;
       const next = { ...prev };
-      for (const item of userMenuItems) {
+      for (const item of items) {
         const hasChildren = item.kind === "group" || (item.children || []).length > 0;
         if (hasChildren && isGroupRouteActive(location.pathname, item) && !next[item.key]) {
           next[item.key] = true;
@@ -142,10 +125,10 @@ function PageLeftMenu({ onNavigate, inDrawer = false }) { // eslint-disable-line
         }
       }
       return changed ? next : prev;
-    });
-    if (location.pathname.startsWith("/admin/boards/")) setAdminBoardsOpen(true);
-    if (ADMIN_POINT_MENU.some((item) => location.pathname === item.path)) setAdminPointsOpen(true);
-  }, [location.pathname, userMenuItems]);
+    };
+    setOpenGroups((prev) => syncOpenState(prev, userMenuItems));
+    setOpenAdminGroups((prev) => syncOpenState(prev, adminMenuItems));
+  }, [location.pathname, userMenuItems, adminMenuItems]);
 
   const isActive = (path) => pathMatches(location.pathname, path);
 
@@ -293,6 +276,7 @@ function PageLeftMenu({ onNavigate, inDrawer = false }) { // eslint-disable-line
   };
 
   const visibleUserMenus = userMenuItems.filter((item) => isMenuEligibleForUser(item, user));
+  const visibleAdminMenus = adminMenuItems.filter((item) => isAdminMenuEligible(item));
 
   return (
     <Box
@@ -485,27 +469,23 @@ function PageLeftMenu({ onNavigate, inDrawer = false }) { // eslint-disable-line
             MANAGEMENT
           </Typography>
           <List sx={{ py: 0 }}>
-            {ADMIN_MENU.map((item) => (item.items
-              ? renderMenuGroup({
-                ...item,
-                open: adminPointsOpen,
-                onToggle: () => setAdminPointsOpen((value) => !value),
-                prefix: "/admin/point-menu/",
-              })
-              : renderMenuItem(item)))}
-            {renderMenuGroup({
-              label: "게시판 관리",
-              icon: ArticleOutlinedIcon,
-              items: ADMIN_BOARD_MENU,
-              open: adminBoardsOpen,
-              onToggle: () => setAdminBoardsOpen((value) => !value),
-              prefix: "/admin/boards/",
+            {visibleAdminMenus.map((item) => {
+              const visibleChildren = (item.children || []).filter((child) => child?.visible !== false);
+              if (item.kind === "group" || visibleChildren.length > 0) {
+                return renderMenuGroup({
+                  label: item.label,
+                  icon_key: item.icon_key,
+                  tone: item.tone,
+                  badge: item.badge,
+                  path: item.kind === "group" ? undefined : item.path,
+                  items: visibleChildren,
+                  open: Boolean(openAdminGroups[item.key]),
+                  onToggle: () => setOpenAdminGroups((prev) => ({ ...prev, [item.key]: !prev[item.key] })),
+                  prefix: item.prefix || item.key,
+                });
+              }
+              return renderMenuItem(item);
             })}
-            {renderMenuItem({ label: "Info", path: "/admin/info", icon: InfoOutlinedIcon })}
-            {renderMenuItem({ label: "팝업 공지 관리", path: "/admin/popup-notices", icon: CampaignOutlinedIcon })}
-            {renderMenuItem({ label: "FAQ 관리", path: "/admin/faqs", icon: HelpOutlineOutlinedIcon })}
-            {renderMenuItem({ label: "보조개톡 오류 보고", path: "/admin/talk-error-reports", icon: HelpOutlineOutlinedIcon })}
-            {renderMenuItem({ label: "보조개톡 배포 관리", path: "/admin/talk-releases", icon: ChatBubbleOutlineRoundedIcon })}
           </List>
         </>
       )}

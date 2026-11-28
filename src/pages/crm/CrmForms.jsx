@@ -178,6 +178,7 @@ export function CustomerForm({ open = true, value, onSave, onClose, spreadsheet,
       onClose={onClose}
       onSubmit={importReview ? undefined : submit}
       error={importReview?.error || state.error}
+      onClearError={state.clearError}
       busy={state.busy || aiBusy || spreadsheet?.busy || importReview?.busy}
       footer={importReview?.renderFooter(draft)}
     >

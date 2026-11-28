@@ -1,6 +1,8 @@
 /* eslint-disable react/prop-types */
 import { useId } from "react";
-import { Dialog } from "@mui/material";
+import { Box, Dialog } from "@mui/material";
+import ErrorNoticeDialog from "@/components/ErrorNoticeDialog";
+import MobileCollapsibleInfo from "@/components/MobileCollapsibleInfo";
 import Icon from "./ContractDesignIcon";
 import "./crm-customers.css";
 import "./customer-popup-reference.css";
@@ -23,26 +25,36 @@ export function CustomerField({ id, label, labelAside, inputAside, value, onChan
 
 export function CustomerWorkspace({ title, description, badges, actions, children }) {
   return <div className="customer-ref-workspace">
-    <header className="customer-ref-header ns-card">
-      <div>{badges}<div className="customer-ref-heading"><h1>{title}</h1><p>{description}</p></div></div>
-      <div className="customer-ref-header-actions">{actions}</div>
-    </header>
+    <MobileCollapsibleInfo title={title} badge="CRM">
+      <header className="customer-ref-header ns-card">
+        <div>{badges}<div className="customer-ref-heading"><h1>{title}</h1><p>{description}</p></div></div>
+        <div className="customer-ref-header-actions">{actions}</div>
+      </header>
+    </MobileCollapsibleInfo>
+    {actions && (
+      <Box sx={{ display: { xs: "flex", md: "none" }, gap: 1, flexWrap: "wrap", mb: 1.5 }}>
+        {actions}
+      </Box>
+    )}
     {children}
   </div>;
 }
 
-export function CustomerModal({ open, title, titleId, description, onClose, onSubmit, busy, error, footer, children }) {
-  return <Dialog open={open} onClose={busy ? undefined : onClose} aria-labelledby={titleId} fullWidth maxWidth={false} slotProps={{ paper: { className: "crm-customer-dialog customer-ref-register" } }}>
-    <form onSubmit={event => { event.preventDefault(); if (!busy) onSubmit?.(); }}>
-      <header className="customer-ref-modal-header">
-        <span className="customer-ref-modal-icon"><Icon name="user_plus" /></span>
-        <div className="customer-ref-modal-heading"><div><h2 id={titleId}>{title}</h2>{!description && <span className={title === "고객 등록" ? "customer-ref-ai-badge" : undefined}>{title === "고객 등록" ? "✨ AI 텍스트·이미지 자동 파싱 탑재" : "생년월일·성별 → 주민번호 7자리 자동완성"}</span>}</div><p>{description ?? (title === "고객 등록" ? "상단 AI 입력창에 제공받은 고객 DB 텍스트를 붙여넣거나 이미지를 첨부하면 고객정보가 자동 입력됩니다." : "카톡대화명과 주소를 입력하면 보조개톡 및 주변 고객 지도와 연동됩니다.")}</p></div>
-        <button className="customer-ref-close" type="button" disabled={busy} onClick={onClose} aria-label="닫기"><Icon name="close" /></button>
-      </header>
-      <div className="customer-ref-modal-body">{error && <p className="customer-ref-error" role="alert">{error}</p>}{children}</div>
-      <footer className="customer-ref-modal-footer">{footer ?? <><span>💡 등록 후에도 고객 상세 화면에서 언제든 수정할 수 있습니다.</span><button type="button" disabled={busy} onClick={onClose}>취소</button><button type="submit" className="customer-ref-primary" disabled={busy}>{busy ? "저장 중…" : "저장"}</button></>}</footer>
-    </form>
-  </Dialog>;
+export function CustomerModal({ open, title, titleId, description, onClose, onSubmit, busy, error, onClearError, footer, children }) {
+  return <>
+    <Dialog open={open} onClose={busy ? undefined : onClose} aria-labelledby={titleId} fullWidth maxWidth={false} slotProps={{ paper: { className: "crm-customer-dialog customer-ref-register" } }}>
+      <form onSubmit={event => { event.preventDefault(); if (!busy) onSubmit?.(); }}>
+        <header className="customer-ref-modal-header">
+          <span className="customer-ref-modal-icon"><Icon name="user_plus" /></span>
+          <div className="customer-ref-modal-heading"><div><h2 id={titleId}>{title}</h2>{!description && <span className={title === "고객 등록" ? "customer-ref-ai-badge" : undefined}>{title === "고객 등록" ? "✨ AI 텍스트·이미지 자동 파싱 탑재" : "생년월일·성별 → 주민번호 7자리 자동완성"}</span>}</div><p>{description ?? (title === "고객 등록" ? "상단 AI 입력창에 제공받은 고객 DB 텍스트를 붙여넣거나 이미지를 첨부하면 고객정보가 자동 입력됩니다." : "카톡대화명과 주소를 입력하면 보조개톡 및 주변 고객 지도와 연동됩니다.")}</p></div>
+          <button className="customer-ref-close" type="button" disabled={busy} onClick={onClose} aria-label="닫기"><Icon name="close" /></button>
+        </header>
+        <div className="customer-ref-modal-body">{children}</div>
+        <footer className="customer-ref-modal-footer">{footer ?? <><span>💡 등록 후에도 고객 상세 화면에서 언제든 수정할 수 있습니다.</span><button type="button" disabled={busy} onClick={onClose}>취소</button><button type="submit" className="customer-ref-primary" disabled={busy}>{busy ? "저장 중…" : "저장"}</button></>}</footer>
+      </form>
+    </Dialog>
+    <ErrorNoticeDialog message={error} onClose={onClearError} />
+  </>;
 }
 
 // Header structure from the group/import/batch dialogs in the HTML reference.

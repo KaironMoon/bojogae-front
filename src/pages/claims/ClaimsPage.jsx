@@ -17,6 +17,7 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
+import ErrorNoticeDialog from "@/components/ErrorNoticeDialog";
 import ClaimReference from "./design/ClaimReference";
 import Icon from "./design/ClaimIcon";
 import "./design/source.css";
@@ -1343,12 +1344,6 @@ export default function ClaimsPage() {
     ),
     feedback: (
       <>
-        {" "}
-        {error && (
-          <Alert severity="error" sx={{ whiteSpace: "pre-line" }}>
-            {error}
-          </Alert>
-        )}
         {saved && (
           <Alert
             severity={
@@ -1546,6 +1541,21 @@ export default function ClaimsPage() {
           onSelect={loadCustomer}
         />
       )}
+      <ErrorNoticeDialog
+        message={error}
+        onClose={() => setError("")}
+        action={error === "보험사를 한 곳 이상 선택해 주세요." && !busy ? (
+          <Button
+            variant="outlined"
+            onClick={() => {
+              vm.selectPopular();
+              setError("");
+            }}
+          >
+            KB·삼성·현대 선택
+          </Button>
+        ) : null}
+      />
     </Box>
   );
 }
