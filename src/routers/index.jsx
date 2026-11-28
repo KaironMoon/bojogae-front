@@ -63,6 +63,8 @@ const CustomerDetailPage = lazy(() => import('../pages/crm/CrmPages').then((m) =
 const ContractsPage = lazy(() => import('../pages/crm/CrmPages').then((m) => ({ default: m.ContractsPage })));
 const ContractDetailPage = lazy(() => import('../pages/crm/CrmPages').then((m) => ({ default: m.ContractDetailPage })));
 const TasksPage = lazy(() => import('../pages/crm/TaskStudio'));
+const TaxAutomationPage = lazy(() => import('../pages/tax/TaxAutomationPage'));
+const AdminTaxAutomationPage = lazy(() => import('../pages/admin/AdminTaxAutomationPage'));
 
 const ProductLayout = lazy(() => import("../pages/product/ProductLayout"));
 const ProductList = lazy(() => import("../pages/product"));
@@ -168,6 +170,7 @@ const router = createBrowserRouter([
           { path: '/crm/contracts', element: <Suspense fallback={<div role="status">불러오는 중…</div>}><ContractsPage /></Suspense> },
           { path: '/crm/contracts/:contractId', element: <Suspense fallback={<div role="status">불러오는 중…</div>}><ContractDetailPage /></Suspense> },
           { path: '/crm/tasks', element: <Suspense fallback={<div role="status">불러오는 중…</div>}><TasksPage /></Suspense> },
+          { path: "/tax", element: <Suspense fallback={<div role="status">불러오는 중…</div>}><TaxAutomationPage /></Suspense> },
           { path: "/kakao-message-templates/snippets", element: <SnippetStudio key="snippets" /> },
           { path: "/kakao-message-templates/signatures", element: <SnippetStudio key="signatures" collection="signatures" /> },
           { path: "/insurers", element: <InsurersPage /> },
@@ -202,6 +205,7 @@ const router = createBrowserRouter([
           { path: "/admin/points", element: <PointsPage /> },
           { path: "/admin/payment-support", element: <PaymentSupportPage /> },
           { path: "/admin/payment-reservations", element: <PaymentHistoryPage key="admin-reservations" admin /> },
+          { path: "/admin/tax", element: <Suspense fallback={<div role="status">불러오는 중…</div>}><AdminTaxAutomationPage /></Suspense> },
           { path: "/admin/prompts", element: <PromptsPage /> },
           { path: "/admin/proposals", element: <AdminProposalsPage /> },
           { path: "/admin/usage", element: <UsagePage /> },

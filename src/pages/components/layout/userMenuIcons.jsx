@@ -7,6 +7,7 @@ import AnalyticsOutlinedIcon from "@mui/icons-material/AnalyticsOutlined";
 import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
 import AutoAwesomeRoundedIcon from "@mui/icons-material/AutoAwesomeRounded";
 import BugReportOutlinedIcon from "@mui/icons-material/BugReportOutlined";
+import CalculateOutlinedIcon from "@mui/icons-material/CalculateOutlined";
 import CalendarMonthOutlinedIcon from "@mui/icons-material/CalendarMonthOutlined";
 import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
 import ChatBubbleOutlineRoundedIcon from "@mui/icons-material/ChatBubbleOutlineRounded";
@@ -101,6 +102,7 @@ export const USER_MENU_ICONS = {
   contact_phone: ContactPhoneOutlinedIcon,
   campaign: CampaignOutlinedIcon,
   bug_report: BugReportOutlinedIcon,
+  calculate: CalculateOutlinedIcon,
 };
 
 export function MenuIcon({ icon, iconKey, tone = "slate", compact = false }) {
