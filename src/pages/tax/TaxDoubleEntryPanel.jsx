@@ -548,7 +548,7 @@ export default function TaxDoubleEntryPanel({
         key={filingTier.tier || "default"}
         overview={overview}
         doubleEntry={doubleEntry}
-        defaultExpanded={!isSimple}
+        defaultExpanded
       />
 
       <TaxAccountingFormatGuide compact={isSimple} />

@@ -100,14 +100,14 @@ const TAX_BRACKETS = [
 ];
 
 const KOREAN_BRACKET_FORMULA = [
-  { upper: 14_000_000, rate: 0.06, deduction: 0 },
-  { upper: 50_000_000, rate: 0.15, deduction: 1_260_000 },
-  { upper: 88_000_000, rate: 0.24, deduction: 5_760_000 },
-  { upper: 150_000_000, rate: 0.35, deduction: 15_440_000 },
-  { upper: 300_000_000, rate: 0.38, deduction: 19_940_000 },
-  { upper: 500_000_000, rate: 0.40, deduction: 25_940_000 },
-  { upper: 1_000_000_000, rate: 0.42, deduction: 35_940_000 },
-  { upper: Number.POSITIVE_INFINITY, rate: 0.45, deduction: 65_940_000 },
+  { upper: 14_000_000, rate: 0.06, deduction: 0, label: "1,400만 이하" },
+  { upper: 50_000_000, rate: 0.15, deduction: 1_260_000, label: "1,400만~5,000만" },
+  { upper: 88_000_000, rate: 0.24, deduction: 5_760_000, label: "5,000만~8,800만" },
+  { upper: 150_000_000, rate: 0.35, deduction: 15_440_000, label: "8,800만~1.5억" },
+  { upper: 300_000_000, rate: 0.38, deduction: 19_940_000, label: "1.5억~3억" },
+  { upper: 500_000_000, rate: 0.40, deduction: 25_940_000, label: "3억~5억" },
+  { upper: 1_000_000_000, rate: 0.42, deduction: 35_940_000, label: "5억~10억" },
+  { upper: Number.POSITIVE_INFINITY, rate: 0.45, deduction: 65_940_000, label: "10억 초과" },
 ];
 
 function computeInteractiveTax({
@@ -124,6 +124,22 @@ function computeInteractiveTax({
   const basicDeduction = netIncome > 0 ? Math.max(1, Number(dependentsCount || 1)) * 1_500_000 : 0;
   const taxableBase = Math.max(0, adjustedNet - basicDeduction - yellowUmbrella - nationalPension);
 
+  const slices = [];
+  let prevUpper = 0;
+  for (const b of KOREAN_BRACKET_FORMULA) {
+    if (taxableBase <= prevUpper) break;
+    const sliceAmount = Math.min(taxableBase, b.upper) - prevUpper;
+    if (sliceAmount > 0) {
+      slices.push({
+        label: b.label,
+        amount: sliceAmount,
+        ratePct: Math.round(b.rate * 100),
+        tax: Math.floor(sliceAmount * b.rate),
+      });
+    }
+    prevUpper = b.upper;
+  }
+
   const row =
     KOREAN_BRACKET_FORMULA.find((b) => taxableBase <= b.upper) ||
     KOREAN_BRACKET_FORMULA[KOREAN_BRACKET_FORMULA.length - 1];
@@ -133,14 +149,25 @@ function computeInteractiveTax({
   const stdCredit = taxableBase > 0 ? 70_000 : 0;
 
   let nationalTax = Math.max(0, grossNational - stdCredit - pensionCredit);
+  let bookkeepingCredit = 0;
   if (voluntaryBookkeepingCredit) {
-    const bookkeepingCredit = Math.min(1_000_000, Math.floor(nationalTax * 0.2));
+    bookkeepingCredit = Math.min(1_000_000, Math.floor(nationalTax * 0.2));
     nationalTax = Math.max(0, nationalTax - bookkeepingCredit);
   }
   const localTax = Math.floor(nationalTax * 0.1);
   const totalTax = nationalTax + localTax;
   return {
     taxableBase,
+    slices,
+    appliedRatePct: Math.round(row.rate * 100),
+    progressiveDeduction: row.deduction,
+    grossNational,
+    stdCredit,
+    pensionRatePct: Math.round(pensionRate * 100),
+    pensionCredit,
+    bookkeepingCredit,
+    nationalTax,
+    localTax,
     totalTax,
     refundOrPayable: withheldTotal - totalTax,
   };
@@ -252,6 +279,112 @@ const YEARLY_TIMELINE = [
   },
 ];
 
+const SIMPLE_TIER_STRATEGIES = [
+  {
+    no: "01",
+    title: "2월 연말정산 vs 5월 장부 신고 유리 선택",
+    badge: "신입·2,400만 미만 핵심",
+    badgeColor: "info",
+    effect: "단순경비율(73.7%) vs 실제 경비 비교 후 더 큰 환급액 선택",
+    detail:
+      "직전연도 2,400만 원 미만이거나 신규 위촉 설계사는 영수증 없이도 73.7% 단순경비율이 적용됩니다. 지출 경비가 더 많다면 보조개 간편장부로 5월 종소세 신고 시 추가 환급됩니다.",
+    caution: "2,400만~7,500만 원 구간은 단순경비율이 안 되므로 실제 카드·경비 기장이 환급액을 크게 좌우합니다.",
+  },
+  {
+    no: "02",
+    title: "자발적 복식부기 '기장세액공제 20%' 꿀팁",
+    badge: "세액공제 · 최대 100만",
+    badgeColor: "success",
+    effect: "간편장부 대상자도 복식부기 기장 시 산출세액 20%(지방세 포함 최대 110만) 공제",
+    detail:
+      "7,500만 원 미만이라도 보조개 5번 탭이 자동 생성한 표준손익계산서·표준재무상태표로 복식부기 신고를 선택하면 산출세액의 20%를 세액공제로 돌려받을 수 있습니다.",
+    caution: "위 시뮬레이터의 '자발적 복식부기 기장세액공제' 체크박스로 내 절감 금액을 미리 계산해 보세요.",
+  },
+  {
+    no: "03",
+    title: "3.3% 환급 극대화: 숨은 영업 경비 100% 챙기기",
+    badge: "환급액 직결",
+    badgeColor: "primary",
+    effect: "청첩장·부고장 20만 원 + 건보료·자동차보험·정장·보조개 AI",
+    detail:
+      "1번 탭 '경조사 증빙 보관함'에 청첩장·부고장 캡처를 올리면 건당 20만 원까지 접대비에 합산됩니다. 지역 건강보험료, 자동차보험·자동차세, 고객 미팅 정장·구두, 보조개 AI 구독료도 빠뜨리지 마세요.",
+    caution: "생활비와 섞이지 않도록 영업 전용 카드·계좌 1개만 정해서 결제하면 전액 소명 방어가 쉽습니다.",
+  },
+  {
+    no: "04",
+    title: "연금저축 + IRP 16.5% 우대 세액공제",
+    badge: "16.5% 우대 · 최대 148.5만",
+    badgeColor: "success",
+    effect: "종합소득 4,500만 이하 16.5% 공제 (900만 납입 시 최대 148.5만 원 차감)",
+    detail:
+      "연금저축펀드(최대 600만)와 IRP 합산 연 900만 원까지 세액공제됩니다. 소득이 4,500만 원 이하라면 공제율이 13.2%가 아닌 16.5%로 적용되어 환급 효과가 매우 큽니다.",
+    caution: "3.3% 기납부세액 범위 내에서 세액공제 환급이 이뤄지므로 원천징수영수증 기납부액을 먼저 확인하세요.",
+  },
+  {
+    no: "05",
+    title: "노란우산공제(최대 600만) · 국민연금 소득공제",
+    badge: "소득공제 · 압류금지",
+    badgeColor: "success",
+    effect: "사업소득 4천만 이하 연 최대 600만 원 과세표준 직접 차감",
+    detail:
+      "노란우산공제(4천만 이하 600만 / 4천~6천만 500만 / 6천만~1억 400만)와 본인 납부 국민연금 보험료 전액이 소득공제되어 이미 낸 3.3% 세금을 거의 전액 돌려받는 데 효과적입니다.",
+    caution: "노란우산공제는 중도 해지 시 기타소득세(16.5%)가 부과되므로 월 5~20만 원 등 무리 없는 금액으로 시작하세요.",
+  },
+  {
+    no: "06",
+    title: "N잡·다중 보험사 합산 & 7,500만 돌파 대비",
+    badge: "가산세 예방 · 세무비 0원",
+    badgeColor: "warning",
+    effect: "5월 홈택스 셀프신고 0원 완료 + 7,500만 원 이상 복식부기 미리 대비",
+    detail:
+      "GA·타 보험사 수당이나 부업 소득이 있다면 2월 연말정산으로 끝나지 않고 5월에 전 소득을 합산 신고해야 합니다. 3번 탭 PDF 일괄 대조와 5번 탭 4단계 가이드를 활용하세요.",
+    caution: "올해 수당 합계가 7,500만 원을 넘으면 내년부터 복식부기 의무자(미작성 시 가산세 20%)가 됩니다.",
+  },
+];
+
+const SIMPLE_YEARLY_TIMELINE = [
+  {
+    quarter: "Q1 (1~2월)",
+    title: "2월 연말정산 vs 5월 판단",
+    highlight: false,
+    items: [
+      "소속 보험사 2월 사업소득 연말정산(단순경비율) 예상 결과 확인",
+      "영업 전용 카드 1개 분리 및 직전연도 2,400만/7,500만 기준 체크",
+      "지출 경비가 많다면 5월 종합소득세 직접 장부 신고 선택",
+    ],
+  },
+  {
+    quarter: "Q2~Q3 (3~9월)",
+    title: "숨은 경비·경조사 적립",
+    highlight: false,
+    items: [
+      "월 1회 카드·은행 엑셀 업로드 및 청첩장·부고장 20만 원 보관함 등록",
+      "자동차보험·주유비·건강보험료·정장·보조개 구독료 누락 점검",
+      "부업·타 보험사 N잡 수당 내역 다중 사업체 탭에 함께 기록",
+    ],
+  },
+  {
+    quarter: "Q4 (10~12월)",
+    title: "연말 환급 골든타임",
+    highlight: true,
+    items: [
+      "12월 31일 전 연금저축·IRP(최대 16.5% 공제) & 노란우산 추가 납입",
+      "시뮬레이터로 3.3% 기납부세액 전액 환급까지 필요한 경비·공제 확인",
+      "장부 기장 시 자발적 복식부기 세액공제(20%) 적용 여부 사전 검토",
+    ],
+  },
+  {
+    quarter: "익년 5월",
+    title: "홈택스 0원 셀프신고·환급",
+    highlight: false,
+    items: [
+      "전 보험사 3.3% 원천징수영수증 PDF 일괄 업로드 및 합산 검증",
+      "5번 탭 간편장부 요약 + 4단계 복사 버튼으로 홈택스 0원 신고 완료",
+      "필요 시 '장부 5년 보관용' 간편장부 엑셀 다운로드 후 PC 백업",
+    ],
+  },
+];
+
 export default function TaxHighIncomeStrategyPanel({ overview, doubleEntry, defaultExpanded = true }) {
   const [expanded, setExpanded] = useState(defaultExpanded);
   const [yellowUmbrella, setYellowUmbrella] = useState(0);
@@ -267,7 +400,11 @@ export default function TaxHighIncomeStrategyPanel({ overview, doubleEntry, defa
   const ytdNet = Number(doubleEntry?.income_statement?.net_income || overview?.totals?.net_income || 0);
   const withheldTotal = Number(sim.withheld_total ?? overview?.totals?.withheld_total ?? 0);
   const prevRev = Number(overview?.max_prev_year_revenue || 0);
-  const usingEstimatedAnnual = prevRev >= 75_000_000 && ytdNet < 20_000_000;
+  const canToggleBasis = prevRev > 0 && ytdNet < prevRev * 0.4;
+  const [simBasisMode, setSimBasisMode] = useState(() =>
+    prevRev >= 75_000_000 && ytdNet < 20_000_000 ? "ANNUAL_EST" : "YTD",
+  );
+  const usingEstimatedAnnual = canToggleBasis && simBasisMode === "ANNUAL_EST";
   const basisIncome = usingEstimatedAnnual ? Math.round(prevRev * 0.65) : ytdNet;
 
   const simIncomeBase = usingEstimatedAnnual ? basisIncome : ytdNet;
@@ -305,6 +442,8 @@ export default function TaxHighIncomeStrategyPanel({ overview, doubleEntry, defa
   const droppedBracket = beforeBracket.id !== activeBracket.id && afterTax.taxableBase < baselineTax.taxableBase;
   const savedPerMillion = (Math.round(activeBracket.effectiveRate * 10) / 10).toLocaleString("ko-KR");
   const totalDeductionApplied = Math.max(0, simIncomeBase - afterTax.taxableBase);
+  const activeStrategies = isSimpleTier ? SIMPLE_TIER_STRATEGIES : HIGH_INCOME_STRATEGIES;
+  const activeTimeline = isSimpleTier ? SIMPLE_YEARLY_TIMELINE : YEARLY_TIMELINE;
 
   return (
     <Paper variant="outlined" sx={{ p: { xs: 2, sm: 3 }, borderRadius: 3, bgcolor: "#fff" }}>
@@ -320,10 +459,14 @@ export default function TaxHighIncomeStrategyPanel({ overview, doubleEntry, defa
             <AutoGraphOutlinedIcon color="success" />
             <Box>
               <Typography variant="subtitle1" fontWeight={800}>
-                고소득 보험설계사 (연 7,500만 원 이상) 실전 절세 전략 도식 가이드
+                {isSimpleTier
+                  ? "간편장부 설계사 (연 7,500만 원 미만) 3.3% 환급 극대화 · 절세 도식 가이드"
+                  : "고소득 보험설계사 (연 7,500만 원 이상) 실전 절세 전략 도식 가이드"}
               </Typography>
               <Typography variant="caption" color="text.secondary">
-                5월 예상 환급액 시뮬레이터로 공제 효과를 미리 계산하고, 12월 31일 전까지 세금을 합법적으로 줄이세요.
+                {isSimpleTier
+                  ? "미리 낸 3.3% 세금을 최대한 돌려받도록 단순경비율 비교·숨은 경비·자발적 기장세액공제(20%)와 계산식을 한눈에 정리했습니다."
+                  : "5월 예상 환급액 시뮬레이터로 공제 효과를 미리 계산하고, 12월 31일 전까지 세금을 합법적으로 줄이세요."}
               </Typography>
             </Box>
           </Stack>
@@ -347,7 +490,7 @@ export default function TaxHighIncomeStrategyPanel({ overview, doubleEntry, defa
                   direction={{ xs: "column", sm: "row" }}
                   justifyContent="space-between"
                   alignItems={{ xs: "flex-start", sm: "center" }}
-                  spacing={0.5}
+                  spacing={1}
                 >
                   <Stack direction="row" spacing={1} alignItems="center">
                     <CalculateOutlinedIcon color="success" />
@@ -355,14 +498,40 @@ export default function TaxHighIncomeStrategyPanel({ overview, doubleEntry, defa
                       실전 5월 예상 환급액 · 공제 절세 시뮬레이터
                     </Typography>
                   </Stack>
-                  <Typography variant="caption" fontWeight={700} color="#065F46">
-                    {usingEstimatedAnnual
-                      ? `시뮬레이션 기준: 직전연도 추정 소득 ${formatKrw(simIncomeBase)} / 원천세 ${formatKrw(simWithheldBase)}`
-                      : `시뮬레이션 기준: 현재 누적 소득 ${formatKrw(simIncomeBase)} / 기납부 원천세 ${formatKrw(simWithheldBase)}`}
-                  </Typography>
+                  <Stack direction="row" spacing={0.75} alignItems="center" flexWrap="wrap" useFlexGap>
+                    {canToggleBasis && (
+                      <>
+                        {[
+                          { mode: "YTD", label: `당해 누적 (${formatKrw(ytdNet)})` },
+                          { mode: "ANNUAL_EST", label: `직전연도(${formatKrw(prevRev)}) 연간 추정` },
+                        ].map((opt) => {
+                          const selected = simBasisMode === opt.mode;
+                          return (
+                            <Chip
+                              key={opt.mode}
+                              size="small"
+                              label={opt.label}
+                              onClick={() => setSimBasisMode(opt.mode)}
+                              sx={{
+                                bgcolor: selected ? "#03C75A" : "#fff",
+                                color: selected ? "#fff" : "#334155",
+                                fontWeight: 700,
+                                border: "1px solid",
+                                borderColor: selected ? "#03C75A" : "#CBD5E1",
+                                "&:hover": { bgcolor: selected ? "#008A60" : "#F1F5F9" },
+                              }}
+                            />
+                          );
+                        })}
+                      </>
+                    )}
+                    <Typography variant="caption" fontWeight={700} color="#065F46">
+                      {`소득금액 ${formatKrw(simIncomeBase)} / 기납부 원천세 ${formatKrw(simWithheldBase)}`}
+                    </Typography>
+                  </Stack>
                 </Stack>
 
-                {sim.simple_rate_eligible && (
+                {sim.simple_rate_eligible ? (
                   <Alert severity="info" sx={{ py: 0.5, borderRadius: 2 }}>
                     <strong>신입 · 2,400만 원 미만 단순경비율({sim.simple_rate_pct}%) 비교:</strong>{" "}
                     단순경비율 적용 경비(<strong>{formatKrw(sim.simple_rate_expense)}</strong>) vs 실제 장부 경비(
@@ -371,6 +540,14 @@ export default function TaxHighIncomeStrategyPanel({ overview, doubleEntry, defa
                       ? "영수증이 적다면 2월 연말정산/단순경비율 추계신고가 더 유리할 수 있습니다."
                       : "실제 장부 경비가 더 크므로 5월 장부 기장 신고가 유리합니다."}
                   </Alert>
+                ) : (
+                  isSimpleTier && (
+                    <Alert severity="info" sx={{ py: 0.5, borderRadius: 2 }}>
+                      <strong>2,400만~7,500만 원 간편장부 구간 안내:</strong>{" "}
+                      이 구간은 단순경비율이 적용되지 않아 실제 영업 경비를 모을수록 3.3% 환급액이 커집니다. 아래{" "}
+                      <strong>자발적 복식부기 기장세액공제(20%)</strong> 체크 시 추가 절감액도 바로 확인할 수 있습니다.
+                    </Alert>
+                  )
                 )}
 
                 <Grid container spacing={1.5}>
@@ -635,18 +812,57 @@ export default function TaxHighIncomeStrategyPanel({ overview, doubleEntry, defa
                   </Stack>
                 </Box>
 
-                <Alert severity="info" sx={{ py: 0.75, borderRadius: 2 }}>
-                  {activeBracket.min > 0 ? (
-                    <>
-                      <strong>전체 금액에 {activeBracket.effectiveRate}%가 붙는 것이 아닙니다 (누진세율 구조):</strong>{" "}
-                      {`예상 과세표준 ${formatKrw(afterTax.taxableBase)} 전체에 ${activeBracket.effectiveRate}%를 곱하지 않고, 하위 구간 세율을 차례로 적용한 뒤 ${formatKrw(activeBracket.min)} 초과분(${formatKrw(excessOverFloor)})에 대해서만 ${activeBracket.effectiveRate}%가 적용됩니다. (실제 계산 시 누진공제액 ${formatKrw(activeBracket.progressiveDeduction)} 차감)`}
-                    </>
-                  ) : (
-                    <>
-                      <strong>누진세율 구조 안내:</strong>{" "}
-                      과세표준 1,400만 원 이하 구간으로 최저 기본세율 6%(지방소득세 포함 6.6%)가 적용됩니다.
-                    </>
-                  )}
+                <Alert severity="info" sx={{ py: 1, borderRadius: 2, "& .MuiAlert-message": { width: "100%" } }}>
+                  <Stack spacing={0.75}>
+                    <Typography variant="body2" fontWeight={800} color="#0F172A">
+                      {afterTax.taxableBase > 0
+                        ? `전체 금액에 ${activeBracket.effectiveRate}%가 붙는 것이 아닙니다 — 실제 세금 계산식 상세`
+                        : "실제 세금 계산식 상세 (과세표준 0원)"}
+                    </Typography>
+
+                    {afterTax.taxableBase > 0 ? (
+                      <Stack spacing={0.5} sx={{ fontSize: 12.5, color: "#1E293B" }}>
+                        <Box>
+                          <strong>① 구간별 국세 산출세액: </strong>
+                          {afterTax.slices
+                            .map((s) => `${s.label} ${formatKrw(s.amount)}×${s.ratePct}%(${formatKrw(s.tax)})`)
+                            .join(" + ")}{" "}
+                          = <strong>{formatKrw(afterTax.grossNational)}</strong>
+                          {afterTax.progressiveDeduction > 0 && (
+                            <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+                              {`↳ 간편 계산식: 과세표준 ${formatKrw(afterTax.taxableBase)} × ${afterTax.appliedRatePct}% − 누진공제 ${formatKrw(afterTax.progressiveDeduction)} = ${formatKrw(afterTax.grossNational)}`}
+                            </Typography>
+                          )}
+                        </Box>
+                        <Box>
+                          <strong>② 세액공제 차감 → 국세 결정세액: </strong>
+                          {`${formatKrw(afterTax.grossNational)} − 표준세액공제 ${formatKrw(afterTax.stdCredit)}`}
+                          {afterTax.pensionCredit > 0 && ` − 연금·IRP 세액공제 ${formatKrw(afterTax.pensionCredit)}(${afterTax.pensionRatePct}%)`}
+                          {afterTax.bookkeepingCredit > 0 && ` − 기장세액공제 ${formatKrw(afterTax.bookkeepingCredit)}(20%)`}
+                          {" = "}
+                          <strong>{formatKrw(afterTax.nationalTax)}</strong>
+                        </Box>
+                        <Box>
+                          <strong>③ 지방소득세(국세의 10%) 합산 → 총 결정세액: </strong>
+                          {`국세 ${formatKrw(afterTax.nationalTax)} + 지방소득세 ${formatKrw(afterTax.localTax)}(10%) = `}
+                          <strong>{formatKrw(afterTax.totalTax)}</strong>
+                        </Box>
+                        <Box>
+                          <strong>④ 기납부 3.3% 원천세 정산 → 5월 최종 예상액: </strong>
+                          {`총 결정세액 ${formatKrw(afterTax.totalTax)} − 기납부 원천세 ${formatKrw(simWithheldBase)} = `}
+                          <strong style={{ color: afterTax.refundOrPayable >= 0 ? "#006E43" : "#B45309" }}>
+                            {afterTax.refundOrPayable >= 0
+                              ? `환급 예상 +${formatKrw(afterTax.refundOrPayable)}`
+                              : `추가 납부 예상 ${formatKrw(Math.abs(afterTax.refundOrPayable))}`}
+                          </strong>
+                        </Box>
+                      </Stack>
+                    ) : (
+                      <Typography variant="caption" color="text.secondary">
+                        과세표준이 0원이므로 산출세액과 결정세액은 0원이며, 기납부 원천세 전액이 환급 대상입니다.
+                      </Typography>
+                    )}
+                  </Stack>
                 </Alert>
 
                 <Alert severity="warning" sx={{ py: 0.75, borderRadius: 2 }}>
@@ -656,13 +872,15 @@ export default function TaxHighIncomeStrategyPanel({ overview, doubleEntry, defa
               </Stack>
             </Paper>
 
-            {/* 도식 2: 고소득 설계사 6대 핵심 절세 전략 카드 (2x3 Grid) */}
+            {/* 도식 2: 수입 구간별 6대 핵심 절세·환급 카드 (2x3 Grid) */}
             <Box>
               <Typography variant="subtitle2" fontWeight={800} color="#0F172A" mb={1.25}>
-                도식 ② 보험설계사(940906) 6대 핵심 절세 카드 (숨은 경비·공제·가산세 방어)
+                {isSimpleTier
+                  ? "도식 ② 간편장부 설계사(7,500만 원 미만) 6대 핵심 환급·절세 카드"
+                  : "도식 ② 보험설계사(940906) 6대 핵심 절세 카드 (숨은 경비·공제·가산세 방어)"}
               </Typography>
               <Grid container spacing={1.5}>
-                {HIGH_INCOME_STRATEGIES.map((item) => (
+                {activeStrategies.map((item) => (
                   <Grid item xs={12} md={4} key={item.no}>
                     <Paper
                       variant="outlined"
@@ -705,12 +923,14 @@ export default function TaxHighIncomeStrategyPanel({ overview, doubleEntry, defa
               </Grid>
             </Box>
 
-            {/* 도식 3: 고소득 설계사 1년 절세 실행 타임라인 (4단계 플로우) */}
+            {/* 도식 3: 연간 절세·환급 실행 타임라인 (4단계 플로우) */}
             <Box>
               <Stack direction="row" spacing={0.75} alignItems="center" mb={1.25}>
                 <ShieldOutlinedIcon color="success" sx={{ fontSize: 18 }} />
                 <Typography variant="subtitle2" fontWeight={800} color="#0F172A">
-                  도식 ③ 연간 절세 실행 타임라인 (Q1 기초 → Q4 연말 골든타임 → 5월 신고)
+                  {isSimpleTier
+                    ? "도식 ③ 연간 3.3% 환급·절세 실행 타임라인 (Q1 판단 → Q4 마감 → 5월 0원 셀프신고)"
+                    : "도식 ③ 연간 절세 실행 타임라인 (Q1 기초 → Q4 연말 골든타임 → 5월 신고)"}
                 </Typography>
               </Stack>
               <Box
@@ -721,7 +941,7 @@ export default function TaxHighIncomeStrategyPanel({ overview, doubleEntry, defa
                   gap: 1,
                 }}
               >
-                {YEARLY_TIMELINE.map((stage, idx) => (
+                {activeTimeline.map((stage, idx) => (
                   <Box
                     key={stage.quarter}
                     sx={{
@@ -765,7 +985,7 @@ export default function TaxHighIncomeStrategyPanel({ overview, doubleEntry, defa
                         </Stack>
                       </Stack>
                     </Paper>
-                    {idx < YEARLY_TIMELINE.length - 1 && (
+                    {idx < activeTimeline.length - 1 && (
                       <ArrowForwardRoundedIcon
                         sx={{
                           display: { xs: "none", md: "block" },
