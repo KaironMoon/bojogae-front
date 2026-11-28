@@ -141,7 +141,7 @@ export default function HistoryDetailReference({ vm }) {
         <button
           className="px-4 py-2.5 rounded-xl border border-[#d1d6db] hover:bg-[#f4f6f8] text-xs font-extrabold text-[#121314] flex items-center gap-1.5 disabled:opacity-50"
           onClick={() => vm.download()}
-          disabled={vm.busy || !vm.detail.original_available}
+          disabled={vm.busy}
         >
           <Icon name="download" className="w-4 h-4" />
           <span>다운로드</span>
