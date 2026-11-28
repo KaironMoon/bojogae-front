@@ -2,7 +2,7 @@
 import { useState } from "react";
 import ExpandLessRoundedIcon from "@mui/icons-material/ExpandLessRounded";
 import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
-import { Box, Button, Collapse, Typography, useMediaQuery } from "@mui/material";
+import { Box, Collapse, useMediaQuery } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 
 export default function MobileCollapsibleInfo({
@@ -26,89 +26,113 @@ export default function MobileCollapsibleInfo({
 
   return (
     <Box sx={{ mb: 1.5, ...sx }}>
-      <Box
-        sx={{
+      <div
+        style={{
           border: "1px solid #E2E8F0",
-          borderRadius: 2.5,
-          bgcolor: "#FFFFFF",
-          px: 1.5,
-          py: 1,
+          borderStyle: "solid",
+          borderRadius: 12,
+          backgroundColor: "#FFFFFF",
+          padding: "8px 12px",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          gap: 1,
-          boxShadow: "0 1px 2px rgba(15, 23, 42, 0.03)",
+          gap: 8,
+          boxShadow: "0 1px 2px rgba(15, 23, 42, 0.04)",
+          minWidth: 0,
         }}
       >
-        <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, minWidth: 0, flex: 1 }}>
-          <Typography
-            component="h1"
-            sx={{
-              fontSize: 15.5,
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            minWidth: 0,
+            flex: 1,
+          }}
+        >
+          <h1
+            style={{
+              margin: 0,
+              fontSize: 15,
               fontWeight: 900,
               letterSpacing: "-0.02em",
               color: "#0F172A",
               lineHeight: 1.25,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
             }}
-            noWrap
           >
             {title}
-          </Typography>
+          </h1>
           {typeof badge === "string" ? (
-            <Box
-              component="span"
-              sx={{
-                px: 0.85,
-                py: 0.25,
-                borderRadius: 99,
-                bgcolor: "#F1F5F9",
+            <span
+              style={{
+                padding: "2px 8px",
+                borderRadius: 999,
+                backgroundColor: "#F1F5F9",
                 color: "#475569",
                 fontSize: 11,
                 fontWeight: 800,
+                lineHeight: 1.4,
                 flexShrink: 0,
                 whiteSpace: "nowrap",
               }}
             >
               {badge}
-            </Box>
+            </span>
           ) : (
             badge
           )}
-        </Box>
+        </div>
 
-        <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, flexShrink: 0 }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            flexShrink: 0,
+          }}
+        >
           {action}
-          <Button
-            size="small"
+          <button
             type="button"
             onClick={() => setOpen((prev) => !prev)}
             aria-expanded={open}
-            endIcon={open ? <ExpandLessRoundedIcon fontSize="small" /> : <ExpandMoreRoundedIcon fontSize="small" />}
-            sx={{
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 3,
               minWidth: 0,
-              px: 1,
-              py: 0.4,
+              padding: "5px 10px",
               minHeight: 30,
-              borderRadius: 99,
+              borderRadius: 999,
+              borderStyle: "solid",
+              borderWidth: 1,
+              borderColor: open ? "#A7F3D0" : "#E2E8F0",
+              backgroundColor: open ? "#ECFDF5" : "#F1F5F9",
+              color: open ? "#006E43" : "#334155",
               fontSize: 11.5,
               fontWeight: 800,
-              textTransform: "none",
-              color: open ? "#006E43" : "#475569",
-              bgcolor: open ? "#ECFDF5" : "#F1F5F9",
+              lineHeight: 1.2,
+              cursor: "pointer",
+              whiteSpace: "nowrap",
               flexShrink: 0,
-              "&:hover": {
-                bgcolor: open ? "#DCFCE7" : "#E2E8F0",
-              },
-              "& .MuiButton-endIcon": { ml: 0.25 },
             }}
           >
-            {open ? closeLabel : toggleLabel}
-          </Button>
-        </Box>
-      </Box>
+            <span>{open ? closeLabel : toggleLabel}</span>
+            {open ? (
+              <ExpandLessRoundedIcon style={{ width: 16, height: 16, fontSize: 16, flexShrink: 0 }} />
+            ) : (
+              <ExpandMoreRoundedIcon style={{ width: 16, height: 16, fontSize: 16, flexShrink: 0 }} />
+            )}
+          </button>
+        </div>
+      </div>
 
       <Collapse in={open}>
-        <Box sx={{ pt: 1.25 }}>{children}</Box>
+        <div style={{ paddingTop: 10 }}>{children}</div>
       </Collapse>
     </Box>
   );
