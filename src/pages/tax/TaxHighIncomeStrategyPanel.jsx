@@ -30,6 +30,7 @@ const TAX_BRACKETS = [
     rangeLabel: "~1,400만",
     baseRate: "6%",
     effectiveRate: 6.6,
+    progressiveDeduction: 0,
     min: 0,
     max: 14_000_000,
     tag: "기본 구간",
@@ -41,6 +42,7 @@ const TAX_BRACKETS = [
     rangeLabel: "~5,000만",
     baseRate: "15%",
     effectiveRate: 16.5,
+    progressiveDeduction: 1_260_000,
     min: 14_000_000,
     max: 50_000_000,
     tag: "중위 구간",
@@ -52,6 +54,7 @@ const TAX_BRACKETS = [
     rangeLabel: "~8,800만",
     baseRate: "24%",
     effectiveRate: 26.4,
+    progressiveDeduction: 5_760_000,
     min: 50_000_000,
     max: 88_000_000,
     tag: "7.5천~1.2억 구간",
@@ -63,6 +66,7 @@ const TAX_BRACKETS = [
     rangeLabel: "~1.5억",
     baseRate: "35%",
     effectiveRate: 38.5,
+    progressiveDeduction: 15_440_000,
     min: 88_000_000,
     max: 150_000_000,
     tag: "세금 급증 구간",
@@ -74,6 +78,7 @@ const TAX_BRACKETS = [
     rangeLabel: "~3억",
     baseRate: "38%",
     effectiveRate: 41.8,
+    progressiveDeduction: 19_940_000,
     min: 150_000_000,
     max: 300_000_000,
     tag: "외부조정 구간",
@@ -85,6 +90,7 @@ const TAX_BRACKETS = [
     rangeLabel: "3억 초과",
     baseRate: "40~45%",
     effectiveRate: 44.0,
+    progressiveDeduction: 25_940_000,
     min: 300_000_000,
     max: Number.POSITIVE_INFINITY,
     tag: "최고세율 구간",
@@ -111,10 +117,11 @@ function computeInteractiveTax({
   pensionIrp,
   nationalPension,
   healthInsuranceExpense,
+  dependentsCount = 1,
   voluntaryBookkeepingCredit,
 }) {
   const adjustedNet = Math.max(0, netIncome - healthInsuranceExpense);
-  const basicDeduction = netIncome > 0 ? 1_500_000 : 0;
+  const basicDeduction = netIncome > 0 ? Math.max(1, Number(dependentsCount || 1)) * 1_500_000 : 0;
   const taxableBase = Math.max(0, adjustedNet - basicDeduction - yellowUmbrella - nationalPension);
 
   const row =
@@ -251,6 +258,7 @@ export default function TaxHighIncomeStrategyPanel({ overview, doubleEntry, defa
   const [pensionIrp, setPensionIrp] = useState(0);
   const [nationalPension, setNationalPension] = useState(0);
   const [healthInsuranceExpense, setHealthInsuranceExpense] = useState(0);
+  const [dependentsCount, setDependentsCount] = useState(1);
   const [useVoluntaryBookkeeping, setUseVoluntaryBookkeeping] = useState(false);
 
   const sim = overview?.tax_simulation || {};
@@ -262,10 +270,6 @@ export default function TaxHighIncomeStrategyPanel({ overview, doubleEntry, defa
   const usingEstimatedAnnual = prevRev >= 75_000_000 && ytdNet < 20_000_000;
   const basisIncome = usingEstimatedAnnual ? Math.round(prevRev * 0.65) : ytdNet;
 
-  const activeBracket =
-    TAX_BRACKETS.find((b) => basisIncome >= b.min && basisIncome < b.max) || TAX_BRACKETS[TAX_BRACKETS.length - 1];
-  const savedPerMillion = (Math.round(activeBracket.effectiveRate * 10) / 10).toLocaleString("ko-KR");
-
   const simIncomeBase = usingEstimatedAnnual ? basisIncome : ytdNet;
   const simWithheldBase = usingEstimatedAnnual ? Math.round(prevRev * 0.033) : withheldTotal;
 
@@ -276,6 +280,7 @@ export default function TaxHighIncomeStrategyPanel({ overview, doubleEntry, defa
     pensionIrp: 0,
     nationalPension: 0,
     healthInsuranceExpense: 0,
+    dependentsCount: 1,
     voluntaryBookkeepingCredit: false,
   });
   const afterTax = computeInteractiveTax({
@@ -285,9 +290,21 @@ export default function TaxHighIncomeStrategyPanel({ overview, doubleEntry, defa
     pensionIrp: Number(pensionIrp || 0),
     nationalPension: Number(nationalPension || 0),
     healthInsuranceExpense: Number(healthInsuranceExpense || 0),
+    dependentsCount,
     voluntaryBookkeepingCredit: isSimpleTier && useVoluntaryBookkeeping,
   });
   const taxSaved = Math.max(0, baselineTax.totalTax - afterTax.totalTax);
+
+  const beforeBracket =
+    TAX_BRACKETS.find((b) => baselineTax.taxableBase <= b.max) || TAX_BRACKETS[TAX_BRACKETS.length - 1];
+  const activeBracket =
+    TAX_BRACKETS.find((b) => afterTax.taxableBase <= b.max) || TAX_BRACKETS[TAX_BRACKETS.length - 1];
+  const bracketIdx = TAX_BRACKETS.findIndex((b) => b.id === activeBracket.id);
+  const lowerBracket = bracketIdx > 0 ? TAX_BRACKETS[bracketIdx - 1] : null;
+  const excessOverFloor = Math.max(0, afterTax.taxableBase - activeBracket.min);
+  const droppedBracket = beforeBracket.id !== activeBracket.id && afterTax.taxableBase < baselineTax.taxableBase;
+  const savedPerMillion = (Math.round(activeBracket.effectiveRate * 10) / 10).toLocaleString("ko-KR");
+  const totalDeductionApplied = Math.max(0, simIncomeBase - afterTax.taxableBase);
 
   return (
     <Paper variant="outlined" sx={{ p: { xs: 2, sm: 3 }, borderRadius: 3, bgcolor: "#fff" }}>
@@ -420,23 +437,60 @@ export default function TaxHighIncomeStrategyPanel({ overview, doubleEntry, defa
                   ))}
                 </Grid>
 
-                {isSimpleTier && (
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        size="small"
-                        color="success"
-                        checked={useVoluntaryBookkeeping}
-                        onChange={(e) => setUseVoluntaryBookkeeping(e.target.checked)}
-                      />
-                    }
-                    label={
-                      <Typography variant="caption" fontWeight={700} color="#065F46">
-                        간편장부 대상자 자발적 복식부기 기장세액공제 적용 (산출세액 20%, 최대 100만 원 추가 절감)
-                      </Typography>
-                    }
-                  />
-                )}
+                <Stack
+                  direction={{ xs: "column", sm: "row" }}
+                  spacing={1.5}
+                  alignItems={{ xs: "flex-start", sm: "center" }}
+                  justifyContent="space-between"
+                >
+                  <Stack direction="row" spacing={0.75} alignItems="center" flexWrap="wrap" useFlexGap>
+                    <Typography variant="caption" fontWeight={700} color="#334155">
+                      인적공제 (본인·부양가족):
+                    </Typography>
+                    {[
+                      { count: 1, label: "본인 1인 (150만)" },
+                      { count: 2, label: "2인 (300만)" },
+                      { count: 3, label: "3인 (450만)" },
+                      { count: 4, label: "4인 (600만)" },
+                    ].map((opt) => {
+                      const selected = dependentsCount === opt.count;
+                      return (
+                        <Chip
+                          key={opt.count}
+                          size="small"
+                          label={opt.label}
+                          onClick={() => setDependentsCount(opt.count)}
+                          sx={{
+                            bgcolor: selected ? "#03C75A" : "#fff",
+                            color: selected ? "#fff" : "#334155",
+                            fontWeight: 700,
+                            border: "1px solid",
+                            borderColor: selected ? "#03C75A" : "#CBD5E1",
+                            "&:hover": { bgcolor: selected ? "#008A60" : "#F1F5F9" },
+                          }}
+                        />
+                      );
+                    })}
+                  </Stack>
+
+                  {isSimpleTier && (
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          size="small"
+                          color="success"
+                          checked={useVoluntaryBookkeeping}
+                          onChange={(e) => setUseVoluntaryBookkeeping(e.target.checked)}
+                        />
+                      }
+                      label={
+                        <Typography variant="caption" fontWeight={700} color="#065F46">
+                          간편장부 대상자 자발적 복식부기 기장세액공제 적용 (산출세액 20%, 최대 100만 원 추가 절감)
+                        </Typography>
+                      }
+                    />
+                  )}
+                </Stack>
 
                 <Grid container spacing={1.5}>
                   <Grid item xs={12} md={4}>
@@ -450,7 +504,7 @@ export default function TaxHighIncomeStrategyPanel({ overview, doubleEntry, defa
                           : `추가납부 ${formatKrw(Math.abs(baselineTax.refundOrPayable))}`}
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
-                        {`총 결정세액 ${formatKrw(baselineTax.totalTax)}`}
+                        {`과세표준 ${formatKrw(baselineTax.taxableBase)} · 총 결정세액 ${formatKrw(baselineTax.totalTax)}`}
                       </Typography>
                     </Paper>
                   </Grid>
@@ -465,7 +519,7 @@ export default function TaxHighIncomeStrategyPanel({ overview, doubleEntry, defa
                           : `추가납부 ${formatKrw(Math.abs(afterTax.refundOrPayable))}`}
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
-                        {`총 결정세액 ${formatKrw(afterTax.totalTax)}`}
+                        {`예상 과세표준 ${formatKrw(afterTax.taxableBase)} · 총 결정세액 ${formatKrw(afterTax.totalTax)}`}
                       </Typography>
                     </Paper>
                   </Grid>
@@ -486,7 +540,7 @@ export default function TaxHighIncomeStrategyPanel({ overview, doubleEntry, defa
               </Stack>
             </Paper>
 
-            {/* 도식 1: 종합소득세 누진세율 구간 & 한계세율 절세 체감 바 */}
+            {/* 도식 1: 예상 과세표준 기준 종합소득세 누진세율 구간 */}
             <Paper variant="outlined" sx={{ p: 2, borderRadius: 2.5, bgcolor: "#F8FAFC" }}>
               <Stack spacing={1.5}>
                 <Stack
@@ -496,12 +550,10 @@ export default function TaxHighIncomeStrategyPanel({ overview, doubleEntry, defa
                   spacing={0.5}
                 >
                   <Typography variant="subtitle2" fontWeight={800} color="#0F172A">
-                    도식 ① 종합소득세 누진세율 구간 (지방소득세 10% 포함 실효 한계세율)
+                    도식 ① 종합소득세 누진세율 구간 (예상 과세표준 기준 · 지방소득세 10% 포함)
                   </Typography>
-                  <Typography variant="caption" fontWeight={700} color="#475569">
-                    {usingEstimatedAnnual
-                      ? `직전연도 수입(${formatKrw(prevRev)}) 기준 추정 소득금액 약 ${formatKrw(basisIncome)} (당해 누적: ${formatKrw(ytdNet)})`
-                      : `현재 당해 누적 소득금액 기준: ${formatKrw(basisIncome)}`}
+                  <Typography variant="caption" fontWeight={700} color="#006E43">
+                    {`예상 과세표준 ${formatKrw(afterTax.taxableBase)} (소득금액 ${formatKrw(simIncomeBase)} − 경비·소득공제 ${formatKrw(totalDeductionApplied)})`}
                   </Typography>
                 </Stack>
 
@@ -534,7 +586,7 @@ export default function TaxHighIncomeStrategyPanel({ overview, doubleEntry, defa
                             {isActive && (
                               <Chip
                                 size="small"
-                                label="예상 구간"
+                                label="예상 과세표준"
                                 color="success"
                                 sx={{ height: 18, fontSize: 10, fontWeight: 800 }}
                               />
@@ -559,15 +611,48 @@ export default function TaxHighIncomeStrategyPanel({ overview, doubleEntry, defa
                     bgcolor: "#ECFDF5",
                     border: "1px solid #A7F3D0",
                     display: "flex",
-                    alignItems: "center",
+                    alignItems: "flex-start",
                     gap: 1,
                   }}
                 >
-                  <TrendingDownOutlinedIcon color="success" sx={{ fontSize: 20, flexShrink: 0 }} />
-                  <Typography variant="body2" fontWeight={800} color="#065F46">
-                    {`한계세율 ${activeBracket.effectiveRate}% 구간: 업무 경비·소득공제 100만 원을 추가로 챙길 때마다 세금이 약 ${savedPerMillion}만 원 줄어듭니다.`}
-                  </Typography>
+                  <TrendingDownOutlinedIcon color="success" sx={{ fontSize: 20, flexShrink: 0, mt: 0.25 }} />
+                  <Stack spacing={0.4}>
+                    <Typography variant="body2" fontWeight={800} color="#065F46">
+                      {`한계세율 ${activeBracket.effectiveRate}% 구간: 업무 경비·소득공제 100만 원을 추가로 챙길 때마다 세금이 약 ${savedPerMillion}만 원 줄어듭니다.`}
+                    </Typography>
+                    {droppedBracket ? (
+                      <Typography variant="caption" fontWeight={800} color="#047857">
+                        {`공제 반영 효과: 예상 과세표준이 ${formatKrw(baselineTax.taxableBase)} → ${formatKrw(afterTax.taxableBase)}로 내려가 한계세율 구간 자체가 ${beforeBracket.effectiveRate}% → ${activeBracket.effectiveRate}%로 한 단계 낮아졌습니다!`}
+                      </Typography>
+                    ) : (
+                      lowerBracket &&
+                      excessOverFloor > 0 && (
+                        <Typography variant="caption" fontWeight={700} color="#047857">
+                          {`구간 한 단계 낮추기 팁: 예상 과세표준에서 약 ${formatKrw(excessOverFloor)}만 경비·노란우산·국민연금·부양가족 공제로 더 낮추면 한계세율 자체가 ${activeBracket.effectiveRate}% → ${lowerBracket.effectiveRate}%로 내려갑니다.`}
+                        </Typography>
+                      )
+                    )}
+                  </Stack>
                 </Box>
+
+                <Alert severity="info" sx={{ py: 0.75, borderRadius: 2 }}>
+                  {activeBracket.min > 0 ? (
+                    <>
+                      <strong>전체 금액에 {activeBracket.effectiveRate}%가 붙는 것이 아닙니다 (누진세율 구조):</strong>{" "}
+                      {`예상 과세표준 ${formatKrw(afterTax.taxableBase)} 전체에 ${activeBracket.effectiveRate}%를 곱하지 않고, 하위 구간 세율을 차례로 적용한 뒤 ${formatKrw(activeBracket.min)} 초과분(${formatKrw(excessOverFloor)})에 대해서만 ${activeBracket.effectiveRate}%가 적용됩니다. (실제 계산 시 누진공제액 ${formatKrw(activeBracket.progressiveDeduction)} 차감)`}
+                    </>
+                  ) : (
+                    <>
+                      <strong>누진세율 구조 안내:</strong>{" "}
+                      과세표준 1,400만 원 이하 구간으로 최저 기본세율 6%(지방소득세 포함 6.6%)가 적용됩니다.
+                    </>
+                  )}
+                </Alert>
+
+                <Alert severity="warning" sx={{ py: 0.75, borderRadius: 2 }}>
+                  <strong>주의 (장부의무 판별 기준):</strong>{" "}
+                  {`세율 구간은 비용·소득공제를 뺀 '과세표준' 기준이지만, 복식부기 의무자(7,500만 원)와 외부조정 대상자(1억 5,000만 원) 여부는 비용을 빼기 전 직전연도 '총수입금액(수수료 전액${prevRev > 0 ? `: ${formatKrw(prevRev)}` : ""})'을 기준으로 판별합니다.`}
+                </Alert>
               </Stack>
             </Paper>
 
