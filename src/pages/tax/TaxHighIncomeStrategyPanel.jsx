@@ -357,105 +357,67 @@ export default function TaxHighIncomeStrategyPanel({ overview, doubleEntry, defa
                 )}
 
                 <Grid container spacing={1.5}>
-                  <Grid item xs={12} sm={6} md={3}>
-                    <Typography variant="caption" fontWeight={700} color="#334155" sx={{ display: "block", mb: 0.5 }}>
-                      노란우산공제 납입 (원)
-                    </Typography>
-                    <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap mb={0.75}>
-                      {[0, 2_000_000, 4_000_000, 6_000_000].map((v) => (
-                        <Chip
-                          key={v}
-                          size="small"
-                          label={v === 0 ? "0원" : `${v / 10_000}만`}
-                          color={Number(yellowUmbrella) === v ? "success" : "default"}
-                          onClick={() => setYellowUmbrella(v)}
-                        />
-                      ))}
-                    </Stack>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      type="number"
-                      value={yellowUmbrella}
-                      onChange={(e) => setYellowUmbrella(Math.max(0, Number(e.target.value || 0)))}
-                      sx={{ bgcolor: "#fff" }}
-                    />
-                  </Grid>
-
-                  <Grid item xs={12} sm={6} md={3}>
-                    <Typography variant="caption" fontWeight={700} color="#334155" sx={{ display: "block", mb: 0.5 }}>
-                      연금저축 + IRP 납입 (원)
-                    </Typography>
-                    <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap mb={0.75}>
-                      {[0, 6_000_000, 9_000_000].map((v) => (
-                        <Chip
-                          key={v}
-                          size="small"
-                          label={v === 0 ? "0원" : `${v / 10_000}만`}
-                          color={Number(pensionIrp) === v ? "success" : "default"}
-                          onClick={() => setPensionIrp(v)}
-                        />
-                      ))}
-                    </Stack>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      type="number"
-                      value={pensionIrp}
-                      onChange={(e) => setPensionIrp(Math.max(0, Number(e.target.value || 0)))}
-                      sx={{ bgcolor: "#fff" }}
-                    />
-                  </Grid>
-
-                  <Grid item xs={12} sm={6} md={3}>
-                    <Typography variant="caption" fontWeight={700} color="#334155" sx={{ display: "block", mb: 0.5 }}>
-                      국민연금 본인 납입 (소득공제)
-                    </Typography>
-                    <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap mb={0.75}>
-                      {[0, 2_400_000, 4_800_000].map((v) => (
-                        <Chip
-                          key={v}
-                          size="small"
-                          label={v === 0 ? "0원" : `${v / 10_000}만`}
-                          color={Number(nationalPension) === v ? "success" : "default"}
-                          onClick={() => setNationalPension(v)}
-                        />
-                      ))}
-                    </Stack>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      type="number"
-                      value={nationalPension}
-                      onChange={(e) => setNationalPension(Math.max(0, Number(e.target.value || 0)))}
-                      sx={{ bgcolor: "#fff" }}
-                    />
-                  </Grid>
-
-                  <Grid item xs={12} sm={6} md={3}>
-                    <Typography variant="caption" fontWeight={700} color="#334155" sx={{ display: "block", mb: 0.5 }}>
-                      지역 건강보험료 (추가 경비)
-                    </Typography>
-                    <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap mb={0.75}>
-                      {[0, 2_000_000, 3_600_000].map((v) => (
-                        <Chip
-                          key={v}
-                          size="small"
-                          label={v === 0 ? "0원" : `${v / 10_000}만`}
-                          color={Number(healthInsuranceExpense) === v ? "success" : "default"}
-                          onClick={() => setHealthInsuranceExpense(v)}
-                        />
-                      ))}
-                    </Stack>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      type="number"
-                      value={healthInsuranceExpense}
-                      onChange={(e) => setHealthInsuranceExpense(Math.max(0, Number(e.target.value || 0)))}
-                      sx={{ bgcolor: "#fff" }}
-                    />
-                  </Grid>
+                  {[
+                    {
+                      label: "노란우산공제 납입 (원)",
+                      value: yellowUmbrella,
+                      setter: setYellowUmbrella,
+                      presets: [0, 2_000_000, 4_000_000, 6_000_000],
+                    },
+                    {
+                      label: "연금저축 + IRP 납입 (원)",
+                      value: pensionIrp,
+                      setter: setPensionIrp,
+                      presets: [0, 6_000_000, 9_000_000],
+                    },
+                    {
+                      label: "국민연금 본인 납입 (소득공제)",
+                      value: nationalPension,
+                      setter: setNationalPension,
+                      presets: [0, 2_400_000, 4_800_000],
+                    },
+                    {
+                      label: "지역 건강보험료 (추가 경비)",
+                      value: healthInsuranceExpense,
+                      setter: setHealthInsuranceExpense,
+                      presets: [0, 2_000_000, 3_600_000],
+                    },
+                  ].map((field) => (
+                    <Grid item xs={12} sm={6} md={3} key={field.label}>
+                      <Typography variant="caption" fontWeight={700} color="#334155" sx={{ display: "block", mb: 0.5 }}>
+                        {field.label}
+                      </Typography>
+                      <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap mb={0.75}>
+                        {field.presets.map((v) => {
+                          const selected = Number(field.value) === v;
+                          return (
+                            <Chip
+                              key={v}
+                              size="small"
+                              label={v === 0 ? "0원" : `${v / 10_000}만`}
+                              onClick={() => field.setter(v)}
+                              sx={{
+                                bgcolor: selected ? "#03C75A" : "#fff",
+                                color: selected ? "#fff" : "#334155",
+                                fontWeight: 700,
+                                border: "1px solid",
+                                borderColor: selected ? "#03C75A" : "#CBD5E1",
+                                "&:hover": { bgcolor: selected ? "#008A60" : "#F1F5F9" },
+                              }}
+                            />
+                          );
+                        })}
+                      </Stack>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        type="number"
+                        value={field.value}
+                        onChange={(e) => field.setter(Math.max(0, Number(e.target.value || 0)))}
+                        sx={{ bgcolor: "#fff" }}
+                      />
+                    </Grid>
+                  ))}
                 </Grid>
 
                 {isSimpleTier && (
