@@ -252,7 +252,7 @@ export default function AdminTaxAutomationPage() {
         <Tabs value={tab} onChange={(_e, v) => setTab(v)} variant="scrollable" scrollButtons="auto">
           <Tab label="1. 부가세 요약 & PG 매출 동기화" />
           <Tab label="2. 매출·매입 장부 & 공제 판별" />
-          <Tab label="3. 무료 수집 (홈택스·엑셀·계좌)" />
+          <Tab label="3. 데이터 수집 (엑셀·홈택스·고급)" />
           <Tab label="4. 부가세 문서 & 세무사 전달" />
         </Tabs>
       </Paper>

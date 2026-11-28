@@ -48,6 +48,7 @@ import {
 import { reportHero, reportHeroBadge, reportHeroIcon } from "@/styles/reportTheme";
 
 const AUDIENCE_BADGES = {
+  ADMIN_ONLY: "운영자 전용 (개발중)",
   GROUP_LEADER: "단체장 전용",
   GROUP_MEMBER: "단체회원 전용",
 };

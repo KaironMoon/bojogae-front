@@ -55,7 +55,6 @@ export default function TaxAutomationPage() {
   const [transactions, setTransactions] = useState([]);
   const [withholdings, setWithholdings] = useState([]);
   const [jobs, setJobs] = useState([]);
-  const [connectors, setConnectors] = useState([]);
   const [partnerExports, setPartnerExports] = useState([]);
   const [toast, setToast] = useState({ open: false, severity: "info", message: "" });
 
@@ -92,19 +91,17 @@ export default function TaxAutomationPage() {
   const loadAll = useCallback(async () => {
     setLoading(true);
     try {
-      const [ov, txs, whs, jbs, conns, exps] = await Promise.all([
+      const [ov, txs, whs, jbs, exps] = await Promise.all([
         agentTaxApi.getOverview({ tax_year: taxYear }),
         agentTaxApi.listTransactions({ tax_year: taxYear, limit: 500 }),
         agentTaxApi.listWithholding({ tax_year: taxYear }),
         agentTaxApi.listHometaxJobs(),
-        agentTaxApi.listConnectors(),
         agentTaxApi.listPartnerExports(),
       ]);
       setOverview(ov);
       setTransactions(txs);
       setWithholdings(whs);
       setJobs(jbs);
-      setConnectors(conns);
       setPartnerExports(exps);
     } catch (err) {
       notify("error", extractTaxError(err));
@@ -235,7 +232,7 @@ export default function TaxAutomationPage() {
         icon={CalculateOutlinedIcon}
         badge={overview?.bookkeeping_label || "간편장부 대상자"}
         title="설계사 세무자동화"
-        description="홈택스 무료 스크래핑(0원)·카드 문자 웹훅·엑셀 자동 매핑으로 월 자동 기장하고 가사/업무 경비를 빠르게 분리하세요."
+        description="홈택스·카드사·은행에서 내려받은 엑셀(CSV)과 원천징수영수증 PDF를 올리면 AI가 자동 기장하고 가사/업무 경비를 빠르게 분리해 줍니다."
         actions={
           <Stack direction="row" spacing={1} alignItems="center">
             <TextField
@@ -309,7 +306,7 @@ export default function TaxAutomationPage() {
       <Paper variant="outlined" sx={{ borderRadius: 3, mb: 2.5, bgcolor: "#fff" }}>
         <Tabs value={tab} onChange={(_e, v) => setTab(v)} variant="scrollable" scrollButtons="auto">
           <Tab label="1. 자동 기장 & 가사·업무 분리" />
-          <Tab label="2. 무료 데이터 수집 (홈택스·카드·계좌)" />
+          <Tab label="2. 내역 파일 업로드 (홈택스·카드·은행)" />
           <Tab label="3. 원천징수영수증 (3.3% 대조)" />
           <Tab label="4. 다중 사업체 & 종소세 합산" />
           <Tab label="5. 홈택스 문서 & 세무사 전달" />
@@ -334,11 +331,10 @@ export default function TaxAutomationPage() {
           apiClient={agentTaxApi}
           profiles={overview?.profiles || []}
           jobs={jobs}
-          connectors={connectors}
-          webhookInfo={overview?.primary_webhook}
           taxYear={taxYear}
           onReload={loadAll}
           onNotify={notify}
+          onGoWithholding={() => setTab(2)}
         />
       )}
 

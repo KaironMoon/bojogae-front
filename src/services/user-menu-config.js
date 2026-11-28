@@ -148,7 +148,7 @@ export const DEFAULT_USER_MENU_ITEMS = [
     prefix: "/tax/",
     icon_key: "calculate",
     tone: "green",
-    audience: "ALL",
+    audience: "ADMIN_ONLY",
     visible: true,
     badge: null,
     children: [],
@@ -280,6 +280,9 @@ export const hasMenuChanges = engine.hasMenuChanges;
 
 export function isChildEligibleForUser(child, user) {
   if (!child?.visible) return false;
+  if (child.audience === "ADMIN_ONLY") {
+    return user?.role === "ADMIN";
+  }
   if (child.audience === "GROUP_LEADER") {
     return user?.group_role === "LEADER";
   }
@@ -293,6 +296,9 @@ export function isMenuEligibleForUser(item, user) {
   if (!item?.visible) return false;
   if (item.kind === "group" && !(item.children || []).some((child) => isChildEligibleForUser(child, user))) {
     return false;
+  }
+  if (item.audience === "ADMIN_ONLY") {
+    return user?.role === "ADMIN";
   }
   if (item.audience === "GROUP_LEADER") {
     return user?.group_role === "LEADER";
