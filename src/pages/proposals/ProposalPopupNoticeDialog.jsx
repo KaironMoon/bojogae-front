@@ -1,5 +1,5 @@
 /* eslint-disable react/prop-types */
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { Link as RouterLink } from "react-router-dom";
 import {
   Box,
@@ -18,6 +18,8 @@ import {
 import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import VisibilityOffOutlinedIcon from "@mui/icons-material/VisibilityOffOutlined";
+import ZoomInRoundedIcon from "@mui/icons-material/ZoomInRounded";
+import ImageZoomDialog from "@/components/ImageZoomDialog";
 import ProposalFeatureDemoVisual from "./ProposalFeatureDemoVisual";
 
 const DEMO_HIGHLIGHTS = {
@@ -128,8 +130,24 @@ function renderInlineMarkdown(text, onNavigate) {
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
 const SAFE_BOARD_IMAGE_PATH = /^\/api\/v1\/board-images\/[a-f0-9]{32}$/;
 
-function BlogArticleBody({ content, onNavigate }) {
+function collectMarkdownImages(content) {
+  const result = [];
   const lines = String(content || "").replace(/\r\n/g, "\n").split("\n");
+  for (const rawLine of lines) {
+    const imageMatch = rawLine.trim().match(/^!\[([^\]]*)\]\(([^()\s]+)\)$/);
+    if (imageMatch && SAFE_BOARD_IMAGE_PATH.test(imageMatch[2])) {
+      result.push({
+        src: `${API_BASE_URL}${imageMatch[2]}`,
+        alt: imageMatch[1] || "안내 이미지",
+      });
+    }
+  }
+  return result;
+}
+
+function BlogArticleBody({ content, onNavigate, onImageClick }) {
+  const lines = String(content || "").replace(/\r\n/g, "\n").split("\n");
+  let imageCounter = -1;
   return (
     <Stack spacing={1.25}>
       {lines.map((rawLine, index) => {
@@ -137,6 +155,8 @@ function BlogArticleBody({ content, onNavigate }) {
         if (!line) return <Box key={index} sx={{ height: 4 }} />;
         const imageMatch = line.match(/^!\[([^\]]*)\]\(([^()\s]+)\)$/);
         if (imageMatch && SAFE_BOARD_IMAGE_PATH.test(imageMatch[2])) {
+          imageCounter += 1;
+          const imgIdx = imageCounter;
           return (
             <Box
               key={index}
@@ -147,20 +167,62 @@ function BlogArticleBody({ content, onNavigate }) {
               }}
             >
               <Box
-                component="img"
-                src={`${API_BASE_URL}${imageMatch[2]}`}
-                alt={imageMatch[1] || "안내 이미지"}
-                loading="lazy"
+                role="button"
+                tabIndex={0}
+                aria-label="이미지 크게 보기"
+                onClick={() => onImageClick?.(imgIdx)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onImageClick?.(imgIdx);
+                  }
+                }}
                 sx={{
+                  position: "relative",
                   maxWidth: 420,
                   width: "100%",
-                  height: "auto",
+                  cursor: "zoom-in",
                   borderRadius: "14px",
-                  border: "1px solid #E2E8F0",
-                  boxShadow: "0 4px 16px rgba(15, 23, 42, 0.06)",
-                  display: "block",
+                  overflow: "hidden",
                 }}
-              />
+              >
+                <Box
+                  component="img"
+                  src={`${API_BASE_URL}${imageMatch[2]}`}
+                  alt={imageMatch[1] || "안내 이미지"}
+                  loading="lazy"
+                  sx={{
+                    width: "100%",
+                    height: "auto",
+                    borderRadius: "14px",
+                    border: "1px solid #E2E8F0",
+                    boxShadow: "0 4px 16px rgba(15, 23, 42, 0.06)",
+                    display: "block",
+                  }}
+                />
+                <Box
+                  component="span"
+                  sx={{
+                    position: "absolute",
+                    right: 10,
+                    bottom: 10,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 0.4,
+                    px: 1,
+                    py: 0.35,
+                    borderRadius: 99,
+                    bgcolor: "rgba(15, 23, 42, 0.72)",
+                    color: "#FFFFFF",
+                    fontSize: 11,
+                    fontWeight: 800,
+                    backdropFilter: "blur(4px)",
+                  }}
+                >
+                  <ZoomInRoundedIcon sx={{ fontSize: 13 }} />
+                  <span>확대</span>
+                </Box>
+              </Box>
             </Box>
           );
         }
@@ -243,19 +305,27 @@ export default function ProposalPopupNoticeDialog({
   onHideToday,
 }) {
   const [selectedId, setSelectedId] = useState(notices[0]?.id ?? null);
+  const [zoomIndex, setZoomIndex] = useState(null);
 
   useEffect(() => {
     if (!open || !notices.length) return;
     setSelectedId((prev) => (notices.some((n) => n.id === prev) ? prev : notices[0].id));
+    setZoomIndex(null);
   }, [open, notices]);
 
-  if (!open || !notices.length) return null;
+  const active = notices.find((item) => item.id === selectedId) || notices[0] || null;
+  const noticeImages = useMemo(
+    () => (active ? collectMarkdownImages(active.content) : []),
+    [active],
+  );
 
-  const active = notices.find((item) => item.id === selectedId) || notices[0];
+  if (!open || !notices.length || !active) return null;
+
   const meta = CATEGORY_META[active.category] || CATEGORY_META.UPDATE;
   const dateLabel = formatDateLabel(active.starts_at || active.created_at);
 
   return (
+    <>
     <Dialog
       open
       onClose={onClose}
@@ -384,7 +454,7 @@ export default function ProposalPopupNoticeDialog({
             </>
           )}
 
-          <BlogArticleBody content={active.content} onNavigate={onClose} />
+          <BlogArticleBody content={active.content} onNavigate={onClose} onImageClick={(idx) => setZoomIndex(idx)} />
         </Paper>
       </DialogContent>
 
@@ -430,5 +500,12 @@ export default function ProposalPopupNoticeDialog({
         </Button>
       </DialogActions>
     </Dialog>
+    <ImageZoomDialog
+      open={zoomIndex !== null}
+      images={noticeImages}
+      initialIndex={zoomIndex ?? 0}
+      onClose={() => setZoomIndex(null)}
+    />
+    </>
   );
 }

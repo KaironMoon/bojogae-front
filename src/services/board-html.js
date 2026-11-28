@@ -25,6 +25,131 @@ export function sanitizeBoardHtml(html) {
   return container.innerHTML;
 }
 
+function cleanCellLabel(text) {
+  return String(text || "").replace(/\u00a0/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function extractTableBlock(tableEl) {
+  const rowsAll = Array.from(tableEl.querySelectorAll("tr"));
+  const hasMerge = rowsAll.some((tr) =>
+    Array.from(tr.cells).some((cell) => cell.colSpan > 1 || cell.rowSpan > 1),
+  );
+
+  if (hasMerge || rowsAll.length === 0) {
+    return {
+      type: "table",
+      kind: "scroll",
+      tableHtml: tableEl.outerHTML,
+      headers: [],
+      rows: [],
+    };
+  }
+
+  const theadRow = tableEl.querySelector("thead tr");
+  const firstRow = rowsAll[0];
+  const firstRowAllTh = firstRow && firstRow.cells.length > 0 && Array.from(firstRow.cells).every((c) => c.tagName === "TH");
+
+  if (theadRow || firstRowAllTh) {
+    const headerRowEl = theadRow || firstRow;
+    const headers = Array.from(headerRowEl.cells).map((cell) => cleanCellLabel(cell.textContent));
+    const bodyRows = rowsAll
+      .filter((tr) => tr !== headerRowEl)
+      .map((tr) => Array.from(tr.cells).map((cell) => cell.innerHTML))
+      .filter((cells) => cells.length > 0);
+    return {
+      type: "table",
+      kind: bodyRows.length > 0 && headers.length > 0 ? "columns" : "scroll",
+      tableHtml: tableEl.outerHTML,
+      headers,
+      rows: bodyRows,
+    };
+  }
+
+  const isKeyValue = rowsAll.every(
+    (tr) => tr.cells.length === 2 && tr.cells[0].tagName === "TH" && tr.cells[1].tagName === "TD",
+  );
+  if (isKeyValue) {
+    const kvRows = rowsAll.map((tr) => ({
+      label: cleanCellLabel(tr.cells[0].textContent),
+      html: tr.cells[1].innerHTML,
+    }));
+    return {
+      type: "table",
+      kind: "kv",
+      tableHtml: tableEl.outerHTML,
+      headers: [],
+      rows: kvRows,
+    };
+  }
+
+  return {
+    type: "table",
+    kind: "scroll",
+    tableHtml: tableEl.outerHTML,
+    headers: [],
+    rows: [],
+  };
+}
+
+function splitNodeByTables(node, blocks) {
+  if (node.nodeType === 1 && node.tagName === "TABLE") {
+    blocks.push(extractTableBlock(node));
+    return;
+  }
+  if (node.nodeType === 1 && node.querySelector("table")) {
+    let bufferHtml = "";
+    for (const child of Array.from(node.childNodes)) {
+      if (child.nodeType === 1 && (child.tagName === "TABLE" || child.querySelector("table"))) {
+        if (bufferHtml.trim()) {
+          blocks.push({ type: "html", html: bufferHtml });
+          bufferHtml = "";
+        }
+        splitNodeByTables(child, blocks);
+      } else {
+        bufferHtml += child.nodeType === 1 ? child.outerHTML : child.textContent;
+      }
+    }
+    if (bufferHtml.trim()) {
+      blocks.push({ type: "html", html: bufferHtml });
+    }
+    return;
+  }
+  const chunk = node.nodeType === 1 ? node.outerHTML : node.textContent;
+  if (chunk && chunk.trim()) {
+    const last = blocks[blocks.length - 1];
+    if (last?.type === "html") {
+      last.html += chunk;
+    } else {
+      blocks.push({ type: "html", html: chunk });
+    }
+  }
+}
+
+export function parseBoardContentBlocks(sanitizedHtml) {
+  const container = document.createElement("div");
+  container.innerHTML = sanitizedHtml || "";
+
+  const images = [];
+  container.querySelectorAll("img").forEach((img) => {
+    const src = img.getAttribute("src") || "";
+    if (!src) return;
+    const index = images.length;
+    images.push({
+      src,
+      alt: img.getAttribute("alt") || "",
+    });
+    img.setAttribute("data-board-img-index", String(index));
+    img.classList.add("board-zoomable-img");
+  });
+
+  const blocks = [];
+  for (const child of Array.from(container.childNodes)) {
+    splitNodeByTables(child, blocks);
+  }
+
+  return { blocks, images };
+}
+
 export function plainTextToHtml(text) {
   const escape = (value) => value
     .replace(/&/g, "&amp;")

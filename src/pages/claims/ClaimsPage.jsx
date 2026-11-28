@@ -199,6 +199,19 @@ export default function ClaimsPage() {
   const requestKey = useRef(null);
   const pending = useRef(null);
   const form = useRef(null);
+  const prevStepRef = useRef(step);
+  useEffect(() => {
+    if (view !== "create") {
+      prevStepRef.current = step;
+      return;
+    }
+    if (prevStepRef.current !== step) {
+      prevStepRef.current = step;
+      window.requestAnimationFrame(() => {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      });
+    }
+  }, [step, view]);
   function previousStep() {
     setStep((previous) => previous - 1);
   }

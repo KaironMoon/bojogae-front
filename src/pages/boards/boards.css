@@ -842,7 +842,7 @@
 }
 
 .board-detail-header {
-  padding: 26px 22px 20px;
+  padding: 20px 16px 18px;
   background: linear-gradient(180deg, #fafbfc 0%, #ffffff 100%);
   border-bottom: 1px solid #e6eaee;
 }
@@ -855,7 +855,7 @@
 
 .board-detail-title {
   margin: 12px 0 0;
-  font-size: 22px;
+  font-size: 20px;
   line-height: 1.35;
   font-weight: 900;
   color: #121314;
@@ -887,7 +887,7 @@
 }
 
 .board-detail-body {
-  padding: 24px 22px 30px;
+  padding: 18px 16px 26px;
 }
 
 @media (min-width: 768px) {
@@ -936,12 +936,204 @@
 
 .board-prose img {
   display: block;
-  max-width: 100%;
+  max-width: 100% !important;
   height: auto !important;
   border-radius: 14px;
   margin: 8px auto 18px;
   border: 1px solid #e6eaee;
   box-shadow: 0 6px 20px rgba(15, 23, 42, 0.08);
+  cursor: zoom-in;
+  transition: transform 0.16s ease, box-shadow 0.16s ease;
+}
+
+.board-prose img:hover {
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.14);
+}
+
+.board-zoom-tip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 14px;
+  padding: 6px 11px;
+  border-radius: 999px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #166534;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.board-table-block {
+  margin: 16px 0 20px;
+}
+
+.board-table-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.board-table-summary {
+  font-size: 12px;
+  font-weight: 800;
+  color: #64748b;
+}
+
+.board-table-toggle {
+  display: inline-flex;
+  padding: 3px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  gap: 2px;
+}
+
+.board-table-toggle button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #475569;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background-color 0.14s ease, color 0.14s ease;
+}
+
+.board-table-toggle button.is-active {
+  background: #ffffff;
+  color: #006e43;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
+}
+
+.board-table-card-list {
+  display: grid;
+  gap: 10px;
+}
+
+.board-table-card {
+  padding: 13px 15px;
+  border-radius: 14px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03);
+  display: grid;
+  gap: 8px;
+}
+
+.board-table-card-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.board-table-card-row--lead {
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.board-table-card-label {
+  font-size: 11px;
+  font-weight: 800;
+  color: #64748b;
+  letter-spacing: -0.01em;
+}
+
+.board-table-card-value {
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: #0f172a;
+  overflow-wrap: anywhere;
+}
+
+.board-table-card-value img,
+.board-table-kv-value img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 10px;
+  cursor: zoom-in;
+}
+
+.board-table-kv {
+  border-radius: 14px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+}
+
+.board-table-kv-row {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 12px 15px;
+  background: #ffffff;
+}
+
+.board-table-kv-row + .board-table-kv-row {
+  border-top: 1px solid #eef2f6;
+}
+
+@media (min-width: 480px) {
+  .board-table-kv-row {
+    flex-direction: row;
+    align-items: baseline;
+    gap: 14px;
+  }
+
+  .board-table-kv-label {
+    width: 110px;
+    flex-shrink: 0;
+  }
+}
+
+.board-table-kv-label {
+  font-size: 12px;
+  font-weight: 850;
+  color: #475569;
+}
+
+.board-table-kv-value {
+  font-size: 14px;
+  line-height: 1.55;
+  color: #0f172a;
+  overflow-wrap: anywhere;
+}
+
+.board-table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+}
+
+.board-table-scroll table {
+  width: 100%;
+  min-width: 460px;
+  border-collapse: collapse;
+  margin: 0 !important;
+  font-size: 13.5px;
+}
+
+.board-table-scroll th,
+.board-table-scroll td {
+  border: 1px solid #e2e8f0;
+  padding: 9px 12px !important;
+  vertical-align: top;
+}
+
+.board-table-scroll th {
+  font-weight: 800;
 }
 
 .board-prose a {
