@@ -1167,7 +1167,18 @@
 
 .board-prose th {
   background: #f8fafc;
+  color: #0f172a;
   font-weight: 800;
+}
+
+.board-prose tr[style*="background"] > th:not([style*="background"]),
+.board-prose tr[style*="background"] > td:not([style*="background"]) {
+  background: transparent !important;
+}
+
+.board-prose tr[style*="color"] > th:not([style*="color"]),
+.board-prose tr[style*="color"] > td:not([style*="color"]) {
+  color: inherit;
 }
 
 .board-source-banner {
