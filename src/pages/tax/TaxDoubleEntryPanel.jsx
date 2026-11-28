@@ -128,7 +128,7 @@ export default function TaxDoubleEntryPanel({
       </Stack>
       {filingTier.tier === "DOUBLE_EXTERNAL" && (
         <Alert severity="warning" sx={{ mb: 1.5, borderRadius: 2 }}>
-          현재 구간(1억 5,000만 원 이상)은 외부조정 대상입니다. 아래 복식부기 엑셀을 받아
+          현재 구간(1억 5,000만 원 이상)은 외부조정 대상입니다. 아래 통합 엑셀 1개를 받아
           5월에 1회만 세무사에게 신고대리를 의뢰하세요.
         </Alert>
       )}
@@ -490,35 +490,29 @@ export default function TaxDoubleEntryPanel({
             </Grid>
           </Grid>
 
-          {/* 4-B. 파일 다운로드 (복식부기 재무제표) & 5월 1회 세무사 전달 */}
+          {/* 4-B. 파일 다운로드 (복식부기 + 더존·세무사랑 통합 엑셀) & 5월 1회 세무사 전달 */}
           <Grid container spacing={2.5}>
             <Grid item xs={12} md={6}>
               <Paper variant="outlined" sx={{ p: 3, borderRadius: 3, bgcolor: "#fff", height: "100%" }}>
                 <Stack spacing={2}>
                   <Typography variant="subtitle1" fontWeight={800}>
-                    {isExternal ? "세무사 전달용 복식부기 파일 생성" : "복식부기 재무제표 백업 · 제출용 파일 생성"}
+                    {isExternal
+                      ? "세무사 전달용 통합 엑셀 생성 (더존·세무사랑 100% 호환)"
+                      : "복식부기 · 더존·세무사랑 통합 엑셀 (5년 보관·제출용)"}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     {isExternal
-                      ? "복식부기 의무자(외부조정)는 간편장부를 사용할 수 없습니다. 아래 복식부기 재무제표·분개장 엑셀을 세무사에게 전달하세요."
-                      : "화면 보고 바로 홈택스 자기조정 신고가 가능하며, 5년 장부 보관 또는 세무사 확인이 필요할 때 복식부기 파일을 내려받으세요."}
+                      ? "복식부기 의무자(외부조정)는 간편장부를 사용할 수 없습니다. 아래 통합 엑셀 1개에 1번 시트(더존·세무사랑 일괄 업로드 전표)와 2~7번 시트(표준손익계산서·재무상태표·시산표·분개장·한도점검·계정코드표)가 모두 담겨 있어 이 파일 하나만 세무사에게 전달하면 됩니다."
+                      : "화면 보고 바로 홈택스 자기조정 신고가 가능합니다. 5년 장부 보관이나 세무사 검수가 필요할 때 1번 시트(더존·세무사랑 전표)와 복식부기 재무제표가 모두 담긴 통합 엑셀 1개를 내려받으세요."}
                   </Typography>
                   <Stack direction="row" spacing={1.25} flexWrap="wrap" useFlexGap>
                     <Button
-                      variant={isExternal ? "contained" : "outlined"}
-                      startIcon={<TableChartOutlinedIcon />}
-                      onClick={() => apiClient.downloadAccountingVoucherXlsx(taxYear)}
-                      sx={isExternal ? { bgcolor: "#03C75A", "&:hover": { bgcolor: "#008A60" } } : {}}
-                    >
-                      더존·세무사랑 전표 업로드용 (.xlsx)
-                    </Button>
-                    <Button
-                      variant={isExternal ? "outlined" : "contained"}
+                      variant="contained"
                       startIcon={<TableChartOutlinedIcon />}
                       onClick={() => apiClient.downloadDoubleEntryXlsx(taxYear)}
-                      sx={isExternal ? {} : { bgcolor: "#03C75A", "&:hover": { bgcolor: "#008A60" } }}
+                      sx={{ bgcolor: "#03C75A", "&:hover": { bgcolor: "#008A60" } }}
                     >
-                      복식부기 재무제표·분개장 (.xlsx)
+                      더존·세무사랑 전표 + 복식부기 재무제표 통합 (.xlsx)
                     </Button>
                     <Button
                       variant="outlined"
@@ -539,7 +533,7 @@ export default function TaxDoubleEntryPanel({
                     5월 1회 외부조정 · 신고대리 패키지 전달 (월 기장료 절감)
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
-                    더존(Smart A·WEHAGO T)·세무사랑Pro에 바로 업로드할 수 있는 표준 엑셀 포맷(날짜·구분·거래처·적요·공급가액·부가세·계정코드·증빙)으로 세무사 작업 시간을 크게 줄여줍니다.
+                    위 통합 엑셀 1개(1번 시트: 더존·세무사랑 바로 업로드 전표 + 표준재무제표·분개장 포함)로 5월 1회 외부조정을 의뢰하면 세무사 작업 시간과 비용을 크게 줄일 수 있습니다.
                   </Typography>
                   {renderPartnerPackageFields()}
                 </Stack>

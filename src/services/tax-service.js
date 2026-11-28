@@ -75,7 +75,7 @@ export const agentTaxApi = {
   downloadLedgerXlsx: (taxYear) => downloadBlob("/api/v1/tax/exports/ledger.xlsx", { tax_year: taxYear }, `보조개_간편장부_${taxYear}.xlsx`),
   getDoubleEntry: (params) => api.get("/api/v1/tax/double-entry", params).then((r) => r.data),
   downloadDoubleEntryXlsx: (taxYear) =>
-    downloadBlob("/api/v1/tax/exports/double-entry.xlsx", { tax_year: taxYear }, `보조개_복식부기_표준재무제표_${taxYear}.xlsx`),
+    downloadBlob("/api/v1/tax/exports/double-entry.xlsx", { tax_year: taxYear }, `보조개_복식부기_더존세무사랑_통합_${taxYear}.xlsx`),
   downloadAccountingVoucherXlsx: (taxYear) =>
     downloadBlob("/api/v1/tax/exports/accounting-voucher.xlsx", { tax_year: taxYear }, `보조개_더존_세무사랑_전표업로드_${taxYear}.xlsx`),
   downloadSummaryPdf: (taxYear) => downloadBlob("/api/v1/tax/exports/summary.pdf", { tax_year: taxYear }, `보조개_세무요약_${taxYear}.pdf`),

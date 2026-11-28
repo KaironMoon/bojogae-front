@@ -265,7 +265,7 @@ export default function TaxAutomationPage() {
                   : agentTaxApi.downloadLedgerXlsx(taxYear)
               }
             >
-              {overview?.bookkeeping_type === "DOUBLE_ENTRY" ? "복식부기 재무제표 엑셀" : "간편장부 엑셀"}
+              {overview?.bookkeeping_type === "DOUBLE_ENTRY" ? "복식부기 · 세무사 통합 엑셀" : "간편장부 엑셀"}
             </Button>
           </Stack>
         }
