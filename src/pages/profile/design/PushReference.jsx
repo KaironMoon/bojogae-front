@@ -5,7 +5,7 @@ export default function PushReference({vm}) { return <div className="bg-white w-
             <div className="bg-[#121314] text-white px-6 py-4 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                     <ProfileIcon name="bell-off" className="w-4 h-4 text-rose-400" />
-                    <h3 className="text-base font-black" id="notifModalHeaderTitle">{vm.pushState?.subscribed ? '브라우저 푸시 알림 해제 확인' : '브라우저 푸시 알림 허용'}</h3>
+                    <h3 className="text-base font-black" id="notifModalHeaderTitle">{vm.pushState?.subscribed ? '브라우저 알림/푸시 알림 해제 확인' : '브라우저 알림/푸시 알림 허용'}</h3>
                 </div>
                 <button className="text-slate-400 hover:text-white" onClick={vm.closeModal} aria-label="닫기"><ProfileIcon name="x" className="w-4 h-4" /></button>
             </div>

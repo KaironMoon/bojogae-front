@@ -77,7 +77,7 @@ export default function HistoryCard({ item, vm }) {
               상세 보기 · 같은 내용으로 작성
             </button>
             <button
-              disabled={vm.busy || !item.original_available}
+              disabled={vm.busy}
               onClick={() => vm.download(item.id)}
               className="px-3.5 py-2 rounded-xl bg-[#f4f6f8] text-[#121314] text-xs font-bold flex items-center gap-1.5 disabled:opacity-50"
             >

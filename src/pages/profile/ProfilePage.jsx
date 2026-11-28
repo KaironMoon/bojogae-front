@@ -275,7 +275,7 @@ function ProfilePage() {
     saveDisabled:saving || !profile.name.trim() || !profile.affiliation.trim() || !/^\+?[\d\s()-]{8,30}$/.test(profile.phone.trim()),
     extraSections:<><ReferralSection key={savedEmail}/>{user?.role === 'USER' && !user?.group_id && <AccountWithdrawal onWithdraw={()=>{setError('');setMessage('');setModal('withdraw');}} onBilling={()=>setModal('billing')}/>}</>};
   return <><div className="profile-design profile-page"><ProfileReference vm={vm}/></div>
-    <Dialog open={Boolean(modal)} onClose={closeModal} maxWidth={false} aria-label={{email:'새 이메일 주소 인증 및 변경',push:'브라우저 알림 설정',billing:'월간 구독권 · 결제수단 관리',withdraw:'회원 탈퇴 확인'}[modal]} slotProps={{paper:{className:`profile-design profile-modal ${modal === 'billing' ? 'profile-billing-modal' : ''}`}}}>
+    <Dialog open={Boolean(modal)} onClose={closeModal} maxWidth={false} aria-label={{email:'새 이메일 주소 인증 및 변경',push:'브라우저 알림/푸시 알림 설정',billing:'월간 구독권 · 결제수단 관리',withdraw:'회원 탈퇴 확인'}[modal]} slotProps={{paper:{className:`profile-design profile-modal ${modal === 'billing' ? 'profile-billing-modal' : ''}`}}}>
       {modal === 'email' && <EmailReference vm={vm}/>}
       {modal === 'push' && <PushReference vm={vm}/>}
       {['billing','withdraw'].includes(modal) && <div className={`profile-dialog-shell ${modal === 'withdraw' ? 'profile-withdrawal-dialog' : ''}`}><header><div><ProfileIcon name={modal === 'billing' ? 'credit-card' : 'shield-alert'} className="w-4 h-4"/><h2>{modal === 'billing' ? '월간 구독권 · 결제수단 관리' : '회원 탈퇴 확인'}</h2></div><button type="button" aria-label="닫기" disabled={saving} onClick={closeModal}><ProfileIcon name="x"/></button></header><div className="profile-dialog-body">

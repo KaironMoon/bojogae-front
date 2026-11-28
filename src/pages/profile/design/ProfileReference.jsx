@@ -222,9 +222,9 @@ export default function ProfileReference({vm}) { return <main className="MuiBox-
                                             <ProfileIcon name="bell-ring" className="w-5 h-5" />
                                         </div>
                                         <div className="MuiBox-root css-0">
-                                            <div className="flex items-center gap-2">
+                                            <div className="flex flex-wrap items-center gap-2">
                                                 <p className="MuiTypography-root MuiTypography-body1 css-12zrezq text-base font-black text-[#121314]">
-                                                    브라우저 알림
+                                                    브라우저 알림/푸시 알림
                                                 </p>
                                                 <span data-enabled={Boolean(vm.pushState?.subscribed)} id="notifMasterStatusBadge" className="px-2 py-0.5 rounded-full bg-primary-soft text-primary text-[10.5px] font-black">{vm.pushState?.subscribed ? '알림 허용됨' : '알림 꺼짐'}</span>
                                             </div>
