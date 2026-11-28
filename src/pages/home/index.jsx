@@ -1,12 +1,15 @@
 /* eslint-disable react/prop-types */
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
-import { Dialog } from "@mui/material";
+import { Link, useSearchParams } from "react-router-dom";
+import { Button, Dialog, Paper, Stack, Typography, useMediaQuery } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
+import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import { useAuth } from "@/auth/AuthContext";
 import { getDashboard } from "@/services/dashboard-service";
 import { getPromptOptions } from "@/services/proposal-service";
 import { promptPreviewImageUrl } from "@/services/prompt-service";
 import { crmGet } from "@/services/crm-service";
+import MobileHomeLauncher from "./MobileHomeLauncher";
 import HomeReference from "./design/HomeReference";
 import ReportCard from "./design/ReportCard";
 import HomeBanner from "./design/HomeBanner";
@@ -103,6 +106,12 @@ function PreviewImage({ prompt, image, index }) {
   );
 }
 export default function Home() {
+  const theme = useTheme();
+  const isMobileHome = useMediaQuery(theme.breakpoints.down("md"));
+  const [searchParams] = useSearchParams();
+  const [mobileView, setMobileView] = useState(() => (
+    searchParams.get("view") === "dashboard" ? "dashboard" : "launcher"
+  ));
   const { user } = useAuth();
   const [data, setData] = useState(null),
     [crm, setCrm] = useState(null),
@@ -174,7 +183,7 @@ export default function Home() {
       });
     }
     return () => cleanups.forEach((fn) => fn());
-  }, [data]);
+  }, [data, isMobileHome, mobileView]);
   const go = (key, i) => {
     const track = root.current?.querySelector(`#${TRACKS[key]}`);
     const card = track?.children[i];
@@ -385,8 +394,46 @@ export default function Home() {
       </Empty>
     ),
   };
+  if (isMobileHome && mobileView === "launcher") {
+    return (
+      <MobileHomeLauncher
+        user={user}
+        promptCount={prompts?.length}
+        favoriteCount={favorites.length}
+        onOpenDashboard={() => {
+          setMobileView("dashboard");
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }}
+      />
+    );
+  }
+
   return (
     <>
+      {isMobileHome && (
+        <Paper
+          variant="outlined"
+          sx={{ mx: 1.75, mt: 1.5, mb: 0.5, px: 1.5, py: 1, borderRadius: 2.5, bgcolor: "#FFFFFF" }}
+        >
+          <Stack direction="row" alignItems="center" justifyContent="space-between" gap={1}>
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<ArrowBackRoundedIcon />}
+              onClick={() => {
+                setMobileView("launcher");
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+              sx={{ borderRadius: 2, fontWeight: 800 }}
+            >
+              주요 기능 보기
+            </Button>
+            <Typography variant="caption" color="text.secondary" fontWeight={800}>
+              홈 대시보드
+            </Typography>
+          </Stack>
+        </Paper>
+      )}
       <div ref={root} className="home-design home-workspace">
         {Object.keys(errors).length > 0 && (
           <div

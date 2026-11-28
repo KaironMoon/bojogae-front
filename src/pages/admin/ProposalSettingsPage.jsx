@@ -16,11 +16,13 @@ import {
   Typography,
 } from "@mui/material";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
+import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
 import { useEffect, useState } from "react";
 import AdminEmailSettings from "./AdminEmailSettings";
 import AdminSettingsAudit from "./AdminSettingsAudit";
 import MaintenanceSettings from "./MaintenanceSettings";
 import UserMenuSettings from "./UserMenuSettings";
+import { AdminPageContainer, AdminPageHeader } from "./components/AdminPageShell";
 
 import {
   getPromptPointCosts,
@@ -136,11 +138,12 @@ function ProposalSettingsPage() {
   });
 
   return (
-    <Box sx={{ p: { xs: 2, md: 4 }, maxWidth: 1140, mx: "auto" }}>
-      <Typography variant="h4" sx={{ fontWeight: 800 }}>설정 및 서식</Typography>
-      <Typography color="text.secondary" sx={{ mb: 2.5 }}>
-        유저 좌측 메뉴, AI 생성 제한, 문서별 소진 꼬막, 서비스 점검 및 운영 알림을 항목별로 관리합니다.
-      </Typography>
+    <AdminPageContainer maxWidth={1180}>
+      <AdminPageHeader
+        icon={TuneOutlinedIcon}
+        title="설정 및 서식"
+        description="유저 좌측 메뉴, AI 생성 제한, 문서별 소진 꼬막, 서비스 점검 및 운영 알림을 항목별로 관리합니다."
+      />
 
       <Paper variant="outlined" sx={{ borderRadius: 3, mb: 3, px: 1.5, bgcolor: "#FFFFFF" }}>
         <Tabs
@@ -365,7 +368,7 @@ function ProposalSettingsPage() {
       )}
 
       {activeTab === "audit" && <AdminSettingsAudit autoLoad />}
-    </Box>
+    </AdminPageContainer>
   );
 }
 

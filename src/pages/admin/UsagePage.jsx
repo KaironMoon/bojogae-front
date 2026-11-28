@@ -614,7 +614,19 @@ function UsagePage() {
             alignItems={{ xs: "stretch", lg: "center" }}
             gap={1.5}
           >
-            <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
+            <Stack
+              direction="row"
+              spacing={0.75}
+              sx={{
+                flexWrap: { xs: "nowrap", sm: "wrap" },
+                overflowX: { xs: "auto", sm: "visible" },
+                pb: { xs: 0.5, sm: 0 },
+                gap: { sm: 0.75 },
+                "& .MuiChip-root": { flexShrink: 0 },
+                scrollbarWidth: "none",
+                "&::-webkit-scrollbar": { display: "none" },
+              }}
+            >
               {[
                 ["today", "오늘"],
                 ["7d", "최근 7일"],
@@ -663,7 +675,7 @@ function UsagePage() {
             </Stack>
           </Stack>
 
-          <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} alignItems="center">
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} alignItems={{ xs: "stretch", sm: "center" }}>
             <TextField
               size="small"
               type="date"
@@ -674,6 +686,7 @@ function UsagePage() {
                 setPreset("custom");
                 setDateFrom(e.target.value);
               }}
+              sx={{ width: { xs: "100%", sm: "auto" } }}
             />
             <TextField
               size="small"
@@ -685,6 +698,7 @@ function UsagePage() {
                 setPreset("custom");
                 setDateTo(e.target.value);
               }}
+              sx={{ width: { xs: "100%", sm: "auto" } }}
             />
             <Typography variant="caption" color="text.secondary">
               모든 일자·주간·월간 집계는 한국 시간(KST) 및 개인+단체 동일인 통합 기준입니다.
@@ -1443,7 +1457,7 @@ function UsagePage() {
                     setSegScope(e.target.value);
                     setSegPage(1);
                   }}
-                  sx={{ minWidth: 150 }}
+                  sx={{ minWidth: { xs: "100%", md: 150 } }}
                 >
                   <MenuItem value="ALL">전체 (개인+단체)</MenuItem>
                   <MenuItem value="PERSONAL">개인 계정만</MenuItem>
@@ -1460,7 +1474,7 @@ function UsagePage() {
                     setSegCompany(e.target.value);
                     setSegPage(1);
                   }}
-                  sx={{ minWidth: 200 }}
+                  sx={{ minWidth: { xs: "100%", md: 200 } }}
                 >
                   <MenuItem value="">전체 회사</MenuItem>
                   {companyOptions.map((c) => (
@@ -1477,7 +1491,7 @@ function UsagePage() {
                     setSegMinDays(e.target.value);
                     setSegPage(1);
                   }}
-                  sx={{ width: 150 }}
+                  sx={{ width: { xs: "100%", md: 150 } }}
                 />
 
                 <Stack

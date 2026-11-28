@@ -74,6 +74,7 @@ import {
   FormControl,
   FormControlLabel,
   IconButton,
+  InputAdornment,
   MenuItem,
   Pagination,
   Paper,
@@ -108,7 +109,10 @@ import ZoomInRoundedIcon from "@mui/icons-material/ZoomInRounded";
 import ZoomOutRoundedIcon from "@mui/icons-material/ZoomOutRounded";
 import IosShareRoundedIcon from "@mui/icons-material/IosShareRounded";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
+import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
+import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
 import HelpOutlineRoundedIcon from "@mui/icons-material/HelpOutlineRounded";
+import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useTheme } from "@mui/material/styles";
 import ExpiringPoints from "@/pages/components/ExpiringPoints";
@@ -575,7 +579,17 @@ function ProposalsPage() {
   const [videoColumnHidden, setVideoColumnHidden] = useState(() => isVideoColumnHidden(user?.id));
   const [videoDrawerOpen, setVideoDrawerOpen] = useState(false);
   const isWideForVideoColumn = useMediaQuery(theme.breakpoints.up("lg"));
+  const isMobileProposal = useMediaQuery(theme.breakpoints.down("md"));
+  const [mobileMode, setMobileMode] = useState("create");
+  const [mobileStep, setMobileStep] = useState(1);
+  const [mobilePromptFilter, setMobilePromptFilter] = useState("");
   const showInlineVideoColumn = isWideForVideoColumn && !videoColumnHidden;
+  useEffect(() => {
+    if (isMobileProposal && promptQuery) {
+      setMobileMode("create");
+      setMobileStep(2);
+    }
+  }, [isMobileProposal, promptQuery]);
   useEffect(() => {
     setVideoColumnHidden(isVideoColumnHidden(user?.id));
   }, [user?.id]);
@@ -762,6 +776,14 @@ function ProposalsPage() {
   ), [selectedPrompt?.simple_option_specs]);
   const selectedReport = statusItem || openedDocument;
   const displayedPromptOptions = filteredPromptOptions;
+  const mobileFilteredPrompts = useMemo(() => {
+    const keyword = mobilePromptFilter.trim().toLowerCase();
+    if (!keyword) return displayedPromptOptions;
+    return displayedPromptOptions.filter((option) => (
+      (option.title || "").toLowerCase().includes(keyword)
+      || (option.description || "").toLowerCase().includes(keyword)
+    ));
+  }, [displayedPromptOptions, mobilePromptFilter]);
   const maxInputFiles = selectedPrompt?.max_input_files ?? 10;
   // Legacy prompts used an ordinary text/number field for this secret.
   // Passwords now belong to individual files and never to prompt input values.
@@ -1293,6 +1315,11 @@ function ProposalsPage() {
       setTitleTouched(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
       await Promise.all([loadList(1), getPointBalance().then(setPointBalance)]);
+      if (isMobileProposal) {
+        setMobileMode("list");
+        setMobileStep(1);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
     } catch (requestError) {
       const detail = requestError.response?.data?.detail;
       const detailCode = typeof detail === "string" ? detail : detail?.code;
@@ -1770,6 +1797,7 @@ function ProposalsPage() {
     setPromptId(promptsForTab(promptOptions, initialTab)[0]?.id || "");
     setRemodelingGuideArmed(false);
     setSelectedCategoryId(null);
+    setMobileStep(1);
     submissionKey.current = null;
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -1779,7 +1807,7 @@ function ProposalsPage() {
   }
 
   return (
-    <Box ref={helpRootRef} sx={{ p: { xs: 1.75, sm: 2.5, lg: 3.5 }, width: "100%", maxWidth: showInlineVideoColumn ? 1720 : 1440, mx: "auto", boxSizing: "border-box", overflowX: "hidden" }}>
+    <Box ref={helpRootRef} sx={{ p: { xs: 1.75, sm: 2.5, lg: 3.5 }, width: "100%", maxWidth: showInlineVideoColumn ? 1720 : 1440, mx: "auto", boxSizing: "border-box", overflowX: "clip" }}>
       <Paper variant="outlined" sx={{ p: { xs: 2, sm: 2.5 }, mb: 2.5 }}>
         <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ xs: "stretch", sm: "center" }} gap={1.5}>
           <Box>
@@ -1825,6 +1853,981 @@ function ProposalsPage() {
 
       <ExpiringPoints balance={pointBalance} />
 
+      {isMobileProposal && (
+        <Stack spacing={1.75} sx={{ pb: 3, minWidth: 0 }}>
+          <Paper
+            variant="outlined"
+            sx={{
+              p: 0.6,
+              borderRadius: 3,
+              bgcolor: "#F1F5F9",
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: 0.6,
+            }}
+          >
+            {[
+              { key: "create", label: "보고서 만들기" },
+              {
+                key: "list",
+                label: `보고서 리스트 (${items.length})`,
+                hasActive: items.some((entry) => ACTIVE.has(entry.status)),
+              },
+            ].map((modeOption) => {
+              const active = mobileMode === modeOption.key;
+              return (
+                <Button
+                  key={modeOption.key}
+                  type="button"
+                  onClick={() => setMobileMode(modeOption.key)}
+                  sx={{
+                    minHeight: 40,
+                    borderRadius: 2.5,
+                    fontWeight: active ? 850 : 700,
+                    fontSize: 13.5,
+                    color: active ? "#006E43" : "#475569",
+                    bgcolor: active ? "#FFFFFF" : "transparent",
+                    border: "1px solid",
+                    borderColor: active ? "#03C75A" : "transparent",
+                    boxShadow: active ? "0 1px 4px rgba(15, 23, 42, 0.08)" : "none",
+                    gap: 0.75,
+                    "&:hover": { bgcolor: active ? "#FFFFFF" : "#E2E8F0" },
+                  }}
+                >
+                  {modeOption.label}
+                  {modeOption.hasActive && (
+                    <Box component="span" sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: "#03C75A", flexShrink: 0 }} />
+                  )}
+                </Button>
+              );
+            })}
+          </Paper>
+
+          {previewItem && (
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<VisibilityOutlinedIcon />}
+              onClick={() => setCanvasOpen(true)}
+              sx={{
+                borderRadius: 2.5,
+                fontWeight: 800,
+                bgcolor: "#ECFDF5",
+                borderColor: "#86EFAC",
+                color: "#006E43",
+                justifyContent: "space-between",
+              }}
+            >
+              <Box component="span" noWrap sx={{ minWidth: 0, textAlign: "left" }}>
+                캔버스 열기 · {previewItem.title}
+              </Box>
+              <ChevronRightRoundedIcon fontSize="small" />
+            </Button>
+          )}
+
+          {mobileMode === "create" && (
+            <>
+              <Box sx={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 0.75 }}>
+                {[
+                  { step: 1, title: "1. 카테고리", disabled: false },
+                  { step: 2, title: "2. 프롬프트", disabled: false },
+                  { step: 3, title: "3. 자료 입력", disabled: !promptId },
+                ].map((stepMeta) => {
+                  const current = mobileStep === stepMeta.step;
+                  const completed = mobileStep > stepMeta.step;
+                  return (
+                    <Button
+                      key={stepMeta.step}
+                      type="button"
+                      variant={current ? "contained" : "outlined"}
+                      disabled={stepMeta.disabled}
+                      onClick={() => {
+                        setMobileStep(stepMeta.step);
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                      }}
+                      sx={{
+                        minWidth: 0,
+                        minHeight: 38,
+                        px: 0.75,
+                        borderRadius: 2.5,
+                        fontSize: 12,
+                        fontWeight: 800,
+                        whiteSpace: "nowrap",
+                        bgcolor: current ? "#03C75A" : completed ? "#ECFDF5" : "#FFFFFF",
+                        color: current ? "#FFFFFF" : completed ? "#006E43" : "text.secondary",
+                        borderColor: current ? "#03C75A" : completed ? "#86EFAC" : "divider",
+                        "&:hover": {
+                          bgcolor: current ? "#02B14F" : "#ECFDF5",
+                        },
+                      }}
+                    >
+                      {stepMeta.title}
+                    </Button>
+                  );
+                })}
+              </Box>
+
+              {mobileStep === 1 ? (
+                <Stack spacing={1.5}>
+                  <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1 }}>
+                    <Button
+                      variant={promptTab === "favorites" && selectedCategoryId === null ? "contained" : "outlined"}
+                      startIcon={<StarRoundedIcon sx={{ color: "#f59e0b" }} />}
+                      onClick={() => {
+                        setPromptTab("favorites");
+                        setSelectedCategoryId(null);
+                        setMobilePromptFilter("");
+                        setMobileStep(2);
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                      }}
+                      sx={{
+                        minHeight: 44,
+                        borderRadius: 2.5,
+                        fontWeight: 800,
+                        fontSize: 13,
+                        bgcolor: "#FFFFFF",
+                        color: "text.primary",
+                        borderColor: "divider",
+                        "&:hover": { bgcolor: "#FFFBEB", borderColor: "#F59E0B" },
+                      }}
+                    >
+                      즐겨찾기 ({promptOptions.filter((o) => o.is_favorite).length})
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      onClick={() => {
+                        setPromptTab("recommended");
+                        setSelectedCategoryId(null);
+                        setMobilePromptFilter("");
+                        setMobileStep(2);
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                      }}
+                      sx={{
+                        minHeight: 44,
+                        borderRadius: 2.5,
+                        fontWeight: 800,
+                        fontSize: 13,
+                        bgcolor: "#FFFFFF",
+                        color: brand.accentInk,
+                        borderColor: "divider",
+                        "&:hover": { bgcolor: "#ECFDF5", borderColor: "#03C75A" },
+                      }}
+                    >
+                      전체 프롬프트 ({promptOptions.length})
+                    </Button>
+                  </Box>
+
+                  <Paper
+                    component="form"
+                    variant="outlined"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      setPromptTab("recommended");
+                      setSelectedCategoryId(null);
+                      setMobileStep(2);
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                    sx={{ p: 1, borderRadius: 3, display: "flex", gap: 0.75, alignItems: "center" }}
+                  >
+                    <TextField
+                      size="small"
+                      fullWidth
+                      placeholder="프롬프트 이름으로 바로 찾기"
+                      value={mobilePromptFilter}
+                      onChange={(e) => setMobilePromptFilter(e.target.value)}
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <SearchRoundedIcon fontSize="small" />
+                          </InputAdornment>
+                        ),
+                      }}
+                    />
+                    <Button type="submit" variant="contained" size="small" sx={{ minHeight: 38, px: 2, borderRadius: 2, flexShrink: 0 }}>
+                      검색
+                    </Button>
+                  </Paper>
+
+                  <Paper variant="outlined" sx={{ p: 1.5, borderRadius: 3 }}>
+                    <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.25 }}>
+                      <Stack direction="row" spacing={0.75} alignItems="center">
+                        <FolderOpenRoundedIcon color="primary" fontSize="small" />
+                        <Typography variant="subtitle2" fontWeight={850}>보험 카테고리 전체</Typography>
+                      </Stack>
+                      <Typography variant="caption" color="text.secondary" fontWeight={700}>
+                        눌러서 바로 선택
+                      </Typography>
+                    </Stack>
+
+                    <Box
+                      sx={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                        gridAutoFlow: "row dense",
+                        gap: 1,
+                      }}
+                    >
+                      {categoryGroups.map((group) => {
+                        const groupSelected = group.children.some((child) => child.id === selectedCategoryId);
+                        const compact = isCompactCategoryGroup(group);
+                        const accent = CATEGORY_ACCENTS[group.name] || "#03C75A";
+                        return (
+                          <Paper
+                            key={group.id}
+                            variant="outlined"
+                            sx={{
+                              gridColumn: compact ? "span 1" : "1 / -1",
+                              p: 1.15,
+                              borderRadius: 2.5,
+                              borderColor: groupSelected ? brand.accent : "divider",
+                              bgcolor: groupSelected ? "rgba(236, 253, 245, 0.55)" : "#FFFFFF",
+                            }}
+                          >
+                            <Stack direction="row" spacing={0.75} alignItems="center" sx={{ mb: 0.75 }}>
+                              <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: accent, flexShrink: 0 }} />
+                              <Typography variant="caption" fontWeight={850} sx={{ fontSize: 12.5, color: groupSelected ? brand.accentInk : "text.primary", lineHeight: 1.25 }}>
+                                {group.name}
+                              </Typography>
+                            </Stack>
+                            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.6 }}>
+                              {group.children.map((child) => {
+                                const selected = selectedCategoryId === child.id;
+                                return (
+                                  <Box
+                                    key={child.id}
+                                    component="button"
+                                    type="button"
+                                    onClick={() => {
+                                      setPromptTab("recommended");
+                                      setSelectedCategoryId(child.id);
+                                      setMobilePromptFilter("");
+                                      setMobileStep(2);
+                                      window.scrollTo({ top: 0, behavior: "smooth" });
+                                    }}
+                                    sx={{
+                                      appearance: "none",
+                                      display: "inline-flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      px: 1.15,
+                                      py: 0.5,
+                                      minHeight: 34,
+                                      borderRadius: "8px",
+                                      border: "1px solid",
+                                      borderColor: selected ? brand.accentInk : "#DCE2E8",
+                                      bgcolor: selected ? brand.accentInk : "#F8FAFC",
+                                      color: selected ? "#FFFFFF" : "text.primary",
+                                      fontFamily: "inherit",
+                                      fontSize: 12.5,
+                                      fontWeight: selected ? 800 : 650,
+                                      lineHeight: 1.25,
+                                      wordBreak: "keep-all",
+                                      textAlign: "left",
+                                      cursor: "pointer",
+                                      "&:hover": {
+                                        bgcolor: selected ? brand.deep : brand.tint,
+                                        borderColor: brand.accent,
+                                        color: selected ? "#FFFFFF" : brand.accentInk,
+                                      },
+                                    }}
+                                  >
+                                    {child.name}
+                                  </Box>
+                                );
+                              })}
+                            </Box>
+                          </Paper>
+                        );
+                      })}
+                      {!categoryGroups.length && (
+                        <Alert severity="info" sx={{ gridColumn: "1 / -1" }}>등록된 프롬프트 카테고리가 없습니다.</Alert>
+                      )}
+                    </Box>
+                  </Paper>
+                </Stack>
+              ) : mobileStep === 2 ? (
+                <Stack spacing={1.5}>
+                  <Paper variant="outlined" sx={{ p: 1.25, borderRadius: 3, bgcolor: "#F8FAFC" }}>
+                    <Stack direction="row" justifyContent="space-between" alignItems="center" gap={1}>
+                      <Box sx={{ minWidth: 0 }}>
+                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 750, display: "block" }}>
+                          선택된 카테고리
+                        </Typography>
+                        <Typography variant="body2" fontWeight={850} noWrap>
+                          {selectedCategory
+                            ? `${selectedCategory.parentName} · ${selectedCategory.name}`
+                            : promptTab === "favorites"
+                              ? "즐겨찾기 프롬프트"
+                              : "전체 프롬프트"}
+                        </Typography>
+                      </Box>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={() => {
+                          setMobileStep(1);
+                          window.scrollTo({ top: 0, behavior: "smooth" });
+                        }}
+                        sx={{ flexShrink: 0, bgcolor: "#FFFFFF", borderRadius: 2 }}
+                      >
+                        카테고리 변경
+                      </Button>
+                    </Stack>
+                  </Paper>
+
+                  <Paper variant="outlined" sx={{ p: 1.5, borderRadius: 3 }}>
+                    <Stack spacing={1.25}>
+                      <Stack direction="row" justifyContent="space-between" alignItems="center" gap={1}>
+                        <Tabs
+                          value={promptTab}
+                          onChange={changePromptTab}
+                          aria-label="프롬프트 목록"
+                          variant="scrollable"
+                          scrollButtons={false}
+                          sx={{
+                            minWidth: 0,
+                            flex: 1,
+                            minHeight: 36,
+                            "& .MuiTabs-indicator": { display: "none" },
+                            "& .MuiTabs-list": { gap: 0.75 },
+                            "& .MuiTab-root": { minHeight: 34, px: 1.5, fontSize: 12.5, fontWeight: 850, borderRadius: 99, bgcolor: "background.default" },
+                            "& .MuiTab-root.Mui-selected": { color: "#00452B", bgcolor: "#D1FAE5" },
+                          }}
+                        >
+                          <Tab value="favorites" label="즐겨찾기" icon={<StarRoundedIcon fontSize="small" sx={{ color: "#f59e0b" }} />} iconPosition="start" />
+                          <Tab value="recommended" label="추천 프롬프트" />
+                        </Tabs>
+                        <Chip label={`${mobileFilteredPrompts.length}개`} size="small" color="primary" variant="outlined" sx={{ flexShrink: 0 }} />
+                      </Stack>
+
+                      <TextField
+                        size="small"
+                        fullWidth
+                        placeholder="프롬프트 이름 또는 설명 검색"
+                        value={mobilePromptFilter}
+                        onChange={(e) => setMobilePromptFilter(e.target.value)}
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <SearchRoundedIcon fontSize="small" />
+                            </InputAdornment>
+                          ),
+                          endAdornment: mobilePromptFilter ? (
+                            <InputAdornment position="end">
+                              <IconButton size="small" aria-label="검색어 지우기" onClick={() => setMobilePromptFilter("")}>
+                                <CloseRoundedIcon fontSize="small" />
+                              </IconButton>
+                            </InputAdornment>
+                          ) : null,
+                        }}
+                      />
+
+                      <Stack spacing={1.1}>
+                        {mobileFilteredPrompts.map((option, index) => {
+                          const selected = promptId === option.id;
+                          return (
+                            <Paper
+                              key={option.id}
+                              variant="outlined"
+                              onClick={() => {
+                                if (promptId !== option.id || selectedReport) {
+                                  clearReportSelection();
+                                }
+                                setPromptId(option.id);
+                                setRemodelingGuideArmed(/리모델링/.test(option.title || ""));
+                                submissionKey.current = null;
+                              }}
+                              sx={{
+                                p: 1.4,
+                                borderRadius: 3,
+                                borderWidth: selected ? 2 : 1,
+                                borderColor: selected ? "#03C75A" : "divider",
+                                bgcolor: selected ? "#F0FDF4" : "background.paper",
+                                cursor: "pointer",
+                              }}
+                            >
+                              <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={0.75}>
+                                <Stack direction="row" alignItems="flex-start" gap={0.65} sx={{ minWidth: 0, flex: 1 }}>
+                                  <Chip
+                                    label={`${index + 1}순위`}
+                                    size="small"
+                                    sx={{ ...(index < 3 && { bgcolor: "#F04452", color: "white" }), height: 22, fontSize: 10.5, fontWeight: 850, borderRadius: "6px", flexShrink: 0, mt: 0.1 }}
+                                  />
+                                  <IconButton
+                                    size="small"
+                                    aria-label={`${option.title} ${option.is_favorite ? "즐겨찾기 해제" : "즐겨찾기 등록"}`}
+                                    disabled={favoriteSavingId !== null || !promptOptions.some((item) => item.id === option.id)}
+                                    onClick={(event) => { event.stopPropagation(); toggleFavorite(option); }}
+                                    sx={{ p: 0.25, color: option.is_favorite ? "#f59e0b" : "text.disabled", flexShrink: 0 }}
+                                  >
+                                    {favoriteSavingId === option.id ? <CircularProgress size={16} /> : option.is_favorite ? <StarRoundedIcon fontSize="small" /> : <StarBorderRoundedIcon fontSize="small" />}
+                                  </IconButton>
+                                  <Typography variant="body2" fontWeight={850} sx={{ minWidth: 0, flex: 1, overflowWrap: "anywhere", pt: 0.1 }}>
+                                    {option.title} <Typography component="span" variant="caption" color="text.secondary">v{option.current_version_no}</Typography>
+                                  </Typography>
+                                </Stack>
+                                <Stack direction="row" spacing={0.5} sx={{ flexShrink: 0 }} onClick={(event) => event.stopPropagation()}>
+                                  <PreviewIconButton
+                                    variant="detailed"
+                                    title={option.preview_image_available ? "결과 미리보기" : "미리보기 없음"}
+                                    ariaLabel={`${option.title} 결과 미리보기`}
+                                    disabled={!option.preview_image_available}
+                                    onClick={(event) => { event.stopPropagation(); openPromptPreview(option, "detailed"); }}
+                                  />
+                                  {option.simple_template_available && (
+                                    <PreviewIconButton
+                                      variant="simple"
+                                      title={(option.simple_preview_image_available || option.simple_preview_html_available) ? "간소화 미리보기" : "간소화 미리보기 없음"}
+                                      ariaLabel={`${option.title} 간소화 미리보기`}
+                                      disabled={!option.simple_preview_image_available && !option.simple_preview_html_available}
+                                      onClick={(event) => { event.stopPropagation(); openPromptPreview(option, "simple"); }}
+                                    />
+                                  )}
+                                </Stack>
+                              </Stack>
+                              {option.description && (
+                                <PromptCardDescription key={`${option.id}:${option.description}`} description={option.description} />
+                              )}
+                              <Stack direction="row" alignItems="center" gap={0.6} flexWrap="wrap" sx={{ mt: 0.75 }}>
+                                <Chip icon={<KkomakIcon size={16} />} label={`${option.point_cost.toLocaleString()}꼬막`} size="small" color="warning" variant="outlined" />
+                                {option.simple_template_available && (
+                                  <Chip label="간소화 BETA" size="small" color="success" variant="outlined" />
+                                )}
+                                <PromptCardCategories key={option.id} categories={option.categories} />
+                              </Stack>
+                              {selected && (
+                                <Button
+                                  fullWidth
+                                  variant="contained"
+                                  size="small"
+                                  endIcon={<ArrowForwardRoundedIcon />}
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    setMobileStep(3);
+                                    window.scrollTo({ top: 0, behavior: "smooth" });
+                                  }}
+                                  sx={{ mt: 1.25, borderRadius: 2, fontWeight: 850, minHeight: 38 }}
+                                >
+                                  이 프롬프트로 자료 입력하기
+                                </Button>
+                              )}
+                            </Paper>
+                          );
+                        })}
+                        {!mobileFilteredPrompts.length && (
+                          <Alert severity="info">
+                            {promptTab === "favorites" && !tabPromptOptions.length
+                              ? "즐겨찾기한 프롬프트가 없습니다. 추천 프롬프트에서 별표를 눌러 등록해 주세요."
+                              : "조건에 맞는 프롬프트가 없습니다."}
+                          </Alert>
+                        )}
+                      </Stack>
+                    </Stack>
+                  </Paper>
+
+                  <Paper
+                    variant="outlined"
+                    sx={{
+                      p: 1.5,
+                      borderRadius: 3,
+                      bgcolor: "#FFFFFF",
+                    }}
+                  >
+                    <Stack direction="row" alignItems="center" gap={1}>
+                      <Button
+                        variant="outlined"
+                        startIcon={<ArrowBackRoundedIcon />}
+                        onClick={() => {
+                          setMobileStep(1);
+                          window.scrollTo({ top: 0, behavior: "smooth" });
+                        }}
+                        sx={{ flexShrink: 0, borderRadius: 2.5, minHeight: 42, px: 1.75 }}
+                      >
+                        카테고리
+                      </Button>
+                      <Button
+                        fullWidth
+                        variant="contained"
+                        disabled={!promptId}
+                        endIcon={<ArrowForwardRoundedIcon />}
+                        onClick={() => {
+                          setMobileStep(3);
+                          window.scrollTo({ top: 0, behavior: "smooth" });
+                        }}
+                        sx={{ borderRadius: 2.5, fontWeight: 850, minHeight: 42 }}
+                      >
+                        다음: 자료 입력
+                      </Button>
+                    </Stack>
+                  </Paper>
+                </Stack>
+              ) : (
+                <Stack spacing={1.5}>
+                  {selectedPrompt && (
+                    <Paper variant="outlined" sx={{ p: 1.4, borderRadius: 3, bgcolor: "#ECFDF5", borderColor: "#86EFAC" }}>
+                      <Stack direction="row" justifyContent="space-between" alignItems="center" gap={1}>
+                        <Box sx={{ minWidth: 0 }}>
+                          <Typography variant="caption" sx={{ color: "#006E43", fontWeight: 800, display: "block" }}>
+                            선택된 프롬프트 · {selectedPointCost.toLocaleString()}꼬막
+                          </Typography>
+                          <Typography variant="subtitle2" fontWeight={850} noWrap>
+                            {selectedPrompt.title} v{selectedPrompt.current_version_no}
+                          </Typography>
+                        </Box>
+                        <Button size="small" variant="outlined" onClick={() => setMobileStep(2)} sx={{ flexShrink: 0, bgcolor: "#fff", borderRadius: 2 }}>
+                          변경
+                        </Button>
+                      </Stack>
+                    </Paper>
+                  )}
+
+                  {error && <Alert severity="error" onClose={() => setError("")}>{error}</Alert>}
+
+                  <Paper variant="outlined" sx={{ p: 1.75, borderRadius: 3 }}>
+                    {user?.role === "ADMIN" && Boolean(promptOption?.versions?.length) && selectedPrompt && (
+                      <TextField
+                        select
+                        fullWidth
+                        size="small"
+                        label="생성 버전"
+                        disabled={working}
+                        value={selectedPrompt.current_version_id}
+                        sx={{ mb: 2 }}
+                        onChange={(event) => {
+                          setVersionChoice({ promptId, versionId: Number(event.target.value) });
+                          setFiles([]);
+                          clearReportSelection();
+                        }}
+                      >
+                        {promptOption.versions.map((version) => (
+                          <MenuItem key={version.id} value={version.id}>
+                            v{version.version_no} · {version.template_based ? "템플릿" : "HTML 전체"}
+                            {version.simple_template_available ? " · 간소화" : ""}
+                            {version.id === promptOption.published_version_id ? " · 제공 중" : ""}
+                          </MenuItem>
+                        ))}
+                      </TextField>
+                    )}
+
+                    {selectedPrompt?.simple_template_available && (
+                      <Paper variant="outlined" sx={{ p: 1.25, mb: 2, borderRadius: 2.5, bgcolor: "#F8FAFC" }}>
+                        <FormControl component="fieldset" disabled={working} sx={{ width: "100%" }}>
+                          <Stack direction="row" alignItems="center" justifyContent="space-between" gap={1} sx={{ mb: 1 }}>
+                            <Typography component="legend" variant="subtitle2" fontWeight={800}>보고서 버전 선택</Typography>
+                            <PreviewIconButton
+                              variant="simple"
+                              title={(selectedPrompt.simple_preview_image_available || selectedPrompt.simple_preview_html_available)
+                                ? "간소화 버전 미리보기"
+                                : "간소화 버전 미리보기 없음"}
+                              ariaLabel={`${selectedPrompt.title} 간소화 버전 미리보기`}
+                              disabled={!selectedPrompt.simple_preview_image_available && !selectedPrompt.simple_preview_html_available}
+                              onClick={() => openPromptPreview(selectedPrompt, "simple", selectedPrompt.current_version_id)}
+                            />
+                          </Stack>
+                          <RadioGroup
+                            value={reportVariant}
+                            onChange={(event) => {
+                              setReportVariant(event.target.value);
+                              submissionKey.current = null;
+                            }}
+                            sx={{ display: "grid", gridTemplateColumns: "1fr", gap: 1 }}
+                          >
+                            <Paper variant="outlined" sx={{ px: 1.25, py: 0.75, borderRadius: 2, borderWidth: reportVariant === "detailed" ? 2 : 1, borderColor: reportVariant === "detailed" ? "primary.main" : "divider", bgcolor: reportVariant === "detailed" ? "#ECFDF5" : "background.paper" }}>
+                              <FormControlLabel
+                                value="detailed"
+                                control={<Radio size="small" />}
+                                sx={{ m: 0, width: "100%" }}
+                                label={<Typography variant="body2" fontWeight={800}>상세 버전 (기본)</Typography>}
+                              />
+                            </Paper>
+                            <Paper variant="outlined" sx={{ px: 1.25, py: 0.75, borderRadius: 2, borderWidth: reportVariant === "simple" ? 2 : 1, borderColor: reportVariant === "simple" ? "success.main" : "divider", bgcolor: reportVariant === "simple" ? "#ECFDF5" : "background.paper" }}>
+                              <FormControlLabel
+                                value="simple"
+                                control={<Radio size="small" color="success" />}
+                                sx={{ m: 0, width: "100%" }}
+                                label={<Typography variant="body2" fontWeight={800}>간소화 버전 (BETA)</Typography>}
+                              />
+                            </Paper>
+                          </RadioGroup>
+                          {reportVariant === "simple" && selectedPrompt?.simple_options_configurable && (
+                            <Box sx={{ mt: 1.25, p: 1.25, borderRadius: 1.5, bgcolor: "#fff", border: "1px dashed rgba(21,128,61,0.35)" }}>
+                              <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1} sx={{ mb: 0.5 }}>
+                                <Typography variant="caption" fontWeight={800} sx={{ color: "#15803d" }}>포함할 항목 선택</Typography>
+                                {activeSimpleOptionSpecs.some((item) => (simpleOptions[item.key] ?? (typeof item.default === "boolean" ? item.default : true)) === false) && (
+                                  <Button
+                                    size="small"
+                                    disabled={working}
+                                    onClick={() => {
+                                      setSimpleOptions(buildAllCheckedSimpleOptions(activeSimpleOptionSpecs));
+                                      submissionKey.current = null;
+                                    }}
+                                    sx={{ minWidth: "auto", px: 0.75, py: 0, fontSize: "0.72rem", fontWeight: 700 }}
+                                  >
+                                    전체 선택
+                                  </Button>
+                                )}
+                              </Stack>
+                              <Stack>
+                                {activeSimpleOptionSpecs.map((item) => (
+                                  <FormControlLabel
+                                    key={item.key}
+                                    sx={{ m: 0 }}
+                                    control={(
+                                      <Checkbox
+                                        size="small"
+                                        color="success"
+                                        disabled={working}
+                                        checked={simpleOptions[item.key] ?? (typeof item.default === "boolean" ? item.default : true)}
+                                        onChange={(event) => {
+                                          const checked = event.target.checked;
+                                          setSimpleOptions((current) => ({ ...current, [item.key]: checked }));
+                                          submissionKey.current = null;
+                                        }}
+                                      />
+                                    )}
+                                    label={<Typography variant="caption" fontWeight={600}>{item.label}</Typography>}
+                                  />
+                                ))}
+                              </Stack>
+                            </Box>
+                          )}
+                        </FormControl>
+                      </Paper>
+                    )}
+
+                    {customInputs ? (
+                      <PromptInputForm
+                        maxInputFiles={maxInputFiles}
+                        fields={inputSchema}
+                        values={inputValues}
+                        uploads={fieldUploads}
+                        pdfPasswords={pdfPasswords}
+                        documents={fieldDocuments}
+                        documentOptions={generatedDocumentOptions}
+                        disabled={working}
+                        onValue={(key, value) => {
+                          setInputValues((current) => ({ ...current, [key]: value }));
+                          clearReportSelection();
+                          submissionKey.current = null;
+                        }}
+                        onFiles={(key, selected) => {
+                          const field = inputSchema.find((item) => item.key === key);
+                          const documentCount = Object.values(fieldDocuments).reduce((sum, documents) => sum + documents.length, 0);
+                          const total = Object.entries(fieldUploads).reduce(
+                            (sum, [id, list]) => sum + (id === key ? 0 : list.length),
+                            selected.length + documentCount,
+                          );
+                          if (selected.length > field.max_files || total > maxInputFiles) {
+                            setError(`항목별 첨부 개수와 전체 입력 자료 최대 ${maxInputFiles}개 제한을 확인해 주세요.`);
+                            return;
+                          }
+                          if (selected.some((file) => !acceptsFile(field, file) || file.size > MAX_FILE_BYTES)) {
+                            setError(`${fileTypeLabel(field)} 파일만 가능하며 파일당 크기는 100MB 이하여야 합니다.`);
+                            return;
+                          }
+                          setError("");
+                          setFieldUploads((current) => ({ ...current, [key]: selected }));
+                          if (
+                            isRemodelingPrompt
+                            && generatedDocumentOptions.length === 0
+                            && !remodelingNoProposalGuideDismissed
+                            && selected.some((file) => /\.pdf$/i.test(file.name) || file.type === "application/pdf")
+                          ) {
+                            setRemodelingNoProposalGuideOpen(true);
+                          }
+                          clearReportSelection();
+                          const firstFile = selected[0];
+                          if (firstFile && !titleTouched) {
+                            setTitle(firstFile.name.replace(/\.[^.]+$/, ""));
+                          }
+                          submissionKey.current = null;
+                        }}
+                        onDocuments={(key, selected) => {
+                          const field = inputSchema.find((item) => item.key === key);
+                          const otherFileCount = Object.values(fieldUploads).reduce((sum, list) => sum + list.length, 0);
+                          const otherDocumentCount = Object.entries(fieldDocuments).reduce(
+                            (sum, [id, documents]) => sum + (id === key ? 0 : documents.length),
+                            0,
+                          );
+                          if (selected.length > field.max_files || otherFileCount + otherDocumentCount + selected.length > maxInputFiles) {
+                            setError(`항목별 선택 개수와 전체 입력 자료 최대 ${maxInputFiles}개 제한을 확인해 주세요.`);
+                            return;
+                          }
+                          setError("");
+                          setFieldDocuments((current) => ({ ...current, [key]: selected }));
+                          clearReportSelection();
+                          submissionKey.current = null;
+                        }}
+                      />
+                    ) : (
+                      <>
+                        <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.25 }}>
+                          <CloudUploadRoundedIcon color="primary" fontSize="small" />
+                          <Typography variant="subtitle2" fontWeight={800}>PDF·이미지·HTML·엑셀 첨부</Typography>
+                        </Stack>
+                        <Paper
+                          component="label"
+                          variant="outlined"
+                          sx={{
+                            p: 1.75,
+                            borderRadius: 3,
+                            borderStyle: "dashed",
+                            borderWidth: 2,
+                            borderColor: files.length ? "success.main" : "divider",
+                            bgcolor: files.length ? "rgba(22, 163, 74, 0.06)" : "background.default",
+                            cursor: working ? "not-allowed" : "pointer",
+                            opacity: working ? 0.6 : 1,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: 1,
+                          }}
+                        >
+                          <CloudUploadRoundedIcon color="primary" />
+                          <Box>
+                            <Typography variant="body2" fontWeight={750}>PDF·이미지·HTML·엑셀 선택</Typography>
+                            <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+                              최대 {maxInputFiles}개 · 파일당 100MB
+                            </Typography>
+                          </Box>
+                          <input ref={fileInputRef} hidden type="file" accept={fileAccept({})} multiple disabled={working} onChange={chooseFiles} />
+                        </Paper>
+                        <Stack spacing={0.75} sx={{ mt: 1.25 }}>
+                          {files.map((file, index) => (
+                            <Stack key={`${file.name}-${file.lastModified}-${index}`} spacing={0.75}>
+                              <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ px: 1.25, py: 0.75, borderRadius: 1.5, bgcolor: "action.hover" }}>
+                                <Typography variant="caption" noWrap sx={{ minWidth: 0, mr: 1, flex: 1 }}>
+                                  <b>{fileTypeLabel({ file_types: [/[.](jpe?g|png|webp)$/i.test(file.name) ? "image" : /[.]html?$/i.test(file.name) ? "html" : "pdf"] })}</b> {file.name} · {formatBytes(file.size)}
+                                </Typography>
+                                <Button size="small" color="error" disabled={working} onClick={() => { setFiles((current) => current.filter((_, fileIndex) => fileIndex !== index)); submissionKey.current = null; }}>제거</Button>
+                              </Stack>
+                              <PdfPasswordInput file={file} state={pdfPasswords.stateFor(file)} onChange={pdfPasswords.setPassword} disabled={working} />
+                            </Stack>
+                          ))}
+                        </Stack>
+                      </>
+                    )}
+
+                    <TextField
+                      fullWidth
+                      size="small"
+                      label="문서 제목"
+                      value={title}
+                      disabled={working}
+                      inputProps={{ maxLength: 300 }}
+                      onChange={(event) => {
+                        setTitle(event.target.value);
+                        setTitleTouched(true);
+                        submissionKey.current = null;
+                      }}
+                      sx={{ mt: 2 }}
+                    />
+                    <Box sx={{ mt: 2 }}>
+                      <ProposalCustomerField
+                        value={customerId}
+                        disabled={working}
+                        onCustomersLoaded={registerLoadedCustomers}
+                        onChange={(id) => {
+                          setCustomerId(id);
+                          submissionKey.current = null;
+                        }}
+                      />
+                    </Box>
+                  </Paper>
+
+                  <Paper
+                    variant="outlined"
+                    sx={{
+                      p: 1.5,
+                      borderRadius: 3,
+                      bgcolor: "#FFFFFF",
+                    }}
+                  >
+                    <Stack direction="row" spacing={1}>
+                      <Button
+                        variant="outlined"
+                        startIcon={<ArrowBackRoundedIcon />}
+                        disabled={working}
+                        onClick={() => {
+                          setMobileStep(2);
+                          window.scrollTo({ top: 0, behavior: "smooth" });
+                        }}
+                        sx={{ flexShrink: 0, borderRadius: 2.5, minHeight: 44 }}
+                      >
+                        이전
+                      </Button>
+                      <Button
+                        fullWidth
+                        variant="contained"
+                        onClick={submit}
+                        disabled={working || !promptId || !filteredPromptOptions.length || pointBalance.total_points < selectedPointCost}
+                        startIcon={working ? <CircularProgress size={16} color="inherit" /> : <AutoAwesomeRoundedIcon />}
+                        sx={{ ...reportHero, borderRadius: 2.5, fontWeight: 900, minHeight: 44, fontSize: 14.5 }}
+                      >
+                        {working
+                          ? "등록 중..."
+                          : pointBalance.total_points < selectedPointCost
+                            ? `꼬막 부족 (${selectedPointCost.toLocaleString()}꼬막 필요)`
+                            : `보고서 생성 · ${selectedPointCost.toLocaleString()}꼬막`}
+                      </Button>
+                    </Stack>
+                  </Paper>
+                </Stack>
+              )}
+            </>
+          )}
+
+          {mobileMode === "list" && (
+            <Paper variant="outlined" sx={{ p: 1.75, borderRadius: 3 }}>
+              <Stack direction="row" justifyContent="space-between" alignItems="center" gap={1} sx={{ mb: 1.5, pb: 1, borderBottom: 1, borderColor: "divider" }}>
+                <Stack direction="row" alignItems="center" spacing={1}>
+                  <Typography variant="h6" fontWeight={850}>보고서 리스트</Typography>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    startIcon={<AddRoundedIcon />}
+                    onClick={() => {
+                      resetWorkspace();
+                      setMobileMode("create");
+                    }}
+                  >
+                    신규
+                  </Button>
+                </Stack>
+                <Stack direction="row" spacing={0.5} alignItems="center">
+                  <Button size="small" variant={includeFailed ? "contained" : "outlined"} onClick={toggleFailedItems}>
+                    {includeFailed ? "실패 포함 중" : "실패 포함"}
+                  </Button>
+                  <IconButton size="small" aria-label="보고서 목록 새로고침" onClick={() => loadList(page)}>
+                    <RefreshRoundedIcon fontSize="small" />
+                  </IconButton>
+                </Stack>
+              </Stack>
+
+              <Stack component="form" direction="row" spacing={0.75} sx={{ mb: 1.75 }} onSubmit={(event) => { event.preventDefault(); searchReports(draftListQuery); }}>
+                <TextField
+                  size="small"
+                  fullWidth
+                  label="보고서 검색"
+                  placeholder="제목·고객·프롬프트 검색"
+                  value={draftListQuery}
+                  inputProps={{ maxLength: 100 }}
+                  onChange={(event) => setDraftListQuery(event.target.value)}
+                />
+                <Button type="submit" variant="outlined" sx={{ flexShrink: 0 }}>검색</Button>
+                {listQuery && <Button size="small" onClick={() => { setDraftListQuery(""); searchReports(""); }}>초기화</Button>}
+              </Stack>
+
+              {!items.length && (
+                <Typography color="text.secondary" sx={{ py: 3, textAlign: "center" }}>
+                  {listQuery ? "검색 결과가 없습니다." : "생성한 보고서가 없습니다."}
+                </Typography>
+              )}
+
+              <Stack spacing={1.25}>
+                {items.map((item) => (
+                  <Paper
+                    key={item.id}
+                    variant="outlined"
+                    sx={{
+                      p: 1.5,
+                      borderRadius: 2.5,
+                      bgcolor: (selectedReport?.id ?? previewItem?.id) === item.id ? "primary.light" : "#FFFFFF",
+                      borderColor: (selectedReport?.id ?? previewItem?.id) === item.id ? "var(--bojogae-accent-ink)" : "divider",
+                    }}
+                  >
+                    <Stack spacing={0.75}>
+                      <Stack direction="row" justifyContent="space-between" alignItems="flex-start" gap={1}>
+                        <Typography
+                          component="button"
+                          type="button"
+                          variant="subtitle2"
+                          onClick={() => toggleReportDetail(item)}
+                          sx={{ p: 0, border: 0, background: "none", font: "inherit", fontWeight: 850, textAlign: "left", overflowWrap: "anywhere", flex: 1, cursor: "pointer" }}
+                        >
+                          {item.title}
+                        </Typography>
+                        <Chip size="small" color={statusColor(item.status)} label={STATUS_LABELS[item.status] || item.status} sx={{ flexShrink: 0 }} />
+                      </Stack>
+                      {item.customer_id && (
+                        <Chip
+                          size="small"
+                          component={Link}
+                          to={`/crm/customers/${item.customer_id}?tab=files`}
+                          clickable
+                          icon={<PersonOutlineRoundedIcon sx={{ fontSize: "14px !important", color: "#006E43 !important" }} />}
+                          label={customerNames[item.customer_id] || `고객 #${item.customer_id}`}
+                          sx={{ alignSelf: "flex-start", bgcolor: "#ECFDF5", color: "#006E43", fontWeight: 750 }}
+                        />
+                      )}
+                      {item.summary && (
+                        <Typography variant="body2" sx={{ fontWeight: 650, color: "#1E293B", fontSize: 12.5 }}>
+                          {item.summary}
+                        </Typography>
+                      )}
+                      <Typography variant="caption" color="text.secondary">
+                        {item.prompt_title} · {formatDate(item.created_at)}{item.point_status === "REFUNDED" ? " · 꼬막 반환" : ""}
+                      </Typography>
+                      {item.error_message && <Typography color="error" variant="caption">{item.error_message}</Typography>}
+
+                      <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap justifyContent="flex-end" sx={{ pt: 0.75, borderTop: "1px solid #F1F5F9" }}>
+                        <Button size="small" onClick={() => showFiles(item)}>파일</Button>
+                        <Button size="small" variant={isCompletedStatus(item.status) ? "contained" : "outlined"} startIcon={<VisibilityOutlinedIcon />} onClick={() => openPreview(item)}>
+                          열기
+                        </Button>
+                        {isCompletedStatus(item.status) && (Boolean(item.contract_id) || Number(item.contract_count || 0) > 0) ? (
+                          <Button size="small" component={item.contract_id ? Link : undefined} to={item.contract_id ? `/crm/contracts/${item.contract_id}` : undefined} disabled={!item.contract_id} startIcon={<TaskAltRoundedIcon />} sx={applicationCompletedButtonStyle}>
+                            청약 완료
+                          </Button>
+                        ) : isCompletedStatus(item.status) && Boolean(item.is_contract_application_enabled) && (
+                          <Button size="small" startIcon={<AutoAwesomeRoundedIcon />} sx={applicationButtonStyle} disabled={!item.customer_id || !!application?.loading} onClick={() => prepareApplication(item)}>
+                            청약
+                          </Button>
+                        )}
+                        {ACTIVE.has(item.status) && <Button size="small" color="warning" onClick={() => runAction("cancel", item)}>취소</Button>}
+                        {item.status === "FAILED" && item.retryable && <Button size="small" onClick={() => runAction("retry", item)}>재시도</Button>}
+                        {!ACTIVE.has(item.status) && <Button size="small" color="error" onClick={() => runAction("delete", item)}>삭제</Button>}
+                      </Stack>
+
+                      {selectedReport?.id === item.id && (
+                        <Paper variant="outlined" sx={{ p: 1.5, mt: 0.75, borderRadius: 2, bgcolor: "#F8FAFC" }}>
+                          <Stack spacing={1.25}>
+                            <Stack direction="row" justifyContent="space-between" alignItems="center">
+                              <Typography variant="subtitle2" fontWeight={800}>상세 정보</Typography>
+                              <IconButton size="small" onClick={() => { setStatusItem(null); setOpenedDocument(null); }}>
+                                <CloseRoundedIcon fontSize="small" />
+                              </IconButton>
+                            </Stack>
+                            {selectedReport.files?.map((file) => (
+                              <Stack key={file.id} direction="row" justifyContent="space-between" alignItems="center" gap={1}>
+                                <Typography variant="caption" sx={{ overflowWrap: "anywhere", flex: 1 }}>{file.original_filename}</Typography>
+                                <Button size="small" href={proposalFileUrl(selectedReport.id, "input", { fileId: file.id, download: true })}>다운로드</Button>
+                              </Stack>
+                            ))}
+                            {selectedReport.point_status === "REFUNDED" && <Alert severity="success">꼬막 반환 완료</Alert>}
+                            {["COMPLETED", "FAILED"].includes(selectedReport.status) && ["CONSUMED", "REVIEW_REQUIRED"].includes(selectedReport.point_status) && (
+                              <Button variant="outlined" color="warning" size="small" component={Link} to={`/proposals/${selectedReport.id}/refund`}>환불 요청</Button>
+                            )}
+                            {statusItem && <Typography variant="body2">{statusMessage || STATUS_LABELS[statusItem.status]}</Typography>}
+                          </Stack>
+                        </Paper>
+                      )}
+                    </Stack>
+                  </Paper>
+                ))}
+              </Stack>
+
+              {totalPages > 1 && (
+                <Stack alignItems="center" sx={{ mt: 2.5 }}>
+                  <Pagination count={totalPages} page={page} onChange={(_, value) => loadList(value)} />
+                </Stack>
+              )}
+            </Paper>
+          )}
+        </Stack>
+      )}
+
+      {!isMobileProposal && (
       <Box
         sx={{
           display: "grid",
@@ -2907,10 +3910,11 @@ function ProposalsPage() {
         )}
 
       </Box>
+      )}
 
-      <ProposalLatestNewsWidget userId={user?.id} hidden={canvasOpen || helpStep !== null} />
+      <ProposalLatestNewsWidget userId={user?.id} hidden={isMobileProposal || canvasOpen || helpStep !== null} />
 
-      {!canvasOpen && helpStep === null && (
+      {!isMobileProposal && !canvasOpen && helpStep === null && (
         <Button
           variant="contained"
           aria-label="문서 캔버스 열기"
@@ -2923,7 +3927,7 @@ function ProposalsPage() {
           캔버스
         </Button>
       )}
-      {!showInlineVideoColumn && !canvasOpen && helpStep === null && (
+      {!isMobileProposal && !showInlineVideoColumn && !canvasOpen && helpStep === null && (
         <Button
           variant="contained"
           aria-label="기능 설명 영상 다시 보기"

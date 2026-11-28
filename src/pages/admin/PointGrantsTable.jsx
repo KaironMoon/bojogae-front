@@ -12,10 +12,10 @@ const date = (value) => value ? new Date(value).toLocaleString('ko-KR', { timeZo
 // eslint-disable-next-line react/prop-types
 export default function PointGrantsTable({ items, hideType = false }) {
   const [expanded, setExpanded] = useState(null);
-  return <TableContainer sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+  return <TableContainer sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2.5, bgcolor: '#FFFFFF' }}>
     <Table size="small" sx={{ minWidth: 850 }} aria-label="지급 건별 꼬막 구성">
-      <TableHead sx={{ bgcolor: '#f8fafc' }}><TableRow>
-        {['상세', ...(hideType ? [] : ['구분']), '지급 출처', '지급량', '사용 가능', '예약 중', '만료일 (한국 시간)', '상태'].map(label => <TableCell key={label} sx={{ whiteSpace: 'nowrap', fontWeight: 750 }}>{label}</TableCell>)}
+      <TableHead sx={{ '& .MuiTableCell-root': { bgcolor: '#F8FAFC', color: '#475569', fontWeight: 800, whiteSpace: 'nowrap', borderBottom: '1px solid #E2E8F0' } }}><TableRow>
+        {['상세', ...(hideType ? [] : ['구분']), '지급 출처', '지급량', '사용 가능', '예약 중', '만료일 (한국 시간)', '상태'].map(label => <TableCell key={label}>{label}</TableCell>)}
       </TableRow></TableHead>
       <TableBody>
         {/* eslint-disable-next-line react/prop-types */}

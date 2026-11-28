@@ -1,4 +1,5 @@
 import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
+import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import {
   Box,
   Button,
@@ -87,11 +88,19 @@ function isGroupRouteActive(pathname, item) {
   return (item.children || []).some((child) => pathMatches(pathname, child.path));
 }
 
-function PageLeftMenu({ onNavigate }) { // eslint-disable-line react/prop-types
+function PageLeftMenu({ onNavigate, inDrawer = false }) { // eslint-disable-line react/prop-types
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
   const [userMenuItems, setUserMenuItems] = useState(() => getCachedUserMenu());
+  const [adminMenuMode, setAdminMenuMode] = useState(() => (
+    location.pathname.startsWith("/admin/") ? "admin" : "user"
+  ));
+  useEffect(() => {
+    if (location.pathname.startsWith("/admin/")) {
+      setAdminMenuMode("admin");
+    }
+  }, [location.pathname]);
   const [openGroups, setOpenGroups] = useState(() => {
     const initial = {};
     for (const item of getCachedUserMenu()) {
@@ -290,17 +299,94 @@ function PageLeftMenu({ onNavigate }) { // eslint-disable-line react/prop-types
       component="nav"
       aria-label="주요 메뉴"
       sx={{
-        width: { xs: 280, sm: 264 },
-        minWidth: { xs: 280, sm: 264 },
+        width: inDrawer ? "100%" : { xs: 280, sm: 264 },
+        minWidth: inDrawer ? 0 : { xs: 280, sm: 264 },
         height: "100%",
         minHeight: "100%",
         display: "flex",
         flexDirection: "column",
         bgcolor: "#fff",
-        borderRight: "1px solid var(--bojogae-line)",
+        borderRight: inDrawer ? "none" : "1px solid var(--bojogae-line)",
+        ...(inDrawer && {
+          "& .MuiListItemButton-root": {
+            minHeight: 44,
+          },
+        }),
       }}
     >
-      <List sx={{ pt: 2, pb: 1 }}>
+      {inDrawer && (
+        <Box
+          sx={{
+            position: "sticky",
+            top: 0,
+            zIndex: 2,
+            bgcolor: "#fff",
+            borderBottom: "1px solid #eef1f5",
+            px: 1.75,
+            pt: 1.25,
+            pb: user?.role === "ADMIN" ? 1.25 : 1,
+          }}
+        >
+          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 850, color: "#0f172a", letterSpacing: "-0.02em" }}>
+              메뉴
+            </Typography>
+            <IconButton size="small" aria-label="메뉴 닫기" onClick={() => onNavigate?.()}>
+              <CloseRoundedIcon fontSize="small" />
+            </IconButton>
+          </Box>
+          {user?.role === "ADMIN" && (
+            <Box
+              role="tablist"
+              aria-label="메뉴 영역 전환"
+              sx={{
+                mt: 1,
+                p: 0.5,
+                borderRadius: 2.5,
+                bgcolor: "#F1F5F9",
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: 0.5,
+              }}
+            >
+              {[
+                { id: "user", label: "설계사 메뉴" },
+                { id: "admin", label: "관리자 메뉴" },
+              ].map((tab) => {
+                const active = adminMenuMode === tab.id;
+                return (
+                  <Button
+                    key={tab.id}
+                    type="button"
+                    size="small"
+                    role="tab"
+                    aria-selected={active}
+                    onClick={() => setAdminMenuMode(tab.id)}
+                    sx={{
+                      minHeight: 34,
+                      borderRadius: 2,
+                      fontSize: 12.5,
+                      fontWeight: active ? 850 : 700,
+                      color: active ? "#006E43" : "#475569",
+                      bgcolor: active ? "#ECFDF5" : "transparent",
+                      border: "1px solid",
+                      borderColor: active ? "#03C75A" : "transparent",
+                      boxShadow: active ? "0 1px 2px rgba(3,199,90,0.14)" : "none",
+                      "&:hover": {
+                        bgcolor: active ? "#ECFDF5" : "#E2E8F0",
+                      },
+                    }}
+                  >
+                    {tab.label}
+                  </Button>
+                );
+              })}
+            </Box>
+          )}
+        </Box>
+      )}
+      {(!inDrawer || user?.role !== "ADMIN" || adminMenuMode === "user") && (
+      <List sx={{ pt: inDrawer ? 1.25 : 2, pb: 1 }}>
         {visibleUserMenus.map((item) => {
           const visibleChildren = (item.children || []).filter((child) => isChildEligibleForUser(child, user));
           if (item.kind === "hero") {
@@ -387,10 +473,11 @@ function PageLeftMenu({ onNavigate }) { // eslint-disable-line react/prop-types
           return renderMenuItem(item);
         })}
       </List>
+      )}
 
-      {user?.role === "ADMIN" && (
+      {user?.role === "ADMIN" && (!inDrawer || adminMenuMode === "admin") && (
         <>
-          <Divider sx={{ mx: 2, my: 1 }} />
+          {!inDrawer && <Divider sx={{ mx: 2, my: 1 }} />}
           <Typography
             variant="caption"
             sx={{ px: 2.75, pt: 1.25, pb: 0.75, color: "#94a3b8", fontWeight: 800, letterSpacing: "0.08em" }}

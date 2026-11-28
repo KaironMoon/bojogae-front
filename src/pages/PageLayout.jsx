@@ -10,6 +10,7 @@ import PageHeader from "@/pages/components/layout/PageHeader";
 import PageLeftMenu from "@/pages/components/layout/PageLeftMenu";
 import PageFooter from "@/pages/components/layout/PageFooter";
 import PagePopupNoticeHost from "@/pages/components/layout/PagePopupNoticeHost";
+import MobileBottomNav from "@/pages/components/layout/MobileBottomNav";
 
 function PageLayout({ publicAccess = false }) { // eslint-disable-line react/prop-types
   const theme = useTheme();
@@ -64,15 +65,16 @@ function PageLayout({ publicAccess = false }) { // eslint-disable-line react/pro
           slotProps={{
             paper: {
               sx: {
-                width: { xs: 280, sm: 264 },
-                top: { xs: 105, md: 65 },
-                height: { xs: "calc(100% - 105px)", md: "calc(100% - 65px)" },
+                width: { xs: "82vw", sm: 292 },
+                maxWidth: 320,
+                top: { xs: 57, md: 65 },
+                height: { xs: "calc(100% - 57px)", md: "calc(100% - 65px)" },
                 overflowY: "auto",
               },
             },
           }}
         >
-          <PageLeftMenu onNavigate={() => setMobileMenuOpen(false)} />
+          <PageLeftMenu inDrawer={compactMenu} onNavigate={() => setMobileMenuOpen(false)} />
         </Drawer>
         <Box sx={{ flexGrow: 1, minWidth: 0, backgroundColor: theme.palette.background.default }}>
           {reminderKey && dismissedReminder !== reminderKey && <Alert severity="warning" sx={{ m:2 }} onClose={() => setDismissedReminder(reminderKey)}
@@ -85,6 +87,12 @@ function PageLayout({ publicAccess = false }) { // eslint-disable-line react/pro
       </Box>
       <Divider />
       <PageFooter />
+      <Box sx={{ display: { xs: publicAccess ? "none" : "block", md: "none" }, height: 68 }} aria-hidden="true" />
+      <MobileBottomNav
+        hidden={publicAccess}
+        menuOpen={compactMenu && mobileMenuOpen}
+        onOpenMenu={() => setMobileMenuOpen((prev) => !prev)}
+      />
     </Container>
   );
 }

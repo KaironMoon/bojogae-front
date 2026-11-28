@@ -16,13 +16,22 @@ import {
   Pagination,
   Paper,
   Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
   TextField,
   Tooltip,
   Typography,
+  useMediaQuery,
 } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
-import RestoreRoundedIcon from "@mui/icons-material/RestoreRounded";
+import LibraryBooksOutlinedIcon from "@mui/icons-material/LibraryBooksOutlined";
+import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
 import ReplayRoundedIcon from "@mui/icons-material/ReplayRounded";
+import RestoreRoundedIcon from "@mui/icons-material/RestoreRounded";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import { useCallback, useEffect, useState } from "react";
 
@@ -42,9 +51,24 @@ import {
 import CustomerDetailDialog from "./CustomerDetailDialog";
 import GrantFreePointsDialog, { createPointRequestKey } from "./GrantFreePointsDialog";
 import ManualSubscriptionDialog from "./ManualSubscriptionDialog";
-
+import {
+  AdminEmptyState,
+  AdminFilterBar,
+  AdminPageContainer,
+  AdminPageHeader,
+  AdminTableCard,
+} from "./components/AdminPageShell";
 
 const STATUSES = ["", "QUEUED", "RUNNING", "CANCEL_REQUESTED", "COMPLETED", "FAILED", "CANCELLED"];
+
+const STATUS_COLOR = {
+  COMPLETED: "success",
+  FAILED: "error",
+  CANCELLED: "default",
+  RUNNING: "primary",
+  QUEUED: "info",
+  CANCEL_REQUESTED: "warning",
+};
 
 function bytes(value) {
   if (!value) return "0 B";
@@ -61,11 +85,6 @@ function providerErrorMessage(value) {
   }
 }
 
-// LLM 호출 단계별 소요 시간(ms)을 가로 막대 타임라인으로 보여준다.
-// response_metadata는 관리자 상세 조회에만 내려오므로(일반 사용자에게는
-// 노출되지 않음) 이 관리자 페이지에서만 표시한다. 구간 폭은 각 단계
-// 소요 시간에 비례하고, 스트림 단계 전에 실패한 호출은 "실패까지" 구간으로
-// 표시해 어디서 멈췄는지 보여준다.
 /* eslint-disable react/prop-types -- timing은 자유 형식 JSON(response_metadata.timing)이라 shape을 고정할 수 없다 */
 function TimingTimeline({ timing }) {
   if (!timing) return null;
@@ -132,8 +151,11 @@ function ProposalOwnerLinks({ item, onSelectUser }) {
     type: "button",
     underline: "hover",
     color: "primary",
-    onClick: () => onSelectUser(item),
-    sx: { font: "inherit", fontWeight: 600, verticalAlign: "baseline" },
+    onClick: (event) => {
+      event.stopPropagation();
+      onSelectUser(item);
+    },
+    sx: { font: "inherit", fontWeight: 700, verticalAlign: "baseline" },
   };
   return (
     <>
@@ -151,6 +173,8 @@ function ProposalOwnerLinks({ item, onSelectUser }) {
 /* eslint-enable react/prop-types */
 
 function AdminProposalsPage() {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const { clearIdentity } = useAuth();
   const [result, setResult] = useState({ items: [], page: 1, total_pages: 0, total: 0 });
   const [status, setStatus] = useState("");
@@ -288,80 +312,239 @@ function AdminProposalsPage() {
   };
 
   return (
-    <Box sx={{ p: { xs: 2, md: 4 }, maxWidth: 1440, mx: "auto" }}>
-      <Typography variant="h4" sx={{ fontWeight: 800 }}>보고서 관리</Typography>
-      <Typography color="text.secondary" sx={{ mb: 3 }}>본문을 노출하지 않고 파일, 처리 상태, 토큰 사용량을 관리합니다.</Typography>
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-      <Paper component="form" onSubmit={search} variant="outlined" sx={{ p: 2, borderRadius: 3, mb: 2 }}>
-        <Stack direction={{ xs: "column", md: "row" }} gap={2} alignItems={{ md: "center" }} flexWrap="wrap">
-          <TextField select label="상태" value={status} onChange={(event) => setStatus(event.target.value)} sx={{ minWidth: { md: 190 } }}>
-            {STATUSES.map((value) => <MenuItem key={value || "ALL"} value={value}>{value || "전체 상태"}</MenuItem>)}
+    <AdminPageContainer maxWidth={1440}>
+      <AdminPageHeader
+        icon={LibraryBooksOutlinedIcon}
+        badge={`총 ${(result.total || 0).toLocaleString()}건`}
+        title="보고서 관리"
+        description="본문을 노출하지 않고 파일, 생성 상태, 토큰·꼬막 사용량을 관리합니다."
+        actions={(
+          <Button variant="outlined" size="small" startIcon={<RefreshRoundedIcon />} onClick={() => load(result.page)}>
+            새로고침
+          </Button>
+        )}
+      />
+
+      {error && <Alert severity="error" onClose={() => setError("")} sx={{ mb: 2, borderRadius: 2.5 }}>{error}</Alert>}
+
+      <AdminFilterBar>
+        <Stack component="form" onSubmit={search} direction={{ xs: "column", md: "row" }} gap={1.25} alignItems={{ xs: "stretch", md: "center" }}>
+          <TextField
+            select
+            size="small"
+            label="상태"
+            value={status}
+            onChange={(event) => setStatus(event.target.value)}
+            sx={{ minWidth: { xs: "100%", md: 180 } }}
+          >
+            {STATUSES.map((value) => (
+              <MenuItem key={value || "ALL"} value={value}>{value || "전체 상태"}</MenuItem>
+            ))}
           </TextField>
           <TextField
+            size="small"
             label="검색"
             placeholder="사용자 ID, 이름, 닉네임, 이메일, 보고서 제목 검색"
             value={draftQuery}
             inputProps={{ maxLength: 100 }}
             onChange={(event) => setDraftQuery(event.target.value)}
             InputProps={{ startAdornment: <InputAdornment position="start"><SearchRoundedIcon fontSize="small" /></InputAdornment> }}
-            sx={{ flex: 1, minWidth: { md: 320 } }}
+            fullWidth
           />
-          <FormControlLabel control={<Checkbox checked={includeDeleted} onChange={(event) => setIncludeDeleted(event.target.checked)} />} label="삭제 포함" />
-          <Button type="submit" variant="outlined">조회</Button>
-          {query && (
-            <Button onClick={() => { setDraftQuery(""); setQuery(""); }}>초기화</Button>
-          )}
-          <Typography variant="body2" color="text.secondary">총 {result.total}건</Typography>
+          <FormControlLabel
+            sx={{ whiteSpace: "nowrap", m: 0 }}
+            control={<Checkbox size="small" checked={includeDeleted} onChange={(event) => setIncludeDeleted(event.target.checked)} />}
+            label={<Typography variant="body2" fontWeight={650}>삭제 포함</Typography>}
+          />
+          <Stack direction="row" spacing={1} sx={{ flexShrink: 0 }}>
+            <Button type="submit" variant="contained" size="small" sx={{ minHeight: 40, px: 2.5 }}>조회</Button>
+            {(query || status || includeDeleted) && (
+              <Button
+                size="small"
+                variant="outlined"
+                sx={{ minHeight: 40 }}
+                onClick={() => {
+                  setDraftQuery("");
+                  setQuery("");
+                  setStatus("");
+                  setIncludeDeleted(false);
+                }}
+              >
+                초기화
+              </Button>
+            )}
+          </Stack>
         </Stack>
-      </Paper>
-      {loading ? <Box sx={{ py: 10, display: "grid", placeItems: "center" }}><CircularProgress /></Box> : (
-        <Stack spacing={1.25}>
-          {result.items.map((item) => (
-            <Paper key={item.id} variant="outlined" sx={{ p: 2, borderRadius: 3, opacity: item.is_deleted ? 0.65 : 1 }}>
-              <Stack direction={{ xs: "column", lg: "row" }} justifyContent="space-between" gap={2}>
-                <Box>
-                  <Stack direction="row" gap={1} alignItems="center" flexWrap="wrap">
-                    <Typography sx={{ fontWeight: 750 }}>{item.title}</Typography>
-                    <Chip label={item.status} size="small" />
-                    <Chip label={`${item.point_cost.toLocaleString()}꼬막 · ${item.point_status || "-"}`} size="small" color={item.point_status === "REVIEW_REQUIRED" ? "warning" : "default"} />
+      </AdminFilterBar>
+
+      {loading ? (
+        <Box sx={{ py: 10, display: "grid", placeItems: "center" }}>
+          <CircularProgress />
+        </Box>
+      ) : !result.items.length ? (
+        <AdminEmptyState
+          icon={LibraryBooksOutlinedIcon}
+          title={query || status ? "검색 조건에 맞는 보고서가 없습니다." : "등록된 보고서가 없습니다."}
+          description="검색어나 상태 조건을 확인해 주세요."
+        />
+      ) : (
+        <>
+          {/* Mobile card list */}
+          <Stack spacing={1.25} sx={{ display: { xs: "flex", md: "none" } }}>
+            {result.items.map((item) => (
+              <Paper key={item.id} variant="outlined" sx={{ p: 1.75, borderRadius: 3, opacity: item.is_deleted ? 0.65 : 1 }}>
+                <Stack spacing={1}>
+                  <Stack direction="row" justifyContent="space-between" alignItems="flex-start" gap={1}>
+                    <Typography variant="subtitle2" fontWeight={850} sx={{ overflowWrap: "anywhere", flex: 1 }}>
+                      #{item.id} · {item.title}
+                    </Typography>
+                    <Chip label={item.status} size="small" color={STATUS_COLOR[item.status] || "default"} />
+                  </Stack>
+                  <Stack direction="row" gap={0.75} flexWrap="wrap" useFlexGap>
+                    <Chip
+                      label={`${item.point_cost.toLocaleString()}꼬막 · ${item.point_status || "-"}`}
+                      size="small"
+                      color={item.point_status === "REVIEW_REQUIRED" ? "warning" : "default"}
+                      variant="outlined"
+                    />
                     {item.is_deleted && <Chip label="삭제됨" size="small" color="error" />}
                   </Stack>
-                  <Typography variant="body2" color="text.secondary">
-                    #{item.id} · <ProposalOwnerLinks item={item} onSelectUser={openCustomerDetail} /> · {item.prompt_title} v{item.prompt_version_no}
+                  <Typography variant="body2" color="text.secondary" sx={{ overflowWrap: "anywhere" }}>
+                    <ProposalOwnerLinks item={item} onSelectUser={openCustomerDetail} />
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
-                    생성 시작: {startedAt(item.started_at)} · 입력 {bytes(item.total_input_bytes)} · 출력 {bytes(item.output_bytes)} · 호출 {item.call_count} · 토큰 {item.total_tokens.toLocaleString()}
+                    {item.prompt_title} v{item.prompt_version_no} · {startedAt(item.started_at)}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    입력 {bytes(item.total_input_bytes)} · 출력 {bytes(item.output_bytes)} · 토큰 {item.total_tokens.toLocaleString()}
+                  </Typography>
+                  <Stack direction="row" spacing={1} justifyContent="flex-end" sx={{ pt: 0.75, borderTop: "1px solid #F1F5F9" }}>
+                    <Button size="small" variant="outlined" onClick={() => openDetail(item.id)}>상세</Button>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      color={item.is_deleted ? "primary" : "error"}
+                      startIcon={item.is_deleted ? <RestoreRoundedIcon /> : <DeleteOutlineRoundedIcon />}
+                      onClick={() => toggleDelete(item)}
+                    >
+                      {item.is_deleted ? "복구" : "삭제"}
+                    </Button>
+                  </Stack>
+                </Stack>
+              </Paper>
+            ))}
+          </Stack>
+
+          {/* Desktop table */}
+          <AdminTableCard sx={{ display: { xs: "none", md: "block" } }}>
+            <Table size="small" aria-label="관리자 보고서 목록">
+              <TableHead>
+                <TableRow>
+                  <TableCell>보고서 · 프롬프트</TableCell>
+                  <TableCell>설계사</TableCell>
+                  <TableCell>상태 · 꼬막</TableCell>
+                  <TableCell align="right">파일 · 토큰</TableCell>
+                  <TableCell align="right">관리</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {result.items.map((item) => (
+                  <TableRow
+                    key={item.id}
+                    hover
+                    onClick={() => openDetail(item.id)}
+                    sx={{ cursor: "pointer", opacity: item.is_deleted ? 0.65 : 1 }}
+                  >
+                    <TableCell sx={{ py: 1.5, maxWidth: 340 }}>
+                      <Stack direction="row" spacing={0.75} alignItems="center" flexWrap="wrap" useFlexGap>
+                        <Typography variant="body2" fontWeight={850} sx={{ overflowWrap: "anywhere" }}>
+                          {item.title}
+                        </Typography>
+                        {item.is_deleted && <Chip label="삭제됨" size="small" color="error" sx={{ height: 20 }} />}
+                      </Stack>
+                      <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.25 }}>
+                        #{item.id} · {item.prompt_title} v{item.prompt_version_no}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+                        시작 {startedAt(item.started_at)}
+                      </Typography>
+                    </TableCell>
+                    <TableCell sx={{ maxWidth: 260, overflowWrap: "anywhere" }}>
+                      <Typography variant="body2" color="text.secondary">
+                        <ProposalOwnerLinks item={item} onSelectUser={openCustomerDetail} />
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Stack spacing={0.5} alignItems="flex-start">
+                        <Chip label={item.status} size="small" color={STATUS_COLOR[item.status] || "default"} sx={{ fontWeight: 750 }} />
+                        <Chip
+                          label={`${item.point_cost.toLocaleString()}꼬막 · ${item.point_status || "-"}`}
+                          size="small"
+                          color={item.point_status === "REVIEW_REQUIRED" ? "warning" : "default"}
+                          variant="outlined"
+                        />
+                      </Stack>
+                    </TableCell>
+                    <TableCell align="right" sx={{ whiteSpace: "nowrap" }}>
+                      <Typography variant="body2" fontWeight={750} sx={{ fontVariantNumeric: "tabular-nums" }}>
+                        토큰 {item.total_tokens.toLocaleString()}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+                        입력 {bytes(item.total_input_bytes)} · 출력 {bytes(item.output_bytes)} · 호출 {item.call_count}
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="right" sx={{ whiteSpace: "nowrap" }}>
+                      <Stack direction="row" spacing={0.75} justifyContent="flex-end" onClick={(e) => e.stopPropagation()}>
+                        <Button size="small" variant="outlined" onClick={() => openDetail(item.id)}>상세</Button>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          color={item.is_deleted ? "primary" : "error"}
+                          startIcon={item.is_deleted ? <RestoreRoundedIcon /> : <DeleteOutlineRoundedIcon />}
+                          onClick={() => toggleDelete(item)}
+                        >
+                          {item.is_deleted ? "복구" : "삭제"}
+                        </Button>
+                      </Stack>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </AdminTableCard>
+
+          {result.total_pages > 1 && (
+            <Stack alignItems="center" sx={{ mt: 2.5 }}>
+              <Pagination count={result.total_pages} page={result.page} color="primary" onChange={(_, value) => load(value)} />
+            </Stack>
+          )}
+        </>
+      )}
+
+      <Dialog open={Boolean(detail)} onClose={() => setDetail(null)} fullWidth maxWidth="md" fullScreen={isMobile}>
+        <DialogTitle sx={{ fontWeight: 850, overflowWrap: "anywhere" }}>
+          #{detail?.id} · {detail?.title}
+        </DialogTitle>
+        <DialogContent dividers>
+          {detail && (
+            <Stack spacing={2}>
+              <Paper variant="outlined" sx={{ p: 1.75, borderRadius: 2.5, bgcolor: "#F8FAFC" }}>
+                <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 1 }}>
+                  <Typography variant="body2">
+                    <strong>설계사:</strong> <ProposalOwnerLinks item={detail} onSelectUser={openCustomerDetail} />
+                  </Typography>
+                  <Typography variant="body2">
+                    <strong>생성 시작:</strong> {startedAt(detail.started_at)} (KST)
+                  </Typography>
+                  <Typography variant="body2">
+                    <strong>모델:</strong> {detail.llm_model} · thinking {detail.thinking_level} · 최대 {detail.max_output_tokens.toLocaleString()}
+                  </Typography>
+                  <Typography variant="body2">
+                    <strong>입출력:</strong> 입력 {bytes(detail.total_input_bytes)} · 출력 {bytes(detail.output_bytes)}
                   </Typography>
                 </Box>
-                <Stack direction="row" alignItems="center" gap={1}>
-                  <Button onClick={() => openDetail(item.id)}>상세</Button>
-                  <Button color={item.is_deleted ? "primary" : "error"} startIcon={item.is_deleted ? <RestoreRoundedIcon /> : <DeleteOutlineRoundedIcon />} onClick={() => toggleDelete(item)}>
-                    {item.is_deleted ? "복구" : "삭제"}
-                  </Button>
-                </Stack>
-              </Stack>
-            </Paper>
-          ))}
-          {!result.items.length && (
-            <Typography color="text.secondary" sx={{ py: 4, textAlign: "center" }}>
-              {query || status ? "검색 조건에 맞는 보고서가 없습니다." : "등록된 보고서가 없습니다."}
-            </Typography>
-          )}
-        </Stack>
-      )}
-      {result.total_pages > 1 && <Pagination count={result.total_pages} page={result.page} onChange={(_, value) => load(value)} sx={{ mt: 3 }} />}
+              </Paper>
 
-      <Dialog open={Boolean(detail)} onClose={() => setDetail(null)} fullWidth maxWidth="md">
-        <DialogTitle>{detail?.title}</DialogTitle>
-        <DialogContent>
-          {detail && (
-            <Stack spacing={2} sx={{ mt: 1 }}>
-              <Typography variant="body2">
-                설계사: <ProposalOwnerLinks item={detail} onSelectUser={openCustomerDetail} />
-              </Typography>
-              <Typography variant="body2">생성 시작: {startedAt(detail.started_at)} (한국 시간)</Typography>
-              <Typography variant="body2">LLM 모델 {detail.llm_model} · thinking {detail.thinking_level} · 최대 출력 {detail.max_output_tokens.toLocaleString()}</Typography>
-              <Typography variant="body2">입력 합계 {bytes(detail.total_input_bytes)} · 출력 {bytes(detail.output_bytes)}</Typography>
               <Alert severity={detail.point_status === "REVIEW_REQUIRED" ? "warning" : "info"}>
                 <Typography variant="body2">
                   꼬막 {detail.point_cost.toLocaleString()}꼬막 · {detail.point_status || "처리 전"}
@@ -375,6 +558,7 @@ function AdminProposalsPage() {
                   </Stack>
                 )}
               </Alert>
+
               {detail.status === "FAILED" && (
                 <Alert severity="error">
                   <Typography sx={{ fontWeight: 700 }}>
@@ -383,29 +567,34 @@ function AdminProposalsPage() {
                   <Typography variant="body2">{detail.error_message || "생성에 실패했습니다."}</Typography>
                 </Alert>
               )}
+
               {detail.files.map((file) => (
-                <Paper key={file.id} variant="outlined" sx={{ p: 1.5 }}>
-                  <Stack direction="row" justifyContent="space-between" alignItems="center">
-                    <Typography>{file.original_filename} · {bytes(file.size_bytes)}</Typography>
-                    <Stack direction="row">
-                      <Button size="small" onClick={() => window.open(proposalFileUrl(detail.id, "input", { fileId: file.id, admin: true }), "_blank", "noopener,noreferrer")}>열기</Button>
-                      <Button size="small" href={proposalFileUrl(detail.id, "input", { fileId: file.id, admin: true, download: true })}>다운로드</Button>
+                <Paper key={file.id} variant="outlined" sx={{ p: 1.5, borderRadius: 2 }}>
+                  <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ xs: "stretch", sm: "center" }} gap={1}>
+                    <Typography variant="body2" sx={{ overflowWrap: "anywhere" }}>
+                      {file.original_filename} · {bytes(file.size_bytes)}
+                    </Typography>
+                    <Stack direction="row" spacing={0.75} sx={{ flexShrink: 0 }}>
+                      <Button size="small" variant="outlined" onClick={() => window.open(proposalFileUrl(detail.id, "input", { fileId: file.id, admin: true }), "_blank", "noopener,noreferrer")}>열기</Button>
+                      <Button size="small" variant="outlined" href={proposalFileUrl(detail.id, "input", { fileId: file.id, admin: true, download: true })}>다운로드</Button>
                     </Stack>
                   </Stack>
                 </Paper>
               ))}
+
               {detail.status === "COMPLETED" && (
-                <Stack direction="row">
-                  <Button onClick={() => window.open(proposalFileUrl(detail.id, "output", { admin: true }), "_blank", "noopener,noreferrer")}>결과 열기</Button>
-                  <Button href={proposalFileUrl(detail.id, "output", { admin: true, download: true })}>결과 다운로드</Button>
+                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                  <Button variant="contained" size="small" onClick={() => window.open(proposalFileUrl(detail.id, "output", { admin: true }), "_blank", "noopener,noreferrer")}>결과 열기</Button>
+                  <Button variant="outlined" size="small" href={proposalFileUrl(detail.id, "output", { admin: true, download: true })}>결과 다운로드</Button>
                 </Stack>
               )}
+
               {detail.status === "COMPLETED" && detail.share_uuid && (
-                <Paper variant="outlined" sx={{ p: 1.5 }}>
+                <Paper variant="outlined" sx={{ p: 1.5, borderRadius: 2 }}>
                   <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={1} flexWrap="wrap">
-                    <Box>
+                    <Box sx={{ minWidth: 0 }}>
                       <Typography variant="body2" sx={{ fontWeight: 700 }}>공유 이미지 상태: {detail.share_status || "PENDING"}</Typography>
-                      <Typography variant="caption" color="text.secondary">{detail.share_uuid}</Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{ overflowWrap: "anywhere" }}>{detail.share_uuid}</Typography>
                     </Box>
                     <Stack direction="row" spacing={1}>
                       <Button size="small" onClick={() => window.open(`/s/${detail.share_uuid}`, "_blank", "noopener,noreferrer")}>공유 페이지 열기</Button>
@@ -427,8 +616,9 @@ function AdminProposalsPage() {
                   )}
                 </Paper>
               )}
+
               {detail.calls.map((call) => (
-                <Paper key={call.id} variant="outlined" sx={{ p: 2 }}>
+                <Paper key={call.id} variant="outlined" sx={{ p: 2, borderRadius: 2.5 }}>
                   <Typography sx={{ fontWeight: 700 }}>{call.provider} 호출 #{call.id} · {call.call_status}</Typography>
                   <Typography variant="body2" color="text.secondary">
                     입력 {call.input_tokens || 0} · 출력 {call.output_tokens || 0} · 사고 {call.thought_tokens || 0} · 캐시 {call.cached_tokens || 0} · 전체 {call.total_tokens || 0}
@@ -450,9 +640,9 @@ function AdminProposalsPage() {
                     </Alert>
                   )}
                   {call.response_available && (
-                    <Stack direction="row" sx={{ mt: 1 }}>
-                      <Button size="small" onClick={() => window.open(proposalRawResponseUrl(detail.id), "_blank", "noopener,noreferrer")}>LLM 원문 열기</Button>
-                      <Button size="small" href={proposalRawResponseUrl(detail.id, true)}>LLM 원문 다운로드</Button>
+                    <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+                      <Button size="small" variant="outlined" onClick={() => window.open(proposalRawResponseUrl(detail.id), "_blank", "noopener,noreferrer")}>LLM 원문 열기</Button>
+                      <Button size="small" variant="outlined" href={proposalRawResponseUrl(detail.id, true)}>LLM 원문 다운로드</Button>
                     </Stack>
                   )}
                 </Paper>
@@ -460,7 +650,9 @@ function AdminProposalsPage() {
             </Stack>
           )}
         </DialogContent>
-        <DialogActions><Button onClick={() => setDetail(null)}>닫기</Button></DialogActions>
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button variant="outlined" onClick={() => setDetail(null)}>닫기</Button>
+        </DialogActions>
       </Dialog>
 
       <CustomerDetailDialog
@@ -505,7 +697,7 @@ function AdminProposalsPage() {
           }}
         />
       )}
-    </Box>
+    </AdminPageContainer>
   );
 }
 

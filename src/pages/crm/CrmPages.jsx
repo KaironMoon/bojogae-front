@@ -197,7 +197,7 @@ export function CustomersPage() {
       }
     >
       <section className="crm-customer-switches">
-        <div><Tabs value={view} onChange={(_, v) => { selectCustomers([]); setView(v); }}><Tab value="list" icon={<ContractDesignIcon name="rows" />} iconPosition="start" label="내고객 목록" /><Tab value="map" icon={<ContractDesignIcon name="pin" />} iconPosition="start" label="주변 고객 지도" /></Tabs>
+        <div><Tabs value={view} variant="scrollable" scrollButtons="auto" onChange={(_, v) => { selectCustomers([]); setView(v); }}><Tab value="list" icon={<ContractDesignIcon name="rows" />} iconPosition="start" label="내고객 목록" /><Tab value="map" icon={<ContractDesignIcon name="pin" />} iconPosition="start" label="주변 고객 지도" /></Tabs>
         </div>
       </section>
       {view === "map" ? (

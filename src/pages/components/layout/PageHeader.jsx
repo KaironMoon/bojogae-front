@@ -32,13 +32,13 @@ function PageHeader({ onMenuClick }) { // eslint-disable-line react/prop-types
   return (
     <Toolbar
       sx={{
-        minHeight: { xs: "104px !important", md: "64px !important" },
+        minHeight: { xs: "56px !important", md: "64px !important" },
         px: { xs: 1.5, sm: 2, lg: 3 },
-        py: { xs: 1, md: 0 },
+        py: 0,
         display: "grid",
         gridTemplateColumns: { xs: "minmax(0, 1fr) auto", md: "auto minmax(0, 1fr) auto" },
         columnGap: { xs: 1, md: 2 },
-        rowGap: 0.75,
+        rowGap: { xs: 0, md: 0.75 },
         backgroundColor: theme.palette.background.header,
       }}
     >
@@ -74,7 +74,7 @@ function PageHeader({ onMenuClick }) { // eslint-disable-line react/prop-types
       </Stack>
       <Box component="form" role="search" aria-label="프롬프트 검색" onSubmit={searchPrompts} sx={{
         gridColumn: { xs: "1 / -1", md: 2 }, gridRow: { xs: 2, md: 1 }, width: "100%", maxWidth: 576, mx: "auto",
-        display: "flex", alignItems: "center", gap: 0.75, pl: 1.5, pr: 0.5, minHeight: 38,
+        display: { xs: "none", md: "flex" }, alignItems: "center", gap: 0.75, pl: 1.5, pr: 0.5, minHeight: 38,
         border: "2px solid #03C75A", borderRadius: 99, bgcolor: "background.paper",
         "&:focus-within": { boxShadow: "0 0 0 4px #D1FAE5" },
       }}>

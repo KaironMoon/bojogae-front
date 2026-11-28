@@ -20,3 +20,34 @@ button,
 a {
   -webkit-tap-highlight-color: transparent;
 }
+
+@media (max-width: 899.95px) {
+  html,
+  body,
+  #root {
+    overflow-x: clip;
+  }
+
+  .MuiTableContainer-root {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .MuiTableContainer-root > .MuiTable-root {
+    min-width: 560px;
+  }
+
+  .MuiDialog-paper {
+    margin: 12px;
+    max-height: calc(100dvh - 24px);
+  }
+
+  .MuiDialog-paperFullScreen {
+    margin: 0;
+    max-height: 100dvh;
+  }
+
+  .MuiTabs-scroller {
+    -webkit-overflow-scrolling: touch;
+  }
+}
