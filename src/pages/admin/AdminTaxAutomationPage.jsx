@@ -64,7 +64,6 @@ export default function AdminTaxAutomationPage() {
   const [overview, setOverview] = useState(null);
   const [transactions, setTransactions] = useState([]);
   const [jobs, setJobs] = useState([]);
-  const [connectors, setConnectors] = useState([]);
   const [partnerExports, setPartnerExports] = useState([]);
   const [toast, setToast] = useState({ open: false, severity: "info", message: "" });
 
@@ -82,17 +81,15 @@ export default function AdminTaxAutomationPage() {
   const loadAll = useCallback(async () => {
     setLoading(true);
     try {
-      const [ov, txs, jbs, conns, exps] = await Promise.all([
+      const [ov, txs, jbs, exps] = await Promise.all([
         adminTaxApi.getOverview({ tax_year: taxYear, period_code: periodCode }),
         adminTaxApi.listTransactions({ tax_year: taxYear, period_code: periodCode, limit: 600 }),
         adminTaxApi.listHometaxJobs(),
-        adminTaxApi.listConnectors(),
         adminTaxApi.listPartnerExports(),
       ]);
       setOverview(ov);
       setTransactions(txs);
       setJobs(jbs);
-      setConnectors(conns);
       setPartnerExports(exps);
     } catch (err) {
       notify("error", extractTaxError(err));
@@ -287,7 +284,6 @@ export default function AdminTaxAutomationPage() {
             apiClient={adminTaxApi}
             profiles={profilesList}
             jobs={jobs}
-            connectors={connectors}
             taxYear={taxYear}
             onReload={loadAll}
             onNotify={notify}

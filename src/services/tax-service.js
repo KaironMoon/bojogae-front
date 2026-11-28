@@ -60,17 +60,7 @@ export const agentTaxApi = {
   },
   deleteWithholding: (id) => api.delete(`/api/v1/tax/withholding/${id}`),
 
-  listConnectors: () => api.get("/api/v1/tax/connectors").then((r) => r.data.items),
-  createConnector: (body) => api.post("/api/v1/tax/connectors", body).then((r) => r.data),
-  deleteConnector: (id) => api.delete(`/api/v1/tax/connectors/${id}`),
-  syncBankConnector: (id, body) => api.post(`/api/v1/tax/connectors/${id}/sync-bank`, body, { timeout: 35000 }).then((r) => r.data),
-
-  rotateWebhookToken: (profileId) => api.post("/api/v1/tax/webhook/rotate-token", {}, { params: profileId ? { profile_id: profileId } : {} }).then((r) => r.data),
-  testCardSms: (body) => api.post("/api/v1/tax/webhook/test", body).then((r) => r.data),
-
   listHometaxJobs: () => api.get("/api/v1/tax/hometax/jobs").then((r) => r.data.items),
-  createHometaxJob: (body) => api.post("/api/v1/tax/hometax/jobs", body).then((r) => r.data),
-  downloadAgentScript: () => downloadBlob("/api/v1/tax/hometax/agent-script", {}, "bojogae_hometax_agent.py"),
 
   downloadLedgerXlsx: (taxYear) => downloadBlob("/api/v1/tax/exports/ledger.xlsx", { tax_year: taxYear }, `보조개_간편장부_${taxYear}.xlsx`),
   getDoubleEntry: (params) => api.get("/api/v1/tax/double-entry", params).then((r) => r.data),
@@ -117,14 +107,7 @@ export const adminTaxApi = {
     return api.upload("/api/v1/admin/tax/import/spreadsheet", form).then((r) => r.data);
   },
 
-  listConnectors: () => api.get("/api/v1/admin/tax/connectors").then((r) => r.data.items),
-  createConnector: (body) => api.post("/api/v1/admin/tax/connectors", body).then((r) => r.data),
-  deleteConnector: (id) => api.delete(`/api/v1/admin/tax/connectors/${id}`),
-  syncBankConnector: (id, body) => api.post(`/api/v1/admin/tax/connectors/${id}/sync-bank`, body, { timeout: 35000 }).then((r) => r.data),
-
   listHometaxJobs: () => api.get("/api/v1/admin/tax/hometax/jobs").then((r) => r.data.items),
-  createHometaxJob: (body) => api.post("/api/v1/admin/tax/hometax/jobs", body).then((r) => r.data),
-  downloadAgentScript: () => downloadBlob("/api/v1/admin/tax/hometax/agent-script", {}, "bojogae_hometax_agent.py"),
 
   downloadVatXlsx: (taxYear, periodCode) =>
     downloadBlob("/api/v1/admin/tax/exports/vat-ledger.xlsx", { tax_year: taxYear, period_code: periodCode }, `마음AI_부가세_매입매출장_${taxYear}_${periodCode}.xlsx`),
